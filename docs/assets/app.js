@@ -203,7 +203,7 @@
             (address ? '<span class="siren-meta">' + escapeHtml(address) + "</span>" : "") +
             (meta ? '<span class="siren-meta">' + escapeHtml(meta) + "</span>" : "") +
           "</div>" +
-          '<a class="btn btn-primary" href="' + 'mailto:contact@roadrunner-solutions.fr?subject=' + encodeURIComponent('Cockpit démo ' + (item.siren || '')) + '&body=' + encodeURIComponent('Bonjour,\n\nJe souhaite ouvrir mon cockpit de démo pour le SIREN : ' + (item.siren || '')) + '">Ouvrir mon cockpit de démo</a>' +
+          '<a class="btn btn-primary" href="presentation-aminia.html?siren=' + encodeURIComponent(item.siren || '') + '">Ouvrir mon cockpit de démo</a>' +
         "</div>"
       );
     };
