@@ -130,6 +130,151 @@
     paint();
   }
 
+  function initSirenSearch() {
+    var form = document.querySelector("[data-siren-search]");
+    if (!form) return;
+
+    var input = form.querySelector('input[name="siren"]');
+    var result = document.querySelector("[data-siren-result]");
+    var button = form.querySelector('button[type="submit"]');
+    if (!input || !result || !button) return;
+
+    var controller = null;
+    var requestId = 0;
+
+    var digits = function (value) {
+      return String(value || "").replace(/\D/g, "").slice(0, 9);
+    };
+
+    var validSiren = function (siren) {
+      if (!/^\d{9}$/.test(siren)) return false;
+      var sum = 0;
+      for (var i = 0; i < siren.length; i++) {
+        var digit = parseInt(siren.charAt(i), 10);
+        if (i % 2 === 1) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+      }
+      return sum % 10 === 0;
+    };
+
+    var formatSiren = function (siren) {
+      return siren.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
+    };
+
+    var escapeHtml = function (value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+      });
+    };
+
+    var show = function (html) {
+      result.innerHTML = html;
+      result.hidden = false;
+    };
+
+    var showError = function (message) {
+      show('<p class="siren-error">' + escapeHtml(message) + "</p>");
+    };
+
+    var render = function (item) {
+      var siege = item.siege || {};
+      var address = siege.adresse || [siege.code_postal, siege.libelle_commune].filter(Boolean).join(" ");
+      var activity = item.activite_principale ? "Activité " + item.activite_principale : "";
+      var created = item.date_creation ? "Créée en " + item.date_creation.slice(0, 4) : "";
+      var meta = [activity, created].filter(Boolean).join(" · ");
+      var name = item.nom_complet || "SIREN " + formatSiren(item.siren);
+      var subject = "Ouverture cockpit — " + name;
+      var body = "Bonjour,\n\nJe souhaite ouvrir mon cockpit Road Runner Solutions.\n\n" +
+        "Activité : " + name + "\n" +
+        "SIREN : " + formatSiren(item.siren) + "\n" +
+        (address ? "Adresse : " + address + "\n" : "") +
+        "\nMerci.";
+      var mailto = "mailto:contact@roadrunner-solutions.fr?subject=" +
+        encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+
+      show(
+        '<div class="siren-card">' +
+          "<div>" +
+            '<span class="siren-kicker">SIREN ' + escapeHtml(formatSiren(item.siren)) + "</span>" +
+            "<strong>" + escapeHtml(name) + "</strong>" +
+            (address ? '<span class="siren-meta">' + escapeHtml(address) + "</span>" : "") +
+            (meta ? '<span class="siren-meta">' + escapeHtml(meta) + "</span>" : "") +
+          "</div>" +
+          '<a class="btn btn-primary" href="' + escapeHtml(mailto) + '">Demander mon cockpit</a>' +
+        "</div>"
+      );
+    };
+
+    var search = function () {
+      var siren = digits(input.value);
+      input.value = siren;
+
+      if (siren.length !== 9) {
+        showError("Le SIREN doit contenir exactement 9 chiffres.");
+        input.focus();
+        return;
+      }
+
+      if (!validSiren(siren)) {
+        showError("Ce SIREN n'est pas valide. Vérifiez les 9 chiffres.");
+        input.focus();
+        return;
+      }
+
+      if (controller) controller.abort();
+      controller = new AbortController();
+      var currentId = ++requestId;
+      button.disabled = true;
+      show('<p class="siren-loading">Recherche dans la base Sirene…</p>');
+
+      fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(siren) + "&page=1&per_page=1", {
+        signal: controller.signal,
+        headers: { Accept: "application/json" }
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          var item = (data.results || []).filter(function (row) {
+            return row.siren === siren;
+          })[0];
+
+          if (!item) {
+            showError("Aucune activité trouvée pour ce SIREN. Vérifiez les 9 chiffres.");
+            return;
+          }
+          render(item);
+        })
+        .catch(function (error) {
+          if (error.name === "AbortError") return;
+          showError("Recherche indisponible pour le moment. Réessayez dans un instant.");
+        })
+        .finally(function () {
+          if (currentId === requestId) button.disabled = false;
+        });
+    };
+
+    input.addEventListener("input", function () {
+      input.value = digits(input.value);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      search();
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    var initial = digits(params.get("siren") || "");
+    if (initial.length === 9) {
+      input.value = initial;
+      search();
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var nav = document.querySelector(".nav");
     if (nav) {
@@ -141,6 +286,7 @@
     }
 
     initVoiceDemo(reduceMotion);
+    initSirenSearch();
 
     if (reduceMotion) return;
 

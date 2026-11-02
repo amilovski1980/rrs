@@ -1,6 +1,6 @@
 # Road Runner Solutions
 
-Cockpit comptable multi-sociétés pour artisans et dirigeants de TPE françaises.
+Cockpit comptable multi-activités pour bâtisseurs et dirigeants de TPE françaises.
 
 Saisie par SIREN (API Sirene INSEE), fiche légale à valider, portail comptable généré
 selon l'activité et le régime fiscal, écritures équilibrées, grand livre, balance et
