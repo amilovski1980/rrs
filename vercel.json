@@ -3,7 +3,7 @@
   "framework": null,
   "installCommand": "echo skip-install",
   "buildCommand": "echo static-site",
-  "outputDirectory": "docs",
+
   "cleanUrls": true,
   "functions": {
     "api/index.py": {
