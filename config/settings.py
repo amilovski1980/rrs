@@ -94,9 +94,23 @@ if DATABASE_URL.startswith("postgres"):
             "PORT": u.port or 5432,
         }
     }
+elif DATABASE_URL.startswith("sqlite"):
+    # Serverless / CI : base SQLite temporaire (ex. sqlite:////tmp/demo.sqlite3)
+    path = "/" + DATABASE_URL.replace("sqlite:", "").lstrip("/")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": path or "/tmp/demo.sqlite3",
+        }
+    }
 else:
     # Local sans Postgres : SQLite de secours (migrations OK, RLS non fonctionnelle)
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
+
+# Sessions signées en cookie : stateless, tolère le serverless (pas de table sessions).
+SESSION_ENGINE = env.get(
+    "SESSION_ENGINE", "django.contrib.sessions.backends.signed_cookies"
+)
 
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Europe/Paris"
@@ -109,9 +123,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-        if not DEBUG
-        else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
     },
 }
 MEDIA_URL = "media/"
@@ -184,4 +196,14 @@ CACHES = {
         "LOCATION": "roadrunner",
     }
 }
+
+# --- Agent vocal Aminia (SIP / VoIP) ---
+VOICE_SIP_HOST = env.get("VOICE_SIP_HOST", "")
+VOICE_SIP_WS_PATH = env.get("VOICE_SIP_WS_PATH", "/ws")
+VOICE_SIP_WS_PORT = env.get("VOICE_SIP_WS_PORT", "5060")
+VOICE_SIP_EXT = env.get("VOICE_SIP_EXT", "2000")      # poste affiché
+VOICE_SIP_USER = env.get("VOICE_SIP_USER", "2000")         # identifiant SIP (ex. 20000)
+VOICE_SIP_PASSWORD = env.get("VOICE_SIP_PASSWORD", "")
+VOICE_SIP_CALLEE = env.get("VOICE_SIP_CALLEE", "9999")  # poste appelé
+VOICE_AGENT_NAME = env.get("VOICE_AGENT_NAME", "Aminia")
 

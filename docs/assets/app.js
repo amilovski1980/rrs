@@ -130,6 +130,648 @@
     paint();
   }
 
+  function initSirenSearch() {
+    var form = document.querySelector("[data-siren-search]");
+    if (!form) return;
+
+    var input = form.querySelector('input[name="siren"]');
+    var result = document.querySelector("[data-siren-result]");
+    var button = form.querySelector('button[type="submit"]');
+    if (!input || !result || !button) return;
+
+    var controller = null;
+    var requestId = 0;
+
+    var digits = function (value) {
+      return String(value || "").replace(/\D/g, "").slice(0, 9);
+    };
+
+    var validSiren = function (siren) {
+      if (!/^\d{9}$/.test(siren)) return false;
+      var sum = 0;
+      for (var i = 0; i < siren.length; i++) {
+        var digit = parseInt(siren.charAt(i), 10);
+        if (i % 2 === 1) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+      }
+      return sum % 10 === 0;
+    };
+
+    var formatSiren = function (siren) {
+      return siren.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
+    };
+
+    var escapeHtml = function (value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+      });
+    };
+
+    var show = function (html) {
+      result.innerHTML = html;
+      result.hidden = false;
+    };
+
+    var showError = function (message) {
+      show('<p class="siren-error">' + escapeHtml(message) + "</p>");
+    };
+
+    var render = function (item) {
+      var siege = item.siege || {};
+      var address = siege.adresse || [siege.code_postal, siege.libelle_commune].filter(Boolean).join(" ");
+      var activity = item.activite_principale ? "Activité " + item.activite_principale : "";
+      var created = item.date_creation ? "Créée en " + item.date_creation.slice(0, 4) : "";
+      var meta = [activity, created].filter(Boolean).join(" · ");
+      var name = item.nom_complet || "SIREN " + formatSiren(item.siren);
+      var subject = "Ouverture cockpit — " + name;
+      var body = "Bonjour,\n\nJe souhaite ouvrir mon cockpit Road Runner Solutions.\n\n" +
+        "Activité : " + name + "\n" +
+        "SIREN : " + formatSiren(item.siren) + "\n" +
+        (address ? "Adresse : " + address + "\n" : "") +
+        "\nMerci.";
+      var mailto = "mailto:contact@roadrunner-solutions.fr?subject=" +
+        encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+
+      show(
+        '<div class="siren-card">' +
+          "<div>" +
+            '<span class="siren-kicker">SIREN ' + escapeHtml(formatSiren(item.siren)) + "</span>" +
+            "<strong>" + escapeHtml(name) + "</strong>" +
+            (address ? '<span class="siren-meta">' + escapeHtml(address) + "</span>" : "") +
+            (meta ? '<span class="siren-meta">' + escapeHtml(meta) + "</span>" : "") +
+          "</div>" +
+          '<a class="btn btn-primary" href="compte/demo/?next=' + encodeURIComponent("/cockpit/?siren=" + (item.siren || "")) + '">Ouvrir mon cockpit</a>' +
+        "</div>"
+      );
+    };
+
+    var search = function () {
+      var siren = digits(input.value);
+      input.value = siren;
+
+      if (siren.length !== 9) {
+        showError("Le SIREN doit contenir exactement 9 chiffres.");
+        input.focus();
+        return;
+      }
+
+      if (!validSiren(siren)) {
+        showError("Ce SIREN n'est pas valide. Vérifiez les 9 chiffres.");
+        input.focus();
+        return;
+      }
+
+      if (controller) controller.abort();
+      controller = new AbortController();
+      var currentId = ++requestId;
+      button.disabled = true;
+      show('<p class="siren-loading">Recherche dans la base Sirene…</p>');
+
+      fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(siren) + "&page=1&per_page=1", {
+        signal: controller.signal,
+        headers: { Accept: "application/json" }
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          var item = (data.results || []).filter(function (row) {
+            return row.siren === siren;
+          })[0];
+
+          if (!item) {
+            showError("Aucune activité trouvée pour ce SIREN. Vérifiez les 9 chiffres.");
+            return;
+          }
+          render(item);
+        })
+        .catch(function (error) {
+          if (error.name === "AbortError") return;
+          showError("Recherche indisponible pour le moment. Réessayez dans un instant.");
+        })
+        .finally(function () {
+          if (currentId === requestId) button.disabled = false;
+        });
+    };
+
+    input.addEventListener("input", function () {
+      input.value = digits(input.value);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      search();
+    });
+
+    var params = new URLSearchParams(window.location.search);
+    var initial = digits(params.get("siren") || "");
+    if (initial.length === 9) {
+      input.value = initial;
+      search();
+    }
+  }
+
+  function initActivityDemo() {
+    var select = document.querySelector("[data-activity-select]");
+    if (!select) return;
+
+    var activities = {
+      btp: {
+        company: "BTP Martin — SARL",
+        regime: "Réel simplifié",
+        ca: "128 400 €",
+        encaisse: "18 200 €",
+        tva: "9 640 €",
+        delta: "+18,2 %",
+        encaisseMeta: "4 factures",
+        tvaMeta: "CA3 · janv.",
+        bar: "72%",
+        floatTva: "9 640 € · CA3 janvier",
+        floatExpense: "Achat béton · 2 480 €",
+        items: ["Facture FAC-2026-00087 · Gros œuvre", "Achat béton · 2 480 €", "Attestation TVA · à jour"],
+        note: "Plan comptable BTP : achats 601, outillage 6063, entretien 615. TVA CA3 mensuelle."
+      },
+      plomberie: {
+        company: "Plomberie Bernard — SARL",
+        regime: "Réel simplifié",
+        ca: "86 200 €",
+        encaisse: "7 450 €",
+        tva: "4 310 €",
+        delta: "+9,6 %",
+        encaisseMeta: "2 factures",
+        tvaMeta: "CA3 · janv.",
+        bar: "58%",
+        floatTva: "4 310 € · CA3 janvier",
+        floatExpense: "Achat tuyauterie · 1 180 €",
+        items: ["Facture FAC-2026-00054 · Salle de bain", "Achat tuyauterie · 1 180 €", "Extrait RNE · KBIS"],
+        note: "Plan comptable plomberie : achats 601, outillage 6063, entretien 615. TVA CA3."
+      },
+      electricite: {
+        company: "Élec Durand — SARL",
+        regime: "Réel simplifié",
+        ca: "94 800 €",
+        encaisse: "12 600 €",
+        tva: "5 740 €",
+        delta: "+11,3 %",
+        encaisseMeta: "3 factures",
+        tvaMeta: "CA3 · janv.",
+        bar: "64%",
+        floatTva: "5 740 € · CA3 janvier",
+        floatExpense: "Achat câbles · 1 640 €",
+        items: ["Facture FAC-2026-00061 · Tableau", "Achat câbles · 1 640 €", "Attestation TVA · à jour"],
+        note: "Plan comptable électricité : achats 601, outillage 6063, entretien 615. TVA CA3."
+      },
+      menuiserie: {
+        company: "Menuiserie Dupont — SARL",
+        regime: "Réel simplifié",
+        ca: "48 250 €",
+        encaisse: "7 320 €",
+        tva: "2 145 €",
+        delta: "+12,4 %",
+        encaisseMeta: "3 factures",
+        tvaMeta: "CA12 · janv.",
+        bar: "64%",
+        floatTva: "2 145 € · CA12 janvier",
+        floatExpense: "Achat outillage · 1 240 €",
+        items: ["Facture FAC-2026-00042 · Cadres", "Écriture · Achat outillage", "Extrait RNE · KBIS"],
+        note: "Plan comptable menuiserie : achats 601, outillage 6063, entretien 615. TVA CA12."
+      },
+      coiffure: {
+        company: "Salon Léa — SARL",
+        regime: "Micro",
+        ca: "32 600 €",
+        encaisse: "1 240 €",
+        tva: "1 630 €",
+        delta: "+6,1 %",
+        encaisseMeta: "1 facture",
+        tvaMeta: "CA12 · janv.",
+        bar: "45%",
+        floatTva: "1 630 € · CA12 janvier",
+        floatExpense: "Achat produits · 420 €",
+        items: ["Facture FAC-2026-00023 · Prestations", "Achat produits · 420 €", "Déclaration TVA · CA12"],
+        note: "Plan comptable coiffure : achats 606, produits 607, entretien 615. TVA CA12."
+      },
+      restauration: {
+        company: "Restaurant Chez Paul — SARL",
+        regime: "Réel simplifié",
+        ca: "156 900 €",
+        encaisse: "4 800 €",
+        tva: "7 845 €",
+        delta: "+14,7 %",
+        encaisseMeta: "2 factures",
+        tvaMeta: "CA3 · janv.",
+        bar: "81%",
+        floatTva: "7 845 € · CA3 janvier",
+        floatExpense: "Achat denrées · 2 310 €",
+        items: ["Facture FAC-2026-00112 · Traiteur", "Achat denrées · 2 310 €", "Déclaration TVA · CA3"],
+        note: "Plan comptable restauration : denrées 601, petit équipement 6063, entretien 615. TVA CA3."
+      }
+    };
+
+    var setText = function (selector, value) {
+      var node = document.querySelector(selector);
+      if (node && value != null) node.textContent = value;
+    };
+
+    var update = function () {
+      var data = activities[select.value];
+      if (!data) return;
+
+      setText("[data-demo-company]", data.company);
+      setText("[data-demo-regime]", data.regime);
+      setText('[data-demo-kpi="ca"]', data.ca);
+      setText('[data-demo-kpi="encaisse"]', data.encaisse);
+      setText('[data-demo-kpi="tva"]', data.tva);
+      setText('[data-demo-delta="ca"]', data.delta);
+      setText('[data-demo-meta="encaisse"]', data.encaisseMeta);
+      setText('[data-demo-meta="tva"]', data.tvaMeta);
+      setText("[data-demo-float-tva]", data.floatTva);
+      setText("[data-demo-float-expense]", data.floatExpense);
+
+      var items = document.querySelectorAll("[data-demo-item]");
+      for (var i = 0; i < items.length; i++) {
+        if (data.items[i]) items[i].textContent = data.items[i];
+      }
+
+      var note = document.querySelector("[data-activity-note]");
+      if (note) note.textContent = data.note;
+
+      var bar = document.querySelector("[data-demo-bar]");
+      if (bar) bar.style.width = data.bar;
+    };
+
+    select.addEventListener("change", update);
+    update();
+  }
+
+  function initAgent() {
+    var root = document.querySelector("[data-agent]");
+    if (!root) return;
+
+    var openBtn = root.querySelector("[data-agent-open]");
+    var panel = root.querySelector("[data-agent-panel]");
+    var dialog = root.querySelector(".agent-dialog");
+    var mic = root.querySelector("[data-agent-mic]");
+    var status = root.querySelector("[data-agent-status]");
+    if (!openBtn || !panel || !dialog) return;
+
+    var closeButtons = root.querySelectorAll("[data-agent-close]");
+    var lastFocus = null;
+    var timers = [];
+    var listening = false;
+
+    var clearTimers = function () {
+      for (var i = 0; i < timers.length; i++) window.clearTimeout(timers[i]);
+      timers = [];
+    };
+
+    var setStatus = function (message) {
+      if (status) status.textContent = message;
+    };
+
+    var setState = function (state) {
+      dialog.classList.remove("is-listening", "is-thinking", "is-done");
+      if (state) dialog.classList.add(state);
+      if (mic) mic.classList.toggle("is-listening", state === "is-listening");
+    };
+
+    var reset = function () {
+      clearTimers();
+      listening = false;
+      setState("");
+      setStatus("Appuyez pour parler");
+    };
+
+    var open = function () {
+      lastFocus = document.activeElement;
+      panel.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      document.body.classList.add("agent-open");
+      reset();
+      window.setTimeout(function () {
+        if (mic) mic.focus();
+      }, 30);
+    };
+
+    var close = function () {
+      clearTimers();
+      panel.hidden = true;
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
+      setState("");
+      if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+      else openBtn.focus();
+    };
+
+    var preview = function () {
+      if (listening) return;
+      listening = true;
+      setState("is-listening");
+      setStatus("Je vous écoute…");
+
+      timers.push(window.setTimeout(function () {
+        setStatus("« Combien de TVA sur cette facture ? »");
+      }, 1300));
+      timers.push(window.setTimeout(function () {
+        setState("is-thinking");
+        setStatus("Aminia prépare la réponse…");
+      }, 2400));
+      timers.push(window.setTimeout(function () {
+        setState("is-done");
+        setStatus("Aperçu : la réponse vocale arrive bientôt.");
+        listening = false;
+      }, 3700));
+      timers.push(window.setTimeout(reset, 7200));
+    };
+
+    openBtn.addEventListener("click", open);
+    for (var i = 0; i < closeButtons.length; i++) {
+      closeButtons[i].addEventListener("click", close);
+    }
+    if (mic) mic.addEventListener("click", preview);
+
+    document.addEventListener("keydown", function (event) {
+      if (panel.hidden) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      var focusable = dialog.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
+  function initPhone() {
+    var root = document.querySelector("[data-agent]");
+    if (!root) return;
+
+    var panel = root.querySelector("[data-agent-panel]");
+    var callBtn = root.querySelector("[data-phone-call]");
+    if (!panel || !callBtn) return;
+
+    var phone = root.querySelector("[data-phone]");
+    var phoneStatus = root.querySelector("[data-phone-status]");
+    var phoneTimer = root.querySelector("[data-phone-timer]");
+    var muteBtn = root.querySelector("[data-phone-mute]");
+    var hangupBtn = root.querySelector("[data-phone-hangup]");
+    var keys = root.querySelectorAll("[data-phone-keys] .phone-key");
+    var phoneBox = phone;
+
+    var cfg = null;
+    var sipLib = null;
+    var simple = null;
+    var muted = 0;
+    var timerId = null;
+    var callStart = null;
+    var busy = 0;
+
+    var speak = function (text) {
+      try {
+        if (!("speechSynthesis" in window)) return;
+        var u = window.speechSynthesis ? new SpeechSynthesisUtterance(text) : null;
+        if (!u) return;
+        u.lang = "fr-FR";
+        u.rate = 1.02;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      } catch (e) { /* TTS indisponible : le texte reste affiché */ }
+    };
+
+    var setStatus = function (message) {
+      if (phoneStatus) phoneStatus.textContent = message;
+    };
+
+    var stopTimer = function () {
+      if (timerId) { window.clearInterval(timerId); timerId = null; }
+      if (phoneTimer) phoneTimer.hidden = true;
+      callStart = null;
+    };
+
+    var startTimer = function () {
+      callStart = Date.now();
+      if (phoneTimer) phoneTimer.hidden = false;
+      timerId = window.setInterval(function () {
+        if (callStart === null) return;
+        var s = Math.floor((Date.now() - callStart) / 1000);
+        var mm = (s / 60 | 0) < 10 ? "0" + (s / 60 | 0) : "" + (s / 60 | 0);
+        var ss = (s % 60) < 10 ? "0" + (s % 60) : "" + (s % 60);
+        if (phoneTimer) phoneTimer.textContent = mm + ":" + ss;
+      }, 500);
+    };
+
+    var resetPhone = function (message) {
+      stopTimer();
+      simple = null;
+      muted = 0;
+      busy = 0;
+      if (phoneBox) phoneBox.classList.remove("is-live");
+      if (muteBtn) muteBtn.textContent = "Muet";
+      callBtn.hidden = false;
+      if (phone) phone.hidden = false;
+      setStatus(message || "Appel terminé");
+    };
+
+    var loadSip = function (done) {
+      if (window.SIP) { done(); return; }
+      var el = document.createElement("script");
+      el.src = "https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js";
+      el.onload = function () { done(); };
+      el.onerror = function () { done(); };
+      document.head.appendChild(el);
+    };
+
+    var fetchConfig = function (done) {
+      if (cfg) { done(cfg); return; }
+      fetch("/agent-config", { headers: { Accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { cfg = data && data.sip ? data : null; done(cfg); })
+        .catch(function () { cfg = null; done(null); });
+    };
+
+    var demoGuide = function () {
+      var steps = [
+        "Mode démo : je vous guide par la voix.",
+        "Le tableau de bord est à gauche. Vos écritures sont dans le grand livre.",
+        "Pour la TVA, ouvrez la balance, puis la période à déclarer.",
+        "Sur le cockpit réel, je resterai à vos côtés pendant les appels."
+      ];
+      for (var i = 0; i < steps.length; i++) {
+        (function (t, delay) {
+          window.setTimeout(function () { setStatus(t); speak(t); }, delay);
+        })(steps[i], i * 3600);
+      }
+      window.setTimeout(function () {
+        resetPhone("Fin du guidage vocal");
+      }, (steps.length + 1) * 3600);
+    };
+
+    var startCall = function () {
+      if (busy) return;
+      busy = 1;
+      callBtn.hidden = true;
+      if (phone) phone.hidden = false;
+      if (phoneTimer) phoneTimer.hidden = true;
+      setStatus("Connexion au standard…");
+      speak("Je vous connecte au standard Aminia, poste 9999. Veuillez patienter.");
+
+      fetchConfig(function (config) {
+        if (!config) {
+          setStatus("Standard indisponible ici — guidage vocal en mode démo.");
+          busy = 0;
+          demoGuide();
+          return;
+        }
+        loadSip(function () {
+          sipLib = sipLib || window.SIP || null;
+          if (!sipLib) {
+            setStatus("Bibliothèque SIP chargée impossible — guidage vocal en mode démo.");
+            busy = 0;
+            demoGuide();
+            return;
+          }
+          var sip = config.sip;
+          var host = sip.host;
+          var wssList = sip.wss || [];
+          var tryWss = function (i) {
+            if (i >= wssList.length) {
+              setStatus("Le standard SIP n'a pas répondu — guidage vocal en mode démo.");
+              busy = 0;
+              demoGuide();
+              return;
+            }
+            try {
+              simple = new sipLib.SimpleUser({
+                aor: "sip:" + sip.user + "@" + host,
+                transportOptions: { server: wssList[i], traceSip: false },
+                authorizationUsername: sip.user,
+                authorizationPassword: sip.password,
+                displayName: "Aminia — Road Runner",
+                media: { constraints: { audio: true, video: false } }
+              });
+            } catch (err) {
+              tryWss(i + 1);
+              return;
+            }
+            var connected = 0;
+            simple.delegate = {
+              onCallCreated: function () {
+                setStatus("Appel vers le poste " + sip.callee + " en cours…");
+              },
+              onCallReceived: function () { /* entrant : non accepté en démo */ },
+              onCallProgress: function () { setStatus("Sonnerie au poste " + sip.callee + "…"); },
+              onCallEstablished: function () {
+                connected = 1;
+                if (phoneBox) phoneBox.classList.add("is-live");
+                setStatus("En ligne — Aminia vous guide par la voix.");
+                startTimer();
+                speak("Vous êtes en ligne. Je reste avec vous durant l'appel. Dites raccrocher quand vous voulez terminer.");
+              },
+              onCallHangup: function () {
+                speak("Appel terminé. À bientôt !");
+                resetPhone("Appel terminé");
+              },
+              onRegistered: function () {
+                setStatus("SIP enregistré — appel du poste " + sip.callee + "…");
+                simple.call("sip:" + sip.callee + "@" + host, {}).catch(function () {
+                  tryWss(i + 1);
+                });
+              },
+              onRegisterFailed: function () {
+                if (!connected) { tryWss(i + 1); }
+              },
+              onUnregistered: function () { /* fin de session */ }
+            };
+            var watch = window.setInterval(function () {
+              var session = simple && simple.session ? simple.session : null;
+              if (session && session.state === "Established" && !connected) {
+                connected = 1;
+                if (phoneBox) phoneBox.classList.add("is-live");
+                setStatus("En ligne — Aminia vous guide par la voix.");
+                startTimer();
+                speak("Vous êtes en ligne. Je reste avec vous durant l'appel.");
+              }
+              if (session && session.state === "Terminated") {
+                window.clearInterval(watch);
+                resetPhone(connected ? "Appel terminé" : "Le standard n'a pas décroché");
+              }
+            }, 700);
+            var reg = simple.register ? simple.register() : Promise.resolve();
+            Promise.resolve(reg).catch(function () { tryWss(i + 1); });
+          };
+          tryWss(0);
+        });
+      });
+    };
+
+    var hangUp = function () {
+      if (simple) {
+        try { simple.hangup(); } catch (e) { /* déjà raccroché */ }
+        try { simple.stop ? simple.stop() : null; } catch (e) { }
+      }
+      resetPhone("Appel terminé");
+    };
+
+    var toggleMute = function () {
+      if (!simple) return;
+      muted = muted ? 0 : 1;
+      try {
+        if (muted) simple.mute ? simple.mute() : null;
+        else simple.unmute ? simple.unmute() : null;
+      } catch (e) { /* fonctionnalités selon la session */ }
+      if (muteBtn) muteBtn.textContent = muted ? "Réactiver" : "Muet";
+      setStatus(muted ? "Micro coupé" : "Micro actif");
+    };
+
+    for (var k = 0; k < keys.length; k++) {
+      (function (key) {
+        key.addEventListener("click", function () {
+          if (simple && simple.session) {
+            try { simple.sendDTMF ? simple.sendDTMF(key.getAttribute("data-key")) : null; } catch (e) { }
+          }
+          setStatus("Touche " + key.getAttribute("data-key"));
+        });
+      })(keys[k]);
+    }
+
+    callBtn.addEventListener("click", startCall);
+    if (muteBtn) muteBtn.addEventListener("click", toggleMute);
+    if (hangupBtn) hangupBtn.addEventListener("click", hangUp);
+
+    if (window.MutationObserver) {
+      new MutationObserver(function () {
+        if (panel.hidden) {
+          stopTimer();
+          if (simple) {
+            try { simple.stop ? simple.stop() : null; } catch (e) { }
+          }
+          try { window.speechSynthesis ? window.speechSynthesis.cancel() : null; } catch (e) { }
+          resetPhone("Prêt à appeler");
+          if (phone) phone.hidden = true;
+        }
+      }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var nav = document.querySelector(".nav");
     if (nav) {
@@ -141,6 +783,10 @@
     }
 
     initVoiceDemo(reduceMotion);
+    initSirenSearch();
+    initActivityDemo();
+    initAgent();
+    initPhone();
 
     if (reduceMotion) return;
 

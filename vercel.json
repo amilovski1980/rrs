@@ -4,5 +4,28 @@
   "installCommand": "echo skip-install",
   "buildCommand": "echo static-site",
   "outputDirectory": "docs",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "includeFiles": "config/**,companies/**,accounts/**,accounting/**,documents/**,ai/**,integrations/**,billing/**,core/**,static/**,requirements.txt"
+    }
+  },
+  "rewrites": [
+    { "source": "/cockpit", "destination": "/api/index" },
+    { "source": "/cockpit/:path*", "destination": "/api/index" },
+    { "source": "/compte", "destination": "/api/index" },
+    { "source": "/compte/:path*", "destination": "/api/index" },
+    { "source": "/compta", "destination": "/api/index" },
+    { "source": "/compta/:path*", "destination": "/api/index" },
+    { "source": "/ajouter", "destination": "/api/index" },
+    { "source": "/ajouter/:path*", "destination": "/api/index" },
+    { "source": "/admin", "destination": "/api/index" },
+    { "source": "/admin/:path*", "destination": "/api/index" },
+    { "source": "/agent-config", "destination": "/api/index" },
+    { "source": "/static/css/app.css", "destination": "/assets/app.css" },
+    { "source": "/static/js/app.js", "destination": "/assets/app.js" },
+    { "source": "/static/img/:path*", "destination": "/assets/:path*" },
+    { "source": "/static/:path*", "destination": "/assets/:path*" }
+  ]
 }

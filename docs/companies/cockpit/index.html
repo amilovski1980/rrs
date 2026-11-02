@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord client — Road Runner Solutions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/assets/logo.svg">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/assets/app.css">
+  
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="#">
+      <img src="/assets/logo.svg" alt="">
+      <span class="brand-text">
+        <b>Road Runner</b>
+        <small>Solutions</small>
+      </span>
+    </a>
+
+    <div class="nav-sec">Pilotage</div>
+    <a class="side-link active" href="#">
+      <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+
+</span> Cockpit
+    </a>
+    <a class="side-link " href="#">
+      <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+
+</span> Ajouter une société
+    </a>
+
+    <div class="nav-sec">Comptabilité</div>
+    <a class="side-link " href="#">
+      <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m14 6 4 4"/></svg>
+
+</span> Nouvelle écriture
+    </a>
+    <a class="side-link " href="#">
+      <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+
+</span> Grand livre
+    </a>
+    <a class="side-link " href="#">
+      <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 21h14M4 7h16"/><path d="m4 7-2 6a3 3 0 0 0 6 0L6 7M20 7l2 6a3 3 0 0 1-6 0l2-6"/></svg>
+
+</span> Balance
+    </a>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <span class="avatar">D</span>
+        <span>
+          <b>demo@roadrunner-solutions.fr</b>
+          <small>Espace artisan</small>
+        </span>
+      </div>
+      
+      <a class="side-link" href="#">
+        <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg>
+
+</span> Mon profil
+      </a>
+      <form method="post" action="/compte/logout/">
+        <input type="hidden" name="csrfmiddlewaretoken" value="uV5XnLE2ObK4pT1RWQYXa0hgNzxaJkvYjUsIAQlEmSmCsqCG03mAXRFCkLajcPQw">
+        <button class="side-link" type="submit">
+          <span class="side-ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+
+</span> Déconnexion
+        </button>
+      </form>
+      
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">Mon espace</div>
+      <div class="top-actions">
+        <span class="badge badge-blue">Menuiserie Dupont — SARL</span>
+        <a class="btn btn-ghost btn-sm" href="/">Site vitrine</a>
+      </div>
+    </header>
+    <main class="content">
+      
+<div class="page-head">
+  <div>
+    <h1>Bonjour</h1>
+    <p class="sub">Voici l'état de vos sociétés et vos derniers travaux comptables.</p>
+  </div>
+  <a class="btn btn-primary" href="#">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+
+ Ajouter une société
+  </a>
+</div>
+
+
+<div class="grid g3" style="margin-bottom:24px">
+  <div class="kpi">
+    <div class="l">Sociétés pilotées</div>
+    <div class="v">1</div>
+    <div class="d">Espaces cloisonnés par société</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Comptes actifs</div>
+    <div class="v">34</div>
+    <div class="d">Plan comptable de Menuiserie Dupont — SARL</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Journaux</div>
+    <div class="v">5</div>
+    <div class="d">Réel simplifié</div>
+  </div>
+</div>
+
+<h2 style="margin:0 0 12px">Vos sociétés</h2>
+<div class="companies" style="margin-bottom:28px">
+  
+  <a class="company sel"
+     href="#">
+    <h3>Menuiserie Dupont — SARL</h3>
+    <div class="s">SARL — SIREN 812345678</div>
+    <div class="tags">
+      <span class="tag blue">Réel simplifié</span>
+      <span class="tag amber">
+        TVA (CA3/CA12)
+      </span>
+      <span class="tag">34 comptes</span>
+    </div>
+  </a>
+  
+</div>
+
+
+<div class="card card-tight">
+  <div class="card-head">
+    <h3>Menuiserie Dupont — SARL</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-ghost btn-sm" href="#">Grand livre</a>
+      <a class="btn btn-ghost btn-sm" href="#">Balance</a>
+      <a class="btn btn-primary btn-sm" href="#">Nouvelle écriture</a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="grid g2" style="align-items:start">
+      <div>
+        <h2 style="margin:0 0 10px;font-size:18px">Journaux actifs</h2>
+        <table>
+          <thead><tr><th>Code</th><th>Nom</th><th>Type</th></tr></thead>
+          <tbody>
+            
+            <tr>
+              <td><b>ACH</b></td>
+              <td>Achats</td>
+              <td><span class="tag">Achats</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>VEN</b></td>
+              <td>Ventes</td>
+              <td><span class="tag">Ventes</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>BQ</b></td>
+              <td>Banque</td>
+              <td><span class="tag">Banque</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>CA</b></td>
+              <td>Caisse</td>
+              <td><span class="tag">Caisse</span></td>
+            </tr>
+            
+            <tr>
+              <td><b>OD</b></td>
+              <td>Opérations diverses</td>
+              <td><span class="tag">Opérations diverses</span></td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h2 style="margin:0 0 10px;font-size:18px">Informations</h2>
+        <table>
+          <tbody>
+            <tr><td class="muted">Forme</td><td><b>SARL</b></td></tr>
+            <tr><td class="muted">SIREN</td><td><b>812345678</b></td></tr>
+            <tr><td class="muted">Régime</td><td><b>Réel simplifié</b></td></tr>
+            <tr><td class="muted">TVA</td><td><b>TVA (CA3/CA12)</b></td></tr>
+            <tr><td class="muted">Début d'exercice</td><td><b>01/01/2026</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+    </main>
+  </div>
+</div>
+<script src="/assets/app.js" defer></script>
+</body>
+</html>
