@@ -203,7 +203,7 @@
             (address ? '<span class="siren-meta">' + escapeHtml(address) + "</span>" : "") +
             (meta ? '<span class="siren-meta">' + escapeHtml(meta) + "</span>" : "") +
           "</div>" +
-          '<a class="btn btn-primary" href="' + escapeHtml(mailto) + '">Demander mon cockpit</a>' +
+          '<a class="btn btn-primary" href="' + '/accounting/dashboard/?siren=' + encodeURIComponent(item.siren) + '">Ouvrir mon cockpit de démo</a>' +
         "</div>"
       );
     };
