@@ -601,19 +601,12 @@
 
     var loadSip = function (done) {
       if (window.SIP) { done(); return; }
-      if (!window.__sipPromise) {
-        window.__sipPromise = import("https://cdn.jsdelivr.net/npm/sip.js@0.21.2/lib/index.js")
-          .then(function (mod) {
-            var SimpleUser = mod.SimpleUser;
-            window.SIP = { SimpleUser: SimpleUser };
-            return SimpleUser;
-          })
-          .catch(function () { window.__sipPromise = null; return null; });
-      }
-      window.__sipPromise.then(function (SimpleUser) {
-        sipLib = { SimpleUser: SimpleUser };
-        done();
-      }).catch(function () { done(null); });
+      import("https://cdn.jsdelivr.net/npm/sip.js@0.21.2/lib/platform/web/index.js")
+        .then(function (mod) {
+          window.SIP = mod;
+          done();
+        })
+        .catch(function () { done(null); });
     };
 
     var fetchConfig = function (done) {
@@ -666,6 +659,13 @@
             return;
           }
           var sip = config.sip;
+          var SavedWebSocket = window.WebSocket;
+          if (!window.__sipWebSocketPatched) {
+            window.__sipWebSocketPatched = true;
+            window.WebSocket = function (url, protocols) {
+              return new SavedWebSocket(url, protocols || "sip");
+            };
+          }
           var sipHostEl = root.querySelector("[data-sip-host]");
           var sipExtEl = root.querySelector("[data-sip-ext]");
           var sipCalleeEl = root.querySelector("[data-sip-callee]");
@@ -681,7 +681,7 @@
             var path = slash === -1 ? "/ws" : first.slice(slash);
             wssList = [
               "wss://" + sip.host + ":" + port + path,
-              wssList[1] || ("wss://" + sip.host + ":8089" + (sip.wssPath || "/ws"))
+              wssList[1] || ("wss://" + sip.host + ":443" + (sip.wssPath || "/ws"))
             ];
           }
           var tryWss = function (i) {
@@ -694,9 +694,11 @@
             try {
               simple = new sipLib.SimpleUser(wssList[i], {
                 aor: "sip:" + ext + "@" + host,
-                transportOptions: { server: wssList[i], traceSip: false },
-                authorizationUsername: sip.user,
-                authorizationPassword: sip.password,
+                transportOptions: { server: wssList[i], traceSip: false, wsProtocol: "sip" },
+                userAgentConfiguration: {
+                  authorizationUsername: sip.user,
+                  authorizationPassword: sip.password
+                },
                 displayName: "Aminia — Road Runner",
                 media: { constraints: { audio: true, video: false } }
               });
@@ -747,8 +749,11 @@
                 resetPhone(connected ? "Appel terminé" : "Le standard n'a pas décroché");
               }
             }, 700);
-            var reg = simple.register ? simple.register() : Promise.resolve();
-            Promise.resolve(reg).catch(function () { tryWss(i + 1); });
+            var go = (simple.connect ? simple.connect() : Promise.resolve())
+              .then(function () {
+                return simple.register ? simple.register() : null;
+              })
+              .catch(function () { tryWss(i + 1); });
           };
           tryWss(0);
         });

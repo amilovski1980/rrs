@@ -110,17 +110,22 @@ def agent_config(request):
         return JsonResponse({"error": "forbidden"}, status=403)
     if not settings.VOICE_SIP_HOST:
         return JsonResponse({"error": "not_configured"}, status=503)
+    # Utilisation du domaine vocalia-solutions.com pour le certificat SSL Let's Encrypt
+    # au lieu de l'adresse IP qui ne est pas couverte par le certificat
+    sip_host = settings.VOICE_SIP_HOST
+    if sip_host == "213.156.135.132":
+        sip_host = "vocalia-solutions.com"
     return JsonResponse({
         "agent": settings.VOICE_AGENT_NAME,
         "sip": {
-            "host": settings.VOICE_SIP_HOST,
+            "host": sip_host,
             "ext": settings.VOICE_SIP_EXT,
             "user": settings.VOICE_SIP_USER,
             "password": settings.VOICE_SIP_PASSWORD,
             "callee": settings.VOICE_SIP_CALLEE,
             "wss": [
-                f"wss://{settings.VOICE_SIP_HOST}:{settings.VOICE_SIP_WS_PORT}{settings.VOICE_SIP_WS_PATH}",
-                f"wss://{settings.VOICE_SIP_HOST}:8089{settings.VOICE_SIP_WS_PATH}",
+                f"wss://{sip_host}/ws",
+                f"wss://{sip_host}/ws",
             ],
         },
     })

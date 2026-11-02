@@ -5,7 +5,7 @@
     </span>
     <span class="agent-fab-text">Agent</span>
   </button>
-  <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
+  <div class="agent-panel" id="agent-panel" data-agent-panel style="max-width:320px;padding:12px;">
     <div class="agent-panel-backdrop" data-agent-close aria-hidden="true"></div>
     <div class="agent-dialog" role="dialog" aria-modal="true" aria-labelledby="agent-title" aria-describedby="agent-desc">
       <button class="agent-close" type="button" data-agent-close aria-label="Fermer l'agent">×</button>
@@ -13,66 +13,26 @@
         <span class="agent-ring r1"></span>
         <span class="agent-ring r2"></span>
         <span class="agent-ring r3"></span>
-        <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+        <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
       </div>
-      <h2 id="agent-title">Agent Road Runner</h2>
-      <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
-      <p class="agent-desc" id="agent-desc">Aminia vous guide par la voix : lecteur, saisie, compta. Appelez le standard vocal du poste 9999.</p>
+      <h2 id="agent-title" style="font-size:12px;margin:4px 0 0;">Agent Road Runner</h2>
+      <p class="agent-status" data-agent-status style="font-size:10px;margin:4px 0 0;" role="status" aria-live="polite">Appuyez pour parler</p>
+      <p class="agent-desc" id="agent-desc" style="font-size:10px;margin:4px 0 0;">Aminia vousguide par la voix : lecteur, saisie, compta. Appelez le standard vocal du poste 9999.</p>
 
-      <div class="phone" data-phone hidden>
-        <div class="phone-peer">
-          <span class="phone-orb" aria-hidden="true">
-            <span class="agent-ring r1"></span>
-            <span class="agent-ring r2"></span>
-            <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
-          </span>
-          <b class="phone-name">Standard Aminia 🔊</b>
-          <span class="phone-ext">Poste {{ VOICE_SIP_CALLEE|default:"9999" }}</span>
-        </div>
-        <div class="phone-status" data-phone-status role="status" aria-live="polite">Prêt à appeler</div>
-        <div class="phone-timer" data-phone-timer hidden>00:00</div>
-        <div class="phone-keys" data-phone-keys aria-label="Clavier téléphonique">
-          <button class="phone-key" type="button" data-key="1">1</button>
-          <button class="phone-key" type="button" data-key="2">2</button>
-          <button class="phone-key" type="button" data-key="3">3</button>
-          <button class="phone-key" type="button" data-key="4">4</button>
-          <button class="phone-key" type="button" data-key="5">5</button>
-          <button class="phone-key" type="button" data-key="6">6</button>
-          <button class="phone-key" type="button" data-key="7">7</button>
-          <button class="phone-key" type="button" data-key="8">8</button>
-          <button class="phone-key" type="button" data-key="9">9</button>
-          <button class="phone-key" type="button" data-key="*">*</button>
-          <button class="phone-key" type="button" data-key="0">0</button>
-          <button class="phone-key" type="button" data-key="#">#</button>
-        </div>
+      <div class="phone" data-phone style="margin-top:8px;">
         <div class="phone-config">
           <div class="card-head"><h3>Configuration du standard</h3></div>
           <div class="card-body">
-            <label>Serveur SIP : <input type="text" data-sip-host value="213.156.135.132"></label>
-            <label>Port WSS : <input type="number" min="1" max="65535" value="443" data-sip-ws-port aria-label="Port WebSocket SIP"></label>
-            <label>Port RTP : <input type="number" min="1" max="65535" value="5004" data-sip-rtp-port aria-label="Port RTP WebRTC"></label>
-            <label>Extension : <input type="text" data-sip-ext value="20000"></label>
-            <label>Poste appelé : <input type="text" data-sip-callee value="9999"></label>
+            <label>Serveur SIP : <input type="text" data-sip-host value="vocalia-solutions.com" style="width:100%;padding:4px;font-size:12px;"></label>
+            <label>Port WSS : <input type="number" min="1" max="65535" value="{{ settings.VOICE_SIP_WS_PORT }}" data-sip-ws-port aria-label="Port WebSocket SIP"></label>
+            <label>Extension : <input type="text" data-sip-ext value="2000" style="width:100%;padding:4px;font-size:12px;"></label>
+            <label>Poste appelé : <input type="text" data-sip-callee value="{{ settings.VOICE_SIP_CALLEE }}" style="width:100%;padding:4px;font-size:12px;"></label>
           </div>
         </div>
-        <div class="phone-port">
-          <label for="phone-ws-port">Port WebSocket</label>
-          <input id="phone-ws-port" type="number" min="1" max="65535" value="443" data-phone-ws-port aria-label="Port WebSocket SIP du standard">
-        </div>
-        <div class="phone-actions">
-          <button class="btn btn-ghost btn-sm" type="button" data-phone-mute>Muet</button>
-          <button class="btn btn-ghost btn-sm" type="button" data-phone-hangup>Raccrocher</button>
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary w-100" type="button" data-phone-call>Connexion</button>
         </div>
       </div>
-
-      <div class="agent-actions">
-        <button class="btn btn-primary" type="button" data-phone-call>Appeler le 9999</button>
-        <button class="agent-mic" type="button" data-agent-mic aria-label="Démarrer la démonstration vocale">
-          {% include "partials/icon.html" with name="mic" %}
-        </button>
-        <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
-      </div>
-      <p class="agent-note">Guidage vocal par Aminia — session WebRTC sécurisée.</p>
     </div>
   </div>
 </div>
