@@ -4,7 +4,6 @@
   "installCommand": "echo skip-install",
   "buildCommand": "echo static-site",
   "outputDirectory": "docs",
-  "cleanUrls": true,
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
@@ -12,6 +11,7 @@
     }
   },
   "rewrites": [
+    { "source": "/", "destination": "/api/index" },
     { "source": "/cockpit", "destination": "/api/index" },
     { "source": "/cockpit/", "destination": "/api/index" },
     { "source": "/compte", "destination": "/api/index" },
