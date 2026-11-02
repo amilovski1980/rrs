@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Comptabilité des bâtisseurs{% endblock %} — Road Runner Solutions</title>
-  <meta name="description" content="Road Runner Solutions : la comptabilité en ligne des bâtisseurs. SIREN, cockpit comptable, grand livre, balance et TVA.">
+  <title>{% block title %}Comptabilité des artisans{% endblock %} — Road Runner Solutions</title>
+  <meta name="description" content="Road Runner Solutions : la comptabilité en ligne des artisans. SIREN, cockpit comptable, grand livre, balance et TVA.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
-  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
@@ -19,12 +17,12 @@
 
   <div class="utility">
     <div class="container utility-in">
-      <p><span class="utility-dot" aria-hidden="true"></span> La comptabilité en ligne des bâtisseurs, hébergée en France</p>
+      <p><span class="utility-dot" aria-hidden="true"></span> La comptabilité en ligne des artisans, hébergée en France</p>
       <div class="utility-links">
         <a href="{% url 'landing' %}#features">Fonctionnalités</a>
         <a href="{% url 'landing' %}#pricing">Tarifs</a>
         <a href="{% url 'landing' %}#securite">Sécurité</a>
-        <a class="is-strong" href="{% url 'magic_link_request' %}">Espace bâtisseur</a>
+        <a class="is-strong" href="{% url 'magic_link_request' %}">Espace artisan</a>
       </div>
     </div>
   </div>
@@ -32,13 +30,14 @@
   <nav class="nav">
     <div class="container nav-in">
       <a class="logo" href="{% url 'landing' %}">
-        <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
+        <img src="{% static 'img/logo.svg' %}" alt="">
         <span class="logo-text">
-          <small>Comptabilité des bâtisseurs</small>
+          <b>Road Runner Solutions</b>
+          <small>Comptabilité des artisans</small>
         </span>
       </a>
       <form class="nav-search" action="{% url 'magic_link_request' %}" method="get" role="search">
-        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Rechercher mon SIREN" aria-label="Rechercher mon SIREN">
+        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Rechercher une société par SIREN" aria-label="Rechercher une société par SIREN">
         <button type="submit" aria-label="Rechercher">
           {% include "partials/icon.html" with name="search" %}
         </button>
@@ -70,12 +69,13 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="logo" href="{% url 'landing' %}">
-            <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
+            <img src="{% static 'img/logo.svg' %}" alt="">
             <span class="logo-text">
-              <small>Comptabilité des bâtisseurs</small>
+              <b>Road Runner Solutions</b>
+              <small>Comptabilité des artisans</small>
             </span>
           </a>
-          <p>Le cockpit comptable des bâtisseurs et dirigeants de TPE. Données légales officielles, écritures contrôlées, hébergement en France.</p>
+          <p>Le cockpit comptable des artisans et dirigeants de TPE. Données légales officielles, écritures contrôlées, hébergement en France.</p>
         </div>
         <div>
           <h4>Produit</h4>
@@ -105,7 +105,7 @@
         </div>
       </div>
       <div class="foot-bottom">
-        <div>© {% now "Y" %} Road Runner Solutions — Comptabilité pour bâtisseurs SARL / EURL</div>
+        <div>© {% now "Y" %} Road Runner Solutions — Comptabilité pour artisans SARL / EURL</div>
         <div class="foot-flag" aria-label="Hébergé en France">
           <i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i>
           <span>Hébergé en France · RGPD · Données cloisonnées</span>
@@ -113,36 +113,6 @@
       </div>
     </div>
   </footer>
-  <div class="agent" data-agent>
-    <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir l'agent vocal" aria-expanded="false" aria-controls="agent-panel">
-      <span class="agent-fab-orb" aria-hidden="true">
-        {% include "partials/icon.html" with name="bot" %}
-      </span>
-      <span class="agent-fab-text">Agent</span>
-    </button>
-    <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
-      <div class="agent-panel-backdrop" data-agent-close aria-hidden="true"></div>
-      <div class="agent-dialog" role="dialog" aria-modal="true" aria-labelledby="agent-title" aria-describedby="agent-desc">
-        <button class="agent-close" type="button" data-agent-close aria-label="Fermer l'agent">×</button>
-        <div class="agent-orb" aria-hidden="true">
-          <span class="agent-ring r1"></span>
-          <span class="agent-ring r2"></span>
-          <span class="agent-ring r3"></span>
-          <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
-        </div>
-        <h2 id="agent-title">Agent Road Runner</h2>
-        <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
-        <p class="agent-desc" id="agent-desc">Aperçu de l'agent vocal : il répondra à vos questions comptables, comme Aminia.</p>
-        <div class="agent-actions">
-          <button class="agent-mic" type="button" data-agent-mic aria-label="Démarrer la démonstration vocale">
-            {% include "partials/icon.html" with name="mic" %}
-          </button>
-          <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
-        </div>
-        <p class="agent-note">Démo visuelle — aucune écoute réelle. L'intégration arrive prochainement.</p>
-      </div>
-    </div>
-  </div>
   <script src="{% static 'js/app.js' %}" defer></script>
 </body>
 </html>

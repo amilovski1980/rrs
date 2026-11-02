@@ -16,66 +16,46 @@
         <a class="btn btn-primary btn-lg" href="{% url 'magic_link_request' %}">Créer mon cockpit</a>
         <a class="btn btn-ghost btn-lg" href="{% url 'landing' %}#features">Voir comment ça marche</a>
       </div>
-      <div class="hero-siren">
-        <p class="hero-siren-label">Ou vérifiez votre SIREN pour préparer votre cockpit</p>
-        <form class="siren-box" id="siren" action="{% url 'magic_link_request' %}" method="get">
-          <input name="siren" inputmode="numeric" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN">
-          <button class="btn btn-primary" type="submit">Rechercher</button>
-        </form>
-      </div>
+      <form class="siren-box" action="{% url 'magic_link_request' %}" method="get">
+        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN">
+        <button class="btn btn-primary" type="submit">Continuer</button>
+      </form>
       <p class="micro">Sans inscription · aucune carte bancaire · essai 14 jours</p>
     </div>
 
-    <div class="demo-wrap">
-      <div class="demo-toolbar">
-        <span class="demo-toolbar-title">Interface personnalisée</span>
-        <label class="demo-select">
-          <span>Activité</span>
-          <select data-activity-select aria-label="Choisir une activité">
-            <option value="btp">BTP / gros œuvre</option>
-            <option value="plomberie">Plomberie</option>
-            <option value="electricite">Électricité</option>
-            <option value="menuiserie" selected>Menuiserie</option>
-            <option value="coiffure">Coiffure</option>
-            <option value="restauration">Restauration</option>
-          </select>
-        </label>
+    <div class="mock" aria-label="Aperçu du cockpit">
+      <div class="float-card fc-1">
+        <span class="fc-icon">{% include "partials/icon.html" with name="receipt" %}</span>
+        <span>TVA à déclarer<small>2 145 € · CA12 janvier</small></span>
       </div>
-      <div class="mock" aria-label="Aperçu du cockpit">
-        <div class="float-card fc-1">
-          <span class="fc-icon">{% include "partials/icon.html" with name="receipt" %}</span>
-          <span>TVA à déclarer<small data-demo-float-tva>2 145 € · CA12 janvier</small></span>
+      <div class="float-card fc-2">
+        <span class="fc-icon" style="background:var(--green-soft);color:var(--green)">{% include "partials/icon.html" with name="check" %}</span>
+        <span>Écriture validée<small>Achat outillage · 1 240 €</small></span>
+      </div>
+      <div class="mock-inner">
+        <div class="mock-top">
+          <span class="mock-brand">{% include "partials/icon.html" with name="grid" %} app.roadrunner-solutions.fr</span>
+          <span class="badge badge-blue">Exercice 2026</span>
         </div>
-        <div class="float-card fc-2">
-          <span class="fc-icon" style="background:var(--green-soft);color:var(--green)">{% include "partials/icon.html" with name="check" %}</span>
-          <span>Écriture validée<small data-demo-float-expense>Achat outillage · 1 240 €</small></span>
-        </div>
-        <div class="mock-inner">
-          <div class="mock-top">
-            <span class="mock-brand">{% include "partials/icon.html" with name="grid" %} app.roadrunner-solutions.fr</span>
-            <span class="badge badge-blue">Exercice 2026</span>
+        <div class="mock-body">
+          <div class="row">
+            <strong style="font-size:14px">Menuiserie Dupont — SARL</strong>
+            <span class="badge badge-green">Réel simplifié</span>
           </div>
-          <div class="mock-body">
-            <div class="row">
-              <strong style="font-size:14px" data-demo-company>Menuiserie Dupont — SARL</strong>
-              <span class="badge badge-green" data-demo-regime>Réel simplifié</span>
-            </div>
-            <div class="kpi-grid">
-              <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-demo-kpi="ca">48 250 €</span></div><div class="d up" data-demo-delta="ca">+12,4 %</div></div>
-              <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-demo-kpi="encaisse">7 320 €</span></div><div class="d" data-demo-meta="encaisse">3 factures</div></div>
-              <div class="kpi"><div class="l">TVA</div><div class="v"><span data-demo-kpi="tva">2 145 €</span></div><div class="d down" data-demo-meta="tva">CA12 · janv.</div></div>
-            </div>
-            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
-            <div class="bar"><span data-demo-bar style="width:64%"></span></div>
-            <div class="mock-list">
-              <div class="mock-item"><span data-demo-item>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
-              <div class="mock-item"><span data-demo-item>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
-              <div class="mock-item"><span data-demo-item>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
-            </div>
+          <div class="kpi-grid">
+            <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-count="48250" data-suffix=" €">48 250 €</span></div><div class="d up">+12,4 %</div></div>
+            <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-count="7320" data-suffix=" €">7 320 €</span></div><div class="d">3 factures</div></div>
+            <div class="kpi"><div class="l">TVA</div><div class="v"><span data-count="2145" data-suffix=" €">2 145 €</span></div><div class="d down">CA12 · janv.</div></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
+          <div class="bar"><span style="width:64%"></span></div>
+          <div class="mock-list">
+            <div class="mock-item"><span>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
+            <div class="mock-item"><span>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
+            <div class="mock-item"><span>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
           </div>
         </div>
       </div>
-      <p class="demo-note" data-activity-note aria-live="polite">Plan comptable menuiserie : achats 601, outillage 6063, entretien 615. TVA CA12.</p>
     </div>
   </div>
 </header>
@@ -87,7 +67,7 @@
         <span class="q-icon">{% include "partials/icon.html" with name="building" %}</span>
         <span>
           <b>Vérifier un SIREN</b>
-          <span class="q-text">Récupérez la fiche légale officielle puis validez votre activité.</span>
+          <span class="q-text">Récupérez la fiche légale officielle puis validez votre société.</span>
         </span>
         <span class="q-arrow">{% include "partials/icon.html" with name="arrow" %}</span>
       </a>
@@ -114,10 +94,10 @@
 <section class="voice" id="aminia">
   <div class="container voice-grid">
     <div class="voice-copy">
-      <div class="eyebrow">Aminia · agent vocal · aperçu</div>
+      <div class="eyebrow">Aminia · agent vocal</div>
       <h2>La comptabilité<br><span>qui se parle.</span></h2>
       <p class="voice-lead">
-        Aminia comprend votre voix, connaît votre activité et vous guide pas à pas.
+        Aminia comprend votre voix, connaît votre société et vous guide pas à pas.
         Vous parlez naturellement, elle prépare. Vous validez, elle enregistre.
       </p>
       <ul class="voice-points">
@@ -126,16 +106,16 @@
         <li><span class="vp-ico">{% include "partials/icon.html" with name="shield" %}</span> Rien n'est enregistré sans votre validation.</li>
       </ul>
       <div class="voice-cta">
-        <a class="btn btn-accent btn-lg" href="#siren">Rechercher mon SIREN</a>
+        <a class="btn btn-accent btn-lg" href="{% url 'onboarding' %}">Essayer avec mon SIREN</a>
         <button class="btn btn-ghost btn-lg" type="button" data-voice-replay>Rejouer la démo</button>
       </div>
-      <p class="voice-note">Démo publicitaire — l'agent vocal sera intégré prochainement. <a href="{% static 'presentation-aminia.html' %}">Voir la présentation Aminia</a></p>
+      <p class="voice-note">Démo illustrative · <a href="{% static 'presentation-aminia.html' %}">voir la présentation Aminia</a></p>
     </div>
 
     <div class="voice-stage" data-voice-demo aria-label="Démonstration vocale d'Aminia">
       <div class="voice-chat">
         <div class="voice-msg user">
-          <span class="voice-role">Bâtisseur</span>
+          <span class="voice-role">Artisan</span>
           <p>J'ai acheté une perceuse à 240 € chez Leroy Merlin hier.</p>
         </div>
         <div class="voice-msg agent">
@@ -143,7 +123,7 @@
           <p>J'ai trouvé la dépense : <strong>240 € TTC</strong>, fournisseur Leroy Merlin. Je la classe en <strong>outillage</strong> et je récupère <strong>40 € de TVA</strong>. Je crée le brouillon d'écriture ?</p>
         </div>
         <div class="voice-msg user">
-          <span class="voice-role">Bâtisseur</span>
+          <span class="voice-role">Artisan</span>
           <p>Oui, et explique-moi où ça apparaît.</p>
         </div>
         <div class="voice-msg agent">
@@ -160,7 +140,7 @@
             <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
           </span>
         </div>
-        <div class="voice-status" data-voice-status role="status" aria-live="polite">Le bâtisseur parle</div>
+        <div class="voice-status" data-voice-status role="status" aria-live="polite">L'artisan parle</div>
       </div>
       <div class="voice-controls">
         <button class="voice-play" type="button" data-voice-toggle aria-label="Mettre la démo en pause">
@@ -176,7 +156,7 @@
 
 <div class="trust">
   <div class="container">
-    Conçu pour les bâtisseurs
+    Conçu pour les métiers de l'artisanat
     <div class="trust-row">
       <span>BTP</span><span>Plomberie</span><span>Électricité</span><span>Menuiserie</span><span>Coiffure</span><span>Restauration</span>
     </div>
@@ -209,17 +189,17 @@
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="folder" %}</div>
         <h3>Documents centralisés</h3>
-        <p>KBIS, extraits, justificatifs et factures rangés par activité. Accès cloisonné, partage sécurisé, journal d'audit.</p>
+        <p>KBIS, extraits, justificatifs et factures rangés par société. Accès cloisonné, partage sécurisé, journal d'audit.</p>
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="mic" %}</div>
-        <h3>Agent vocal Aminia <span class="badge badge-blue">Bientôt</span></h3>
-        <p>Aperçu : Aminia propose le bon compte et prépare l'écriture. Vous validez, elle ne décide jamais seule.</p>
+        <h3>Agent vocal Aminia</h3>
+        <p>Parlez naturellement : Aminia propose le bon compte et prépare l'écriture. Vous validez, elle ne décide jamais seule.</p>
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="shield" %}</div>
         <h3>Sécurité multi-tenant</h3>
-        <p>Chaque activité est un espace étanche. Identification par lien magique, sans mot de passe, et journal complet des actions sensibles.</p>
+        <p>Chaque société est un espace étanche. Identification par lien magique, sans mot de passe, et journal complet des actions sensibles.</p>
       </div>
     </div>
   </div>
@@ -229,14 +209,14 @@
   <div class="container">
     <div class="sec-head">
       <div class="eyebrow">Tarifs</div>
-      <h2>Un prix simple, par bâtisseur</h2>
+      <h2>Un prix simple, par artisan</h2>
       <p>Essai 14 jours, sans carte bancaire. Résiliable en un clic.</p>
     </div>
     <div class="pricing">
       <div class="plan">
         <h3>Micro</h3>
         <div class="price">29 €<small> / mois</small></div>
-        <p class="desc">Pour les bâtisseurs en micro-BIC.</p>
+        <p class="desc">Pour les artisans en micro-BIC.</p>
         <ul>
           <li><span class="check">✓</span> Saisie recettes et dépenses</li>
           <li><span class="check">✓</span> Grand livre et balance</li>
@@ -261,10 +241,10 @@
       <div class="plan">
         <h3>Pro</h3>
         <div class="price">79 €<small> / mois</small></div>
-        <p class="desc">Pour les dirigeants multi-activités.</p>
+        <p class="desc">Pour les dirigeants multi-sociétés.</p>
         <ul>
           <li><span class="check">✓</span> Tout le plan Réel</li>
-          <li><span class="check">✓</span> Plusieurs activités consolidées</li>
+          <li><span class="check">✓</span> Plusieurs sociétés consolidées</li>
           <li><span class="check">✓</span> OCR tickets et pré-comptabilité IA</li>
           <li><span class="check">✓</span> Rôles et invitations comptable</li>
         </ul>
@@ -278,7 +258,7 @@
   <div class="container">
     <div class="cta-band">
       <h2>Vos données restent vos données</h2>
-      <p>Hébergement en France, cloisonnement strict par activité, aucune revente. L'IA fonctionne sur nos modèles Aminia auto-hébergés.</p>
+      <p>Hébergement en France, cloisonnement strict par société, aucune revente. L'IA fonctionne sur nos modèles Aminia auto-hébergés.</p>
       <a class="btn btn-primary btn-lg" href="{% url 'magic_link_request' %}">Ouvrir mon cockpit</a>
     </div>
   </div>
