@@ -1,61 +1,81 @@
 {% extends "base_public.html" %}
 {% load static %}
-{% block title %}La comptabilité des bâtisseurs{% endblock %}
+{% block title %}Pilotez la comptabilité de votre société{% endblock %}
 {% block content %}
 <header class="hero">
   <div class="container hero-grid">
     <div>
       <span class="pill"><span class="dot"></span> Conforme facturation électronique 2026</span>
-      <h1>La comptabilité des bâtisseurs,<br><span class="accent">enfin sans friction.</span></h1>
+      <h1>La comptabilité de vos sociétés,<br><span class="accent">enfin sans friction.</span></h1>
       <p class="lead">
         Saisissez votre SIREN, chargez votre extrait KBIS : Road Runner Solutions génère un portail
         comptable adapté à votre métier et à votre régime. Grand livre, balance, TVA, factures —
         tout au même endroit.
       </p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#siren">Rechercher mon SIREN</a>
+        <a class="btn btn-primary btn-lg" href="{% url 'magic_link_request' %}">Créer mon cockpit</a>
         <a class="btn btn-ghost btn-lg" href="{% url 'landing' %}#features">Voir comment ça marche</a>
       </div>
-      <form class="siren-box" id="siren" action="{% url 'magic_link_request' %}" method="get">
-        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN">
-        <button class="btn btn-primary" type="submit">Rechercher</button>
-      </form>
+      <div class="hero-siren">
+        <p class="hero-siren-label">Ou vérifiez votre SIREN pour préparer votre cockpit</p>
+        <form class="siren-box" id="siren" action="{% url 'magic_link_request' %}" method="get">
+          <input name="siren" inputmode="numeric" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN">
+          <button class="btn btn-primary" type="submit">Rechercher</button>
+        </form>
+      </div>
       <p class="micro">Sans inscription · aucune carte bancaire · essai 14 jours</p>
     </div>
 
-    <div class="mock" aria-label="Aperçu du cockpit">
-      <div class="float-card fc-1">
-        <span class="fc-icon">{% include "partials/icon.html" with name="receipt" %}</span>
-        <span>TVA à déclarer<small>2 145 € · CA12 janvier</small></span>
+    <div class="demo-wrap">
+      <div class="demo-toolbar">
+        <span class="demo-toolbar-title">Interface personnalisée</span>
+        <label class="demo-select">
+          <span>Activité</span>
+          <select data-activity-select aria-label="Choisir une activité">
+            <option value="btp">BTP / gros œuvre</option>
+            <option value="plomberie">Plomberie</option>
+            <option value="electricite">Électricité</option>
+            <option value="menuiserie" selected>Menuiserie</option>
+            <option value="coiffure">Coiffure</option>
+            <option value="restauration">Restauration</option>
+          </select>
+        </label>
       </div>
-      <div class="float-card fc-2">
-        <span class="fc-icon" style="background:var(--green-soft);color:var(--green)">{% include "partials/icon.html" with name="check" %}</span>
-        <span>Écriture validée<small>Achat outillage · 1 240 €</small></span>
-      </div>
-      <div class="mock-inner">
-        <div class="mock-top">
-          <span class="mock-brand">{% include "partials/icon.html" with name="grid" %} app.roadrunner-solutions.fr</span>
-          <span class="badge badge-blue">Exercice 2026</span>
+      <div class="mock" aria-label="Aperçu du cockpit">
+        <div class="float-card fc-1">
+          <span class="fc-icon">{% include "partials/icon.html" with name="receipt" %}</span>
+          <span>TVA à déclarer<small data-demo-float-tva>2 145 € · CA12 janvier</small></span>
         </div>
-        <div class="mock-body">
-          <div class="row">
-            <strong style="font-size:14px">Menuiserie Dupont — SARL</strong>
-            <span class="badge badge-green">Réel simplifié</span>
+        <div class="float-card fc-2">
+          <span class="fc-icon" style="background:var(--green-soft);color:var(--green)">{% include "partials/icon.html" with name="check" %}</span>
+          <span>Écriture validée<small data-demo-float-expense>Achat outillage · 1 240 €</small></span>
+        </div>
+        <div class="mock-inner">
+          <div class="mock-top">
+            <span class="mock-brand">{% include "partials/icon.html" with name="grid" %} app.roadrunner-solutions.fr</span>
+            <span class="badge badge-blue">Exercice 2026</span>
           </div>
-          <div class="kpi-grid">
-            <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-count="48250" data-suffix=" €">48 250 €</span></div><div class="d up">+12,4 %</div></div>
-            <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-count="7320" data-suffix=" €">7 320 €</span></div><div class="d">3 factures</div></div>
-            <div class="kpi"><div class="l">TVA</div><div class="v"><span data-count="2145" data-suffix=" €">2 145 €</span></div><div class="d down">CA12 · janv.</div></div>
-          </div>
-          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
-          <div class="bar"><span style="width:64%"></span></div>
-          <div class="mock-list">
-            <div class="mock-item"><span>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
-            <div class="mock-item"><span>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
-            <div class="mock-item"><span>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
+          <div class="mock-body">
+            <div class="row">
+              <strong style="font-size:14px" data-demo-company>Menuiserie Dupont — SARL</strong>
+              <span class="badge badge-green" data-demo-regime>Réel simplifié</span>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-demo-kpi="ca">48 250 €</span></div><div class="d up" data-demo-delta="ca">+12,4 %</div></div>
+              <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-demo-kpi="encaisse">7 320 €</span></div><div class="d" data-demo-meta="encaisse">3 factures</div></div>
+              <div class="kpi"><div class="l">TVA</div><div class="v"><span data-demo-kpi="tva">2 145 €</span></div><div class="d down" data-demo-meta="tva">CA12 · janv.</div></div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
+            <div class="bar"><span data-demo-bar style="width:64%"></span></div>
+            <div class="mock-list">
+              <div class="mock-item"><span data-demo-item>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
+              <div class="mock-item"><span data-demo-item>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
+              <div class="mock-item"><span data-demo-item>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
+            </div>
           </div>
         </div>
       </div>
+      <p class="demo-note" data-activity-note aria-live="polite">Plan comptable menuiserie : achats 601, outillage 6063, entretien 615. TVA CA12.</p>
     </div>
   </div>
 </header>

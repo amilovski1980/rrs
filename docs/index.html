@@ -6,13 +6,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="./">
-  <title>La comptabilité des bâtisseurs — Road Runner Solutions</title>
+  <title>Pilotez la comptabilité de votre société — Road Runner Solutions</title>
   <meta name="description" content="Road Runner Solutions : la comptabilité en ligne des bâtisseurs. SIREN, cockpit comptable, grand livre, balance et TVA.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Road Runner Solutions — La comptabilité des bâtisseurs">
   <meta property="og:description" content="SIREN, cockpit comptable, grand livre, balance et TVA. Aminia, l'agent vocal en aperçu.">
@@ -39,9 +40,8 @@
   <nav class="nav">
     <div class="container nav-in">
       <a class="logo" href="index.html">
-        <img src="assets/logo.svg" alt="">
+        <img src="assets/logo.png" alt="Road Runner Solutions">
         <span class="logo-text">
-          <b>Road Runner Solutions</b>
           <small>Comptabilité des bâtisseurs</small>
         </span>
       </a>
@@ -69,64 +69,84 @@
   <div class="container hero-grid">
     <div>
       <span class="pill"><span class="dot"></span> Conforme facturation électronique 2026</span>
-      <h1>La comptabilité des bâtisseurs,<br><span class="accent">enfin sans friction.</span></h1>
+      <h1>La comptabilité de vos sociétés,<br><span class="accent">enfin sans friction.</span></h1>
       <p class="lead">
         Saisissez votre SIREN, chargez votre extrait KBIS : Road Runner Solutions génère un portail
         comptable adapté à votre métier et à votre régime. Grand livre, balance, TVA, factures —
         tout au même endroit.
       </p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#siren">Rechercher mon SIREN</a>
-        <a class="btn btn-ghost btn-lg" href="#aminia">Voir la démo Aminia</a>
+        <a class="btn btn-primary btn-lg" href="mailto:contact@roadrunner-solutions.fr?subject=Cr%C3%A9er%20mon%20cockpit">Créer mon cockpit</a>
+        <a class="btn btn-ghost btn-lg" href="#features">Voir comment ça marche</a>
       </div>
-      <form class="siren-box" id="siren" data-siren-search novalidate>
-        <input name="siren" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN" aria-describedby="siren-help">
-        <button class="btn btn-primary" type="submit">Rechercher</button>
-      </form>
-      <p class="siren-help" id="siren-help">Recherche publique dans la base Sirene. Aucune donnée n'est enregistrée.</p>
-      <div class="siren-result" data-siren-result role="status" aria-live="polite" hidden></div>
+      <div class="hero-siren">
+        <p class="hero-siren-label">Ou vérifiez votre SIREN pour préparer votre cockpit</p>
+        <form class="siren-box" id="siren" data-siren-search novalidate>
+          <input name="siren" inputmode="numeric" autocomplete="off" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN" aria-describedby="siren-help">
+          <button class="btn btn-primary" type="submit">Rechercher</button>
+        </form>
+        <p class="siren-help" id="siren-help">Recherche publique dans la base Sirene. Aucune donnée n'est enregistrée.</p>
+        <div class="siren-result" data-siren-result role="status" aria-live="polite" hidden></div>
+      </div>
       <p class="micro">Sans inscription · aucune carte bancaire · essai 14 jours</p>
     </div>
 
-    <div class="mock" aria-label="Aperçu du cockpit">
-      <div class="float-card fc-1">
-        <span class="fc-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+    <div class="demo-wrap">
+      <div class="demo-toolbar">
+        <span class="demo-toolbar-title">Interface personnalisée</span>
+        <label class="demo-select">
+          <span>Activité</span>
+          <select data-activity-select aria-label="Choisir une activité">
+            <option value="btp">BTP / gros œuvre</option>
+            <option value="plomberie">Plomberie</option>
+            <option value="electricite">Électricité</option>
+            <option value="menuiserie" selected>Menuiserie</option>
+            <option value="coiffure">Coiffure</option>
+            <option value="restauration">Restauration</option>
+          </select>
+        </label>
+      </div>
+      <div class="mock" aria-label="Aperçu du cockpit">
+        <div class="float-card fc-1">
+          <span class="fc-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
 
 </span>
-        <span>TVA à déclarer<small>2 145 € · CA12 janvier</small></span>
-      </div>
-      <div class="float-card fc-2">
-        <span class="fc-icon" style="background:var(--green-soft);color:var(--green)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>
+          <span>TVA à déclarer<small data-demo-float-tva>2 145 € · CA12 janvier</small></span>
+        </div>
+        <div class="float-card fc-2">
+          <span class="fc-icon" style="background:var(--green-soft);color:var(--green)"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>
 
 </span>
-        <span>Écriture validée<small>Achat outillage · 1 240 €</small></span>
-      </div>
-      <div class="mock-inner">
-        <div class="mock-top">
-          <span class="mock-brand"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span>Écriture validée<small data-demo-float-expense>Achat outillage · 1 240 €</small></span>
+        </div>
+        <div class="mock-inner">
+          <div class="mock-top">
+            <span class="mock-brand"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
 
  app.roadrunner-solutions.fr</span>
-          <span class="badge badge-blue">Exercice 2026</span>
-        </div>
-        <div class="mock-body">
-          <div class="row">
-            <strong style="font-size:14px">Menuiserie Dupont — SARL</strong>
-            <span class="badge badge-green">Réel simplifié</span>
+            <span class="badge badge-blue">Exercice 2026</span>
           </div>
-          <div class="kpi-grid">
-            <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-count="48250" data-suffix=" €">48 250 €</span></div><div class="d up">+12,4 %</div></div>
-            <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-count="7320" data-suffix=" €">7 320 €</span></div><div class="d">3 factures</div></div>
-            <div class="kpi"><div class="l">TVA</div><div class="v"><span data-count="2145" data-suffix=" €">2 145 €</span></div><div class="d down">CA12 · janv.</div></div>
-          </div>
-          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
-          <div class="bar"><span style="width:64%"></span></div>
-          <div class="mock-list">
-            <div class="mock-item"><span>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
-            <div class="mock-item"><span>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
-            <div class="mock-item"><span>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
+          <div class="mock-body">
+            <div class="row">
+              <strong style="font-size:14px" data-demo-company>Menuiserie Dupont — SARL</strong>
+              <span class="badge badge-green" data-demo-regime>Réel simplifié</span>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi"><div class="l">CA facturé</div><div class="v"><span data-demo-kpi="ca">48 250 €</span></div><div class="d up" data-demo-delta="ca">+12,4 %</div></div>
+              <div class="kpi"><div class="l">À encaisser</div><div class="v"><span data-demo-kpi="encaisse">7 320 €</span></div><div class="d" data-demo-meta="encaisse">3 factures</div></div>
+              <div class="kpi"><div class="l">TVA</div><div class="v"><span data-demo-kpi="tva">2 145 €</span></div><div class="d down" data-demo-meta="tva">CA12 · janv.</div></div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Avancement de l'exercice</div>
+            <div class="bar"><span data-demo-bar style="width:64%"></span></div>
+            <div class="mock-list">
+              <div class="mock-item"><span data-demo-item>Facture FAC-2026-00042 · Cadres</span><span class="badge badge-blue">Émise</span></div>
+              <div class="mock-item"><span data-demo-item>Écriture · Achat outillage</span><span class="badge badge-green">Validée</span></div>
+              <div class="mock-item"><span data-demo-item>Extrait RNE · KBIS</span><span class="badge badge-amber">À jour</span></div>
+            </div>
           </div>
         </div>
       </div>
+      <p class="demo-note" data-activity-note aria-live="polite">Plan comptable menuiserie : achats 601, outillage 6063, entretien 615. TVA CA12.</p>
     </div>
   </div>
 </header>
@@ -375,10 +395,9 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="logo" href="index.html">
-            <img src="assets/logo.svg" alt="">
+            <img src="assets/logo.png" alt="Road Runner Solutions">
             <span class="logo-text">
-              <b>Road Runner Solutions</b>
-          <small>Comptabilité des bâtisseurs</small>
+              <small>Comptabilité des bâtisseurs</small>
             </span>
           </a>
           <p>Le cockpit comptable des bâtisseurs et dirigeants de TPE. Données légales officielles, écritures contrôlées, hébergement en France.</p>
@@ -419,6 +438,36 @@
       </div>
     </div>
   </footer>
+  <div class="agent" data-agent>
+    <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir l'agent vocal" aria-expanded="false" aria-controls="agent-panel">
+      <span class="agent-fab-orb" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="8" width="16" height="12"/><path d="M12 4v4M8 14h.01M16 14h.01M9 17h6M2 13h2M20 13h2"/></svg>
+      </span>
+      <span class="agent-fab-text">Agent</span>
+    </button>
+    <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
+      <div class="agent-panel-backdrop" data-agent-close aria-hidden="true"></div>
+      <div class="agent-dialog" role="dialog" aria-modal="true" aria-labelledby="agent-title" aria-describedby="agent-desc">
+        <button class="agent-close" type="button" data-agent-close aria-label="Fermer l'agent">×</button>
+        <div class="agent-orb" aria-hidden="true">
+          <span class="agent-ring r1"></span>
+          <span class="agent-ring r2"></span>
+          <span class="agent-ring r3"></span>
+          <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+        </div>
+        <h2 id="agent-title">Agent Road Runner</h2>
+        <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
+        <p class="agent-desc" id="agent-desc">Aperçu de l'agent vocal : il répondra à vos questions comptables, comme Aminia.</p>
+        <div class="agent-actions">
+          <button class="agent-mic" type="button" data-agent-mic aria-label="Démarrer la démonstration vocale">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+          </button>
+          <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
+        </div>
+        <p class="agent-note">Démo visuelle — aucune écoute réelle. L'intégration arrive prochainement.</p>
+      </div>
+    </div>
+  </div>
   <script src="assets/app.js" defer></script>
 </body>
 </html>

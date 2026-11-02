@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
   <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
@@ -31,9 +32,8 @@
   <nav class="nav">
     <div class="container nav-in">
       <a class="logo" href="{% url 'landing' %}">
-        <img src="{% static 'img/logo.svg' %}" alt="">
+        <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
         <span class="logo-text">
-          <b>Road Runner Solutions</b>
           <small>Comptabilité des bâtisseurs</small>
         </span>
       </a>
@@ -70,9 +70,8 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="logo" href="{% url 'landing' %}">
-            <img src="{% static 'img/logo.svg' %}" alt="">
+            <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
             <span class="logo-text">
-              <b>Road Runner Solutions</b>
               <small>Comptabilité des bâtisseurs</small>
             </span>
           </a>
@@ -114,6 +113,36 @@
       </div>
     </div>
   </footer>
+  <div class="agent" data-agent>
+    <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir l'agent vocal" aria-expanded="false" aria-controls="agent-panel">
+      <span class="agent-fab-orb" aria-hidden="true">
+        {% include "partials/icon.html" with name="bot" %}
+      </span>
+      <span class="agent-fab-text">Agent</span>
+    </button>
+    <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
+      <div class="agent-panel-backdrop" data-agent-close aria-hidden="true"></div>
+      <div class="agent-dialog" role="dialog" aria-modal="true" aria-labelledby="agent-title" aria-describedby="agent-desc">
+        <button class="agent-close" type="button" data-agent-close aria-label="Fermer l'agent">×</button>
+        <div class="agent-orb" aria-hidden="true">
+          <span class="agent-ring r1"></span>
+          <span class="agent-ring r2"></span>
+          <span class="agent-ring r3"></span>
+          <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+        </div>
+        <h2 id="agent-title">Agent Road Runner</h2>
+        <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
+        <p class="agent-desc" id="agent-desc">Aperçu de l'agent vocal : il répondra à vos questions comptables, comme Aminia.</p>
+        <div class="agent-actions">
+          <button class="agent-mic" type="button" data-agent-mic aria-label="Démarrer la démonstration vocale">
+            {% include "partials/icon.html" with name="mic" %}
+          </button>
+          <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
+        </div>
+        <p class="agent-note">Démo visuelle — aucune écoute réelle. L'intégration arrive prochainement.</p>
+      </div>
+    </div>
+  </div>
   <script src="{% static 'js/app.js' %}" defer></script>
 </body>
 </html>
