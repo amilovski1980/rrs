@@ -492,7 +492,15 @@
     for (var i = 0; i < closeButtons.length; i++) {
       closeButtons[i].addEventListener("click", close);
     }
-    if (mic) mic.addEventListener("click", preview);
+    if (mic) mic.addEventListener("click", function () {
+      if (window.SIP && window.SIP.SimpleUser) {
+        var evt;
+        try { evt = new CustomEvent("aminia:open-call"); } catch (e) { return; }
+        document.dispatchEvent(evt);
+        return;
+      }
+      preview();
+    });
 
     document.addEventListener("keydown", function (event) {
       if (panel.hidden) return;
@@ -593,11 +601,19 @@
 
     var loadSip = function (done) {
       if (window.SIP) { done(); return; }
-      var el = document.createElement("script");
-      el.src = "https://cdn.jsdelivr.net/npm/sip.js@0.21.2/dist/sip.min.js";
-      el.onload = function () { done(); };
-      el.onerror = function () { done(); };
-      document.head.appendChild(el);
+      if (!window.__sipPromise) {
+        window.__sipPromise = import("https://cdn.jsdelivr.net/npm/sip.js@0.21.2/lib/index.js")
+          .then(function (mod) {
+            var SimpleUser = mod.SimpleUser;
+            window.SIP = { SimpleUser: SimpleUser };
+            return SimpleUser;
+          })
+          .catch(function () { window.__sipPromise = null; return null; });
+      }
+      window.__sipPromise.then(function (SimpleUser) {
+        sipLib = { SimpleUser: SimpleUser };
+        done();
+      }).catch(function () { done(null); });
     };
 
     var fetchConfig = function (done) {
@@ -650,8 +666,24 @@
             return;
           }
           var sip = config.sip;
-          var host = sip.host;
+          var sipHostEl = root.querySelector("[data-sip-host]");
+          var sipExtEl = root.querySelector("[data-sip-ext]");
+          var sipCalleeEl = root.querySelector("[data-sip-callee]");
+          var host = (sipHostEl && sipHostEl.value) || sip.host;
           var wssList = sip.wss || [];
+          var portInput = root.querySelector("[data-phone-ws-port]");
+          var port = portInput ? parseInt(portInput.value, 10) : 0;
+          var ext = (sipExtEl && sipExtEl.value) || sip.user;
+          var callee = (sipCalleeEl && sipCalleeEl.value) || sip.callee;
+          if (port > 0) {
+            var first = wssList[0] || ("wss://" + sip.host + ":443" + (sip.wssPath || "/ws"));
+            var slash = first.indexOf("/", "wss://".length);
+            var path = slash === -1 ? "/ws" : first.slice(slash);
+            wssList = [
+              "wss://" + sip.host + ":" + port + path,
+              wssList[1] || ("wss://" + sip.host + ":8089" + (sip.wssPath || "/ws"))
+            ];
+          }
           var tryWss = function (i) {
             if (i >= wssList.length) {
               setStatus("Le standard SIP n'a pas répondu — guidage vocal en mode démo.");
@@ -660,8 +692,8 @@
               return;
             }
             try {
-              simple = new sipLib.SimpleUser({
-                aor: "sip:" + sip.user + "@" + host,
+              simple = new sipLib.SimpleUser(wssList[i], {
+                aor: "sip:" + ext + "@" + host,
                 transportOptions: { server: wssList[i], traceSip: false },
                 authorizationUsername: sip.user,
                 authorizationPassword: sip.password,
@@ -691,8 +723,8 @@
                 resetPhone("Appel terminé");
               },
               onRegistered: function () {
-                setStatus("SIP enregistré — appel du poste " + sip.callee + "…");
-                simple.call("sip:" + sip.callee + "@" + host, {}).catch(function () {
+                setStatus("SIP enregistrǸ " + " " + "l'appel du poste " + callee + "�?�");
+                simple.call("sip:" + callee + "@" + host, {}).catch(function () {
                   tryWss(i + 1);
                 });
               },
@@ -756,6 +788,8 @@
     callBtn.addEventListener("click", startCall);
     if (muteBtn) muteBtn.addEventListener("click", toggleMute);
     if (hangupBtn) hangupBtn.addEventListener("click", hangUp);
+
+    document.addEventListener("aminia:open-call", function () { startCall(); });
 
     if (window.MutationObserver) {
       new MutationObserver(function () {

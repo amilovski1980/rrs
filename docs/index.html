@@ -466,7 +466,7 @@
               <span class="agent-ring r2"></span>
               <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
             </span>
-            <b class="phone-name">Standard Aminia</b>
+            <b class="phone-name">Standard Aminia 🔊</b>
             <span class="phone-ext">Poste 9999</span>
           </div>
           <div class="phone-status" data-phone-status role="status" aria-live="polite">Prêt à appeler</div>
@@ -484,6 +484,20 @@
             <button class="phone-key" type="button" data-key="*">*</button>
             <button class="phone-key" type="button" data-key="0">0</button>
             <button class="phone-key" type="button" data-key="#">#</button>
+          </div>
+          <div class="phone-config">
+            <div class="card-head"><h3>Configuration du standard</h3></div>
+            <div class="card-body">
+              <label>Serveur SIP : <input type="text" data-sip-host value="213.156.135.132"></label>
+              <label>Port WSS : <input type="number" min="1" max="65535" value="443" data-sip-ws-port aria-label="Port WebSocket SIP"></label>
+              <label>Port RTP : <input type="number" min="1" max="65535" value="5004" data-sip-rtp-port aria-label="Port RTP WebRTC"></label>
+              <label>Extension : <input type="text" data-sip-ext value="20000"></label>
+              <label>Poste appelé : <input type="text" data-sip-callee value="9999"></label>
+            </div>
+          </div>
+          <div class="phone-port">
+            <label for="phone-ws-port">Port WebSocket</label>
+            <input id="phone-ws-port" type="number" min="1" max="65535" value="443" data-phone-ws-port aria-label="Port WebSocket SIP du standard">
           </div>
           <div class="phone-actions">
             <button class="btn btn-ghost btn-sm" type="button" data-phone-mute>Muet</button>
