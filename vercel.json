@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo skip-install",
-  "buildCommand": "echo static-site",
+  "buildCommand": "mkdir -p public && echo static > public/index.html",
 
   "cleanUrls": true,
   "functions": {
