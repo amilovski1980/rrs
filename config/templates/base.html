@@ -1,0 +1,81 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'cockpit' %}">
+      <img src="{% static 'img/logo.svg' %}" alt="">
+      <span class="brand-text">
+        <b>Road Runner</b>
+        <small>Solutions</small>
+      </span>
+    </a>
+
+    <div class="nav-sec">Pilotage</div>
+    <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
+    </a>
+    <a class="side-link {% block nav_onboarding %}{% endblock %}" href="{% url 'onboarding' %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="plus" %}</span> Ajouter une société
+    </a>
+
+    <div class="nav-sec">Comptabilité</div>
+    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Nouvelle écriture
+    </a>
+    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Grand livre
+    </a>
+    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Balance
+    </a>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <span class="avatar">{{ request.user.email|first|upper }}</span>
+        <span>
+          <b>{{ request.user.email|default:"Invité" }}</b>
+          <small>Espace artisan</small>
+        </span>
+      </div>
+      {% if request.user.is_authenticated %}
+      <a class="side-link" href="{% url 'profile' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Mon profil
+      </a>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="side-link" type="submit">
+          <span class="side-ico">{% include "partials/icon.html" with name="logout" %}</span> Déconnexion
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
+      <div class="top-actions">
+        {% if selected %}<span class="badge badge-blue">{{ selected.denomination }}</span>{% endif %}
+        <a class="btn btn-ghost btn-sm" href="{% url 'landing' %}">Site vitrine</a>
+      </div>
+    </header>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

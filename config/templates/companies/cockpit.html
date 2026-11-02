@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Cockpit{% endblock %}
+{% block crumbs %}Mon espace{% endblock %}
+{% block nav_cockpit %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Bonjour</h1>
+    <p class="sub">Voici l'état de vos sociétés et vos derniers travaux comptables.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'onboarding' %}">
+    {% include "partials/icon.html" with name="plus" %} Ajouter une société
+  </a>
+</div>
+
+{% if companies %}
+<div class="grid g3" style="margin-bottom:24px">
+  <div class="kpi">
+    <div class="l">Sociétés pilotées</div>
+    <div class="v">{{ companies|length }}</div>
+    <div class="d">Espaces cloisonnés par société</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Comptes actifs</div>
+    <div class="v">{{ selected.accounts.count|default:"—" }}</div>
+    <div class="d">Plan comptable de {{ selected.denomination|default:"—" }}</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Journaux</div>
+    <div class="v">{{ selected.journals.count|default:"—" }}</div>
+    <div class="d">{{ selected.get_regime_display|default:"—" }}</div>
+  </div>
+</div>
+
+<h2 style="margin:0 0 12px">Vos sociétés</h2>
+<div class="companies" style="margin-bottom:28px">
+  {% for c in companies %}
+  <a class="company {% if selected and selected.id == c.id %}sel{% endif %}"
+     href="{% url 'cockpit' %}?societe={{ c.id }}">
+    <h3>{{ c.denomination }}</h3>
+    <div class="s">{{ c.forme }} — SIREN {{ c.siren }}</div>
+    <div class="tags">
+      <span class="tag blue">{{ c.get_regime_display }}</span>
+      <span class="tag {% if c.tva == 'franchise' %}green{% else %}amber{% endif %}">
+        {{ c.get_tva_display }}
+      </span>
+      <span class="tag">{{ c.accounts.count }} comptes</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% if selected %}
+<div class="card card-tight">
+  <div class="card-head">
+    <h3>{{ selected.denomination }}</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ selected.id }}">Grand livre</a>
+      <a class="btn btn-ghost btn-sm" href="{% url 'balance' %}?societe={{ selected.id }}">Balance</a>
+      <a class="btn btn-primary btn-sm" href="{% url 'entry_create' %}?societe={{ selected.id }}">Nouvelle écriture</a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="grid g2" style="align-items:start">
+      <div>
+        <h2 style="margin:0 0 10px;font-size:18px">Journaux actifs</h2>
+        <table>
+          <thead><tr><th>Code</th><th>Nom</th><th>Type</th></tr></thead>
+          <tbody>
+            {% for j in selected.journals.all %}
+            <tr>
+              <td><b>{{ j.code }}</b></td>
+              <td>{{ j.name }}</td>
+              <td><span class="tag">{{ j.get_type_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h2 style="margin:0 0 10px;font-size:18px">Informations</h2>
+        <table>
+          <tbody>
+            <tr><td class="muted">Forme</td><td><b>{{ selected.forme }}</b></td></tr>
+            <tr><td class="muted">SIREN</td><td><b>{{ selected.siren }}</b></td></tr>
+            <tr><td class="muted">Régime</td><td><b>{{ selected.get_regime_display }}</b></td></tr>
+            <tr><td class="muted">TVA</td><td><b>{{ selected.get_tva_display }}</b></td></tr>
+            <tr><td class="muted">Début d'exercice</td><td><b>{{ selected.exercice_debut|date:"d/m/Y" }}</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="card" style="text-align:center;padding:56px 24px">
+  <div class="f-icon" style="margin:0 auto 16px">{% include "partials/icon.html" with name="inbox" %}</div>
+  <h2 style="margin-top:0">Votre cockpit est prêt</h2>
+  <p class="sub" style="margin-bottom:20px">Ajoutez votre première société via son SIREN ou votre extrait KBIS.</p>
+  <a class="btn btn-primary" href="{% url 'onboarding' %}">Ajouter ma première société</a>
+</div>
+{% endif %}
+{% endblock %}

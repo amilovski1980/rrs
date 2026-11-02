@@ -1,0 +1,118 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Comptabilité des artisans{% endblock %} — Road Runner Solutions</title>
+  <meta name="description" content="Road Runner Solutions : la comptabilité en ligne des artisans. SIREN, cockpit comptable, grand livre, balance et TVA.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="tricolore" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <div class="utility">
+    <div class="container utility-in">
+      <p><span class="utility-dot" aria-hidden="true"></span> La comptabilité en ligne des artisans, hébergée en France</p>
+      <div class="utility-links">
+        <a href="{% url 'landing' %}#features">Fonctionnalités</a>
+        <a href="{% url 'landing' %}#pricing">Tarifs</a>
+        <a href="{% url 'landing' %}#securite">Sécurité</a>
+        <a class="is-strong" href="{% url 'magic_link_request' %}">Espace artisan</a>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="container nav-in">
+      <a class="logo" href="{% url 'landing' %}">
+        <img src="{% static 'img/logo.svg' %}" alt="">
+        <span class="logo-text">
+          <b>Road Runner Solutions</b>
+          <small>Comptabilité des artisans</small>
+        </span>
+      </a>
+      <form class="nav-search" action="{% url 'magic_link_request' %}" method="get" role="search">
+        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Rechercher une société par SIREN" aria-label="Rechercher une société par SIREN">
+        <button type="submit" aria-label="Rechercher">
+          {% include "partials/icon.html" with name="search" %}
+        </button>
+      </form>
+      <div class="nav-links">
+        {% if request.user.is_authenticated %}
+          <a class="btn btn-primary" href="{% url 'cockpit' %}">Mon cockpit</a>
+        {% else %}
+          <a class="btn btn-primary" href="{% url 'magic_link_request' %}">Se connecter</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mainnav">
+      <div class="container mainnav-in">
+        <a class="is-active" href="{% url 'landing' %}">Accueil</a>
+        <a href="{% url 'landing' %}#aminia">Aminia</a>
+        <a href="{% url 'landing' %}#features">Fonctionnalités</a>
+        <a href="{% url 'landing' %}#pricing">Tarifs</a>
+        <a href="{% url 'landing' %}#securite">Sécurité</a>
+        <a class="mainnav-cta" href="{% url 'onboarding' %}">Vérifier un SIREN →</a>
+      </div>
+    </div>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <footer>
+    <div class="container">
+      <div class="foot-main">
+        <div class="foot-brand">
+          <a class="logo" href="{% url 'landing' %}">
+            <img src="{% static 'img/logo.svg' %}" alt="">
+            <span class="logo-text">
+              <b>Road Runner Solutions</b>
+              <small>Comptabilité des artisans</small>
+            </span>
+          </a>
+          <p>Le cockpit comptable des artisans et dirigeants de TPE. Données légales officielles, écritures contrôlées, hébergement en France.</p>
+        </div>
+        <div>
+          <h4>Produit</h4>
+          <ul>
+            <li><a href="{% url 'landing' %}#features">Fonctionnalités</a></li>
+            <li><a href="{% url 'landing' %}#pricing">Tarifs</a></li>
+            <li><a href="{% url 'landing' %}#securite">Sécurité</a></li>
+            <li><a href="{% url 'onboarding' %}">Vérifier un SIREN</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Ressources</h4>
+          <ul>
+            <li><a href="{% url 'magic_link_request' %}">Connexion</a></li>
+            <li><a href="{% url 'landing' %}#features">Guide de démarrage</a></li>
+            <li><a href="https://api.insee.fr/api-sirene/3.11" target="_blank" rel="noopener">API Sirene INSEE</a></li>
+            <li><a href="mailto:contact@roadrunner-solutions.fr">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Informations</h4>
+          <ul>
+            <li><a href="{% url 'landing' %}#securite">Protection des données</a></li>
+            <li><a href="{% url 'landing' %}#securite">Mentions légales</a></li>
+            <li><a href="{% url 'landing' %}#securite">Accessibilité</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <div>© {% now "Y" %} Road Runner Solutions — Comptabilité pour artisans SARL / EURL</div>
+        <div class="foot-flag" aria-label="Hébergé en France">
+          <i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i>
+          <span>Hébergé en France · RGPD · Données cloisonnées</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

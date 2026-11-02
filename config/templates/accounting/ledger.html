@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Grand livre{% endblock %}
+{% block crumbs %}Comptabilité / Grand livre{% endblock %}
+{% block nav_ledger %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Grand livre</h1>
+    <p class="sub">{{ company.denomination }} — écritures validées, par date.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ company.id }}">
+    {% include "partials/icon.html" with name="plus" %} Nouvelle écriture
+  </a>
+</div>
+
+{% if entries %}
+<div class="card card-tight">
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Journal</th><th>Libellé</th><th>Compte</th><th class="num">Débit</th><th class="num">Crédit</th></tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+        {% for l in e.lines.all %}
+        <tr>
+          {% if forloop.first %}
+          <td rowspan="{{ e.lines.count }}"><b>{{ e.date|date:"d/m/Y" }}</b></td>
+          <td rowspan="{{ e.lines.count }}"><span class="tag">{{ e.journal.code }}</span></td>
+          <td rowspan="{{ e.lines.count }}">{{ e.label }}</td>
+          {% endif %}
+          <td>{{ l.account.code }} — {{ l.account.label }}</td>
+          <td class="num">{{ l.debit|floatformat:2 }} €</td>
+          <td class="num">{{ l.credit|floatformat:2 }} €</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty">
+  <div class="f-icon" style="margin:0 auto 14px">{% include "partials/icon.html" with name="inbox" %}</div>
+  Aucune écriture pour le moment.
+  <div style="margin-top:16px">
+    <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ company.id }}">Créer la première écriture</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

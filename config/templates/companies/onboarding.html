@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Ajouter une société{% endblock %}
+{% block crumbs %}Sociétés / Ajouter{% endblock %}
+{% block nav_onboarding %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Ajouter une société</h1>
+    <p class="sub">Saisissez le SIREN : nous récupérons les informations légales officielles auprès de l'API Sirene de l'INSEE.</p>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <div class="card" style="border-top:4px solid var(--blue)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span class="badge badge-blue">Étape 1 / 2</span>
+      <span class="badge">API Sirene INSEE</span>
+    </div>
+    <h2 style="margin:0 0 6px;font-size:20px">Identifiez votre société</h2>
+    <p class="sub" style="margin-bottom:4px">Dénomination, forme juridique, adresse et code NAF seront préremplis automatiquement.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <label>{{ form.siren.label }}</label>
+      {{ form.siren }}
+      {% if form.siren.errors %}<p class="error">{{ form.siren.errors.0 }}</p>{% endif %}
+      <p class="helptext">9 chiffres — figure sur votre extrait KBIS ou RNE.</p>
+      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">
+        Récupérer ma société
+      </button>
+    </form>
+
+    <p class="muted" style="font-size:12px;margin-top:16px;line-height:1.6">
+      Source officielle : api.insee.fr / api-sirene 3.11. Aucune donnée n'est partagée avec des tiers.
+    </p>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin:0 0 12px;font-size:17px">Ce que Road Runner Solutions prépare ensuite</h2>
+      <table>
+        <tbody>
+          <tr>
+            <td style="width:34px;color:var(--blue)">{% include "partials/icon.html" with name="building" %}</td>
+            <td><b>Fiche société vérifiée</b><br><span class="muted" style="font-size:12.5px">Données INSEE affichées pour validation</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--blue)">{% include "partials/icon.html" with name="file" %}</td>
+            <td><b>Plan comptable</b><br><span class="muted" style="font-size:12.5px">PCG adapté à votre activité</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--blue)">{% include "partials/icon.html" with name="folder" %}</td>
+            <td><b>Journaux</b><br><span class="muted" style="font-size:12.5px">Achats, ventes, banque, caisse, opérations diverses</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--blue)">{% include "partials/icon.html" with name="list" %}</td>
+            <td><b>Échéancier</b><br><span class="muted" style="font-size:12.5px">TVA, CFE, formation professionnelle</span></td>
+          </tr>
+          <tr>
+            <td style="color:var(--blue)">{% include "partials/icon.html" with name="lock" %}</td>
+            <td><b>Cloisonnement</b><br><span class="muted" style="font-size:12.5px">Données isolées par société</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="background:var(--blue-soft);border-color:var(--blue-border)">
+      <div style="display:flex;align-items:center;gap:9px;color:var(--blue)">
+        {% include "partials/icon.html" with name="search" %}
+        <b style="font-size:14px">Un SIREN, pas un formulaire</b>
+      </div>
+      <p style="font-size:13px;margin:8px 0 0;line-height:1.6;color:var(--ink-2)">
+        Vous validez les informations récupérées avant que le cockpit soit créé.
+        Rien n'est enregistré sans votre confirmation.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

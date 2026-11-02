@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Valider la société{% endblock %}
+{% block crumbs %}Sociétés / Vérification{% endblock %}
+{% block nav_onboarding %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Vérifiez les informations</h1>
+    <p class="sub">SIREN {{ siren }} — données légales officielles (API Sirene INSEE). Validez, puis complétez votre profil comptable.</p>
+  </div>
+  <span class="badge badge-blue" style="padding:8px 13px">Étape 2 / 2</span>
+</div>
+
+{% if error_message %}
+<div class="card" style="background:var(--amber-soft);border-color:#ffd0b8;margin-bottom:18px">
+  <div style="display:flex;align-items:center;gap:9px;color:var(--amber)">
+    {% include "partials/icon.html" with name="alert" %}
+    <b style="font-size:14px">Récupération automatique incomplète</b>
+  </div>
+  <p style="font-size:13px;margin:8px 0 0;color:var(--ink-2)">{{ error_message }}</p>
+</div>
+{% endif %}
+
+<div class="grid g2" style="align-items:start">
+  <div>
+    <div class="card">
+      <div class="card-head" style="padding:0 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px">
+        <h3>Fiche officielle</h3>
+        {% if data %}<span class="badge badge-green">Source INSEE</span>{% else %}<span class="badge badge-amber">Saisie manuelle</span>{% endif %}
+      </div>
+      <table>
+        <tbody>
+          <tr><td class="muted">SIREN</td><td><b>{{ siren }}</b></td></tr>
+          <tr><td class="muted">Dénomination</td><td><b>{{ data.denomination|default:"Non renseignée" }}</b></td></tr>
+          <tr><td class="muted">Forme juridique</td><td><b>{{ data.forme|default:"—" }}</b>{% if data.categorie_juridique %} <span class="muted">(code {{ data.categorie_juridique }})</span>{% endif %}</td></tr>
+          <tr><td class="muted">Adresse du siège</td><td><b>{{ data.adresse|default:"Non renseignée" }}</b></td></tr>
+          <tr><td class="muted">Code NAF</td><td><b>{{ data.code_naf|default:"—" }}</b></td></tr>
+          <tr><td class="muted">Création</td><td><b>{{ data.date_creation|default:"—" }}</b></td></tr>
+          <tr><td class="muted">État administratif</td><td><b>{{ data.etat|default:"—" }}</b></td></tr>
+          <tr><td class="muted">Effectifs</td><td><b>{{ data.tranche_effectifs|default:"—" }}</b></td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="font-size:12px;margin:14px 0 0;line-height:1.6">
+        Ces informations proviennent du répertoire Sirene. Corrigez la dénomination ou la forme ci-contre si nécessaire.
+      </p>
+    </div>
+  </div>
+
+  <div class="card" style="border-top:4px solid var(--blue)">
+    <h2 style="margin:0 0 4px;font-size:20px">Votre profil comptable</h2>
+    <p class="sub" style="margin-bottom:4px">Il détermine le portail généré (comptes, journaux, TVA).</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+      <label>{{ form.denomination.label }}</label>
+      {{ form.denomination }}
+      {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+
+      <div class="form-grid">
+        <div>
+          <label>{{ form.forme.label }}</label>
+          {{ form.forme }}
+        </div>
+        <div>
+          <label>{{ form.exercice_debut.label }}</label>
+          {{ form.exercice_debut }}
+        </div>
+      </div>
+
+      <label>{{ form.activites.label }}</label>
+      {{ form.activites }}
+      {% if form.activites.errors %}<p class="error">{{ form.activites.errors.0 }}</p>{% endif %}
+
+      <div class="form-grid">
+        <div>
+          <label>{{ form.regime.label }}</label>
+          {{ form.regime }}
+        </div>
+        <div>
+          <label>{{ form.tva.label }}</label>
+          {{ form.tva }}
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="{% url 'onboarding' %}">Changer de SIREN</a>
+        <button class="btn btn-primary" style="flex:1">Valider et créer mon cockpit</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

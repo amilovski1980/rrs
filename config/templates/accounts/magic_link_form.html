@@ -1,0 +1,36 @@
+{% extends "base_public.html" %}
+{% load static %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:20px">
+      <img src="{% static 'img/logo.svg' %}" alt="" width="36" height="36">
+      <span class="brand-text">
+        <b>Road Runner</b>
+        <small>Solutions</small>
+      </span>
+    </div>
+    <h1>Connexion sans mot de passe</h1>
+    <p class="sub">Indiquez votre email. Nous vous envoyons un lien sécurisé, valable 30 minutes et utilisable une seule fois.</p>
+
+    {% if sent %}
+      <div class="flash flash-ok"><b>Lien envoyé.</b> Consultez votre boîte mail.</div>
+    {% endif %}
+    {% if dev_link %}
+      <div class="flash">
+        Mode développement — <a href="{{ dev_link }}"><b>cliquez ici pour vous connecter</b></a>
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label>{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">Recevoir mon lien</button>
+    </form>
+    <p class="micro" style="text-align:center;margin-top:16px">Aucune inscription · aucun mot de passe</p>
+  </div>
+</div>
+{% endblock %}

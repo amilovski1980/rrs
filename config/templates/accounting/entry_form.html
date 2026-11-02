@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle écriture{% endblock %}
+{% block crumbs %}Comptabilité / Nouvelle écriture{% endblock %}
+{% block nav_entry %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Nouvelle écriture</h1>
+    <p class="sub">{{ company.denomination }} — le total débit doit égaler le total crédit.</p>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors or formset.non_form_errors %}
+    <ul class="form-errors">
+      {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+      {% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="form-grid">
+      <div>
+        <label>Journal</label>
+        {{ form.journal }}
+        {% if form.journal.errors %}<p class="error">{{ form.journal.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label>Date</label>
+        {{ form.date }}
+        {% if form.date.errors %}<p class="error">{{ form.date.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <label>Libellé</label>
+        {{ form.label }}
+        {% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label>Référence (facture, ticket…)</label>
+        {{ form.reference }}
+      </div>
+    </div>
+
+    <h2 style="margin:26px 0 8px;font-size:18px">Lignes d'écriture</h2>
+    {{ formset.management_form }}
+    <table>
+      <thead><tr><th style="width:55%">Compte</th><th class="num">Débit (€)</th><th class="num">Crédit (€)</th></tr></thead>
+      <tbody>
+        {% for f in formset %}
+        <tr>
+          <td>
+            {{ f.account }}
+            {% if f.account.errors %}<p class="error">{{ f.account.errors.0 }}</p>{% endif %}
+          </td>
+          <td class="num">{{ f.debit }}</td>
+          <td class="num">{{ f.credit }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;flex-wrap:wrap">
+      <a class="btn btn-ghost" href="{% url 'ledger' %}?societe={{ company.id }}">Annuler</a>
+      <button class="btn btn-primary">Enregistrer l'écriture</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

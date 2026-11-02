@@ -1,0 +1,12 @@
+{% extends "base_public.html" %}
+{% block title %}Lien expiré{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center">
+    <div class="f-icon" style="margin:0 auto 14px">{% include "partials/icon.html" with name="alert" %}</div>
+    <h1>Lien expiré ou déjà utilisé</h1>
+    <p class="sub">Par sécurité, chaque lien de connexion ne fonctionne qu'une seule fois et pendant 30 minutes.</p>
+    <a class="btn btn-primary" style="width:100%;padding:12px" href="{% url 'magic_link_request' %}">Recevoir un nouveau lien</a>
+  </div>
+</div>
+{% endblock %}
