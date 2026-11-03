@@ -17,22 +17,7 @@
       </div>
       <h2 id="agent-title" style="font-size:12px;margin:4px 0 0;">Agent Road Runner</h2>
       <p class="agent-status" data-agent-status style="font-size:10px;margin:4px 0 0;" role="status" aria-live="polite">Appuyez pour parler</p>
-      <p class="agent-desc" id="agent-desc" style="font-size:10px;margin:4px 0 0;">Aminia vousguide par la voix : lecteur, saisie, compta. Appelez le standard vocal du poste 9999.</p>
-
-      <div class="phone" data-phone style="margin-top:8px;">
-        <div class="phone-config">
-          <div class="card-head"><h3>Configuration du standard</h3></div>
-          <div class="card-body">
-            <label>Serveur SIP : <input type="text" data-sip-host value="vocalia-solutions.com" style="width:100%;padding:4px;font-size:12px;"></label>
-            <label>Port WSS : <input type="number" min="1" max="65535" value="{{ settings.VOICE_SIP_WS_PORT }}" data-sip-ws-port aria-label="Port WebSocket SIP"></label>
-            <label>Extension : <input type="text" data-sip-ext value="2000" style="width:100%;padding:4px;font-size:12px;"></label>
-            <label>Poste appelé : <input type="text" data-sip-callee value="{{ settings.VOICE_SIP_CALLEE }}" style="width:100%;padding:4px;font-size:12px;"></label>
-          </div>
-        </div>
-        <div style="margin-top:8px;">
-          <button class="btn btn-primary w-100" type="button" data-phone-call>Connexion</button>
-        </div>
-      </div>
+      <p class="agent-desc" id="agent-desc" style="font-size:10px;margin:4px 0 0;">Aminia vous guide par la voix : lecteur, saisie, compta.</p>
     </div>
   </div>
 </div>
