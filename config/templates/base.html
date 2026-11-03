@@ -73,6 +73,13 @@
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
       <div class="top-actions">
         {% if selected %}<span class="badge badge-blue">{{ selected.denomination }}</span>{% endif %}
+        {% if request.user.is_authenticated %}
+        <span class="badge">{{ request.user.email }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
+        </form>
+        {% endif %}
         <a class="btn btn-ghost btn-sm" href="{% url 'landing' %}">Site vitrine</a>
       </div>
     </header>
