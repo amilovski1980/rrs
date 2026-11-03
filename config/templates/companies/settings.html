@@ -51,15 +51,23 @@
 
   <div>
     <h2 style="margin:0 0 12px;font-size:18px">Modèle de facture</h2>
-    <div class="theme-grid">
+    <div class="model-grid">
       {% for code, label in themes %}
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="theme" value="{{ code }}">
-        <button class="theme-card theme-{{ code }} {% if company.invoice_theme == code %}is-on{% endif %}" type="submit">
-          <span class="theme-swatch"></span>
-          <b>{{ label }}</b>
-          {% if company.invoice_theme == code %}<span class="badge badge-blue">En cours</span>{% endif %}
+        <button class="model-card {% if company.invoice_theme == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}">
+          <span class="model-preview model-{{ code }}" aria-hidden="true">
+            <span class="mp-top">
+              <span class="mp-logo"></span>
+              <span class="mp-id"><i></i><i></i></span>
+            </span>
+            <span class="mp-who"><i></i><i></i></span>
+            <span class="mp-row"></span>
+            <span class="mp-row"></span>
+            <span class="mp-row short"></span>
+            <span class="mp-due"><i></i><b></b></span>
+          </span>
         </button>
       </form>
       {% endfor %}

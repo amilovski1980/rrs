@@ -16,13 +16,25 @@
   </div>
 </div>
 
-<div class="theme-row">
+<div class="model-grid model-grid-inline">
   {% for code, label in themes %}
   <form method="post" action="{% url 'company_settings' %}?societe={{ company.id }}">
     {% csrf_token %}
     <input type="hidden" name="theme" value="{{ code }}">
     <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
-    <button class="theme-mini theme-{{ code }} {% if company.invoice_theme == code %}is-on{% endif %}" type="submit">{{ label }}</button>
+    <button class="model-card {% if company.invoice_theme == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}">
+      <span class="model-preview model-{{ code }}" aria-hidden="true">
+        <span class="mp-top">
+          <span class="mp-logo"></span>
+          <span class="mp-id"><i></i><i></i></span>
+        </span>
+        <span class="mp-who"><i></i><i></i></span>
+        <span class="mp-row"></span>
+        <span class="mp-row"></span>
+        <span class="mp-row short"></span>
+        <span class="mp-due"><i></i><b></b></span>
+      </span>
+    </button>
   </form>
   {% endfor %}
 </div>

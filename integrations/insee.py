@@ -183,18 +183,65 @@ class InseeClient:
             "raw": raw,
         }
 
+def lookup_annuaire(siren: str) -> dict | None:
+    """Annuaire public des entreprises, sans clé. Secours quand l'INSEE n'est pas joignable."""
+    response = httpx.get(
+        "https://recherche-entreprises.api.gouv.fr/search",
+        params={"q": siren, "per_page": 5, "page": 1},
+        headers={"Accept": "application/json"},
+        timeout=15,
+    )
+    if response.status_code >= 400:
+        raise InseeError(f"Annuaire entreprises indisponible ({response.status_code}).")
+    results = response.json().get("results") or []
+    hit = next((item for item in results if str(item.get("siren")) == siren), None)
+    if hit is None:
+        return None
+    siege = hit.get("siege") or {}
+    nature = str(hit.get("nature_juridique") or "")
+    naf = hit.get("activite_principale") or ""
+    adresse = siege.get("geo_adresse") or siege.get("adresse") or ""
+    etat = hit.get("etat_administratif") or ""
+    return {
+        "siren": siren,
+        "denomination": hit.get("nom_raison_sociale") or hit.get("nom_complet") or "",
+        "forme": LEGAL_FORMS.get(nature, "SARL"),
+        "categorie_juridique": nature,
+        "adresse": adresse,
+        "code_naf": str(naf).replace(".", ""),
+        "activite_suggeree": activity_from_naf(naf),
+        "date_creation": hit.get("date_creation") or "",
+        "etat": "Active" if etat == "A" else (etat or ""),
+        "tranche_effectifs": hit.get("tranche_effectif_salarie") or "",
+    }
+
+
 def lookup_siren(siren: str) -> tuple[dict | None, str | None]:
-    """Retourne (donnees, message d'erreur éventuel). Ne lève jamais."""
+    """Retourne (donnees, message d'erreur éventuel). Ne lève jamais.
+
+    La fiche renvoyée ne contient pas la réponse brute : la session Vercel
+    est un cookie, trop petit pour le JSON complet de l'API.
+    """
     try:
-        raw = InseeClient().get_siren(siren)
-        data = InseeClient.normalize(raw)
-        if not data.get("siren"):
-            data["siren"] = siren
-        return data, None
+        client = InseeClient()
+        if client.api_key or client.direct_token or (client.client_id and client.client_secret):
+            data = InseeClient.normalize(client.get_siren(siren))
+            data.pop("raw", None)
+            if not data.get("siren"):
+                data["siren"] = siren
+            if data.get("denomination"):
+                return data, None
     except InseeNotConfigured:
-        return None, "not_configured"
+        pass
     except InseeNotFound:
         return None, "not_found"
     except (InseeError, httpx.HTTPError, ValueError):
+        pass
+    try:
+        data = lookup_annuaire(siren)
+    except (InseeError, httpx.HTTPError, ValueError):
         return None, "error"
+    if not data or not data.get("denomination"):
+        return None, "not_found"
+    return data, None
 
