@@ -28,8 +28,11 @@
     { "source": "/ajouter/", "destination": "/api/index" },
     { "source": "/admin/", "destination": "/api/index" },
     { "source": "/agent-config", "destination": "/api/index" },
+    { "source": "/agent/session/", "destination": "/api/index" },
+    { "source": "/agent/outil/", "destination": "/api/index" },
     { "source": "/static/css/app.css", "destination": "/assets/app.css" },
     { "source": "/static/js/app.js", "destination": "/assets/app.js" },
+    { "source": "/static/js/grok-voice.js", "destination": "/assets/grok-voice.js" },
     { "source": "/static/img/:path*", "destination": "/assets/:path*" },
     { "source": "/static/:path*", "destination": "/assets/:path*" }
   ]
