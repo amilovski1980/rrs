@@ -9,6 +9,7 @@ urlpatterns = [
     path("", include("companies.urls")),      # cockpit + onboarding
     path("compte/", include("accounts.urls")),  # magic link, logout, profil
     path("compta/", include("accounting.urls")),
+    path("agent/", include("ai.urls")),
     path("agent-config", demo.agent_config, name="agent_config"),
     # path("factures/", include("documents.urls")),
     # path("ia/", include("ai.urls")),

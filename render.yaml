@@ -31,6 +31,12 @@ services:
         sync: false
       - key: LLM_MODEL
         value: "qwen3-32b-awq"
+      - key: XAI_API_KEY
+        sync: false
+      - key: XAI_VOICE_MODEL
+        value: "grok-voice-latest"
+      - key: XAI_VOICE
+        value: "eve"
 
 databases:
   - name: roadrunner-db

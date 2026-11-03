@@ -207,3 +207,9 @@ VOICE_SIP_PASSWORD = env.get("VOICE_SIP_PASSWORD", "")
 VOICE_SIP_CALLEE = env.get("VOICE_SIP_CALLEE", "9999")  # poste appelé
 VOICE_AGENT_NAME = env.get("VOICE_AGENT_NAME", "Aminia")
 
+# Agent vocal Grok (xAI Realtime). La clé reste sur le serveur :
+# le navigateur ne reçoit qu'un jeton éphémère.
+XAI_API_KEY = env.get("XAI_API_KEY", "")
+XAI_VOICE_MODEL = env.get("XAI_VOICE_MODEL", "grok-voice-latest")
+XAI_VOICE = env.get("XAI_VOICE", "eve")
+
