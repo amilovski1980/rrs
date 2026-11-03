@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from companies.models import INVOICE_THEMES
 from core.context import resolve_company
 
 from .forms import InvoiceForm
@@ -87,7 +88,11 @@ def invoice_detail(request, pk):
     if bounce:
         return bounce
     invoice = _invoice(request, company, pk)
-    return render(request, "documents/invoice_detail.html", {"company": company, "invoice": invoice})
+    return render(request, "documents/invoice_detail.html", {
+        "company": company,
+        "invoice": invoice,
+        "themes": INVOICE_THEMES,
+    })
 
 
 @login_required

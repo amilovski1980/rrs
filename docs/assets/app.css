@@ -933,3 +933,77 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   }
   .reveal { opacity: 1; transform: none; }
 }
+
+.theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.theme-card, .theme-mini {
+  width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: #fff; border-radius: 8px;
+  font-family: var(--font-body);
+}
+.theme-card { display: flex; align-items: center; gap: 10px; padding: 12px; }
+.theme-card.is-on, .theme-mini.is-on { outline: 2px solid var(--blue); }
+.theme-swatch { width: 28px; height: 36px; border-radius: 3px; flex: 0 0 auto; }
+.theme-azur .theme-swatch { background: linear-gradient(#0b3d91 40%, #fff 40%); }
+.theme-carmin .theme-swatch { background: #fff; border-left: 6px solid #b42318; }
+.theme-encre .theme-swatch { background: linear-gradient(#161616 28%, #fff 28%); }
+.theme-sauge .theme-swatch { background: #e7f3ea; border: 1px solid #1f7a4d; }
+.theme-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.theme-mini { padding: 8px 12px; font-weight: 700; font-size: 13px; }
+.theme-mini.theme-azur { color: #0b3d91; }
+.theme-mini.theme-carmin { color: #b42318; }
+.theme-mini.theme-encre { color: #161616; }
+.theme-mini.theme-sauge { color: #1f7a4d; }
+
+.sheet {
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 28px 32px; box-shadow: var(--shadow-sm);
+}
+.sheet-head, .sheet-foot { display: flex; justify-content: space-between; gap: 18px; }
+.sheet-brand { display: flex; gap: 14px; align-items: flex-start; }
+.sheet-logo { width: 64px; height: 64px; object-fit: contain; background: #fff; }
+.sheet h2, .sheet h3 { margin: 0 0 4px; font-family: var(--font-head); }
+.sheet p { margin: 0; font-size: 13px; line-height: 1.45; }
+.sheet-kicker { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sheet-kind { font-family: var(--font-head); font-size: 28px; letter-spacing: -.4px; }
+.sheet-num { font-weight: 700; }
+.sheet-meta { text-align: right; }
+.sheet-client { margin: 22px 0; }
+.sheet-table { width: 100%; border-collapse: collapse; }
+.sheet-table th, .sheet-table td { padding: 10px 8px; text-align: left; }
+.sheet-table .num { text-align: right; }
+.sheet-foot { align-items: flex-end; margin-top: 18px; }
+.sheet-due b { font-family: var(--font-head); font-size: 26px; }
+
+.sheet-azur { overflow: hidden; padding: 0; }
+.sheet-azur .sheet-head { background: #0b3d91; color: #fff; padding: 26px 32px; }
+.sheet-azur .sheet-kicker, .sheet-azur .sheet-head p { color: #d6e4ff; }
+.sheet-azur .sheet-logo { border-radius: 8px; padding: 4px; }
+.sheet-azur .sheet-client, .sheet-azur .sheet-table, .sheet-azur .sheet-foot { margin-left: 32px; margin-right: 32px; }
+.sheet-azur .sheet-client { margin-top: 22px; }
+.sheet-azur .sheet-table th { color: #0b3d91; border-bottom: 2px solid #0b3d91; }
+.sheet-azur .sheet-due b { color: #0b3d91; }
+.sheet-azur .sheet-foot { padding-bottom: 26px; }
+
+.sheet-carmin { border-left: 8px solid #b42318; }
+.sheet-carmin .sheet-kind, .sheet-carmin .sheet-due b, .sheet-carmin .sheet-kicker { color: #b42318; }
+.sheet-carmin .sheet-table th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #7a1d16; }
+.sheet-carmin .sheet-table td { border-bottom: 1px solid #f3d0cc; }
+.sheet-carmin .sheet-due { background: #b42318; color: #fff; padding: 10px 14px; border-radius: 6px; }
+.sheet-carmin .sheet-due b { color: #fff; }
+
+.sheet-encre { border-radius: 0; border-color: #161616; }
+.sheet-encre .sheet-head { border-bottom: 3px solid #161616; padding-bottom: 16px; }
+.sheet-encre .sheet-kind { font-weight: 400; letter-spacing: .18em; text-transform: uppercase; font-size: 14px; }
+.sheet-encre .sheet-num { font-size: 22px; font-family: var(--font-head); }
+.sheet-encre .sheet-table th { border-bottom: 1px solid #161616; font-weight: 500; }
+.sheet-encre .sheet-table td { border-bottom: 1px solid #ececec; }
+.sheet-encre .sheet-due { border-top: 3px solid #c4a15a; padding-top: 8px; }
+.sheet-encre .sheet-due b { font-weight: 500; }
+
+.sheet-sauge { background: #f4faf6; border-color: #c9e6d4; border-radius: 18px; }
+.sheet-sauge .sheet-logo { border-radius: 50%; background: #fff; }
+.sheet-sauge .sheet-kicker { color: #1f7a4d; }
+.sheet-sauge .sheet-client { background: #fff; border-radius: 12px; padding: 14px 16px; }
+.sheet-sauge .sheet-table th { color: #1f7a4d; }
+.sheet-sauge .sheet-due b { color: #1f7a4d; }
+

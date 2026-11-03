@@ -11,7 +11,9 @@ from integrations.insee import lookup_siren
 from accounting.reports import cockpit_figures
 from core.context import resolve_company
 
-from .models import Company
+from django.http import HttpResponse
+
+from .models import INVOICE_THEMES, Company
 
 ACTIVITIES_CHOICES = [
     ("btp", "BTP"),
@@ -79,6 +81,8 @@ class CompanyProfileForm(forms.Form):
         initial=date(date.today().year, 1, 1),
         widget=forms.DateInput(attrs={"type": "date"}),
     )
+    phone = forms.CharField(label="Téléphone", max_length=30, required=False)
+    email = forms.EmailField(label="Email de facturation", required=False)
 
 
 def landing(request):
@@ -162,6 +166,8 @@ def onboarding_confirm(request):
                     denomination=cleaned["denomination"],
                     forme=cleaned["forme"],
                     address=data.get("adresse", ""),
+                    phone=cleaned.get("phone", ""),
+                    email=cleaned.get("email", ""),
                     code_naf=data.get("code_naf", ""),
                     activites=list(cleaned["activites"]),
                     regime=cleaned["regime"],
@@ -188,3 +194,88 @@ def onboarding_confirm(request):
             "error_message": LOOKUP_ERRORS.get(error) if error else None,
         },
     )
+
+
+class CompanySettingsForm(forms.ModelForm):
+    logo = forms.FileField(label="Logo", required=False)
+
+    class Meta:
+        model = Company
+        fields = ("denomination", "forme", "address", "phone", "email", "invoice_theme")
+        labels = {
+            "denomination": "Dénomination",
+            "forme": "Forme juridique",
+            "address": "Adresse",
+            "phone": "Téléphone",
+            "email": "Email de facturation",
+            "invoice_theme": "Modèle de facture",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["forme"].widget = forms.Select(choices=FORME_CHOICES)
+
+    def clean_logo(self):
+        upload = self.cleaned_data.get("logo")
+        if not upload:
+            return upload
+        if upload.size > 800_000:
+            raise forms.ValidationError("Le logo ne doit pas dépasser 800 Ko.")
+        kind = getattr(upload, "content_type", "") or ""
+        if kind not in ("image/png", "image/jpeg", "image/webp"):
+            raise forms.ValidationError("Utilisez un fichier PNG, JPEG ou WebP.")
+        return upload
+
+
+def _company_or_redirect(request):
+    company = resolve_company(request)
+    if company is None:
+        return None, redirect("onboarding")
+    return company, None
+
+
+@login_required
+def company_settings(request):
+    """Logo, coordonnées et modèle de facture."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    if request.method == "POST" and request.POST.get("theme") and "denomination" not in request.POST:
+        theme = request.POST.get("theme")
+        if theme in dict(INVOICE_THEMES):
+            company.invoice_theme = theme
+            company.save(update_fields=["invoice_theme"])
+        nxt = request.POST.get("next") or ""
+        if not nxt.startswith("/") or nxt.startswith("//"):
+            nxt = reverse("company_settings") + f"?societe={company.id}"
+        return redirect(nxt)
+    form = CompanySettingsForm(request.POST or None, request.FILES or None, instance=company)
+    if request.method == "POST" and form.is_valid():
+        company = form.save()
+        if request.POST.get("remove_logo"):
+            company.logo = None
+            company.logo_type = ""
+            company.save(update_fields=["logo", "logo_type"])
+        upload = form.cleaned_data.get("logo")
+        if upload:
+            company.logo = upload.read()
+            company.logo_type = upload.content_type
+            company.save(update_fields=["logo", "logo_type"])
+        return redirect(reverse("company_settings") + f"?societe={company.id}")
+    return render(request, "companies/settings.html", {
+        "company": company,
+        "form": form,
+        "themes": INVOICE_THEMES,
+    })
+
+
+@login_required
+def company_logo(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce or not company.logo:
+        return HttpResponse(status=404)
+    kind = company.logo_type or "image/png"
+    response = HttpResponse(bytes(company.logo), content_type=kind)
+    response["Cache-Control"] = "private, max-age=3600"
+    return response
+

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block crumbs %}Société / Configuration{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Configuration</h1>
+    <p class="sub">{{ company.denomination }} — SIREN {{ company.siren }}. L'adresse vient de l'API Sirene si elle a été trouvée. Le téléphone se saisit ici.</p>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="invoice_theme" value="{{ company.invoice_theme }}">
+      {% if form.non_field_errors %}
+      <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      <label>{{ form.denomination.label }}</label>
+      {{ form.denomination }}
+      {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+      <div class="form-grid">
+        <div>
+          <label>{{ form.forme.label }}</label>
+          {{ form.forme }}
+        </div>
+        <div>
+          <label>{{ form.phone.label }}</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<p class="error">{{ form.phone.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <label>{{ form.address.label }}</label>
+      {{ form.address }}
+      <label>{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+      <label>Logo</label>
+      {% if company.logo %}
+      <p><img src="{% url 'company_logo' %}?societe={{ company.id }}" alt="Logo" style="max-height:64px;max-width:180px"></p>
+      <label class="micro"><input type="checkbox" name="remove_logo" value="1"> Retirer le logo</label>
+      {% endif %}
+      {{ form.logo }}
+      {% if form.logo.errors %}<p class="error">{{ form.logo.errors.0 }}</p>{% endif %}
+      <p class="muted" style="font-size:12px">PNG, JPEG ou WebP, 800 Ko maximum.</p>
+      <button class="btn btn-primary" type="submit" style="margin-top:12px">Enregistrer</button>
+    </form>
+  </div>
+
+  <div>
+    <h2 style="margin:0 0 12px;font-size:18px">Modèle de facture</h2>
+    <div class="theme-grid">
+      {% for code, label in themes %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="theme" value="{{ code }}">
+        <button class="theme-card theme-{{ code }} {% if company.invoice_theme == code %}is-on{% endif %}" type="submit">
+          <span class="theme-swatch"></span>
+          <b>{{ label }}</b>
+          {% if company.invoice_theme == code %}<span class="badge badge-blue">En cours</span>{% endif %}
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

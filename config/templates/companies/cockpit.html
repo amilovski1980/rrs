@@ -16,6 +16,7 @@
   </div>
   {% if selected %}
   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="building" %} Configuration</a>
     <a class="btn btn-ghost" href="{% url 'invoice_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
     <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="pencil" %} Écriture</a>
   </div>

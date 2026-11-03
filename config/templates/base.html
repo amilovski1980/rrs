@@ -29,6 +29,9 @@
     <a class="side-link {% block nav_onboarding %}{% endblock %}" href="{% url 'onboarding' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="plus" %}</span> Ajouter une société
     </a>
+    <a class="side-link {% block nav_settings %}{% endblock %}" href="{% url 'company_settings' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Configuration
+    </a>
 
     <div class="nav-sec">Comptabilité</div>
     <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}{% if selected %}?societe={{ selected.id }}{% endif %}">

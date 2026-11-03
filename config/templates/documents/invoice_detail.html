@@ -16,41 +16,18 @@
   </div>
 </div>
 
-<div class="card" style="padding:28px 32px">
-  <div class="grid g2" style="margin-bottom:22px">
-    <div>
-      <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.4px">ÉMETTEUR</div>
-      <h2 style="margin:6px 0">{{ company.denomination }}</h2>
-      <p class="sub" style="margin:0">{{ company.forme }} · SIREN {{ company.siren }}</p>
-      {% if company.address %}<p class="sub" style="margin:4px 0 0">{{ company.address }}</p>{% endif %}
-    </div>
-    <div>
-      <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.4px">CLIENT</div>
-      <h2 style="margin:6px 0">{{ invoice.client_name }}</h2>
-      <p class="sub" style="margin:0">{% if invoice.client_siren %}SIREN {{ invoice.client_siren }}{% else %}SIREN non renseigné{% endif %}</p>
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr><th>Désignation</th><th class="num">HT</th><th class="num">TVA {{ invoice.vat_rate|floatformat:2 }} %</th><th class="num">TTC</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Prestation — {{ invoice.client_name }}</td>
-        <td class="num">{{ invoice.amount_ht|floatformat:2 }} €</td>
-        <td class="num">{{ invoice.vat_amount|floatformat:2 }} €</td>
-        <td class="num"><b>{{ invoice.amount_ttc|floatformat:2 }} €</b></td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr class="totals">
-        <td colspan="3">Total à payer</td>
-        <td class="num">{{ invoice.amount_ttc|floatformat:2 }} €</td>
-      </tr>
-    </tfoot>
-  </table>
+<div class="theme-row">
+  {% for code, label in themes %}
+  <form method="post" action="{% url 'company_settings' %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <input type="hidden" name="theme" value="{{ code }}">
+    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
+    <button class="theme-mini theme-{{ code }} {% if company.invoice_theme == code %}is-on{% endif %}" type="submit">{{ label }}</button>
+  </form>
+  {% endfor %}
 </div>
+
+{% include "documents/invoice_sheet.html" %}
 
 <div class="card" style="padding:18px 22px;margin-top:16px">
   {% if invoice.status == "draft" %}

@@ -83,7 +83,20 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">
+        L'API Sirene a rempli la dénomination, la forme, l'adresse et le code NAF.
+        Le téléphone n'est pas dans ce répertoire : ajoutez-le ici si vous l'avez.
+      </p>
+      <div class="form-grid">
+        <div>
+          <label>{{ form.phone.label }}</label>
+          {{ form.phone }}
+        </div>
+        <div>
+          <label>{{ form.email.label }}</label>
+          {{ form.email }}
+        </div>
+      </div>
         <a class="btn btn-ghost" href="{% url 'onboarding' %}">Changer de SIREN</a>
         <button class="btn btn-primary" style="flex:1">Valider et créer mon cockpit</button>
       </div>

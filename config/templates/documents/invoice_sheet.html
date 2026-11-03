@@ -1,0 +1,47 @@
+<article class="sheet sheet-{{ company.invoice_theme|default:'azur' }}">
+  <header class="sheet-head">
+    <div class="sheet-brand">
+      {% if company.logo %}
+      <img class="sheet-logo" src="{% url 'company_logo' %}?societe={{ company.id }}" alt="">
+      {% endif %}
+      <div>
+        <p class="sheet-kicker">{{ company.forme }}</p>
+        <h2>{{ company.denomination }}</h2>
+        <p>
+          {% if company.address %}{{ company.address }}<br>{% endif %}
+          SIREN {{ company.siren }}
+          {% if company.phone %} · {{ company.phone }}{% endif %}
+          {% if company.email %}<br>{{ company.email }}{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="sheet-meta">
+      <p class="sheet-kind">Facture</p>
+      <p class="sheet-num">{{ invoice.number }}</p>
+      <p>{{ invoice.created_at|date:"d/m/Y" }}</p>
+      <p class="sheet-state">{{ invoice.get_status_display }}</p>
+    </div>
+  </header>
+  <section class="sheet-client">
+    <p class="sheet-kicker">Facturé à</p>
+    <h3>{{ invoice.client_name }}</h3>
+    <p>{% if invoice.client_siren %}SIREN {{ invoice.client_siren }}{% else %}Client{% endif %}</p>
+  </section>
+  <table class="sheet-table">
+    <thead>
+      <tr><th>Désignation</th><th class="num">HT</th><th class="num">TVA {{ invoice.vat_rate|floatformat:2 }} %</th><th class="num">TTC</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Prestation — {{ invoice.client_name }}</td>
+        <td class="num">{{ invoice.amount_ht|floatformat:2 }} €</td>
+        <td class="num">{{ invoice.vat_amount|floatformat:2 }} €</td>
+        <td class="num">{{ invoice.amount_ttc|floatformat:2 }} €</td>
+      </tr>
+    </tbody>
+  </table>
+  <footer class="sheet-foot">
+    <p>Payable à réception. TVA {{ invoice.vat_rate|floatformat:2 }} %.</p>
+    <p class="sheet-due"><span>Total</span> <b>{{ invoice.amount_ttc|floatformat:2 }} €</b></p>
+  </footer>
+</article>

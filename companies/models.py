@@ -23,6 +23,13 @@ TVA_MODES = [
     ("reel", "TVA (CA3/CA12)"),
 ]
 
+INVOICE_THEMES = [
+    ("azur", "Azur"),
+    ("carmin", "Carmin"),
+    ("encre", "Encre"),
+    ("sauge", "Sauge"),
+]
+
 
 class Company(models.Model):
     """Une société geree par un artisan. 1 tenant = 1 clientele = cette table."""
@@ -37,7 +44,12 @@ class Company(models.Model):
     denomination = models.CharField(max_length=255)
     forme = models.CharField(max_length=10, default="SARL")
     address = models.CharField(max_length=255, blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    email = models.EmailField(blank=True)
     code_naf = models.CharField(max_length=10, blank=True)
+    invoice_theme = models.CharField(max_length=12, choices=INVOICE_THEMES, default="azur")
+    logo = models.BinaryField(null=True, blank=True)
+    logo_type = models.CharField(max_length=40, blank=True)
 
     # Profil repartition compta
     activites = models.JSONField(default=list, help_text="codes du questionnaire")
