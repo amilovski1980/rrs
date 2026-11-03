@@ -792,12 +792,15 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 .agent-dialog.is-done .agent-core { background: radial-gradient(circle at 34% 28%, #62d99a, var(--green) 62%, #0b5c36); }
 .live-invoice {
   position: fixed; z-index: 95;
-  left: 288px; bottom: 96px;
-  width: min(520px, calc(100vw - 312px));
+  left: 50%; bottom: 108px;
+  transform: translateX(-50%);
+  width: min(640px, calc(100vw - 32px));
   pointer-events: auto;
 }
 .live-invoice[hidden] { display: none; }
-.live-invoice input.is-typing { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(13, 110, 253, .15); }
+.live-invoice input { font-size: 16px; font-weight: 700; }
+.live-invoice input.is-typing { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(13, 110, 253, .18); }
+.live-invoice input.is-typing { background-image: linear-gradient(var(--blue), var(--blue)); background-size: 2px 1.1em; background-repeat: no-repeat; background-position: right 12px center; }
 
 @keyframes agentIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
 @keyframes agentPulse { 0% { transform: scale(.92); opacity: .9; } 80%, 100% { transform: scale(1.22); opacity: 0; } }
@@ -913,7 +916,7 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   .agent-fab-orb { width: 40px; height: 40px; }
   .agent-fab-orb svg { width: 20px; height: 20px; }
   .agent-fab-text { font-size: 13px; }
-  .live-invoice { left: 12px; right: 12px; width: auto; }
+  .live-invoice { left: 16px; right: 16px; width: auto; transform: none; }
   .agent-dialog { padding: 8px 12px; gap: 8px; }
   .agent-note { display: none; }
   .agent-mic { width: 44px; height: 44px; }

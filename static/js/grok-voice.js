@@ -200,30 +200,51 @@
 
     function paintLive() {
       var pending = false;
+      var activeKey = "";
       for (var i = 0; i < liveFields.length; i++) {
         var key = liveFields[i];
         var target = liveTargets[key] || "";
         var current = liveShown[key] || "";
-        if (current.length < target.length) {
+        if (!activeKey && current.length < target.length) {
           current = target.slice(0, current.length + 1);
           liveShown[key] = current;
-          pending = true;
+          activeKey = key;
         }
+        if ((liveShown[key] || "").length < target.length) pending = true;
         var box = fieldBox(key);
         if (!box) continue;
-        if (box.value !== current) box.value = current;
-        box.classList.toggle("is-typing", current.length > 0 && current.length < target.length);
+        var value = liveShown[key] || "";
+        if (box.value !== value) box.value = value;
+        box.classList.toggle("is-typing", key === activeKey);
       }
       var line = document.querySelector("[data-live-line]");
       if (line) {
-        line.textContent = liveTargets.designation
-          ? "Prestation : " + (liveShown.designation || "")
-          : "Saisie en cours…";
+        line.textContent = pending ? "Aminia écrit…" : "Saisie terminée.";
       }
       if (!pending && liveTimer) {
         window.clearInterval(liveTimer);
         liveTimer = null;
       }
+    }
+
+    function armLive(values) {
+      liveShown = {};
+      liveTargets = {};
+      for (var i = 0; i < liveFields.length; i++) {
+        var key = liveFields[i];
+        var box = fieldBox(key);
+        if (box) box.value = "";
+        liveTargets[key] = values[key] || "";
+      }
+      if (sheet) sheet.hidden = false;
+      var panel = root.querySelector("[data-agent-panel]");
+      var openBtn = root.querySelector("[data-agent-open]");
+      if (panel) panel.hidden = false;
+      if (openBtn) openBtn.setAttribute("aria-expanded", "true");
+      document.body.classList.add("agent-open");
+      if (liveTimer) window.clearInterval(liveTimer);
+      liveTimer = window.setInterval(paintLive, 48);
+      setStatus("Aminia saisit la facture…");
     }
 
     function showLiveInvoice(buffer) {
@@ -235,11 +256,25 @@
         if (form && form.scrollIntoView) form.scrollIntoView({ block: "center", behavior: "smooth" });
       }
       for (var i = 0; i < liveFields.length; i++) {
-        liveTargets[liveFields[i]] = parsed[liveFields[i]] || "";
+        var key = liveFields[i];
+        var next = parsed[key] || "";
+        if (next.length >= (liveTargets[key] || "").length) liveTargets[key] = next;
       }
-      if (!liveTimer) liveTimer = window.setInterval(paintLive, 28);
+      if (!liveTimer) liveTimer = window.setInterval(paintLive, 48);
       setStatus("Aminia saisit la facture…");
     }
+
+    window.AminiaSaisie = {
+      play: function (values) {
+        armLive(values || {
+          client_name: "Atelier Martin",
+          client_siren: "552100554",
+          amount_ht: "800,00",
+          vat_rate: "20",
+          designation: "Pose de fenêtres"
+        });
+      }
+    };
 
     function liveCaughtUp() {
       for (var i = 0; i < liveFields.length; i++) {
@@ -446,5 +481,13 @@
   document.addEventListener("DOMContentLoaded", function () {
     var root = document.querySelector("[data-voice-agent]");
     if (root) init(root);
+    document.querySelectorAll("[data-saisie-play]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (window.AminiaSaisie) window.AminiaSaisie.play();
+      });
+    });
+    if (document.querySelector("[data-saisie-demo]") && new URLSearchParams(window.location.search).get("saisie") === "1") {
+      if (window.AminiaSaisie) window.AminiaSaisie.play();
+    }
   });
 })();
