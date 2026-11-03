@@ -75,3 +75,10 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(self.client.get("/compta/balance/").status_code, 200)
         self.assertEqual(self.client.get("/factures/").status_code, 200)
         self.assertContains(self.client.get("/factures/"), "Client Modifié")
+
+    def test_pdf_download(self):
+        response = self.client.get(f"/factures/{self.invoice.id}/pdf/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertIn(b"attachment", response["Content-Disposition"].encode())

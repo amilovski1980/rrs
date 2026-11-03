@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -12,6 +13,7 @@ from core.context import resolve_company
 
 from .forms import InvoiceForm
 from .models import Invoice
+from .pdf import render_invoice_pdf
 from .services import issue_invoice, pay_invoice, sync_sale
 
 
@@ -93,6 +95,18 @@ def invoice_detail(request, pk):
         "invoice": invoice,
         "themes": INVOICE_THEMES,
     })
+
+
+@login_required
+def invoice_pdf(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _invoice(request, company, pk)
+    payload = render_invoice_pdf(invoice, company)
+    response = HttpResponse(payload, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{invoice.number}.pdf"'
+    return response
 
 
 @login_required
