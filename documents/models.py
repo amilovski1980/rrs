@@ -1,4 +1,6 @@
 import uuid
+from decimal import Decimal
+
 from django.db import models
 
 # Mention facturation électronique (L.111-8 Code de commerce, arrêté 2026)
@@ -58,3 +60,12 @@ class Invoice(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    @property
+    def vat_amount(self):
+        return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def amount_ttc(self):
+        return (self.amount_ht + self.vat_amount).quantize(Decimal("0.01"))
+

@@ -5,100 +5,120 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Bonjour</h1>
-    <p class="sub">Voici l'état de vos sociétés et vos derniers travaux comptables.</p>
+    <h1>{% if selected %}{{ selected.denomination }}{% else %}Cockpit{% endif %}</h1>
+    <p class="sub">
+      {% if selected %}
+        SIREN {{ selected.siren }} · {{ selected.get_regime_display }} · {{ selected.get_tva_display }}
+      {% else %}
+        Ajoutez une société pour ouvrir le grand livre, la balance et la facturation.
+      {% endif %}
+    </p>
   </div>
-  <a class="btn btn-primary" href="{% url 'onboarding' %}">
-    {% include "partials/icon.html" with name="plus" %} Ajouter une société
+  {% if selected %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'invoice_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
+    <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="pencil" %} Écriture</a>
+  </div>
+  {% else %}
+  <a class="btn btn-primary" href="{% url 'onboarding' %}">{% include "partials/icon.html" with name="plus" %} Ajouter une société</a>
+  {% endif %}
+</div>
+
+{% if selected and figures %}
+<div class="grid g3" style="margin-bottom:22px">
+  <div class="kpi">
+    <div class="l">Chiffre d'affaires</div>
+    <div class="v">{{ figures.revenue|floatformat:2 }} €</div>
+    <div class="d">Comptes 7, écritures validées</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Clients</div>
+    <div class="v">{{ figures.clients|floatformat:2 }} €</div>
+    <div class="d">Solde du compte 411</div>
+  </div>
+  <div class="kpi">
+    <div class="l">TVA nette</div>
+    <div class="v">{{ figures.vat_net|floatformat:2 }} €</div>
+    <div class="d">{% if figures.balanced %}Balance équilibrée{% else %}Écart de balance{% endif %} · {{ figures.entries_count }} écriture{{ figures.entries_count|pluralize }}</div>
+  </div>
+</div>
+
+<div class="grid g3" style="margin-bottom:22px">
+  <a class="company" href="{% url 'ledger' %}?societe={{ selected.id }}">
+    <h3>Grand livre</h3>
+    <div class="s">Écritures validées{% if figures.drafts %} · {{ figures.drafts }} brouillon{{ figures.drafts|pluralize }}{% endif %}</div>
+  </a>
+  <a class="company" href="{% url 'balance' %}?societe={{ selected.id }}">
+    <h3>Balance</h3>
+    <div class="s">Soldes par compte du plan comptable</div>
+  </a>
+  <a class="company" href="{% url 'invoices' %}?societe={{ selected.id }}">
+    <h3>Facturation</h3>
+    <div class="s">{{ open_invoices|length }} pièce{{ open_invoices|length|pluralize }} en cours</div>
   </a>
 </div>
 
-{% if companies %}
-<div class="grid g3" style="margin-bottom:24px">
-  <div class="kpi">
-    <div class="l">Sociétés pilotées</div>
-    <div class="v">{{ companies|length }}</div>
-    <div class="d">Espaces cloisonnés par société</div>
+<div class="grid g2" style="align-items:start">
+  <div class="card card-tight">
+    <div class="card-head">
+      <h3>Dernières écritures</h3>
+      <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ selected.id }}">Tout voir</a>
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Journal</th><th>Libellé</th></tr></thead>
+      <tbody>
+        {% for e in figures.recent_entries %}
+        <tr>
+          <td>{{ e.date|date:"d/m/Y" }}</td>
+          <td><span class="tag">{{ e.journal.code }}</span></td>
+          <td>{{ e.label }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="empty">Aucune écriture validée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <div class="kpi">
-    <div class="l">Comptes actifs</div>
-    <div class="v">{{ selected.accounts.count|default:"—" }}</div>
-    <div class="d">Plan comptable de {{ selected.denomination|default:"—" }}</div>
-  </div>
-  <div class="kpi">
-    <div class="l">Journaux</div>
-    <div class="v">{{ selected.journals.count|default:"—" }}</div>
-    <div class="d">{{ selected.get_regime_display|default:"—" }}</div>
+  <div class="card card-tight">
+    <div class="card-head">
+      <h3>Factures en cours</h3>
+      <a class="btn btn-ghost btn-sm" href="{% url 'invoices' %}?societe={{ selected.id }}">Gérer</a>
+    </div>
+    <table>
+      <thead><tr><th>Numéro</th><th>Client</th><th class="num">TTC</th><th>État</th></tr></thead>
+      <tbody>
+        {% for inv in open_invoices %}
+        <tr>
+          <td><a href="{% url 'invoice_detail' inv.id %}?societe={{ selected.id }}"><b>{{ inv.number }}</b></a></td>
+          <td>{{ inv.client_name }}</td>
+          <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
+          <td><span class="tag">{{ inv.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">Aucune facture ouverte.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
-<h2 style="margin:0 0 12px">Vos sociétés</h2>
-<div class="companies" style="margin-bottom:28px">
+{% if companies|length > 1 %}
+<h2 style="margin:28px 0 12px">Changer de société</h2>
+<div class="companies">
   {% for c in companies %}
-  <a class="company {% if selected and selected.id == c.id %}sel{% endif %}"
-     href="{% url 'cockpit' %}?societe={{ c.id }}">
+  <a class="company {% if selected.id == c.id %}sel{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}">
     <h3>{{ c.denomination }}</h3>
     <div class="s">{{ c.forme }} — SIREN {{ c.siren }}</div>
-    <div class="tags">
-      <span class="tag blue">{{ c.get_regime_display }}</span>
-      <span class="tag {% if c.tva == 'franchise' %}green{% else %}amber{% endif %}">
-        {{ c.get_tva_display }}
-      </span>
-      <span class="tag">{{ c.accounts.count }} comptes</span>
-    </div>
   </a>
   {% endfor %}
-</div>
-
-{% if selected %}
-<div class="card card-tight">
-  <div class="card-head">
-    <h3>{{ selected.denomination }}</h3>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ selected.id }}">Grand livre</a>
-      <a class="btn btn-ghost btn-sm" href="{% url 'balance' %}?societe={{ selected.id }}">Balance</a>
-      <a class="btn btn-primary btn-sm" href="{% url 'entry_create' %}?societe={{ selected.id }}">Nouvelle écriture</a>
-    </div>
-  </div>
-  <div class="card-body">
-    <div class="grid g2" style="align-items:start">
-      <div>
-        <h2 style="margin:0 0 10px;font-size:18px">Journaux actifs</h2>
-        <table>
-          <thead><tr><th>Code</th><th>Nom</th><th>Type</th></tr></thead>
-          <tbody>
-            {% for j in selected.journals.all %}
-            <tr>
-              <td><b>{{ j.code }}</b></td>
-              <td>{{ j.name }}</td>
-              <td><span class="tag">{{ j.get_type_display }}</span></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div>
-        <h2 style="margin:0 0 10px;font-size:18px">Informations</h2>
-        <table>
-          <tbody>
-            <tr><td class="muted">Forme</td><td><b>{{ selected.forme }}</b></td></tr>
-            <tr><td class="muted">SIREN</td><td><b>{{ selected.siren }}</b></td></tr>
-            <tr><td class="muted">Régime</td><td><b>{{ selected.get_regime_display }}</b></td></tr>
-            <tr><td class="muted">TVA</td><td><b>{{ selected.get_tva_display }}</b></td></tr>
-            <tr><td class="muted">Début d'exercice</td><td><b>{{ selected.exercice_debut|date:"d/m/Y" }}</b></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </div>
 {% endif %}
 
 {% else %}
 <div class="card" style="text-align:center;padding:56px 24px">
   <div class="f-icon" style="margin:0 auto 16px">{% include "partials/icon.html" with name="inbox" %}</div>
-  <h2 style="margin-top:0">Votre cockpit est prêt</h2>
-  <p class="sub" style="margin-bottom:20px">Ajoutez votre première société via son SIREN ou votre extrait KBIS.</p>
+  <h2 style="margin-top:0">Votre cockpit est vide</h2>
+  <p class="sub" style="margin-bottom:20px">Ajoutez votre première société via son SIREN.</p>
   <a class="btn btn-primary" href="{% url 'onboarding' %}">Ajouter ma première société</a>
 </div>
 {% endif %}

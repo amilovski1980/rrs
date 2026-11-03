@@ -25,6 +25,8 @@
     { "source": "/compta/grand-livre/", "destination": "/api/index" },
     { "source": "/compta/balance/", "destination": "/api/index" },
     { "source": "/compta/ecriture/nouvelle/", "destination": "/api/index" },
+    { "source": "/factures/", "destination": "/api/index" },
+    { "source": "/factures/:path*", "destination": "/api/index" },
     { "source": "/ajouter/", "destination": "/api/index" },
     { "source": "/admin/", "destination": "/api/index" },
     { "source": "/agent-config", "destination": "/api/index" },

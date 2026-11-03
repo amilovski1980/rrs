@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.number }}{% endblock %}
+{% block crumbs %}Facturation / {{ invoice.number }}{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ invoice.number }}</h1>
+    <p class="sub">{{ invoice.client_name }}{% if invoice.client_siren %} · SIREN {{ invoice.client_siren }}{% endif %}</p>
+  </div>
+  <span class="badge {% if invoice.status == 'paid' %}badge-green{% elif invoice.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}" style="padding:8px 13px">
+    {{ invoice.get_status_display }}
+  </span>
+</div>
+
+<div class="grid g3" style="margin-bottom:22px">
+  <div class="kpi"><div class="l">HT</div><div class="v">{{ invoice.amount_ht|floatformat:2 }} €</div></div>
+  <div class="kpi"><div class="l">TVA {{ invoice.vat_rate|floatformat:2 }} %</div><div class="v">{{ invoice.vat_amount|floatformat:2 }} €</div></div>
+  <div class="kpi"><div class="l">TTC</div><div class="v">{{ invoice.amount_ttc|floatformat:2 }} €</div></div>
+</div>
+
+<div class="card" style="padding:18px 22px">
+  {% if invoice.status == "draft" %}
+  <p class="sub">Ce brouillon n'est pas encore au journal. L'émission attribue un numéro séquentiel et passe l'écriture de vente.</p>
+  <form method="post" action="{% url 'invoice_issue' invoice.id %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit">Émettre la facture</button>
+  </form>
+  {% elif invoice.status != "paid" %}
+  <p class="sub">Facture émise. L'encaissement passe 512 au débit et 411 au crédit.</p>
+  <form method="post" action="{% url 'invoice_pay' invoice.id %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit">Enregistrer l'encaissement</button>
+  </form>
+  {% else %}
+  <p class="sub">Facture soldée. L'écriture de vente et l'encaissement sont au grand livre.</p>
+  {% endif %}
+  <p style="margin-top:16px">
+    <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ company.id }}">Voir le grand livre</a>
+    <a class="btn btn-ghost btn-sm" href="{% url 'invoices' %}?societe={{ company.id }}">Toutes les factures</a>
+  </p>
+</div>
+{% endblock %}

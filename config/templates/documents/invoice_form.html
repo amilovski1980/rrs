@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle facture{% endblock %}
+{% block crumbs %}Facturation / Nouvelle facture{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Nouvelle facture</h1>
+    <p class="sub">{{ company.denomination }} — le numéro définitif est attribué à l'émission.</p>
+  </div>
+</div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+    <div class="form-grid">
+      <div>
+        <label>Client</label>
+        {{ form.client_name }}
+        {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label>SIREN client</label>
+        {{ form.client_siren }}
+        {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>Montant HT</label>
+        {{ form.amount_ht }}
+        {% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label>Taux de TVA (%)</label>
+        {{ form.vat_rate }}
+        {% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Enregistrer le brouillon</button>
+    <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

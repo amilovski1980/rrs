@@ -23,7 +23,7 @@
     </a>
 
     <div class="nav-sec">Pilotage</div>
-    <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}">
+    <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
     </a>
     <a class="side-link {% block nav_onboarding %}{% endblock %}" href="{% url 'onboarding' %}">
@@ -31,14 +31,19 @@
     </a>
 
     <div class="nav-sec">Comptabilité</div>
-    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Nouvelle écriture
     </a>
-    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Grand livre
     </a>
-    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}{% if request.GET.societe %}?societe={{ request.GET.societe }}{% endif %}">
+    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Balance
+    </a>
+
+    <div class="nav-sec">Facturation</div>
+    <a class="side-link {% block nav_invoices %}{% endblock %}" href="{% url 'invoices' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Factures
     </a>
 
     <div class="sidebar-foot">
@@ -72,6 +77,13 @@
       </div>
     </header>
     <main class="content">
+      {% if messages %}
+      <div style="margin-bottom:16px">
+        {% for message in messages %}
+        <p class="badge badge-blue" style="display:block;margin:0 0 8px">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

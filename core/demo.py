@@ -18,6 +18,7 @@ from accounting.models import (
 from accounting.services import generate_portal
 from accounts.models import User
 from companies.models import Company
+from documents.models import Invoice, InvoiceSeries
 
 DEMO_EMAIL = "demo@roadrunner-solutions.fr"
 DEMO_SIREN = "812345678"
@@ -84,6 +85,29 @@ def seed_demo():
           [(a6063, "1240.00", "0.00"), (a401, "0.00", "1240.00")])
     entry(jb, "2026-10-25", "Encaissement Cadres Industries", "FAC-2026-00042",
           [(a512, "2880.00", "0.00"), (a411, "0.00", "2880.00")])
+
+    series, _ = InvoiceSeries.objects.get_or_create(
+        company=company, year=2026, defaults={"prefix": "FAC", "last_number": 43}
+    )
+    if series.last_number < 43:
+        series.last_number = 43
+        series.save(update_fields=["last_number"])
+    Invoice.objects.get_or_create(
+        number="FAC-2026-00042",
+        defaults=dict(
+            company=company, client_name="Cadres Industries", client_siren="552100554",
+            amount_ht=decimal.Decimal("2400.00"), vat_rate=decimal.Decimal("20.00"),
+            status="paid",
+        ),
+    )
+    Invoice.objects.get_or_create(
+        number="FAC-2026-00043",
+        defaults=dict(
+            company=company, client_name="Atelier Martin",
+            amount_ht=decimal.Decimal("800.00"), vat_rate=decimal.Decimal("20.00"),
+            status="issued",
+        ),
+    )
     return user, company
 
 

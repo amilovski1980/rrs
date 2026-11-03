@@ -13,6 +13,26 @@
   </a>
 </div>
 
+<form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <div class="form-grid">
+    <div>
+      <label for="journal">Journal</label>
+      <select id="journal" name="journal">
+        <option value="">Tous</option>
+        {% for j in journals %}
+        <option value="{{ j.code }}" {% if journal == j.code %}selected{% endif %}>{{ j.code }} — {{ j.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="q">Libellé</label>
+      <input id="q" name="q" value="{{ query }}" placeholder="Facture, fournisseur…">
+    </div>
+  </div>
+  <button class="btn btn-ghost btn-sm" type="submit">Filtrer</button>
+</form>
+
 {% if entries %}
 <div class="card card-tight">
   <table>
@@ -44,6 +64,24 @@
   <div style="margin-top:16px">
     <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ company.id }}">Créer la première écriture</a>
   </div>
+</div>
+{% endif %}
+
+{% if drafts %}
+<h2 style="margin:28px 0 12px">Brouillons non validés</h2>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Date</th><th>Journal</th><th>Libellé</th></tr></thead>
+    <tbody>
+      {% for e in drafts %}
+      <tr>
+        <td>{{ e.date|date:"d/m/Y" }}</td>
+        <td><span class="tag">{{ e.journal.code }}</span></td>
+        <td>{{ e.label }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endif %}
 {% endblock %}

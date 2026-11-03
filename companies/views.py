@@ -2,11 +2,14 @@ from datetime import date
 
 from django import forms
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from integrations.insee import lookup_siren
+
+from accounting.reports import cockpit_figures
+from core.context import resolve_company
 
 from .models import Company
 
@@ -85,15 +88,21 @@ def landing(request):
 
 @login_required
 def cockpit(request):
-    """Vue consolidée de toutes les sociétés de l'utilisateur."""
+    """Pilotage d'une société : chiffres, dernières écritures, factures ouvertes."""
     companies = Company.objects.filter(owner=request.user)
-    selected = None
-    if companies.exists():
-        sid = request.GET.get("societe")
-        selected = get_object_or_404(Company, owner=request.user, id=sid) if sid else companies[0]
-    return render(
-        request, "companies/cockpit.html", {"companies": companies, "selected": selected}
-    )
+    selected = resolve_company(request)
+    figures = cockpit_figures(selected) if selected else None
+    open_invoices = []
+    if selected:
+        open_invoices = list(
+            selected.invoices.filter(status__in=["draft", "issued", "late", "received"])[:6]
+        )
+    return render(request, "companies/cockpit.html", {
+        "companies": companies,
+        "selected": selected,
+        "figures": figures,
+        "open_invoices": open_invoices,
+    })
 
 
 @login_required

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Factures{% endblock %}
+{% block crumbs %}Facturation{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Factures</h1>
+    <p class="sub">{{ company.denomination }} — {{ open_amount|floatformat:2 }} € TTC encore à encaisser.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+    {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+  </a>
+</div>
+
+<div class="card card-tight">
+  <table>
+    <thead>
+      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">HT</th><th class="num">TTC</th><th>État</th></tr>
+    </thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td><a href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}"><b>{{ inv.number }}</b></a></td>
+        <td>{{ inv.client_name }}</td>
+        <td>{{ inv.created_at|date:"d/m/Y" }}</td>
+        <td class="num">{{ inv.amount_ht|floatformat:2 }} €</td>
+        <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
+        <td>
+          <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% elif inv.status == 'late' %}badge-red{% else %}badge-amber{% endif %}">
+            {{ inv.get_status_display }}
+          </span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">Aucune facture. Créez la première.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
