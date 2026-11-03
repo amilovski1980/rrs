@@ -38,6 +38,18 @@ class VoiceAssistantTests(TestCase):
             ],
         })
         self.assertIn("error", result)
+
+    def test_draft_invoice_is_a_draft(self):
+        result = execute_tool(self.user, self.company, "draft_invoice", {
+            "client_name": "Atelier Martin",
+            "amount_ht": "800",
+            "vat_rate": "20",
+            "designation": "Pose de fenêtres",
+        })
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["invoice"]["amount_ttc"], "960.00")
+        self.assertEqual(result["status"], "brouillon")
+        self.assertIn("/factures/", result["invoice"]["url"])
         self.assertEqual(JournalEntry.objects.count(), 0)
 
     def test_draft_then_confirm(self):

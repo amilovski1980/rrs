@@ -97,7 +97,12 @@ def instructions_for(user, company):
         f"régime {company.get_regime_display()}, TVA {company.get_tva_display()}. "
         "Tu parles français, vouvoiement, phrases très courtes, adaptées à la voix. "
         "Tu peux lire la société, la balance, le grand livre et les brouillons, "
-        "et proposer une écriture. Tu ne valides jamais une écriture sans un oui clair : "
+        "proposer une écriture, et rédiger une facture. "
+        "Pour une facture, appelle draft_invoice dès que tu as le client et le montant : "
+        "l'écran affiche la saisie en direct, champ par champ. "
+        "Dis les valeurs à voix haute pendant qu'elles s'écrivent. "
+        "Une facture rédigée reste un brouillon : ne l'émets pas toi-même. "
+        "Tu ne valides jamais une écriture sans un oui clair : "
         "d'abord propose_entry, tu relis le libellé et les montants, puis confirm_entry "
         "uniquement si l'utilisateur a dit oui. N'invente aucun chiffre : appelle les outils. "
         "Montants en euros, au centime, débit égal au crédit."
@@ -199,6 +204,26 @@ TOOLS = [
             "additionalProperties": False,
         },
     },
+    {
+        "type": "function",
+        "name": "draft_invoice",
+        "description": (
+            "Rédige un brouillon de facture. À appeler dès que le client et le montant HT "
+            "sont connus. L'utilisateur voit les champs se remplir en direct. N'émet pas la facture."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "client_name": {"type": "string", "description": "Nom du client"},
+                "client_siren": {"type": "string", "description": "SIREN à 9 chiffres, ou vide"},
+                "amount_ht": {"type": "string", "description": "Montant hors taxe en euros"},
+                "vat_rate": {"type": "string", "description": "Taux de TVA, par exemple 20 ou 0"},
+                "designation": {"type": "string", "description": "Libellé de la prestation"},
+            },
+            "required": ["client_name", "amount_ht"],
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -275,6 +300,9 @@ def execute_tool(user, company, name, args, session_company_setter=None):
 
     if name == "confirm_entry":
         return _confirm_entry(company, args)
+
+    if name == "draft_invoice":
+        return _draft_invoice(company, args)
 
     return {"error": f"Outil inconnu : {name}"}
 
@@ -362,3 +390,58 @@ def _confirm_entry(company, args):
     entry.validated = True
     entry.save(update_fields=["validated"])
     return {"ok": True, "message": "Écriture validée au grand livre.", "entry": _entry_payload(entry)}
+
+
+def _draft_invoice(company, args):
+    import uuid
+
+    from documents.models import Invoice
+
+    client = (args.get("client_name") or "").strip()
+    if len(client) < 2:
+        return {"error": "Nom du client manquant."}
+    try:
+        amount = money(args.get("amount_ht"))
+    except ValueError:
+        return {"error": "Montant HT illisible."}
+    if amount <= 0:
+        return {"error": "Le montant HT doit être positif."}
+    siren = "".join(ch for ch in str(args.get("client_siren") or "") if ch.isdigit())
+    if siren and len(siren) != 9:
+        return {"error": "Le SIREN client doit contenir 9 chiffres, ou rester vide."}
+    raw_rate = args.get("vat_rate")
+    if raw_rate in (None, ""):
+        rate = Decimal("20.00") if company.tva == "reel" else Decimal("0.00")
+    else:
+        try:
+            rate = money(raw_rate)
+        except ValueError:
+            return {"error": "Taux de TVA illisible."}
+    if rate < 0 or rate > 100:
+        return {"error": "Taux de TVA invalide."}
+    designation = (args.get("designation") or "Prestation").strip()[:200]
+    invoice = Invoice.objects.create(
+        company=company,
+        number=f"BR-{uuid.uuid4().hex[:10]}",
+        client_name=client[:200],
+        client_siren=siren,
+        amount_ht=amount,
+        vat_rate=rate,
+        status="draft",
+    )
+    return {
+        "ok": True,
+        "status": "brouillon",
+        "message": "Brouillon affiché à l'écran. Il n'est pas émis.",
+        "invoice": {
+            "id": str(invoice.id),
+            "number": invoice.number,
+            "client_name": invoice.client_name,
+            "client_siren": invoice.client_siren,
+            "designation": designation,
+            "amount_ht": str(invoice.amount_ht),
+            "vat_rate": str(invoice.vat_rate),
+            "amount_ttc": str(invoice.amount_ttc),
+            "url": f"/factures/{invoice.id}/?societe={company.id}",
+        },
+    }

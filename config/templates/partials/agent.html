@@ -6,20 +6,48 @@
     </span>
     <span class="agent-fab-text">Aminia</span>
   </button>
+  <div class="live-invoice" data-live-invoice hidden>
+    <div class="card card-tight">
+      <div class="card-head">
+        <h3>Aminia rédige la facture</h3>
+        <a class="btn btn-ghost btn-sm" data-live-open href="#" hidden>Ouvrir</a>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div>
+            <label>Client</label>
+            <input data-live-field="client_name" readonly>
+          </div>
+          <div>
+            <label>SIREN</label>
+            <input data-live-field="client_siren" readonly>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>Montant HT</label>
+            <input data-live-field="amount_ht" readonly>
+          </div>
+          <div>
+            <label>TVA %</label>
+            <input data-live-field="vat_rate" readonly>
+          </div>
+        </div>
+        <p class="sub" data-live-line style="margin:8px 0 0"></p>
+      </div>
+    </div>
+  </div>
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
-    <div class="agent-panel-backdrop" data-agent-close aria-hidden="true"></div>
-    <div class="agent-dialog" role="dialog" aria-modal="true" aria-labelledby="agent-title" aria-describedby="agent-desc">
-      <button class="agent-close" type="button" data-agent-close aria-label="Fermer l'assistant">×</button>
+    <div class="agent-dialog" role="region" aria-labelledby="agent-title">
       <div class="agent-orb" aria-hidden="true">
         <span class="agent-ring r1"></span>
-        <span class="agent-ring r2"></span>
-        <span class="agent-ring r3"></span>
         <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
       </div>
-      <h2 id="agent-title">Aminia</h2>
-      <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
-      <p class="agent-desc" id="agent-desc">Assistante comptable vocale. Elle lit la société, la balance et le grand livre, et prépare les écritures. Rien n'est validé sans votre oui.</p>
-      <p class="agent-note" data-agent-transcript></p>
+      <div class="agent-copy">
+        <h2 id="agent-title">Aminia</h2>
+        <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
+        <p class="agent-note" data-agent-transcript></p>
+      </div>
       <div class="agent-actions">
         <button class="agent-mic" type="button" data-agent-mic aria-label="Parler à Aminia">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>

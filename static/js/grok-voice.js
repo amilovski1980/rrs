@@ -87,6 +87,13 @@
     var playAt = 0;
     var sources = [];
     var transcript = "";
+    var callNames = {};
+    var argBuffers = {};
+    var liveTargets = {};
+    var liveShown = {};
+    var liveTimer = null;
+    var sheet = document.querySelector("[data-live-invoice]");
+    var liveFields = ["client_name", "client_siren", "amount_ht", "vat_rate", "designation"];
 
     function setStatus(text) {
       if (statusEl) statusEl.textContent = text;
@@ -162,24 +169,134 @@
       }));
     }
 
+    function fieldBox(key) {
+      var formField = document.querySelector("form [name='" + key + "']");
+      if (formField) return formField;
+      return document.querySelector("[data-live-field='" + key + "']");
+    }
+
+    function parsePartial(buffer) {
+      function text(key) {
+        var re = new RegExp('"' + key + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)');
+        var match = buffer.match(re);
+        if (!match) return "";
+        try { return JSON.parse('"' + match[1] + '"'); } catch (e) { return match[1]; }
+      }
+      function num(key) {
+        var asText = text(key);
+        if (asText) return asText;
+        var re = new RegExp('"' + key + '"\\s*:\\s*([0-9]+(?:[.,][0-9]*)?)');
+        var match = buffer.match(re);
+        return match ? match[1] : "";
+      }
+      return {
+        client_name: text("client_name"),
+        client_siren: text("client_siren") || num("client_siren"),
+        amount_ht: text("amount_ht") || num("amount_ht"),
+        vat_rate: text("vat_rate") || num("vat_rate"),
+        designation: text("designation")
+      };
+    }
+
+    function paintLive() {
+      var pending = false;
+      for (var i = 0; i < liveFields.length; i++) {
+        var key = liveFields[i];
+        var target = liveTargets[key] || "";
+        var current = liveShown[key] || "";
+        if (current.length < target.length) {
+          current = target.slice(0, current.length + 1);
+          liveShown[key] = current;
+          pending = true;
+        }
+        var box = fieldBox(key);
+        if (!box) continue;
+        if (box.value !== current) box.value = current;
+        box.classList.toggle("is-typing", current.length > 0 && current.length < target.length);
+      }
+      var line = document.querySelector("[data-live-line]");
+      if (line) {
+        line.textContent = liveTargets.designation
+          ? "Prestation : " + (liveShown.designation || "")
+          : "Saisie en cours…";
+      }
+      if (!pending && liveTimer) {
+        window.clearInterval(liveTimer);
+        liveTimer = null;
+      }
+    }
+
+    function showLiveInvoice(buffer) {
+      var parsed = parsePartial(buffer);
+      var hasForm = !!document.querySelector("form [name='client_name']");
+      if (sheet && !hasForm) sheet.hidden = false;
+      if (hasForm) {
+        var form = document.querySelector("form [name='client_name']");
+        if (form && form.scrollIntoView) form.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+      for (var i = 0; i < liveFields.length; i++) {
+        liveTargets[liveFields[i]] = parsed[liveFields[i]] || "";
+      }
+      if (!liveTimer) liveTimer = window.setInterval(paintLive, 28);
+      setStatus("Aminia saisit la facture…");
+    }
+
+    function liveCaughtUp() {
+      for (var i = 0; i < liveFields.length; i++) {
+        var key = liveFields[i];
+        if ((liveShown[key] || "") !== (liveTargets[key] || "")) return false;
+      }
+      return true;
+    }
+
+    function whenTyped(done) {
+      var started = Date.now();
+      function wait() {
+        paintLive();
+        if (liveCaughtUp() || Date.now() - started > 3500) done();
+        else window.setTimeout(wait, 40);
+      }
+      wait();
+    }
+
+    function finishLive(output) {
+      var invoice = output && output.invoice;
+      var link = document.querySelector("[data-live-open]");
+      if (!invoice || !link) return;
+      link.hidden = false;
+      link.href = invoice.url;
+      link.textContent = "Ouvrir " + invoice.number;
+      var line = document.querySelector("[data-live-line]");
+      if (line) line.textContent = "Brouillon " + invoice.number + " enregistré.";
+    }
+
     function handleTool(event) {
       var args = event.arguments || "{}";
-      postJson("/agent/outil/", { name: event.name, arguments: args }).then(function (data) {
-        if (!ws || ws.readyState !== 1) return;
-        var output = data.output || { error: data.message || data.error || "outil indisponible" };
-        if (output.company && output.company.denomination) {
-          setStatus("Société : " + output.company.denomination);
-        }
-        ws.send(JSON.stringify({
-          type: "conversation.item.create",
-          item: {
-            type: "function_call_output",
-            call_id: event.call_id,
-            output: JSON.stringify(output)
+      var send = function () {
+        postJson("/agent/outil/", { name: event.name, arguments: args }).then(function (data) {
+          if (!ws || ws.readyState !== 1) return;
+          var output = data.output || { error: data.message || data.error || "outil indisponible" };
+          if (event.name === "draft_invoice") finishLive(output);
+          if (output.company && output.company.denomination) {
+            setStatus("Société : " + output.company.denomination);
           }
-        }));
-        ws.send(JSON.stringify({ type: "response.create" }));
-      });
+          ws.send(JSON.stringify({
+            type: "conversation.item.create",
+            item: {
+              type: "function_call_output",
+              call_id: event.call_id,
+              output: JSON.stringify(output)
+            }
+          }));
+          ws.send(JSON.stringify({ type: "response.create" }));
+        });
+      };
+      if (event.name === "draft_invoice") {
+        showLiveInvoice(typeof args === "string" ? args : JSON.stringify(args));
+        whenTyped(send);
+        return;
+      }
+      send();
     }
 
     function onMessage(raw) {
@@ -198,8 +315,14 @@
         try { playSamples(b64ToPcm(event.delta || event.audio)); } catch (e) { /* chunk illisible */ }
       } else if (type.indexOf("transcript") !== -1 && event.delta) {
         setTranscript((transcript + event.delta).slice(-400));
+      } else if (type === "response.output_item.added" && event.item && event.item.name) {
+        callNames[event.item.call_id || ""] = event.item.name;
+      } else if (type === "response.function_call_arguments.delta") {
+        var callId = event.call_id || "";
+        argBuffers[callId] = (argBuffers[callId] || "") + (event.delta || "");
+        if ((callNames[callId] || event.name) === "draft_invoice") showLiveInvoice(argBuffers[callId]);
       } else if (type === "response.function_call_arguments.done") {
-        setStatus("Je consulte la comptabilité…");
+        setStatus(event.name === "draft_invoice" ? "Aminia saisit la facture…" : "Je consulte la comptabilité…");
         handleTool(event);
       } else if (type === "error") {
         var message = (event.error && (event.error.message || event.error)) || "Erreur vocale.";
