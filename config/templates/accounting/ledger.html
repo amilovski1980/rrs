@@ -8,7 +8,7 @@
     <h1>Grand livre</h1>
     <p class="sub">{{ company.denomination }} — écritures validées, par date.</p>
   </div>
-  <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ company.id }}">
+  <a class="btn btn-primary page-actions" href="{% url 'entry_create' %}?societe={{ company.id }}">
     {% include "partials/icon.html" with name="plus" %} Nouvelle écriture
   </a>
 </div>

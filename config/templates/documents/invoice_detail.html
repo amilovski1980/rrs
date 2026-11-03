@@ -8,7 +8,7 @@
     <h1>{{ invoice.number }}</h1>
     <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div class="page-actions">
     <a class="btn btn-primary" href="{% url 'invoice_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF</a>
     <a class="btn btn-ghost" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">
       {% include "partials/icon.html" with name="pencil" %} Modifier

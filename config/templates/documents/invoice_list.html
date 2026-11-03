@@ -8,7 +8,7 @@
     <h1>Factures</h1>
     <p class="sub">{{ company.denomination }} — {{ open_amount|floatformat:2 }} € TTC encore à encaisser.</p>
   </div>
-  <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+  <a class="btn btn-primary page-actions" href="{% url 'invoice_create' %}?societe={{ company.id }}">
     {% include "partials/icon.html" with name="plus" %} Nouvelle facture
   </a>
 </div>

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
   <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,13 +77,13 @@
       <div class="top-actions">
         {% if selected %}<span class="badge badge-blue">{{ selected.denomination }}</span>{% endif %}
         {% if request.user.is_authenticated %}
-        <span class="badge">{{ request.user.email }}</span>
+        <span class="badge top-mail">{{ request.user.email }}</span>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
         </form>
         {% endif %}
-        <a class="btn btn-ghost btn-sm" href="{% url 'landing' %}">Site vitrine</a>
+        <a class="btn btn-ghost btn-sm top-site" href="{% url 'landing' %}">Site vitrine</a>
       </div>
     </header>
     <main class="content">

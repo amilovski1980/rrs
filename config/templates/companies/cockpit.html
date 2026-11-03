@@ -15,13 +15,13 @@
     </p>
   </div>
   {% if selected %}
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div class="page-actions">
     <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="building" %} Configuration</a>
     <a class="btn btn-ghost" href="{% url 'invoice_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
     <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="pencil" %} Écriture</a>
   </div>
   {% else %}
-  <a class="btn btn-primary" href="{% url 'onboarding' %}">{% include "partials/icon.html" with name="plus" %} Ajouter une société</a>
+  <a class="btn btn-primary page-actions" href="{% url 'onboarding' %}">{% include "partials/icon.html" with name="plus" %} Ajouter une société</a>
   {% endif %}
 </div>
 
