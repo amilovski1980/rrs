@@ -51,6 +51,9 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(self.invoice.status, "paid")
         payment = JournalEntry.objects.get(reference=f"{self.invoice.number}-REG")
         self.assertEqual(sum(line.debit for line in payment.lines.all()), Decimal("120.00"))
+        clients = sum(line.debit - line.credit for line in sale.lines.filter(account__code="411"))
+        clients += sum(line.debit - line.credit for line in payment.lines.filter(account__code="411"))
+        self.assertEqual(clients, Decimal("0.00"))
 
     def test_cockpit_and_modules_render(self):
         self.assertEqual(self.client.get("/cockpit/").status_code, 200)

@@ -108,6 +108,11 @@ def seed_demo():
             status="issued",
         ),
     )
+    from documents.services import pay_invoice
+
+    martin = Invoice.objects.get(number="FAC-2026-00043")
+    if martin.status != "paid":
+        pay_invoice(martin)
     return user, company
 
 
