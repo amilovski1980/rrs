@@ -11,26 +11,17 @@
         <small>Solutions</small>
       </span>
     </div>
-    <h1>Connexion sans mot de passe</h1>
-    <p class="sub">Indiquez votre email. Nous vous envoyons un lien sécurisé, valable 30 minutes et utilisable une seule fois.</p>
-
-    {% if sent %}
-      <div class="flash flash-ok"><b>Lien envoyé.</b> Consultez votre boîte mail.</div>
-    {% endif %}
-    {% if dev_link %}
-      <div class="flash">
-        Mode développement — <a href="{{ dev_link }}"><b>cliquez ici pour vous connecter</b></a>
-      </div>
-    {% endif %}
+    <h1>Ouvrir mon espace</h1>
+    <p class="sub">Indiquez votre email. Le cockpit de cette adresse s'ouvre tout de suite, sans mot de passe.</p>
 
     <form method="post">
       {% csrf_token %}
       <label>{{ form.email.label }}</label>
       {{ form.email }}
       {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
-      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">Recevoir mon lien</button>
+      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">Entrer</button>
     </form>
-    <p class="micro" style="text-align:center;margin-top:16px">Aucune inscription · aucun mot de passe</p>
+    <p class="micro" style="text-align:center;margin-top:16px">Démonstration · un espace par adresse email</p>
   </div>
 </div>
 {% endblock %}
