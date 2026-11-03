@@ -6,22 +6,55 @@
 <div class="page-head">
   <div>
     <h1>{{ invoice.number }}</h1>
-    <p class="sub">{{ invoice.client_name }}{% if invoice.client_siren %} · SIREN {{ invoice.client_siren }}{% endif %}</p>
+    <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
   </div>
-  <span class="badge {% if invoice.status == 'paid' %}badge-green{% elif invoice.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}" style="padding:8px 13px">
-    {{ invoice.get_status_display }}
-  </span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn btn-primary" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="pencil" %} Modifier
+    </a>
+    <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Retour</a>
+  </div>
 </div>
 
-<div class="grid g3" style="margin-bottom:22px">
-  <div class="kpi"><div class="l">HT</div><div class="v">{{ invoice.amount_ht|floatformat:2 }} €</div></div>
-  <div class="kpi"><div class="l">TVA {{ invoice.vat_rate|floatformat:2 }} %</div><div class="v">{{ invoice.vat_amount|floatformat:2 }} €</div></div>
-  <div class="kpi"><div class="l">TTC</div><div class="v">{{ invoice.amount_ttc|floatformat:2 }} €</div></div>
+<div class="card" style="padding:28px 32px">
+  <div class="grid g2" style="margin-bottom:22px">
+    <div>
+      <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.4px">ÉMETTEUR</div>
+      <h2 style="margin:6px 0">{{ company.denomination }}</h2>
+      <p class="sub" style="margin:0">{{ company.forme }} · SIREN {{ company.siren }}</p>
+      {% if company.address %}<p class="sub" style="margin:4px 0 0">{{ company.address }}</p>{% endif %}
+    </div>
+    <div>
+      <div class="muted" style="font-size:12px;font-weight:700;letter-spacing:.4px">CLIENT</div>
+      <h2 style="margin:6px 0">{{ invoice.client_name }}</h2>
+      <p class="sub" style="margin:0">{% if invoice.client_siren %}SIREN {{ invoice.client_siren }}{% else %}SIREN non renseigné{% endif %}</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Désignation</th><th class="num">HT</th><th class="num">TVA {{ invoice.vat_rate|floatformat:2 }} %</th><th class="num">TTC</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Prestation — {{ invoice.client_name }}</td>
+        <td class="num">{{ invoice.amount_ht|floatformat:2 }} €</td>
+        <td class="num">{{ invoice.vat_amount|floatformat:2 }} €</td>
+        <td class="num"><b>{{ invoice.amount_ttc|floatformat:2 }} €</b></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="totals">
+        <td colspan="3">Total à payer</td>
+        <td class="num">{{ invoice.amount_ttc|floatformat:2 }} €</td>
+      </tr>
+    </tfoot>
+  </table>
 </div>
 
-<div class="card" style="padding:18px 22px">
+<div class="card" style="padding:18px 22px;margin-top:16px">
   {% if invoice.status == "draft" %}
-  <p class="sub">Ce brouillon n'est pas encore au journal. L'émission attribue un numéro séquentiel et passe l'écriture de vente.</p>
+  <p class="sub">Brouillon. L'émission attribue un numéro séquentiel et passe l'écriture de vente.</p>
   <form method="post" action="{% url 'invoice_issue' invoice.id %}?societe={{ company.id }}">
     {% csrf_token %}
     <button class="btn btn-primary" type="submit">Émettre la facture</button>
@@ -33,11 +66,10 @@
     <button class="btn btn-primary" type="submit">Enregistrer l'encaissement</button>
   </form>
   {% else %}
-  <p class="sub">Facture soldée. L'écriture de vente et l'encaissement sont au grand livre.</p>
+  <p class="sub">Facture soldée. Vous pouvez encore corriger le client ou les montants : les écritures suivent.</p>
   {% endif %}
   <p style="margin-top:16px">
-    <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ company.id }}">Voir le grand livre</a>
-    <a class="btn btn-ghost btn-sm" href="{% url 'invoices' %}?societe={{ company.id }}">Toutes les factures</a>
+    <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ company.id }}&q={{ invoice.number }}">Écritures de cette facture</a>
   </p>
 </div>
 {% endblock %}

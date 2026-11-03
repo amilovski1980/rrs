@@ -55,9 +55,23 @@ class InvoiceFlowTests(TestCase):
         clients += sum(line.debit - line.credit for line in payment.lines.filter(account__code="411"))
         self.assertEqual(clients, Decimal("0.00"))
 
-    def test_cockpit_and_modules_render(self):
+    def test_detail_and_edit_pages(self):
+        detail = self.client.get(f"/factures/{self.invoice.id}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "Client Démo")
+        self.assertContains(detail, "Modifier")
+        edit = self.client.post(f"/factures/{self.invoice.id}/modifier/", {
+            "client_name": "Client Modifié",
+            "client_siren": "",
+            "amount_ht": "150.00",
+            "vat_rate": "20.00",
+        })
+        self.assertEqual(edit.status_code, 302)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.client_name, "Client Modifié")
+        self.assertEqual(self.invoice.amount_ht, Decimal("150.00"))
         self.assertEqual(self.client.get("/cockpit/").status_code, 200)
         self.assertEqual(self.client.get("/compta/grand-livre/").status_code, 200)
         self.assertEqual(self.client.get("/compta/balance/").status_code, 200)
         self.assertEqual(self.client.get("/factures/").status_code, 200)
-        self.assertContains(self.client.get("/factures/"), "Client Démo")
+        self.assertContains(self.client.get("/factures/"), "Client Modifié")

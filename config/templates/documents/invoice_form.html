@@ -5,8 +5,8 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Nouvelle facture</h1>
-    <p class="sub">{{ company.denomination }} — le numéro définitif est attribué à l'émission.</p>
+    <h1>{% if invoice %}Modifier {{ invoice.number }}{% else %}Nouvelle facture{% endif %}</h1>
+    <p class="sub">{{ company.denomination }} — {% if invoice %}les montants déjà au journal sont recalculés.{% else %}le numéro définitif est attribué à l'émission.{% endif %}</p>
   </div>
 </div>
 <div class="card">
@@ -39,7 +39,7 @@
         {% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}
       </div>
     </div>
-    <button class="btn btn-primary" type="submit">Enregistrer le brouillon</button>
+    <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
     <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
   </form>
 </div>

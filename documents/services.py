@@ -62,6 +62,32 @@ def post_sale(invoice, on_date=None):
     )
 
 
+def sync_sale(invoice):
+    """Recalcule les écritures après modification, y compris si la facture est payée."""
+    if invoice.status == "draft":
+        return None
+    company = invoice.company
+    JournalEntry.objects.filter(company=company, reference=invoice.number).delete()
+    JournalEntry.objects.filter(
+        company=company, reference=f"{invoice.number}-REG"[:50]
+    ).delete()
+    posted = post_sale(invoice)
+    if invoice.status == "paid":
+        ttc = invoice.amount_ttc
+        _entry(
+            company,
+            "BQ",
+            f"Encaissement {invoice.number} — {invoice.client_name}",
+            f"{invoice.number}-REG"[:50],
+            [
+                (_account(company, "512"), ttc, Decimal("0.00")),
+                (_account(company, "411"), Decimal("0.00"), ttc),
+            ],
+            timezone.localdate(),
+        )
+    return posted
+
+
 def issue_invoice(invoice):
     """Attribue le numéro définitif et passe la vente au journal."""
     if invoice.status != "draft":

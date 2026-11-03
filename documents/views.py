@@ -11,7 +11,7 @@ from core.context import resolve_company
 
 from .forms import InvoiceForm
 from .models import Invoice
-from .services import issue_invoice, pay_invoice
+from .services import issue_invoice, pay_invoice, sync_sale
 
 
 def _company_or_redirect(request):
@@ -57,6 +57,28 @@ def invoice_create(request):
         messages.success(request, "Brouillon enregistré. Émettez la facture pour la numéroter.")
         return redirect(reverse("invoice_detail", args=[invoice.id]) + f"?societe={company.id}")
     return render(request, "documents/invoice_form.html", {"company": company, "form": form})
+
+
+@login_required
+def invoice_edit(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _invoice(request, company, pk)
+    form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if invoice.status != "draft":
+            sync_sale(invoice)
+            messages.success(request, "Facture mise à jour. Les écritures liées ont été recalculées.")
+        else:
+            messages.success(request, "Brouillon mis à jour.")
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + f"?societe={company.id}")
+    return render(request, "documents/invoice_form.html", {
+        "company": company,
+        "form": form,
+        "invoice": invoice,
+    })
 
 
 @login_required

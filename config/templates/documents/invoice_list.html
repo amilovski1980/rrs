@@ -16,7 +16,7 @@
 <div class="card card-tight">
   <table>
     <thead>
-      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">HT</th><th class="num">TTC</th><th>État</th></tr>
+      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">HT</th><th class="num">TTC</th><th>État</th><th></th></tr>
     </thead>
     <tbody>
       {% for inv in invoices %}
@@ -31,9 +31,13 @@
             {{ inv.get_status_display }}
           </span>
         </td>
+        <td>
+          <a class="btn btn-ghost btn-sm" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">Voir</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'invoice_edit' inv.id %}?societe={{ company.id }}">Modifier</a>
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="empty">Aucune facture. Créez la première.</td></tr>
+      <tr><td colspan="7" class="empty">Aucune facture. Créez la première.</td></tr>
       {% endfor %}
     </tbody>
   </table>
