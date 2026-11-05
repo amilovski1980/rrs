@@ -15,7 +15,7 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(AiDraftEntry)
 class AiDraftEntryAdmin(admin.ModelAdmin):
-    list_display = ("id", "conversation", "document", "status", "model_name", "created_at")
-    list_filter = ("status", "model_name", "created_at")
+    list_display = ("id", "kind", "company", "conversation", "document", "status", "model_name", "created_at")
+    list_filter = ("kind", "status", "model_name", "created_at")
     search_fields = ("ocr_text",)
     readonly_fields = ("id", "created_at", "validated_at")

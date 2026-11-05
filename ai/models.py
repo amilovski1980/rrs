@@ -31,18 +31,53 @@ class Message(models.Model):
 
 
 class AiDraftEntry(models.Model):
-    """Écriture préparée par l'agent IA. Toujours brouillon, jamais auto-validée."""
+    """Brouillon préparé par l'agent IA. Toujours soumis à validation humaine."""
+
+    KIND_CHOICES = [
+        ("entry", "Écriture"),
+        ("client", "Client"),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     conversation = models.ForeignKey(
-        Conversation, on_delete=models.CASCADE, related_name="drafts"
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="drafts",
+        null=True,
+        blank=True,
     )
+    company = models.ForeignKey(
+        "companies.Company",
+        on_delete=models.CASCADE,
+        related_name="ai_drafts",
+        null=True,
+        blank=True,
+    )
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default="entry")
     document = models.ForeignKey(
-        "documents.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="ai_drafts"
+        "documents.Invoice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_drafts",
+    )
+    created_client = models.ForeignKey(
+        "documents.Client",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_drafts",
     )
     ocr_text = models.TextField(blank=True)
     proposed_lines = models.JSONField(
-        help_text='[{"account_code": "601", "debit": "120.00", "credit": "0"}]'
+        default=list,
+        blank=True,
+        help_text='[{"account_code": "601", "debit": "120.00", "credit": "0"}]',
+    )
+    proposed_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Payload pour les brouillons non-écriture (ex. client).",
     )
     model_name = models.CharField(max_length=40, default="qwen3-32b-awq")
     status = models.CharField(
@@ -52,3 +87,13 @@ class AiDraftEntry(models.Model):
     )
     validated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def resolve_company(self):
+        if self.company_id:
+            return self.company
+        if self.conversation_id:
+            return self.conversation.company
+        return None

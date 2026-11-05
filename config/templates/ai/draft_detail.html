@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Brouillon IA{% endblock %}
+{% block crumbs %}Agent / Brouillons{% endblock %}
+{% block nav_ai_drafts %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Brouillon — {{ draft.get_kind_display }}</h1>
+    <p class="sub">{{ draft.get_status_display }} · {{ draft.created_at|date:"d/m/Y H:i" }}</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'ai_drafts' %}?societe={{ company.id }}">Retour</a>
+</div>
+<div class="card">
+  {% if draft.kind == "client" %}
+  <p><b>Nom</b> — {{ draft.proposed_data.name }}</p>
+  <p><b>SIREN</b> — {{ draft.proposed_data.siren|default:"—" }}</p>
+  <p><b>E-mail</b> — {{ draft.proposed_data.email|default:"—" }}</p>
+  <p><b>Téléphone</b> — {{ draft.proposed_data.phone|default:"—" }}</p>
+  <p><b>Adresse</b> — {{ draft.proposed_data.address|default:"—" }}</p>
+  {% if draft.proposed_data.notes %}<p><b>Notes</b> — {{ draft.proposed_data.notes }}</p>{% endif %}
+  {% if draft.created_client %}
+  <p>Client créé : <a href="{% url 'client_detail' draft.created_client.id %}?societe={{ company.id }}">{{ draft.created_client.name }}</a></p>
+  {% endif %}
+  {% else %}
+  <pre style="white-space:pre-wrap">{{ draft.proposed_lines }}</pre>
+  {% endif %}
+
+  {% if draft.status == "pending" %}
+  <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+    <form method="post" action="{% url 'ai_draft_approve' draft.id %}?societe={{ company.id }}">{% csrf_token %}
+      <button class="btn btn-primary" type="submit">Valider et créer</button>
+    </form>
+    <form method="post" action="{% url 'ai_draft_reject' draft.id %}?societe={{ company.id }}">{% csrf_token %}
+      <button class="btn btn-ghost" type="submit">Rejeter</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

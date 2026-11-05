@@ -99,3 +99,68 @@ class VoiceAssistantTests(TestCase):
         })
         balance = execute_tool(self.user, self.company, "get_balance", {})
         self.assertEqual(balance["rows"], [])
+
+
+class ClientDraftTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("clientdraft@example.com")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="121212121",
+            denomination="IA Client Co",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        generate_portal(self.company)
+        self.http = self.client
+        self.http.force_login(self.user)
+
+    def test_draft_client_does_not_create_client(self):
+        from documents.models import Client
+        from .models import AiDraftEntry
+
+        result = execute_tool(self.user, self.company, "draft_client", {
+            "name": "Nouveau Client SA",
+            "siren": "123456782",
+            "email": "contact@nouveau.fr",
+        })
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["status"], "brouillon")
+        self.assertEqual(Client.objects.filter(company=self.company).count(), 0)
+        draft = AiDraftEntry.objects.get(pk=result["draft"]["id"])
+        self.assertEqual(draft.kind, "client")
+        self.assertEqual(draft.status, "pending")
+        self.assertEqual(draft.proposed_data["name"], "Nouveau Client SA")
+
+    def test_approve_creates_client_reject_does_not(self):
+        from documents.models import Client
+        from .models import AiDraftEntry
+
+        result = execute_tool(self.user, self.company, "draft_client", {
+            "name": "À Valider SARL",
+            "siren": "987654321",
+        })
+        draft_id = result["draft"]["id"]
+        # reject path
+        other = execute_tool(self.user, self.company, "draft_client", {
+            "name": "À Rejeter",
+        })
+        reject_id = other["draft"]["id"]
+        resp = self.http.post(f"/agent/brouillons/{reject_id}/rejeter/")
+        self.assertEqual(resp.status_code, 302)
+        rejected = AiDraftEntry.objects.get(pk=reject_id)
+        self.assertEqual(rejected.status, "rejected")
+        self.assertEqual(Client.objects.filter(company=self.company).count(), 0)
+
+        resp = self.http.post(f"/agent/brouillons/{draft_id}/valider/")
+        self.assertEqual(resp.status_code, 302)
+        draft = AiDraftEntry.objects.get(pk=draft_id)
+        self.assertEqual(draft.status, "validated")
+        self.assertIsNotNone(draft.created_client_id)
+        client = Client.objects.get(pk=draft.created_client_id)
+        self.assertEqual(client.name, "À Valider SARL")
+        self.assertEqual(client.siren, "987654321")
+

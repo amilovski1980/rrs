@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Brouillons IA{% endblock %}
+{% block crumbs %}Agent / Brouillons{% endblock %}
+{% block nav_ai_drafts %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Brouillons IA</h1>
+    <p class="sub">{{ company.denomination }} — rien n'est créé définitivement sans votre validation.</p>
+  </div>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Type</th><th>Résumé</th><th>État</th><th>Date</th><th></th></tr></thead>
+    <tbody>
+      {% for d in drafts %}
+      <tr>
+        <td>{{ d.get_kind_display }}</td>
+        <td>
+          {% if d.kind == "client" %}
+            {{ d.proposed_data.name|default:"Client" }}
+            {% if d.proposed_data.siren %} · SIREN {{ d.proposed_data.siren }}{% endif %}
+          {% else %}
+            {{ d.proposed_lines|length }} ligne(s)
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge {% if d.status == 'validated' %}badge-green{% elif d.status == 'rejected' %}badge-red{% else %}badge-amber{% endif %}">
+            {{ d.get_status_display }}
+          </span>
+        </td>
+        <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'ai_draft_detail' d.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">Aucun brouillon pour le moment.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
