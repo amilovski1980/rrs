@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load company_colors %}
 {% block title %}Cockpit{% endblock %}
 {% block crumbs %}Mon espace{% endblock %}
 {% block nav_cockpit %}active{% endblock %}
@@ -107,9 +108,13 @@
 <h2 style="margin:28px 0 12px">Changer de société</h2>
 <div class="companies">
   {% for c in companies %}
-  <a class="company {% if selected.id == c.id %}sel{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}">
-    <h3>{{ c.denomination }}</h3>
-    <div class="s">{{ c.forme }} — SIREN {{ c.siren }}</div>
+  {% company_color_class c companies as co_cls %}
+  <a class="company {{ co_cls }} {% if selected.id == c.id %}sel{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}">
+    <span class="co-avatar" aria-hidden="true">{{ c|company_initial }}</span>
+    <span class="co-body">
+      <h3>{{ c.denomination }}</h3>
+      <div class="s">{{ c.forme }} — SIREN {{ c.siren }}</div>
+    </span>
   </a>
   {% endfor %}
 </div>
