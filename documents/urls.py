@@ -3,7 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("", views.invoice_list, name="invoices"),
+    path("", views.invoice_dashboard, name="invoices"),
+    path("liste/", views.invoice_list, name="invoice_list"),
     path("nouvelle/", views.invoice_create, name="invoice_create"),
     path("import-pdf/", views.invoice_import_pdf, name="invoice_import_pdf"),
     path("<uuid:pk>/modifier/", views.invoice_edit, name="invoice_edit"),

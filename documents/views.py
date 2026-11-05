@@ -56,6 +56,58 @@ def _qs(company):
 
 
 @login_required
+def invoice_dashboard(request):
+    """Synthèse facturation : KPI + raccourcis (rien n'est modifié ici)."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoices = list(company.invoices.all())
+    zero = Decimal("0.00")
+
+    def _sum_ttc(status_set):
+        return sum((inv.amount_ttc for inv in invoices if inv.status in status_set), zero)
+
+    ca_ttc = _sum_ttc({"issued", "received", "paid", "late"})
+    open_amount = sum(
+        (inv.amount_remaining for inv in invoices if inv.status in ("issued", "late", "received")),
+        zero,
+    )
+    paid_ttc = _sum_ttc({"paid"})
+    draft_count = sum(1 for inv in invoices if inv.status == "draft")
+    issued_count = sum(1 for inv in invoices if inv.status in ("issued", "received", "late"))
+    paid_count = sum(1 for inv in invoices if inv.status == "paid")
+    late_count = sum(1 for inv in invoices if inv.status == "late")
+
+    quotes = company.quotes.all()
+    quote_count = quotes.count()
+    quote_open = quotes.filter(status__in=("draft", "sent", "accepted")).count()
+    credit_count = company.credit_notes.count()
+    payment_count = company.payments.count()
+    client_count = company.clients.count()
+
+    recent = invoices[:8]
+    return render(request, "documents/invoice_dashboard.html", {
+        "company": company,
+        "kpi": {
+            "ca_ttc": ca_ttc,
+            "open_amount": open_amount,
+            "paid_ttc": paid_ttc,
+            "draft_count": draft_count,
+            "issued_count": issued_count,
+            "paid_count": paid_count,
+            "late_count": late_count,
+            "invoice_count": len(invoices),
+            "quote_count": quote_count,
+            "quote_open": quote_open,
+            "credit_count": credit_count,
+            "payment_count": payment_count,
+            "client_count": client_count,
+        },
+        "recent_invoices": recent,
+    })
+
+
+@login_required
 def invoice_list(request):
     company, bounce = _company_or_redirect(request)
     if bounce:

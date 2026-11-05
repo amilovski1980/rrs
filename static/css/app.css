@@ -1344,3 +1344,10 @@ details.page-actions > .actions-list {
   .agent-chooser, .agent-chat { right: 12px; left: 12px; width: auto; }
   .agent-chooser { bottom: 84px; }
 }
+
+/* Synthèse facturation */
+.inv-dash-cards .company h3 { margin: 0 0 4px; font-size: 16px; }
+.inv-dash-kpis .kpi .v { font-size: 26px; }
+@media (max-width: 900px) {
+  .inv-dash-kpis, .inv-dash-cards { grid-template-columns: 1fr !important; }
+}

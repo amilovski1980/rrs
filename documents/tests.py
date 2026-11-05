@@ -475,3 +475,53 @@ class ThemeAndDocumentPdfTests(TestCase):
         )
         self.assertEqual(self.http.get(f"/factures/devis/{quote.id}/pdf/").status_code, 404)
         self.assertEqual(self.http.get(f"/factures/avoirs/{note.id}/pdf/").status_code, 404)
+
+
+
+class InvoiceDashboardTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("dash@example.com")
+        self.user = user
+        self.company = Company.objects.create(
+            owner=user,
+            siren="834567890",
+            denomination="Dash SARL",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            activites=["menuiserie"],
+        )
+        generate_portal(self.company)
+        Invoice.objects.create(
+            company=self.company,
+            number="FAC-2026-00001",
+            client_name="Client A",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        Invoice.objects.create(
+            company=self.company,
+            number="BR-draft1",
+            client_name="Client B",
+            amount_ht=Decimal("50.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+
+    def test_dashboard_kpis_and_login(self):
+        self.client.force_login(self.user)
+        r = self.client.get(f"/factures/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "CA facturé TTC")
+        self.assertContains(r, "120,00")  # 100 HT + 20%
+        self.assertContains(r, "À encaisser")
+        self.assertContains(r, "Toutes les factures")
+
+    def test_list_still_available(self):
+        self.client.force_login(self.user)
+        r = self.client.get(f"/factures/liste/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "FAC-2026-00001")
+        self.assertContains(r, "BR-draft1")

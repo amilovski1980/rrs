@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Factures — synthèse{% endblock %}
+{% block crumbs %}Facturation{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Facturation</h1>
+    <p class="sub">{{ company.denomination }} — synthèse des factures, devis et encaissements.</p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'invoice_list' %}?societe={{ company.id }}">Toutes les factures</a>
+      <a class="btn btn-ghost" href="{% url 'invoice_import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+      <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+        {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+      </a>
+    </div>
+  </details>
+</div>
+
+<div class="grid g3 inv-dash-kpis" style="margin-bottom:22px">
+  <div class="kpi">
+    <div class="l">CA facturé TTC</div>
+    <div class="v">{{ kpi.ca_ttc|floatformat:2 }} €</div>
+    <div class="d">{{ kpi.invoice_count }} facture{{ kpi.invoice_count|pluralize }} · hors brouillons</div>
+  </div>
+  <div class="kpi">
+    <div class="l">À encaisser</div>
+    <div class="v">{{ kpi.open_amount|floatformat:2 }} €</div>
+    <div class="d">{{ kpi.issued_count }} ouverte{{ kpi.issued_count|pluralize }} · {{ kpi.late_count }} en retard</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Encaissé TTC</div>
+    <div class="v">{{ kpi.paid_ttc|floatformat:2 }} €</div>
+    <div class="d">{{ kpi.paid_count }} payée{{ kpi.paid_count|pluralize }} · {{ kpi.draft_count }} brouillon{{ kpi.draft_count|pluralize }}</div>
+  </div>
+</div>
+
+<div class="grid g3 inv-dash-cards" style="margin-bottom:22px">
+  <a class="company" href="{% url 'invoice_list' %}?societe={{ company.id }}">
+    <h3>Factures</h3>
+    <div class="s">{{ kpi.invoice_count }} au total · {{ kpi.draft_count }} brouillon{{ kpi.draft_count|pluralize }}</div>
+  </a>
+  <a class="company" href="{% url 'quotes' %}?societe={{ company.id }}">
+    <h3>Devis</h3>
+    <div class="s">{{ kpi.quote_count }} · {{ kpi.quote_open }} en cours</div>
+  </a>
+  <a class="company" href="{% url 'credit_notes' %}?societe={{ company.id }}">
+    <h3>Avoirs</h3>
+    <div class="s">{{ kpi.credit_count }} document{{ kpi.credit_count|pluralize }}</div>
+  </a>
+  <a class="company" href="{% url 'payments' %}?societe={{ company.id }}">
+    <h3>Paiements</h3>
+    <div class="s">{{ kpi.payment_count }} encaissement{{ kpi.payment_count|pluralize }}</div>
+  </a>
+  <a class="company" href="{% url 'clients' %}?societe={{ company.id }}">
+    <h3>Clients</h3>
+    <div class="s">{{ kpi.client_count }} fiche{{ kpi.client_count|pluralize }}</div>
+  </a>
+  <a class="company" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+    <h3>Nouvelle facture</h3>
+    <div class="s">Créer un brouillon à émettre</div>
+  </a>
+</div>
+
+<div class="card card-tight">
+  <div class="card-head">
+    <h3>Dernières factures</h3>
+    <a class="btn btn-ghost btn-sm" href="{% url 'invoice_list' %}?societe={{ company.id }}">Tout voir</a>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">TTC</th><th>État</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for inv in recent_invoices %}
+      <tr>
+        <td><a href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}"><b>{{ inv.number }}</b></a></td>
+        <td>{{ inv.client_name }}</td>
+        <td>{{ inv.created_at|date:"d/m/Y" }}</td>
+        <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
+        <td>
+          <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% elif inv.status == 'late' %}badge-red{% else %}badge-amber{% endif %}">
+            {{ inv.get_status_display }}
+          </span>
+        </td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">Aucune facture. Créez la première.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
