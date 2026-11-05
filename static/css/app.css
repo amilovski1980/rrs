@@ -951,14 +951,16 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 }
 .model-preview {
   display: flex; flex-direction: column; gap: 2px;
-  height: 52px; padding: 4px; border-radius: 4px; background: #fff;
+  height: 56px; padding: 4px; border-radius: 4px; background: #fff;
   border: 1px solid #e6eaf0; overflow: hidden;
 }
-.model-preview i, .model-preview b { display: block; height: 2.5px; border-radius: 1px; background: #d5dbe3; }
+.model-preview i, .model-preview b { display: block; height: 2.5px; border-radius: 1px; background: #94a3b8; }
 .mp-top, .mp-due { display: flex; justify-content: space-between; align-items: center; gap: 3px; }
-.mp-logo { width: 8px; height: 8px; border-radius: 2px; background: #d5dbe3; flex: 0 0 auto; }
-.mp-id { width: 22px; }
+.mp-logo { width: 8px; height: 8px; border-radius: 2px; background: #94a3b8; flex: 0 0 auto; }
+.mp-id { width: 22px; flex: 0 0 auto; }
+.mp-id i { width: 100%; }
 .mp-id i + i { width: 70%; margin-top: 2px; }
+.mp-who { display: block; }
 .mp-who i { width: 58%; }
 .mp-who i + i { width: 40%; margin-top: 2px; }
 .mp-row { height: 3px; border-radius: 1px; background: #e8edf3; }
@@ -985,20 +987,40 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 .model-sauge .mp-who { background: #fff; border-radius: 3px; padding: 2px; }
 .model-sauge .mp-due b { background: #1f7a4d; }
 .model-graphite { padding: 0; background: #1c2026; border-color: #2d3440; }
-.model-graphite .mp-top { background: #2d3440; padding: 3px; }
-.model-graphite .mp-logo { background: #9aa4b2; }
-.model-graphite .mp-id i, .model-graphite .mp-who i, .model-graphite .mp-row { background: #4b5563; }
+.model-graphite .mp-top { background: #2d3440; padding: 3px; flex: 0 0 auto; }
+.model-graphite .mp-logo { background: #e5e7eb; }
+.model-graphite .mp-id i { background: #cbd5e1; }
+.model-graphite .mp-who i { background: #94a3b8; }
+.model-graphite .mp-row { background: #64748b; }
 .model-graphite .mp-due { margin-left: 3px; margin-right: 3px; }
-.model-graphite .mp-due i { background: #6b7280; }
-.model-graphite .mp-due b { background: #e5e7eb; }
-.model-indigo { border-top: 2px solid #4f46e5; background: #fafafe; }
-.model-indigo .mp-logo { background: #4f46e5; border-radius: 2px; }
-.model-indigo .mp-who i { background: #c7d2fe; }
+.model-graphite .mp-due i { background: #94a3b8; }
+.model-graphite .mp-due b { background: #f8fafc; }
+/* Indigo : bandeau + barres contrastées (évite gris clair sur fond #fafafe) */
+.model-indigo { padding: 0; border-top: 0; background: #fff; border-color: #c7d2fe; }
+.model-indigo .mp-top { background: #4f46e5; padding: 3px; flex: 0 0 auto; }
+.model-indigo .mp-logo { background: #fff; border-radius: 2px; }
+.model-indigo .mp-id i { background: #c7d2fe; }
+.model-indigo .mp-who, .model-indigo .mp-row, .model-indigo .mp-due { margin-left: 3px; margin-right: 3px; }
+.model-indigo .mp-who i { background: #818cf8; }
+.model-indigo .mp-row { background: #a5b4fc; }
+.model-indigo .mp-due i { background: #c7d2fe; }
 .model-indigo .mp-due b { background: #4f46e5; }
 .model-terra { border-left: 3px solid #b45331; background: linear-gradient(90deg, #f6ebe3 16%, #fff 16%); }
 .model-terra .mp-logo { background: #b45331; }
+.model-terra .mp-who i { background: #d6b09a; }
+.model-terra .mp-row { background: #e7cfc0; }
 .model-terra .mp-who, .model-terra .mp-row, .model-terra .mp-due { margin-left: 2px; }
 .model-terra .mp-due b { background: #b45331; }
+/* Renfort des thèmes d'origine : barres toujours visibles */
+.model-carmin .mp-who i { background: #f0b4ae; }
+.model-carmin .mp-row { background: #f5d0cc; }
+.model-carmin .mp-id i { background: #e8c4c0; }
+.model-encre .mp-who i { background: #9ca3af; }
+.model-encre .mp-row { background: #d1d5db; }
+.model-sauge .mp-who i { background: #86efac; }
+.model-sauge .mp-row { background: #bbf7d0; }
+.model-azur .mp-who i { background: #93c5fd; }
+.model-azur .mp-row { background: #bfdbfe; }
 @media (max-width: 720px) {
   .model-grid, .model-grid-inline {
     grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

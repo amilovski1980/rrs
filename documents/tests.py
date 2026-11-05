@@ -748,3 +748,40 @@ class TicketCameraUploadTests(TestCase):
         with self.assertRaises(ReceiptOcrError) as ctx:
             validate_upload("big.jpg", "image/jpeg", MAX_UPLOAD_BYTES + 1)
         self.assertIn("10 Mo", str(ctx.exception))
+
+
+class InvoiceThemePreviewCssTests(TestCase):
+    """Les miniatures indigo/graphite (et tous les thèmes) ont des règles CSS visibles."""
+
+    def test_app_css_defines_every_invoice_theme_preview(self):
+        from pathlib import Path
+
+        from companies.models import INVOICE_THEMES
+
+        css = (Path(__file__).resolve().parents[1] / "static" / "css" / "app.css").read_text()
+        for code, _label in INVOICE_THEMES:
+            self.assertIn(f".model-{code}", css, f"règle manquante pour {code}")
+        # Contraste indigo : bandeau violet + barres non grises par défaut
+        self.assertIn(".model-indigo .mp-top", css)
+        self.assertIn("background: #4f46e5", css)
+        self.assertIn(".model-indigo .mp-row", css)
+        self.assertIn("#a5b4fc", css)
+        # Graphite : barres claires sur fond sombre
+        self.assertIn(".model-graphite .mp-row", css)
+        self.assertIn("#64748b", css)
+        self.assertIn(".model-graphite .mp-logo", css)
+
+class InvoiceThemeSettingsPageTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("themes@exemple.fr")
+        self.company = _company(user, siren="899999999", name="Themes Co")
+        self.client.force_login(user)
+
+    def test_settings_page_renders_theme_previews(self):
+        from companies.models import INVOICE_THEMES
+        page = self.client.get("/societe/")
+        self.assertEqual(page.status_code, 200)
+        body = page.content.decode()
+        for code, label in INVOICE_THEMES:
+            self.assertIn(f"model-{code}", body)
+            self.assertIn(label, body)
