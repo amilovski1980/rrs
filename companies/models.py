@@ -28,6 +28,9 @@ INVOICE_THEMES = [
     ("carmin", "Carmin"),
     ("encre", "Encre"),
     ("sauge", "Sauge"),
+    ("graphite", "Graphite"),
+    ("indigo", "Indigo"),
+    ("terra", "Terra"),
 ]
 
 

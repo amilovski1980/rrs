@@ -17,7 +17,18 @@
     {% endif %}
     <div class="form-grid">
       <div>
-        <label>Client</label>
+        <label>Fiche client</label>
+        {{ form.client }}
+        {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label>Projet</label>
+        {{ form.project }}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>Nom client (affiché)</label>
         {{ form.client_name }}
         {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
       </div>

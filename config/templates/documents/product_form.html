@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{% if product %}Modifier{% else %}Nouveau produit{% endif %}{% endblock %}
+{% block crumbs %}Facturation / Catalogue{% endblock %}
+{% block nav_products %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if product %}Modifier {{ product.label }}{% else %}Nouveau produit / service{% endif %}</h1><p class="sub">{{ company.denomination }}</p></div></div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <div><label>Libellé</label>{{ form.label }}{% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}</div>
+      <div><label>Unité</label>{{ form.unit }}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>Prix unitaire HT</label>{{ form.unit_price }}{% if form.unit_price.errors %}<p class="error">{{ form.unit_price.errors.0 }}</p>{% endif %}</div>
+      <div><label>Taux de TVA (%)</label>{{ form.vat_rate }}{% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}</div>
+    </div>
+    <div><label>Description</label>{{ form.description }}</div>
+    <div style="margin-top:12px"><label>{{ form.active }} Actif</label></div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'products' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

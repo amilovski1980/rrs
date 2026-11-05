@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Paiement{% endblock %}
+{% block crumbs %}Facturation / Paiements{% endblock %}
+{% block nav_payments %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ payment.amount|floatformat:2 }} €</h1>
+    <p class="sub">{{ payment.paid_at|date:"d/m/Y" }} · {{ payment.get_method_display }} · Facture <a href="{% url 'invoice_detail' payment.invoice.id %}?societe={{ company.id }}">{{ payment.invoice.number }}</a></p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'payments' %}?societe={{ company.id }}">Retour</a>
+      <form method="post" action="{% url 'payment_delete' payment.id %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer ce paiement ?');">{% csrf_token %}
+        <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+      </form>
+    </div>
+  </details>
+</div>
+<div class="card">
+  {% if payment.reference %}<p>Référence : {{ payment.reference }}</p>{% endif %}
+  {% if payment.notes %}<p>{{ payment.notes }}</p>{% endif %}
+  <p>Restant sur la facture : {{ payment.invoice.amount_remaining|floatformat:2 }} €</p>
+</div>
+{% endblock %}

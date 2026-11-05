@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block crumbs %}Facturation / Projets{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ project.name }}</h1><p class="sub">{{ project.get_status_display }}{% if project.client %} · {{ project.client.name }}{% endif %}</p></div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'project_edit' project.id %}?societe={{ company.id }}">Modifier</a>
+      <a class="btn btn-ghost" href="{% url 'projects' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
+</div>
+<div class="card">
+  <p>{{ project.description|default:"Pas de description." }}</p>
+  <form method="post" action="{% url 'project_delete' project.id %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer ?');">{% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Devis{% endblock %}
+{% block crumbs %}Facturation / Devis{% endblock %}
+{% block nav_quotes %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Devis</h1><p class="sub">{{ company.denomination }}</p></div>
+  <a class="btn btn-primary page-actions" href="{% url 'quote_create' %}?societe={{ company.id }}">{% include "partials/icon.html" with name="plus" %} Nouveau devis</a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Numéro</th><th>Client</th><th class="num">HT</th><th>État</th><th></th></tr></thead>
+    <tbody>
+      {% for q in quotes %}
+      <tr>
+        <td><a href="{% url 'quote_detail' q.id %}?societe={{ company.id }}"><b>{{ q.number }}</b></a></td>
+        <td>{{ q.client_name }}</td>
+        <td class="num">{{ q.amount_ht|floatformat:2 }} €</td>
+        <td>{{ q.get_status_display }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'quote_detail' q.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="empty">Aucun devis.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

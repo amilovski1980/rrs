@@ -97,14 +97,18 @@ def instructions_for(user, company):
         f"régime {company.get_regime_display()}, TVA {company.get_tva_display()}. "
         "Tu parles français, vouvoiement, phrases très courtes, adaptées à la voix. "
         "Tu peux lire la société, la balance, le grand livre et les brouillons, "
-        "proposer une écriture, et rédiger une facture. "
+        "proposer une écriture, rédiger une facture, et créer un brouillon de client. "
         "Pour une facture, appelle draft_invoice dès que tu as le client et le montant : "
         "l'écran affiche la saisie en direct, champ par champ. "
         "Dis les valeurs à voix haute pendant qu'elles s'écrivent. "
         "Une facture rédigée reste un brouillon : ne l'émets pas toi-même. "
-        "Tu ne valides jamais une écriture sans un oui clair : "
-        "d'abord propose_entry, tu relis le libellé et les montants, puis confirm_entry "
-        "uniquement si l'utilisateur a dit oui. N'invente aucun chiffre : appelle les outils. "
+        "Pour un nouveau client, appelle draft_client : cela crée seulement un brouillon "
+        "à valider par un humain, jamais une fiche client définitive. "
+        "Tu ne valides jamais une écriture ni un client sans un oui clair : "
+        "d'abord propose_entry ou draft_client, tu relis, puis confirm_entry "
+        "uniquement si l'utilisateur a dit oui pour une écriture. "
+        "Les brouillons clients se valident dans l'écran Brouillons IA. "
+        "N'invente aucun chiffre : appelle les outils. "
         "Montants en euros, au centime, débit égal au crédit."
         + extra
     )
@@ -224,6 +228,27 @@ TOOLS = [
             "additionalProperties": False,
         },
     },
+    {
+        "type": "function",
+        "name": "draft_client",
+        "description": (
+            "Propose un brouillon de fiche client. Ne crée pas le client définitif : "
+            "un humain doit valider le brouillon dans l'écran Brouillons IA."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Raison sociale ou nom du client"},
+                "siren": {"type": "string", "description": "SIREN à 9 chiffres, ou vide"},
+                "address": {"type": "string"},
+                "email": {"type": "string"},
+                "phone": {"type": "string"},
+                "notes": {"type": "string"},
+            },
+            "required": ["name"],
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -303,6 +328,9 @@ def execute_tool(user, company, name, args, session_company_setter=None):
 
     if name == "draft_invoice":
         return _draft_invoice(company, args)
+
+    if name == "draft_client":
+        return _draft_client(company, args)
 
     return {"error": f"Outil inconnu : {name}"}
 
@@ -445,3 +473,51 @@ def _draft_invoice(company, args):
             "url": f"/factures/{invoice.id}/?societe={company.id}",
         },
     }
+
+
+def _draft_client(company, args):
+    """Crée un AiDraftEntry kind=client, jamais une fiche Client définitive."""
+    from ai.models import AiDraftEntry
+
+    name = (args.get("name") or "").strip()
+    if len(name) < 2:
+        return {"error": "Nom du client manquant."}
+    siren = "".join(ch for ch in str(args.get("siren") or "") if ch.isdigit())
+    if siren and len(siren) != 9:
+        return {"error": "Le SIREN doit contenir 9 chiffres, ou rester vide."}
+    email = (args.get("email") or "").strip()
+    phone = (args.get("phone") or "").strip()
+    address = (args.get("address") or "").strip()
+    notes = (args.get("notes") or "").strip()
+    payload = {
+        "name": name[:200],
+        "siren": siren,
+        "email": email[:200],
+        "phone": phone[:30],
+        "address": address[:255],
+        "notes": notes[:2000],
+    }
+    draft = AiDraftEntry.objects.create(
+        company=company,
+        kind="client",
+        proposed_data=payload,
+        proposed_lines=[],
+        status="pending",
+        model_name="aminia-voice",
+    )
+    return {
+        "ok": True,
+        "status": "brouillon",
+        "message": (
+            "Brouillon client créé. Il doit être validé par un humain "
+            "dans Brouillons IA avant de créer la fiche."
+        ),
+        "draft": {
+            "id": str(draft.id),
+            "kind": "client",
+            "status": draft.status,
+            "data": payload,
+            "url": f"/agent/brouillons/?societe={company.id}",
+        },
+    }
+

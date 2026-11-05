@@ -119,3 +119,98 @@ def voice_tool(request):
     except Exception:
         return JsonResponse({"error": "L'outil comptable a échoué."}, status=500)
     return JsonResponse({"output": result})
+
+
+# ---------------------------------------------------------------------------
+# Validation humaine des brouillons IA (clients, etc.)
+# ---------------------------------------------------------------------------
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
+from core.context import resolve_company as resolve_web_company
+
+from .models import AiDraftEntry
+
+
+@login_required
+def draft_list(request):
+    company = resolve_web_company(request)
+    if company is None:
+        return redirect("onboarding")
+    drafts = AiDraftEntry.objects.filter(company=company).order_by("-created_at")
+    return render(request, "ai/draft_list.html", {
+        "company": company,
+        "drafts": drafts,
+    })
+
+
+@login_required
+def draft_detail(request, pk):
+    company = resolve_web_company(request)
+    if company is None:
+        return redirect("onboarding")
+    draft = get_object_or_404(AiDraftEntry, pk=pk, company=company)
+    return render(request, "ai/draft_detail.html", {
+        "company": company,
+        "draft": draft,
+    })
+
+
+@login_required
+@require_POST
+def draft_approve(request, pk):
+    company = resolve_web_company(request)
+    if company is None:
+        return redirect("onboarding")
+    draft = get_object_or_404(AiDraftEntry, pk=pk, company=company)
+    if draft.status != "pending":
+        messages.error(request, "Ce brouillon a déjà été traité.")
+        return redirect("ai_draft_detail", pk=draft.id)
+
+    if draft.kind == "client":
+        from documents.models import Client
+
+        data = draft.proposed_data or {}
+        name = (data.get("name") or "").strip()
+        if len(name) < 2:
+            messages.error(request, "Le brouillon client est incomplet (nom manquant).")
+            return redirect("ai_draft_detail", pk=draft.id)
+        siren = "".join(c for c in str(data.get("siren") or "") if c.isdigit())
+        client = Client.objects.create(
+            company=company,
+            name=name[:200],
+            siren=siren if len(siren) == 9 else "",
+            address=(data.get("address") or "")[:255],
+            email=(data.get("email") or "")[:200],
+            phone=(data.get("phone") or "")[:30],
+            notes=(data.get("notes") or "")[:2000],
+        )
+        draft.created_client = client
+        draft.status = "validated"
+        draft.validated_at = timezone.now()
+        draft.save(update_fields=["created_client", "status", "validated_at"])
+        messages.success(request, f"Client « {client.name} » créé après validation.")
+        return redirect("client_detail", pk=client.id)
+
+    messages.error(request, "Ce type de brouillon ne peut pas être validé ici.")
+    return redirect("ai_draft_detail", pk=draft.id)
+
+
+@login_required
+@require_POST
+def draft_reject(request, pk):
+    company = resolve_web_company(request)
+    if company is None:
+        return redirect("onboarding")
+    draft = get_object_or_404(AiDraftEntry, pk=pk, company=company)
+    if draft.status != "pending":
+        messages.error(request, "Ce brouillon a déjà été traité.")
+        return redirect("ai_draft_detail", pk=draft.id)
+    draft.status = "rejected"
+    draft.validated_at = timezone.now()
+    draft.save(update_fields=["status", "validated_at"])
+    messages.success(request, "Brouillon rejeté.")
+    return redirect("ai_drafts")
+

@@ -1,0 +1,77 @@
+{% comment %}
+Attendu : company, kind_label, number, status_label, created_at, client_name, client_siren,
+amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_kicker
+{% endcomment %}
+<article class="sheet sheet-{{ company.invoice_theme|default:'azur' }}">
+  <header class="sheet-head">
+    <div class="sheet-brand">
+      {% if company.logo %}
+      <img class="sheet-logo" src="{% url 'company_logo' %}?societe={{ company.id }}" alt="">
+      {% endif %}
+      <div>
+        <p class="sheet-kicker">{{ company.forme }}</p>
+        <h2>{{ company.denomination }}</h2>
+        <p>
+          {% if company.address %}{{ company.address }}<br>{% endif %}
+          SIREN {{ company.siren }}
+          {% if company.phone %} · {{ company.phone }}{% endif %}
+          {% if company.email %}<br>{{ company.email }}{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="sheet-meta">
+      <p class="sheet-kind">{{ kind_label }}</p>
+      <p class="sheet-num">{{ number }}</p>
+      <p>{{ created_at|date:"d/m/Y" }}</p>
+      {% if status_label %}<p class="sheet-state">{{ status_label }}</p>{% endif %}
+    </div>
+  </header>
+  <section class="sheet-client">
+    <p class="sheet-kicker">{{ client_kicker|default:"Facturé à" }}</p>
+    <h3>{{ client_name }}</h3>
+    <p>{% if client_siren %}SIREN {{ client_siren }}{% else %}Client{% endif %}</p>
+  </section>
+  <table class="sheet-table">
+    <thead>
+      <tr>
+        <th>Désignation</th>
+        <th class="num">Qté</th>
+        <th class="num">PU HT</th>
+        <th class="num">TVA</th>
+        <th class="num">HT</th>
+        <th class="num">TTC</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if lines %}
+        {% for line in lines %}
+        <tr>
+          <td>{{ line.description }}</td>
+          <td class="num">{{ line.quantity }}</td>
+          <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+          <td class="num">{{ line.vat_rate|floatformat:2 }} %</td>
+          <td class="num">{{ line.amount_ht|floatformat:2 }} €</td>
+          <td class="num">{% if line.amount_ttc %}{{ line.amount_ttc|floatformat:2 }}{% else %}{{ line.amount_ht|floatformat:2 }}{% endif %} €</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td>Prestation — {{ client_name }}</td>
+          <td class="num">1</td>
+          <td class="num">{{ amount_ht|floatformat:2 }} €</td>
+          <td class="num">{{ vat_rate|floatformat:2 }} %</td>
+          <td class="num">{{ amount_ht|floatformat:2 }} €</td>
+          <td class="num">{{ amount_ttc|floatformat:2 }} €</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <footer class="sheet-foot">
+    <p>{{ foot_note|default:"Payable à réception." }} TVA {{ vat_rate|floatformat:2 }} %.</p>
+    <div class="sheet-totals">
+      <p>Total HT <b>{{ amount_ht|floatformat:2 }} €</b></p>
+      <p>TVA <b>{{ vat_amount|floatformat:2 }} €</b></p>
+      <p class="sheet-due"><span>Total TTC</span> <b>{{ amount_ttc|floatformat:2 }} €</b></p>
+    </div>
+  </footer>
+</article>

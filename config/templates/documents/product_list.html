@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Produits / services{% endblock %}
+{% block crumbs %}Facturation / Catalogue{% endblock %}
+{% block nav_products %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Produits / services</h1>
+    <p class="sub">{{ company.denomination }} — catalogue réutilisable sur les lignes.</p>
+  </div>
+  <a class="btn btn-primary page-actions" href="{% url 'product_create' %}?societe={{ company.id }}">
+    {% include "partials/icon.html" with name="plus" %} Nouveau
+  </a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Libellé</th><th class="num">Prix HT</th><th class="num">TVA</th><th>Unité</th><th>Actif</th><th></th></tr></thead>
+    <tbody>
+      {% for p in products %}
+      <tr>
+        <td><a href="{% url 'product_detail' p.id %}?societe={{ company.id }}"><b>{{ p.label }}</b></a></td>
+        <td class="num">{{ p.unit_price|floatformat:2 }} €</td>
+        <td class="num">{{ p.vat_rate|floatformat:2 }} %</td>
+        <td>{{ p.unit }}</td>
+        <td>{% if p.active %}Oui{% else %}Non{% endif %}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'product_edit' p.id %}?societe={{ company.id }}">Modifier</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">Catalogue vide.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

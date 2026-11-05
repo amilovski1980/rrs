@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% if client %}Modifier client{% else %}Nouveau client{% endif %}{% endblock %}
+{% block crumbs %}Facturation / Clients{% endblock %}
+{% block nav_clients %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if client %}Modifier {{ client.name }}{% else %}Nouveau client{% endif %}</h1>
+    <p class="sub">{{ company.denomination }}</p>
+  </div>
+</div>
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-grid">
+      <div><label>Nom</label>{{ form.name }}{% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}</div>
+      <div><label>SIREN</label>{{ form.siren }}{% if form.siren.errors %}<p class="error">{{ form.siren.errors.0 }}</p>{% endif %}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>E-mail</label>{{ form.email }}{% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}</div>
+      <div><label>Téléphone</label>{{ form.phone }}</div>
+    </div>
+    <div><label>Adresse</label>{{ form.address }}</div>
+    <div style="margin-top:12px"><label>Notes</label>{{ form.notes }}</div>
+    <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'clients' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

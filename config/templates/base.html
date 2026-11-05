@@ -48,6 +48,27 @@
     <a class="side-link {% block nav_invoices %}{% endblock %}" href="{% url 'invoices' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Factures
     </a>
+    <a class="side-link {% block nav_quotes %}{% endblock %}" href="{% url 'quotes' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Devis
+    </a>
+    <a class="side-link {% block nav_clients %}{% endblock %}" href="{% url 'clients' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Clients
+    </a>
+    <a class="side-link {% block nav_products %}{% endblock %}" href="{% url 'products' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> Catalogue
+    </a>
+    <a class="side-link {% block nav_projects %}{% endblock %}" href="{% url 'projects' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="folder" %}</span> Projets
+    </a>
+    <a class="side-link {% block nav_credit_notes %}{% endblock %}" href="{% url 'credit_notes' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="arrow" %}</span> Avoirs
+    </a>
+    <a class="side-link {% block nav_payments %}{% endblock %}" href="{% url 'payments' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="check" %}</span> Paiements
+    </a>
+    <a class="side-link {% block nav_ai_drafts %}{% endblock %}" href="{% url 'ai_drafts' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
+    </a>
 
     <div class="sidebar-foot">
       <div class="user-chip">

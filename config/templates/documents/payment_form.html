@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Nouveau paiement{% endblock %}
+{% block crumbs %}Facturation / Paiements{% endblock %}
+{% block nav_payments %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Nouveau paiement</h1><p class="sub">{{ company.denomination }}</p></div></div>
+<div class="card">
+  <form method="post">{% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-grid">
+      <div><label>Facture</label>{{ form.invoice }}{% if form.invoice.errors %}<p class="error">{{ form.invoice.errors.0 }}</p>{% endif %}</div>
+      <div><label>Montant</label>{{ form.amount }}{% if form.amount.errors %}<p class="error">{{ form.amount.errors.0 }}</p>{% endif %}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>Mode</label>{{ form.method }}</div>
+      <div><label>Date</label>{{ form.paid_at }}</div>
+      <div><label>Référence</label>{{ form.reference }}</div>
+    </div>
+    <div><label>Notes</label>{{ form.notes }}</div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'payments' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

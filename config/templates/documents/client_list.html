@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block crumbs %}Facturation / Clients{% endblock %}
+{% block nav_clients %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Clients</h1>
+    <p class="sub">{{ company.denomination }} — fiches clients isolées par société.</p>
+  </div>
+  <a class="btn btn-primary page-actions" href="{% url 'client_create' %}?societe={{ company.id }}">
+    {% include "partials/icon.html" with name="plus" %} Nouveau client
+  </a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Nom</th><th>SIREN</th><th>E-mail</th><th>Téléphone</th><th></th></tr></thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td><a href="{% url 'client_detail' c.id %}?societe={{ company.id }}"><b>{{ c.name }}</b></a></td>
+        <td>{{ c.siren|default:"—" }}</td>
+        <td>{{ c.email|default:"—" }}</td>
+        <td>{{ c.phone|default:"—" }}</td>
+        <td>
+          <a class="btn btn-ghost btn-sm" href="{% url 'client_edit' c.id %}?societe={{ company.id }}">Modifier</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty">Aucun client. Créez le premier.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

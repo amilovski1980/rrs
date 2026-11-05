@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ quote.number }}{% endblock %}
+{% block crumbs %}Facturation / Devis / {{ quote.number }}{% endblock %}
+{% block nav_quotes %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ quote.number }}</h1>
+    <p class="sub">{{ quote.get_status_display }} · {{ quote.client_name }} · {{ quote.amount_ttc|floatformat:2 }} € TTC</p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'quote_pdf' quote.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      {% if quote.status != "converted" %}
+      <a class="btn btn-ghost" href="{% url 'quote_edit' quote.id %}?societe={{ company.id }}">Modifier</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
+</div>
+
+{% if messages %}{% for message in messages %}<div class="flash {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
+<div class="card" style="margin-bottom:16px">
+  <p><b>HT</b> {{ quote.amount_ht|floatformat:2 }} € · <b>TVA</b> {{ quote.vat_rate|floatformat:2 }} % · <b>TTC</b> {{ quote.amount_ttc|floatformat:2 }} €</p>
+  {% if quote.project %}<p>Projet : <a href="{% url 'project_detail' quote.project.id %}?societe={{ company.id }}">{{ quote.project.name }}</a></p>{% endif %}
+  {% if quote.converted_invoice %}
+  <p>Facture liée : <a href="{% url 'invoice_detail' quote.converted_invoice.id %}?societe={{ company.id }}">{{ quote.converted_invoice.number }}</a></p>
+  {% endif %}
+  {% if quote.status == "draft" or quote.number|slice:":3" == "BR-" %}
+  <form method="post" action="{% url 'quote_issue' quote.id %}?societe={{ company.id }}" style="display:inline">{% csrf_token %}
+    <button class="btn btn-ghost" type="submit">Numéroter le devis</button>
+  </form>
+  {% endif %}
+  {% if quote.status != "converted" and quote.status != "rejected" %}
+  <form method="post" action="{% url 'quote_convert' quote.id %}?societe={{ company.id }}" style="display:inline">{% csrf_token %}
+    <button class="btn btn-primary" type="submit">Convertir en facture</button>
+  </form>
+  {% endif %}
+  {% if quote.status != "converted" %}
+  <form method="post" action="{% url 'quote_delete' quote.id %}?societe={{ company.id }}" style="display:inline" onsubmit="return confirm('Supprimer ?');">{% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if lines %}
+<div class="card card-tight" style="margin-bottom:16px">
+  <h2 style="font-size:18px;margin:0 0 12px">Lignes</h2>
+  <table>
+    <thead><tr><th>Désignation</th><th class="num">Qté</th><th class="num">PU HT</th><th class="num">TVA</th><th class="num">HT</th></tr></thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+        <td class="num">{{ line.vat_rate|floatformat:2 }} %</td>
+        <td class="num">{{ line.amount_ht|floatformat:2 }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<section class="sheet-stage">
+  {% include "documents/quote_sheet.html" %}
+</section>
+{% endblock %}

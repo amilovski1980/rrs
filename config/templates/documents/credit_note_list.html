@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Avoirs{% endblock %}
+{% block crumbs %}Facturation / Avoirs{% endblock %}
+{% block nav_credit_notes %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Avoirs</h1><p class="sub">{{ company.denomination }}</p></div>
+  <a class="btn btn-primary page-actions" href="{% url 'credit_note_create' %}?societe={{ company.id }}">{% include "partials/icon.html" with name="plus" %} Nouvel avoir</a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Numéro</th><th>Facture</th><th class="num">HT</th><th>État</th><th></th></tr></thead>
+    <tbody>
+      {% for n in credit_notes %}
+      <tr>
+        <td><a href="{% url 'credit_note_detail' n.id %}?societe={{ company.id }}"><b>{{ n.number }}</b></a></td>
+        <td>{{ n.invoice.number }}</td>
+        <td class="num">{{ n.amount_ht|floatformat:2 }} €</td>
+        <td>{{ n.get_status_display }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'credit_note_detail' n.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="empty">Aucun avoir.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

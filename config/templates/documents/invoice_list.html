@@ -8,9 +8,15 @@
     <h1>Factures</h1>
     <p class="sub">{{ company.denomination }} — {{ open_amount|floatformat:2 }} € TTC encore à encaisser.</p>
   </div>
-  <a class="btn btn-primary page-actions" href="{% url 'invoice_create' %}?societe={{ company.id }}">
-    {% include "partials/icon.html" with name="plus" %} Nouvelle facture
-  </a>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'invoice_import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+      <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+        {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+      </a>
+    </div>
+  </details>
 </div>
 
 <p data-saisie-demo style="margin:-8px 0 16px">
@@ -20,7 +26,7 @@
 <div class="card card-tight">
   <table>
     <thead>
-      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">HT</th><th class="num">TTC</th><th>État</th><th></th></tr>
+      <tr><th>Numéro</th><th>Client</th><th>Date</th><th class="num">HT</th><th class="num">TTC</th><th class="num">Restant</th><th>État</th><th></th></tr>
     </thead>
     <tbody>
       {% for inv in invoices %}
@@ -30,6 +36,7 @@
         <td>{{ inv.created_at|date:"d/m/Y" }}</td>
         <td class="num">{{ inv.amount_ht|floatformat:2 }} €</td>
         <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
+        <td class="num">{{ inv.amount_remaining|floatformat:2 }} €</td>
         <td>
           <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% elif inv.status == 'late' %}badge-red{% else %}badge-amber{% endif %}">
             {{ inv.get_status_display }}
@@ -41,7 +48,7 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="empty">Aucune facture. Créez la première.</td></tr>
+      <tr><td colspan="8" class="empty">Aucune facture. Créez la première.</td></tr>
       {% endfor %}
     </tbody>
   </table>

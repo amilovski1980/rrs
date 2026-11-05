@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Avoir{% endblock %}
+{% block crumbs %}Facturation / Avoirs{% endblock %}
+{% block nav_credit_notes %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if credit_note %}Modifier {{ credit_note.number }}{% else %}Nouvel avoir{% endif %}</h1></div></div>
+<div class="card">
+  <form method="post">{% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-grid">
+      <div><label>Facture</label>{{ form.invoice }}{% if form.invoice.errors %}<p class="error">{{ form.invoice.errors.0 }}</p>{% endif %}</div>
+      <div><label>Montant HT</label>{{ form.amount_ht }}{% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}</div>
+      <div><label>TVA (%)</label>{{ form.vat_rate }}</div>
+    </div>
+    <div><label>Motif</label>{{ form.reason }}</div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'credit_notes' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
