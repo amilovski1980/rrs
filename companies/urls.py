@@ -9,4 +9,6 @@ urlpatterns = [
     path("ajouter/confirmer/", views.onboarding_confirm, name="onboarding_confirm"),
     path("societe/", views.company_settings, name="company_settings"),
     path("societe/logo/", views.company_logo, name="company_logo"),
+    path("aide/", views.help_page, name="help"),
+    path("mentions-legales/", views.legal_notice, name="legal_notice"),
 ]

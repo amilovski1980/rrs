@@ -287,3 +287,14 @@ def company_logo(request):
     response["Cache-Control"] = "private, max-age=3600"
     return response
 
+
+@login_required
+def help_page(request):
+    """Page d'aide du cockpit (contenu rédactionnel minimal)."""
+    return render(request, "companies/help.html")
+
+
+def legal_notice(request):
+    """Mentions légales — placeholders à compléter par le propriétaire."""
+    return render(request, "companies/legal_notice.html")
+

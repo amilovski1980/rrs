@@ -1089,6 +1089,117 @@
     }
   }
 
+
+  function initMobileNav() {
+    var shell = document.querySelector("[data-app-shell]");
+    if (!shell) return;
+    var toggle = shell.querySelector("[data-nav-toggle]");
+    var drawer = shell.querySelector("[data-app-drawer]") || document.getElementById("app-drawer");
+    var backdrop = shell.querySelector("[data-nav-backdrop]");
+    var closeBtn = shell.querySelector("[data-nav-close]");
+    if (!toggle || !drawer) return;
+
+    var lastFocus = null;
+    var mq = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null;
+
+    function isMobile() {
+      return !mq || mq.matches;
+    }
+
+    function getFocusable() {
+      return Array.prototype.slice.call(
+        drawer.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(function (el) {
+        return el.offsetParent !== null || el === document.activeElement;
+      });
+    }
+
+    function setOpen(open) {
+      if (!isMobile() && open) {
+        open = false;
+      }
+      document.body.classList.toggle("nav-open", !!open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+      drawer.setAttribute("aria-hidden", open ? "false" : "true");
+      if (backdrop) {
+        if (open) {
+          backdrop.hidden = false;
+          backdrop.setAttribute("aria-hidden", "false");
+        } else {
+          backdrop.hidden = true;
+          backdrop.setAttribute("aria-hidden", "true");
+        }
+      }
+      if (open) {
+        lastFocus = document.activeElement;
+        window.setTimeout(function () {
+          var focusables = getFocusable();
+          var target = closeBtn || focusables[0] || drawer;
+          try { target.focus(); } catch (e) { /* ignore */ }
+        }, 10);
+      } else if (lastFocus && typeof lastFocus.focus === "function") {
+        try { lastFocus.focus(); } catch (e) { /* ignore */ }
+        lastFocus = null;
+      }
+    }
+
+    // État initial : drawer hors flux mobile → aria-hidden
+    if (isMobile()) {
+      drawer.setAttribute("aria-hidden", "true");
+    } else {
+      drawer.removeAttribute("aria-hidden");
+    }
+
+    toggle.addEventListener("click", function () {
+      setOpen(!document.body.classList.contains("nav-open"));
+    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () { setOpen(false); });
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", function () { setOpen(false); });
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && document.body.classList.contains("nav-open")) {
+        ev.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (ev.key !== "Tab" || !document.body.classList.contains("nav-open")) return;
+      var focusables = getFocusable();
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (ev.shiftKey && document.activeElement === first) {
+        ev.preventDefault();
+        last.focus();
+      } else if (!ev.shiftKey && document.activeElement === last) {
+        ev.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Fermer si on passe en desktop
+    function onMq() {
+      if (!isMobile()) setOpen(false);
+      if (isMobile()) drawer.setAttribute("aria-hidden", document.body.classList.contains("nav-open") ? "false" : "true");
+      else drawer.removeAttribute("aria-hidden");
+    }
+    if (mq) {
+      if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
+      else if (typeof mq.addListener === "function") mq.addListener(onMq);
+    }
+
+    // Fermer après navigation interne (même page SPA non, mais liens)
+    drawer.addEventListener("click", function (ev) {
+      var a = ev.target && ev.target.closest ? ev.target.closest("a.side-link") : null;
+      if (a) setOpen(false);
+    });
+  }
+
   function initTicketCamera() {
     var form = document.querySelector("[data-ticket-upload-form]");
     if (!form) return;
@@ -1137,6 +1248,7 @@
     initAgent();
     initAgentChat();
     initTicketCamera();
+    initMobileNav();
     initTicketFormUx();
     initPhone();
 
