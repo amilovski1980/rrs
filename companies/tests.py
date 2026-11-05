@@ -63,3 +63,13 @@ class CompanySettingsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_theme, "graphite")
+
+
+
+class LandingPageTests(TestCase):
+    def test_home_renders_without_utility_bar(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'class="utility"')
+        self.assertNotContains(response, "utility-in")
+        self.assertContains(response, 'class="nav"')
