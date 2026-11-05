@@ -83,7 +83,7 @@ sans dépendance à Django, prête à publier gratuitement.
   propres.
 
 `docs/index.html` est un export de la landing Django ; `docs/presentation-aminia.html`
-est le deck ; le logo est dans `docs/assets/logo.svg`. Le backend Django reste sur
+est le deck ; le logo est dans `docs/assets/logo.png`. Le backend Django reste sur
 Render : GitHub Pages et Vercel ne servent que la page publique.
 
 ## Structure

@@ -75,6 +75,50 @@ class LandingPageTests(TestCase):
         self.assertContains(response, 'class="nav"')
 
 
+
+
+class LogoBrandTests(TestCase):
+    """Le logo produit Road Runner est le PNG (plus de logo.svg)."""
+
+    def setUp(self):
+        user = get_user_model().objects.create_user("logo@exemple.fr")
+        self.user = user
+        self.company = Company.objects.create(
+            owner=user,
+            siren="866666666",
+            denomination="Logo SARL",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        self.client.force_login(user)
+
+    def _assert_png_logo(self, response):
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("img/logo.png", body)
+        self.assertNotIn("logo.svg", body)
+        self.assertNotIn("img/logo.svg", body)
+
+    def test_landing_uses_png_logo(self):
+        self._assert_png_logo(self.client.get("/"))
+
+    def test_cockpit_uses_png_logo(self):
+        self._assert_png_logo(self.client.get(f"/cockpit/?societe={self.company.id}"))
+
+    def test_login_uses_png_logo(self):
+        self.client.logout()
+        self._assert_png_logo(self.client.get("/compte/"))
+
+    def test_static_logo_png_is_served(self):
+        from django.contrib.staticfiles.finders import find
+        path = find("img/logo.png")
+        self.assertIsNotNone(path)
+        self.assertTrue(path.endswith("logo.png"))
+        self.assertIsNone(find("img/logo.svg"))
+
+
 class CompanyColorTagTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("couleurs@exemple.fr")

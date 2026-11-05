@@ -7,8 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.7">
+  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.10">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -26,7 +27,7 @@
       <span class="m-nav-toggle-bars" aria-hidden="true"></span>
     </button>
     <a class="m-header-logo" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}" aria-label="Road Runner Solutions — Cockpit">
-      <img src="{% static 'img/logo.svg' %}" alt="">
+      <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
       <span class="m-header-brand">
         <b>Road Runner</b>
         <small>Solutions</small>
@@ -48,13 +49,14 @@
     </div>
 
     <a class="brand" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
-      <img src="{% static 'img/logo.svg' %}" alt="">
+      <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
       <span class="brand-text">
         <b>Road Runner</b>
         <small>Solutions</small>
       </span>
     </a>
 
+    <div class="sidebar-nav-scroll">
     <div class="nav-sec">Pilotage</div>
     <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
@@ -105,12 +107,13 @@
     <a class="side-link {% block nav_ai_drafts %}{% endblock %}" href="{% url 'ai_drafts' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
     </a>
+    </div>{# /.sidebar-nav-scroll #}
 
     <div class="sidebar-foot">
       <div class="user-chip">
         <span class="avatar">{{ request.user.email|first|upper }}</span>
         <span>
-          <b>{{ request.user.email|default:"Invité" }}</b>
+          <b title="{{ request.user.email|default:"Invité" }}">{{ request.user.email|default:"Invité" }}</b>
           <small>Espace artisan</small>
         </span>
       </div>
@@ -134,7 +137,7 @@
       <div class="top-actions">
         {% if selected %}<span class="badge badge-blue">{{ selected.denomination }}</span>{% endif %}
         {% if request.user.is_authenticated %}
-        <span class="badge top-mail">{{ request.user.email }}</span>
+        <span class="badge top-mail" title="{{ request.user.email }}">{{ request.user.email }}</span>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
@@ -176,7 +179,7 @@
   </nav>
 </div>
 {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.05.7" defer></script>
-  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.7" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.05.10" defer></script>
+  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.10" defer></script>
 </body>
 </html>

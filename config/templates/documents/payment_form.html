@@ -17,8 +17,7 @@
       <div><label>Référence</label>{{ form.reference }}</div>
     </div>
     <div><label>Notes</label>{{ form.notes }}</div>
-    <div style="margin-top:24px;display:flex;gap:10px">
-      <button class="btn btn-primary" type="submit">Enregistrer</button>
+    <div class="form-actions-bar"><button class="btn btn-primary" type="submit">Enregistrer</button>
       <a class="btn btn-ghost" href="{% url 'payments' %}?societe={{ company.id }}">Annuler</a>
     </div>
   </form>

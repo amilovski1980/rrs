@@ -1273,6 +1273,8 @@
 
       targets.forEach(function (el, index) {
         if (el.classList.contains("auth-card")) return;
+        /* Cockpit : pas de reveal (casse position:fixed de la barre Actions + flash KPI). */
+        if (el.closest && el.closest(".shell")) return;
         el.classList.add("reveal");
         el.style.transitionDelay = (index % 6) * 45 + "ms";
         observer.observe(el);
