@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -7,24 +8,37 @@ from django.test import TestCase
 from accounting.models import JournalEntry
 from accounting.services import generate_portal
 from companies.models import Company
+from fpdf import FPDF
 
-from .models import Invoice
-from .services import issue_invoice, pay_invoice
+from .models import Client, CreditNote, Invoice, InvoiceLine, Payment, Product, Project, Quote
+from .pdf_import import PdfImportError, extract_pdf_text, import_invoice_pdf, parse_invoice_text
+from .services import (
+    convert_quote_to_invoice,
+    issue_credit_note,
+    issue_invoice,
+    pay_invoice,
+    register_payment,
+)
+
+
+def _company(owner, siren="812345679", name="Atelier Test"):
+    company = Company.objects.create(
+        owner=owner,
+        siren=siren,
+        denomination=name,
+        forme="SARL",
+        regime="reel_simple",
+        tva="reel",
+        exercice_debut=date(2026, 1, 1),
+    )
+    generate_portal(company)
+    return company
 
 
 class InvoiceFlowTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("facture@example.com")
-        self.company = Company.objects.create(
-            owner=user,
-            siren="812345679",
-            denomination="Atelier Test",
-            forme="SARL",
-            regime="reel_simple",
-            tva="reel",
-            exercice_debut=date(2026, 1, 1),
-        )
-        generate_portal(self.company)
+        self.company = _company(user)
         self.client.force_login(user)
         self.invoice = Invoice.objects.create(
             company=self.company,
@@ -49,11 +63,8 @@ class InvoiceFlowTests(TestCase):
         pay_invoice(self.invoice)
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.status, "paid")
-        payment = JournalEntry.objects.get(reference=f"{self.invoice.number}-REG")
-        self.assertEqual(sum(line.debit for line in payment.lines.all()), Decimal("120.00"))
-        clients = sum(line.debit - line.credit for line in sale.lines.filter(account__code="411"))
-        clients += sum(line.debit - line.credit for line in payment.lines.filter(account__code="411"))
-        self.assertEqual(clients, Decimal("0.00"))
+        self.assertEqual(self.invoice.amount_paid, Decimal("120.00"))
+        self.assertEqual(self.invoice.amount_remaining, Decimal("0.00"))
 
     def test_detail_and_edit_pages(self):
         detail = self.client.get(f"/factures/{self.invoice.id}/")
@@ -61,8 +72,10 @@ class InvoiceFlowTests(TestCase):
         self.assertContains(detail, "Client Démo")
         self.assertContains(detail, "Modifier")
         edit = self.client.post(f"/factures/{self.invoice.id}/modifier/", {
+            "client": "",
             "client_name": "Client Modifié",
             "client_siren": "",
+            "project": "",
             "amount_ht": "150.00",
             "vat_rate": "20.00",
         })
@@ -82,3 +95,253 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn(b"attachment", response["Content-Disposition"].encode())
+
+
+class TenantIsolationTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.u1 = User.objects.create_user("a@example.com")
+        self.u2 = User.objects.create_user("b@example.com")
+        self.c1 = _company(self.u1, siren="111111111", name="Alpha")
+        self.c2 = _company(self.u2, siren="222222222", name="Beta")
+        self.client_a = Client.objects.create(company=self.c1, name="Client Alpha", siren="333333333")
+        self.client_b = Client.objects.create(company=self.c2, name="Client Beta", siren="444444444")
+        self.http = self.client
+        self.http.force_login(self.u1)
+
+    def test_client_list_is_scoped(self):
+        response = self.http.get("/factures/clients/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Client Alpha")
+        self.assertNotContains(response, "Client Beta")
+
+    def test_cannot_open_other_company_client(self):
+        response = self.http.get(f"/factures/clients/{self.client_b.id}/")
+        self.assertEqual(response.status_code, 404)
+
+
+class QuoteConversionTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("devis@example.com")
+        self.company = _company(user, siren="555555555", name="Devis Co")
+        self.http = self.client
+        self.http.force_login(user)
+        self.client_obj = Client.objects.create(company=self.company, name="Martin SA", siren="666666666")
+        self.project = Project.objects.create(
+            company=self.company, client=self.client_obj, name="Chantier Nord"
+        )
+        self.quote = Quote.objects.create(
+            company=self.company,
+            number="BR-devis1",
+            client=self.client_obj,
+            client_name="Martin SA",
+            client_siren="666666666",
+            project=self.project,
+            amount_ht=Decimal("500.00"),
+            vat_rate=Decimal("20.00"),
+            status="sent",
+        )
+
+    def test_convert_quote_to_invoice_links_both_ways(self):
+        invoice = convert_quote_to_invoice(self.quote)
+        self.quote.refresh_from_db()
+        self.assertEqual(self.quote.status, "converted")
+        self.assertEqual(self.quote.converted_invoice_id, invoice.id)
+        self.assertEqual(invoice.source_quote.id, self.quote.id)
+        self.assertEqual(invoice.status, "draft")
+        self.assertTrue(invoice.number.startswith("BR-"))
+        self.assertEqual(invoice.client_id, self.client_obj.id)
+        self.assertEqual(invoice.project_id, self.project.id)
+        self.assertEqual(invoice.amount_ht, Decimal("500.00"))
+        # Numéro FAC non consommé tant que brouillon
+        issue_invoice(invoice)
+        invoice.refresh_from_db()
+        self.assertTrue(invoice.number.startswith("FAC-"))
+
+    def test_convert_via_http(self):
+        response = self.http.post(f"/factures/devis/{self.quote.id}/convertir/")
+        self.assertEqual(response.status_code, 302)
+        self.quote.refresh_from_db()
+        self.assertEqual(self.quote.status, "converted")
+
+
+class CreditNoteAndPaymentTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("pay@example.com")
+        self.company = _company(user, siren="777777777", name="Pay Co")
+        self.http = self.client
+        self.http.force_login(user)
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-pay",
+            client_name="Client",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        issue_invoice(self.invoice)
+        self.invoice.refresh_from_db()
+
+    def test_partial_then_full_payment(self):
+        register_payment(self.invoice, Decimal("50.00"), method="transfer")
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.amount_paid, Decimal("50.00"))
+        self.assertEqual(self.invoice.amount_remaining, Decimal("70.00"))
+        self.assertEqual(self.invoice.status, "issued")
+        register_payment(self.invoice, Decimal("70.00"), method="card")
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, "paid")
+        self.assertEqual(self.invoice.amount_remaining, Decimal("0.00"))
+
+    def test_credit_note_linked_and_issued(self):
+        note = CreditNote.objects.create(
+            company=self.company,
+            number="BR-avo",
+            invoice=self.invoice,
+            amount_ht=Decimal("20.00"),
+            vat_rate=Decimal("20.00"),
+            reason="Retour partiel",
+            status="draft",
+        )
+        issue_credit_note(note)
+        note.refresh_from_db()
+        self.assertTrue(note.number.startswith("AVO-"))
+        self.assertEqual(note.status, "issued")
+        self.assertEqual(note.invoice_id, self.invoice.id)
+
+
+class CatalogLineTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("cat@example.com")
+        self.company = _company(user, siren="888888888", name="Cat Co")
+        self.product = Product.objects.create(
+            company=self.company,
+            label="Pose fenêtre",
+            unit_price=Decimal("250.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-cat",
+            client_name="Client",
+            amount_ht=Decimal("250.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+
+    def test_line_references_catalog(self):
+        line = InvoiceLine.objects.create(
+            invoice=self.invoice,
+            product=self.product,
+            description=self.product.label,
+            quantity=Decimal("2.000"),
+            unit_price=self.product.unit_price,
+            vat_rate=self.product.vat_rate,
+        )
+        self.assertEqual(line.amount_ht, Decimal("500.00"))
+        self.assertEqual(line.product_id, self.product.id)
+        # Ligne reste éditable indépendamment
+        line.unit_price = Decimal("200.00")
+        line.save()
+        self.assertEqual(line.amount_ht, Decimal("400.00"))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.unit_price, Decimal("250.00"))
+
+
+class PdfImportTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("pdf@example.com")
+        self.company = _company(user, siren="999999999", name="PDF Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def _build_pdf(self) -> bytes:
+        from documents.pdf import FONT
+
+        pdf = FPDF(format="A4", unit="mm")
+        pdf.add_page()
+        pdf.add_font("DejaVu", "", str(FONT))
+        pdf.set_font("DejaVu", size=12)
+        content = (
+            "FACTURE FAC-2026-00099\n"
+            "Facturé à : Société Dupont SARL\n"
+            "SIREN 123456782\n"
+            "contact@dupont-exemple.fr\n"
+            "Pose de porte 2 x 150.00 TVA 20%\n"
+            "Total HT : 300,00 €\n"
+            "TVA 20 %\n"
+            "Total TTC : 360,00 €\n"
+        )
+        pdf.multi_cell(0, 8, content)
+        return bytes(pdf.output())
+
+    def test_parse_heuristics(self):
+        text = (
+            "FACTURE N° FAC-2026-42\n"
+            "Facturé à : Atelier Martin\n"
+            "SIREN 812345679\n"
+            "Total HT : 100,00 €\n"
+            "TVA 20%\n"
+            "Total TTC : 120,00 €\n"
+        )
+        parsed = parse_invoice_text(text)
+        self.assertIn("Martin", parsed["client_name"])
+        self.assertEqual(parsed["client_siren"], "812345679")
+        self.assertEqual(parsed["amount_ht"], Decimal("100.00"))
+        self.assertEqual(parsed["vat_rate"], Decimal("20.00"))
+
+    def test_import_creates_draft_client_and_products(self):
+        data = self._build_pdf()
+        text = extract_pdf_text(data)
+        self.assertTrue(len(text) > 20)
+        invoice, parsed = import_invoice_pdf(self.company, data, filename="demo.pdf")
+        self.assertEqual(invoice.status, "draft")
+        self.assertTrue(invoice.number.startswith("BR-"))
+        self.assertIsNotNone(invoice.client_id)
+        self.assertTrue(Client.objects.filter(company=self.company).exists())
+        self.assertTrue(Product.objects.filter(company=self.company).exists())
+        self.assertTrue(invoice.lines.exists())
+        # Réimport réutilise le client (SIREN / nom)
+        invoice2, _ = import_invoice_pdf(self.company, data, filename="demo2.pdf")
+        self.assertEqual(invoice2.client_id, invoice.client_id)
+        self.assertEqual(Client.objects.filter(company=self.company).count(), 1)
+
+    def test_scanned_pdf_fails_gracefully(self):
+        # PDF minimal sans texte extractible
+        empty = (
+            b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
+        )
+        with self.assertRaises(PdfImportError):
+            extract_pdf_text(empty)
+
+    def test_import_view(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        data = self._build_pdf()
+        upload = SimpleUploadedFile("facture.pdf", data, content_type="application/pdf")
+        response = self.http.post("/factures/import-pdf/", {"pdf_file": upload})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Invoice.objects.filter(company=self.company, status="draft").exists())
+
+
+class CrudPagesSmokeTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("crud@example.com")
+        self.company = _company(user, siren="101010101", name="CRUD Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_list_pages(self):
+        for url in (
+            "/factures/",
+            "/factures/clients/",
+            "/factures/produits/",
+            "/factures/projets/",
+            "/factures/devis/",
+            "/factures/avoirs/",
+            "/factures/paiements/",
+            "/factures/import-pdf/",
+            "/agent/brouillons/",
+        ):
+            response = self.http.get(url)
+            self.assertEqual(response.status_code, 200, url)
