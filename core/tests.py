@@ -31,7 +31,7 @@ class VercelConfigTests(SimpleTestCase):
             self.assertTrue(val.strip(), msg=f"{key} vide")
 
         self.assertEqual(data["outputDirectory"], "docs")
-        self.assertEqual(data["buildCommand"], "bash scripts/vercel_build.sh")
+        self.assertEqual(data["buildCommand"], "sh scripts/vercel_build.sh")
 
         rewrites = data.get("rewrites") or []
         self.assertTrue(rewrites)
@@ -47,6 +47,11 @@ class VercelConfigTests(SimpleTestCase):
             msg="scripts/vercel_build.sh doit être exécutable",
         )
         text = BUILD_SCRIPT.read_text(encoding="utf-8")
-        self.assertIn("set -e", text)
+        self.assertIn("set -eu", text)
         self.assertIn("docs/assets", text)
         self.assertIn("static/css/app.css", text)
+        self.assertNotIn("pipefail", text)
+        self.assertNotIn("cmp ", text)
+        self.assertNotRegex(text, r"(^|\n)bash\b")
+        # Shebang POSIX
+        self.assertTrue(text.startswith("#!/bin/sh") or text.startswith("#!/usr/bin/sh"))

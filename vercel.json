@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo skip-install",
-  "buildCommand": "bash scripts/vercel_build.sh",
+  "buildCommand": "sh scripts/vercel_build.sh",
   "outputDirectory": "docs",
   "functions": {
     "api/index.py": {
