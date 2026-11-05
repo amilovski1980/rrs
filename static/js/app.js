@@ -417,7 +417,9 @@
     var dialog = root.querySelector(".agent-dialog");
     var mic = root.querySelector("[data-agent-mic]");
     var status = root.querySelector("[data-agent-status]");
-    if (!openBtn || !panel || !dialog) return;
+    var chooser = root.querySelector("[data-agent-chooser]");
+    var chat = root.querySelector("[data-agent-chat]");
+    if (!openBtn) return;
 
     var closeButtons = root.querySelectorAll("[data-agent-close]");
     var lastFocus = null;
@@ -434,6 +436,7 @@
     };
 
     var setState = function (state) {
+      if (!dialog) return;
       dialog.classList.remove("is-listening", "is-thinking", "is-done");
       if (state) dialog.classList.add(state);
       if (mic) mic.classList.toggle("is-listening", state === "is-listening");
@@ -446,23 +449,68 @@
       setStatus("Appuyez pour parler");
     };
 
-    var open = function () {
+    var closeChooser = function () {
+      if (chooser) chooser.hidden = true;
+    };
+
+    var openChooser = function () {
+      lastFocus = document.activeElement;
+      if (panel) panel.hidden = true;
+      if (chat) chat.hidden = true;
+      if (chooser) {
+        chooser.hidden = false;
+        openBtn.setAttribute("aria-expanded", "true");
+        openBtn.setAttribute("aria-controls", "agent-chooser");
+        var first = chooser.querySelector("[data-agent-pick]");
+        window.setTimeout(function () { if (first) first.focus(); }, 30);
+      }
+    };
+
+    var openVoice = function () {
+      closeChooser();
+      if (!panel || !dialog) {
+        document.dispatchEvent(new CustomEvent("aminia:open-voice"));
+        return;
+      }
       lastFocus = document.activeElement;
       panel.hidden = false;
       openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-panel");
       document.body.classList.add("agent-open");
       reset();
       window.setTimeout(function () {
         if (mic) mic.focus();
       }, 30);
+      document.dispatchEvent(new CustomEvent("aminia:open-voice"));
     };
 
-    var close = function () {
+    var closeVoice = function () {
       clearTimers();
-      panel.hidden = true;
+      if (panel) panel.hidden = true;
       openBtn.setAttribute("aria-expanded", "false");
       document.body.classList.remove("agent-open");
       setState("");
+      if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+      else openBtn.focus();
+    };
+
+    var openChat = function () {
+      closeChooser();
+      if (!chat) return;
+      lastFocus = document.activeElement;
+      if (panel) panel.hidden = true;
+      chat.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-chat");
+      document.body.classList.add("agent-open");
+      var input = chat.querySelector("[data-agent-chat-input]");
+      window.setTimeout(function () { if (input) input.focus(); }, 30);
+    };
+
+    var closeChat = function () {
+      if (chat) chat.hidden = true;
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
       if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
       else openBtn.focus();
     };
@@ -488,10 +536,48 @@
       timers.push(window.setTimeout(reset, 7200));
     };
 
-    openBtn.addEventListener("click", open);
-    for (var i = 0; i < closeButtons.length; i++) {
-      closeButtons[i].addEventListener("click", close);
+    openBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (chooser && chooser.hidden === false) {
+        closeChooser();
+        openBtn.setAttribute("aria-expanded", "false");
+        return;
+      }
+      if (panel && panel.hidden === false) {
+        closeVoice();
+        return;
+      }
+      if (chat && chat.hidden === false) {
+        closeChat();
+        return;
+      }
+      openChooser();
+    });
+
+    if (chooser) {
+      var picks = chooser.querySelectorAll("[data-agent-pick]");
+      for (var pi = 0; pi < picks.length; pi++) {
+        picks[pi].addEventListener("click", function (ev) {
+          var mode = ev.currentTarget.getAttribute("data-agent-pick");
+          if (mode === "voice") openVoice();
+          else if (mode === "chat") openChat();
+        });
+      }
+      var chooserClose = chooser.querySelector("[data-agent-chooser-close]");
+      if (chooserClose) {
+        chooserClose.addEventListener("click", function () {
+          closeChooser();
+          openBtn.setAttribute("aria-expanded", "false");
+        });
+      }
     }
+
+    for (var i = 0; i < closeButtons.length; i++) {
+      closeButtons[i].addEventListener("click", closeVoice);
+    }
+    var chatClose = root.querySelector("[data-agent-chat-close]");
+    if (chatClose) chatClose.addEventListener("click", closeChat);
+
     if (mic) mic.addEventListener("click", function () {
       if (window.SIP && window.SIP.SimpleUser) {
         var evt;
@@ -503,9 +589,118 @@
     });
 
     document.addEventListener("keydown", function (event) {
-      if (panel.hidden || event.key !== "Escape") return;
-      close();
+      if (event.key !== "Escape") return;
+      if (chooser && !chooser.hidden) {
+        closeChooser();
+        openBtn.setAttribute("aria-expanded", "false");
+        return;
+      }
+      if (chat && !chat.hidden) {
+        closeChat();
+        return;
+      }
+      if (panel && !panel.hidden) closeVoice();
     });
+  }
+
+  function csrfTokenFrom(root) {
+    var input = (root && root.querySelector("input[name=csrfmiddlewaretoken]"))
+      || document.querySelector("[data-agent] input[name=csrfmiddlewaretoken]")
+      || document.querySelector("input[name=csrfmiddlewaretoken]");
+    return input ? input.value : "";
+  }
+
+  function appendChatBubble(log, role, text) {
+    if (!log) return;
+    var empty = log.querySelector(".agent-chat-empty");
+    if (empty) empty.remove();
+    var bubble = document.createElement("div");
+    bubble.className = "agent-chat-bubble agent-chat-bubble--" + role;
+    var p = document.createElement("p");
+    p.textContent = text;
+    bubble.appendChild(p);
+    log.appendChild(bubble);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function wireChatForm(container) {
+    if (!container || container.getAttribute("data-chat-wired") === "1") return;
+    var form = container.querySelector("[data-agent-chat-form]");
+    var input = container.querySelector("[data-agent-chat-input]");
+    var log = container.querySelector("[data-agent-chat-log]");
+    var err = container.querySelector("[data-agent-chat-error]");
+    var sendBtn = container.querySelector("[data-agent-chat-send]");
+    if (!form || !input || !log) return;
+    container.setAttribute("data-chat-wired", "1");
+    var conversationId = container.getAttribute("data-conversation-id") || "";
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var text = (input.value || "").trim();
+      if (!text) return;
+      if (err) { err.hidden = true; err.textContent = ""; }
+      appendChatBubble(log, "user", text);
+      input.value = "";
+      input.disabled = true;
+      if (sendBtn) sendBtn.disabled = true;
+      appendChatBubble(log, "assistant", "…");
+      var pending = log.lastElementChild;
+
+      fetch("/agent/chat/message/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfTokenFrom(container)
+        },
+        body: JSON.stringify({
+          message: text,
+          conversation_id: conversationId || undefined
+        })
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      }).then(function (payload) {
+        var data = payload.data || {};
+        if (data.conversation_id) {
+          conversationId = data.conversation_id;
+          container.setAttribute("data-conversation-id", conversationId);
+        }
+        var reply = data.reply || data.error || "Réponse indisponible.";
+        if (!payload.ok || data.ok === false) {
+          reply = data.error || reply;
+          if (err) {
+            err.hidden = false;
+            err.textContent = reply;
+          }
+        }
+        if (pending) {
+          var pp = pending.querySelector("p");
+          if (pp) pp.textContent = reply;
+        } else {
+          appendChatBubble(log, "assistant", reply);
+        }
+      }).catch(function () {
+        var msg = "Impossible de joindre Aminia. Réessayez.";
+        if (pending) {
+          var pp = pending.querySelector("p");
+          if (pp) pp.textContent = msg;
+        }
+        if (err) { err.hidden = false; err.textContent = msg; }
+      }).finally(function () {
+        input.disabled = false;
+        if (sendBtn) sendBtn.disabled = false;
+        input.focus();
+      });
+    });
+  }
+
+  function initAgentChat() {
+    var floating = document.querySelector("[data-agent-chat]");
+    if (floating) wireChatForm(floating);
+    var page = document.querySelector("[data-agent-chat-page]");
+    if (page) wireChatForm(page);
   }
 
   function initPhone() {
@@ -804,6 +999,7 @@
     initSirenSearch();
     initActivityDemo();
     initAgent();
+    initAgentChat();
     initPhone();
 
     if (reduceMotion) return;

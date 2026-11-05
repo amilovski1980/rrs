@@ -1,11 +1,21 @@
 {% load static %}<div class="agent" data-agent data-voice-agent>
   {% csrf_token %}
-  <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir l'assistant vocal" aria-expanded="false" aria-controls="agent-panel">
+  <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir Aminia" aria-expanded="false" aria-haspopup="dialog" aria-controls="agent-chooser">
     <span class="agent-fab-orb" aria-hidden="true">
       {% include "partials/icon.html" with name="bot" %}
     </span>
     <span class="agent-fab-text">Aminia</span>
   </button>
+
+  <div class="agent-chooser" id="agent-chooser" data-agent-chooser hidden role="dialog" aria-label="Choisir le mode Aminia">
+    <p class="agent-chooser-title">Comment souhaitez-vous parler à Aminia&nbsp;?</p>
+    <div class="agent-chooser-actions">
+      <button class="btn btn-primary" type="button" data-agent-pick="voice">Vocal</button>
+      <button class="btn btn-ghost" type="button" data-agent-pick="chat">Chat</button>
+    </div>
+    <button class="agent-chooser-close" type="button" data-agent-chooser-close aria-label="Fermer">×</button>
+  </div>
+
   <div class="live-invoice" data-live-invoice hidden>
     <div class="card card-tight">
       <div class="card-head">
@@ -41,6 +51,7 @@
       </div>
     </div>
   </div>
+
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
     <div class="agent-dialog" role="region" aria-labelledby="agent-title">
       <div class="agent-orb" aria-hidden="true">
@@ -58,6 +69,25 @@
         </button>
         <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
       </div>
+    </div>
+  </div>
+
+  <div class="agent-chat" id="agent-chat" data-agent-chat hidden role="dialog" aria-labelledby="agent-chat-title" aria-modal="true">
+    <div class="agent-chat-card">
+      <header class="agent-chat-head">
+        <div>
+          <h2 id="agent-chat-title">Aminia — chat</h2>
+          <p class="agent-chat-sub">Assistant texte · brouillons à valider</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" data-agent-chat-close aria-label="Fermer le chat">Fermer</button>
+      </header>
+      <div class="agent-chat-log" data-agent-chat-log aria-live="polite"></div>
+      <p class="agent-chat-error" data-agent-chat-error hidden role="alert"></p>
+      <form class="agent-chat-form" data-agent-chat-form>
+        <label class="sr-only" for="agent-chat-input">Votre message</label>
+        <input id="agent-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off" required>
+        <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
+      </form>
     </div>
   </div>
 </div>

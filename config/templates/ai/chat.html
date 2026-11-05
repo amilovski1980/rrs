@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Aminia — chat · {{ company.denomination }}{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <p class="eyebrow">Assistant</p>
+    <h1>Aminia — chat</h1>
+    <p class="lede">Échangez en texte. Les brouillons restent à valider.</p>
+  </div>
+</section>
+<section class="card agent-chat-page" data-agent-chat-page data-conversation-id="{{ conversation.id }}">
+  {% csrf_token %}
+  <div class="agent-chat-log" data-agent-chat-log aria-live="polite">
+    {% for m in chat_messages %}
+      <div class="agent-chat-bubble agent-chat-bubble--{{ m.role }}">
+        <p>{{ m.content|linebreaksbr }}</p>
+      </div>
+    {% empty %}
+      <p class="agent-chat-empty">Bonjour, je suis Aminia. Posez votre question comptable.</p>
+    {% endfor %}
+  </div>
+  <p class="agent-chat-error" data-agent-chat-error hidden role="alert"></p>
+  <form class="agent-chat-form" data-agent-chat-form>
+    <label class="sr-only" for="page-chat-input">Votre message</label>
+    <input id="page-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off" required>
+    <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
+  </form>
+</section>
+{% endblock %}
