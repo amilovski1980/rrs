@@ -62,9 +62,10 @@
   /* Chrome mobile */
   --m-header-h: 56px;
   --m-footer-h: 60px;
-  --m-action-h: 56px;   /* barre Actions / Nouveau fixe */
-  --m-fab-h: 58px;      /* hauteur approx. pilule Aminia */
-  --m-fab-gap: 10px;    /* air entre FAB et barre d'actions */
+  --m-action-h: 56px;      /* summary / bouton Nouveau fixe */
+  --m-action-bar-h: 84px;  /* barre multi-boutons (cockpit) */
+  --m-fab-h: 58px;         /* hauteur approx. pilule Aminia */
+  --m-fab-gap: 12px;       /* air entre FAB et barre d'actions */
 
   /* Échelle z-index */
   --z-base: 1;
@@ -1382,22 +1383,29 @@ label.ticket-camera-btn.btn-primary:hover {
   text-transform: none;
   letter-spacing: 0;
 }
-.ticket-camera-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
+.ticket-camera-block {
+  position: relative;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
+  max-width: 100%;
 }
+.ticket-camera-input,
 .ticket-file-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 /* Cartes société — pastilles de couleur distinctes */
@@ -1629,6 +1637,7 @@ label.ticket-camera-btn.btn-primary:hover {
     width: 100%;
     max-width: 100vw;
   }
+  html, body { overflow-x: hidden; max-width: 100%; }
   .main { min-width: 0; max-width: 100%; overflow-x: hidden; }
   .topbar { display: none; }
   .top-mail, .top-site { display: none; }
@@ -1789,12 +1798,30 @@ label.ticket-camera-btn.btn-primary:hover {
     padding-bottom: calc(
       var(--space-5)
       + var(--m-footer-h)
-      + var(--m-action-h)
       + var(--m-fab-h)
       + env(safe-area-inset-bottom, 0px)
     );
     max-width: 100%;
     overflow-x: hidden;
+  }
+  .shell:has(details.page-actions) .content,
+  .shell:has(a.btn.page-actions) .content {
+    padding-bottom: calc(
+      var(--space-5)
+      + var(--m-footer-h)
+      + var(--m-action-h)
+      + var(--m-fab-h)
+      + env(safe-area-inset-bottom, 0px)
+    );
+  }
+  .shell:has(div.page-actions) .content {
+    padding-bottom: calc(
+      var(--space-5)
+      + var(--m-footer-h)
+      + var(--m-action-bar-h)
+      + var(--m-fab-h)
+      + env(safe-area-inset-bottom, 0px)
+    );
   }
   .content, .main, .card, .form-stack, .ticket-form, .page-head { max-width: 100%; }
   .content h1 { font-size: var(--text-2xl); }
@@ -1835,7 +1862,8 @@ label.ticket-camera-btn.btn-primary:hover {
 
   /* Formulaires */
   button, .btn, a, input, select, textarea { touch-action: manipulation; }
-  input, select, textarea, .form-control {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  select, textarea, .form-control {
     font-size: 16px; /* iOS : évite le zoom auto */
     min-height: var(--tap);
     width: 100%;
@@ -1845,7 +1873,15 @@ label.ticket-camera-btn.btn-primary:hover {
   input[type="checkbox"], input[type="radio"] {
     width: auto; min-width: var(--tap); min-height: var(--tap);
   }
-  input[type="file"] { min-height: 0; padding: var(--space-2) 0; max-width: 100%; }
+  input[type="file"]:not(.ticket-camera-input):not(.ticket-file-hidden) {
+    min-height: 0; padding: var(--space-2) 0; max-width: 100%;
+  }
+  input.ticket-camera-input,
+  input.ticket-file-hidden {
+    width: 1px !important;
+    min-height: 0 !important;
+    max-width: 1px !important;
+  }
   .form-stack .btn.form-submit,
   .form-stack button[type="submit"],
   .card form .btn.btn-primary[type="submit"] {
@@ -1922,6 +1958,9 @@ label.ticket-camera-btn.btn-primary:hover {
     position: fixed;
     z-index: var(--z-page-actions);
     left: var(--space-3); right: var(--space-3);
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
     bottom: calc(var(--space-3) + var(--m-footer-h) + env(safe-area-inset-bottom, 0px));
     display: block; margin: 0;
   }
@@ -1929,6 +1968,9 @@ label.ticket-camera-btn.btn-primary:hover {
     position: fixed;
     z-index: var(--z-page-actions);
     left: var(--space-3); right: var(--space-3);
+    width: auto;
+    max-width: none;
+    box-sizing: border-box;
     bottom: calc(var(--space-3) + var(--m-footer-h) + env(safe-area-inset-bottom, 0px));
     min-height: 46px; padding: 10px var(--space-2); font-size: var(--text-sm);
     box-shadow: var(--shadow);
@@ -1971,17 +2013,30 @@ label.ticket-camera-btn.btn-primary:hover {
     flex: 1 1 0; min-width: 0; min-height: 46px;
     padding: 10px var(--space-2); font-size: var(--text-sm);
   }
+  /* Pendant le choix Aminia : masquer la barre d'actions (évite le chevauchement). */
   body.agent-open details.page-actions,
-  body.agent-open a.btn.page-actions {
-    bottom: calc(88px + var(--m-footer-h) + env(safe-area-inset-bottom, 0px));
-  }
+  body.agent-open a.btn.page-actions,
   body.agent-open div.page-actions {
-    bottom: calc(76px + var(--m-footer-h) + env(safe-area-inset-bottom, 0px));
+    visibility: hidden;
+    pointer-events: none;
   }
 
-  /* Aminia FAB — strictement AU-DESSUS de la barre d'actions (pleine largeur) */
+  /* Aminia FAB — au-dessus du footer ; monte seulement s'il y a une barre d'actions */
   .agent-fab {
     right: var(--space-3);
+    bottom: calc(
+      var(--space-3)
+      + var(--m-footer-h)
+      + env(safe-area-inset-bottom, 0px)
+    ) !important;
+    z-index: var(--z-fab);
+    gap: var(--space-2);
+    padding: 6px var(--space-3) 6px 6px;
+  }
+  body:has(details.page-actions) .agent-fab,
+  body:has(a.btn.page-actions) .agent-fab,
+  .shell:has(details.page-actions) .agent-fab,
+  .shell:has(a.btn.page-actions) .agent-fab {
     bottom: calc(
       var(--space-3)
       + var(--m-footer-h)
@@ -1989,18 +2044,20 @@ label.ticket-camera-btn.btn-primary:hover {
       + var(--m-fab-gap)
       + env(safe-area-inset-bottom, 0px)
     ) !important;
-    z-index: var(--z-fab);
-    gap: var(--space-2);
-    padding: 6px var(--space-3) 6px 6px;
   }
-  body.agent-open .agent-fab {
+  body:has(div.page-actions) .agent-fab,
+  .shell:has(div.page-actions) .agent-fab {
     bottom: calc(
-      88px
+      var(--space-3)
       + var(--m-footer-h)
-      + var(--m-action-h)
+      + var(--m-action-bar-h)
       + var(--m-fab-gap)
       + env(safe-area-inset-bottom, 0px)
     ) !important;
+  }
+  body.agent-open .agent-fab {
+    visibility: hidden;
+    pointer-events: none;
   }
   body.nav-open .agent-fab,
   body.nav-open .m-footer {
@@ -2019,6 +2076,20 @@ label.ticket-camera-btn.btn-primary:hover {
   .agent-chat {
     z-index: var(--z-agent-modal);
     right: var(--space-3); left: var(--space-3); width: auto;
+    bottom: calc(
+      var(--space-3)
+      + var(--m-footer-h)
+      + env(safe-area-inset-bottom, 0px)
+    );
+  }
+  .agent-chooser-close {
+    width: var(--tap);
+    height: var(--tap);
+    min-width: var(--tap);
+    min-height: var(--tap);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .live-invoice { left: var(--space-4); right: var(--space-4); width: auto; transform: none; }
   .agent-dialog { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
