@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ credit_note.number }}{% endblock %}
+{% block crumbs %}Facturation / Avoirs{% endblock %}
+{% block nav_credit_notes %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ credit_note.number }}</h1>
+    <p class="sub">{{ credit_note.get_status_display }} · Facture <a href="{% url 'invoice_detail' credit_note.invoice.id %}?societe={{ company.id }}">{{ credit_note.invoice.number }}</a></p>
+  </div>
+  <div class="page-actions">
+    {% if credit_note.status == "draft" %}
+    <a class="btn btn-ghost" href="{% url 'credit_note_edit' credit_note.id %}?societe={{ company.id }}">Modifier</a>
+    {% endif %}
+    <a class="btn btn-ghost" href="{% url 'credit_notes' %}?societe={{ company.id }}">Retour</a>
+  </div>
+</div>
+<div class="card">
+  <p><b>HT</b> {{ credit_note.amount_ht|floatformat:2 }} € · <b>TTC</b> {{ credit_note.amount_ttc|floatformat:2 }} €</p>
+  {% if credit_note.reason %}<p>Motif : {{ credit_note.reason }}</p>{% endif %}
+  {% if credit_note.status == "draft" %}
+  <form method="post" action="{% url 'credit_note_issue' credit_note.id %}?societe={{ company.id }}">{% csrf_token %}
+    <button class="btn btn-primary" type="submit">Émettre l'avoir</button>
+  </form>
+  <form method="post" action="{% url 'credit_note_delete' credit_note.id %}?societe={{ company.id }}" style="margin-top:8px" onsubmit="return confirm('Supprimer ?');">{% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

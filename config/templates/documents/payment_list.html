@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Paiements{% endblock %}
+{% block crumbs %}Facturation / Paiements{% endblock %}
+{% block nav_payments %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Paiements</h1><p class="sub">{{ company.denomination }}</p></div>
+  <a class="btn btn-primary page-actions" href="{% url 'payment_create' %}?societe={{ company.id }}">{% include "partials/icon.html" with name="plus" %} Nouveau paiement</a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Date</th><th>Facture</th><th class="num">Montant</th><th>Mode</th><th></th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.paid_at|date:"d/m/Y" }}</td>
+        <td><a href="{% url 'invoice_detail' p.invoice.id %}?societe={{ company.id }}">{{ p.invoice.number }}</a></td>
+        <td class="num">{{ p.amount|floatformat:2 }} €</td>
+        <td>{{ p.get_method_display }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'payment_detail' p.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="empty">Aucun paiement.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

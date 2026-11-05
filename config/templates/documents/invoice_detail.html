@@ -43,23 +43,75 @@
 {% include "documents/invoice_sheet.html" %}
 
 <div class="card" style="padding:18px 22px;margin-top:16px">
+  <p class="sub">Payé {{ invoice.amount_paid|floatformat:2 }} € · Restant {{ invoice.amount_remaining|floatformat:2 }} € TTC</p>
+  {% if invoice.client %}
+  <p>Fiche client : <a href="{% url 'client_detail' invoice.client.id %}?societe={{ company.id }}">{{ invoice.client.name }}</a></p>
+  {% endif %}
+  {% if invoice.project %}
+  <p>Projet : <a href="{% url 'project_detail' invoice.project.id %}?societe={{ company.id }}">{{ invoice.project.name }}</a></p>
+  {% endif %}
+  {% if invoice.source_quote %}
+  <p>Issu du devis <a href="{% url 'quote_detail' invoice.source_quote.id %}?societe={{ company.id }}">{{ invoice.source_quote.number }}</a></p>
+  {% endif %}
   {% if invoice.status == "draft" %}
   <p class="sub">Brouillon. L'émission attribue un numéro séquentiel et passe l'écriture de vente.</p>
   <form method="post" action="{% url 'invoice_issue' invoice.id %}?societe={{ company.id }}">
     {% csrf_token %}
     <button class="btn btn-primary" type="submit">Émettre la facture</button>
   </form>
-  {% elif invoice.status != "paid" %}
-  <p class="sub">Facture émise. L'encaissement passe 512 au débit et 411 au crédit.</p>
-  <form method="post" action="{% url 'invoice_pay' invoice.id %}?societe={{ company.id }}">
+  <form method="post" action="{% url 'invoice_delete' invoice.id %}?societe={{ company.id }}" style="margin-top:8px" onsubmit="return confirm('Supprimer ce brouillon ?');">
     {% csrf_token %}
-    <button class="btn btn-primary" type="submit">Enregistrer l'encaissement</button>
+    <button class="btn btn-ghost btn-sm" type="submit">Supprimer le brouillon</button>
   </form>
+  {% elif invoice.status != "paid" %}
+  <p class="sub">Facture émise. Enregistrez un paiement total ou partiel.</p>
+  <form method="post" action="{% url 'invoice_pay' invoice.id %}?societe={{ company.id }}" style="display:inline">
+    {% csrf_token %}
+    <button class="btn btn-primary" type="submit">Encaisser le solde</button>
+  </form>
+  <a class="btn btn-ghost" href="{% url 'payment_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Paiement partiel</a>
+  <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Créer un avoir</a>
   {% else %}
   <p class="sub">Facture soldée. Vous pouvez encore corriger le client ou les montants : les écritures suivent.</p>
+  <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Créer un avoir</a>
   {% endif %}
   <p style="margin-top:16px">
     <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ company.id }}&q={{ invoice.number }}">Écritures de cette facture</a>
   </p>
 </div>
+{% if payments %}
+<div class="card card-tight" style="margin-top:16px">
+  <h2 style="font-size:18px;margin:0 0 12px">Paiements</h2>
+  <table>
+    <thead><tr><th>Date</th><th class="num">Montant</th><th>Mode</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td><a href="{% url 'payment_detail' p.id %}?societe={{ company.id }}">{{ p.paid_at|date:"d/m/Y" }}</a></td>
+        <td class="num">{{ p.amount|floatformat:2 }} €</td>
+        <td>{{ p.get_method_display }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% if lines %}
+<div class="card card-tight" style="margin-top:16px">
+  <h2 style="font-size:18px;margin:0 0 12px">Lignes</h2>
+  <table>
+    <thead><tr><th>Désignation</th><th class="num">Qté</th><th class="num">PU HT</th><th class="num">TVA</th></tr></thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.description }}{% if line.product %} <span class="badge badge-blue">{{ line.product.label }}</span>{% endif %}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+        <td class="num">{{ line.vat_rate|floatformat:2 }} %</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 {% endblock %}

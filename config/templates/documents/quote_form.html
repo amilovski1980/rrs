@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Devis{% endblock %}
+{% block crumbs %}Facturation / Devis{% endblock %}
+{% block nav_quotes %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if quote %}Modifier {{ quote.number }}{% else %}Nouveau devis{% endif %}</h1></div></div>
+<div class="card">
+  <form method="post">{% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-grid">
+      <div><label>Fiche client</label>{{ form.client }}</div>
+      <div><label>Projet</label>{{ form.project }}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>Nom client</label>{{ form.client_name }}{% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}</div>
+      <div><label>SIREN</label>{{ form.client_siren }}{% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>Montant HT</label>{{ form.amount_ht }}{% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}</div>
+      <div><label>TVA (%)</label>{{ form.vat_rate }}</div>
+      <div><label>Valable jusqu'au</label>{{ form.valid_until }}</div>
+    </div>
+    <div><label>Notes</label>{{ form.notes }}</div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

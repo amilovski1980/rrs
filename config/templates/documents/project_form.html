@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Projet{% endblock %}
+{% block crumbs %}Facturation / Projets{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if project %}Modifier {{ project.name }}{% else %}Nouveau projet{% endif %}</h1></div></div>
+<div class="card">
+  <form method="post">{% csrf_token %}
+    <div class="form-grid">
+      <div><label>Nom</label>{{ form.name }}{% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}</div>
+      <div><label>Client</label>{{ form.client }}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>État</label>{{ form.status }}</div>
+      <div><label>Début</label>{{ form.start_date }}</div>
+      <div><label>Fin</label>{{ form.end_date }}</div>
+    </div>
+    <div><label>Description</label>{{ form.description }}</div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'projects' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

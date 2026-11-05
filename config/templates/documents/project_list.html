@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Projets{% endblock %}
+{% block crumbs %}Facturation / Projets{% endblock %}
+{% block nav_projects %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Projets</h1><p class="sub">{{ company.denomination }}</p></div>
+  <a class="btn btn-primary page-actions" href="{% url 'project_create' %}?societe={{ company.id }}">{% include "partials/icon.html" with name="plus" %} Nouveau projet</a>
+</div>
+<div class="card card-tight">
+  <table>
+    <thead><tr><th>Nom</th><th>Client</th><th>État</th><th></th></tr></thead>
+    <tbody>
+      {% for p in projects %}
+      <tr>
+        <td><a href="{% url 'project_detail' p.id %}?societe={{ company.id }}"><b>{{ p.name }}</b></a></td>
+        <td>{{ p.client.name|default:"—" }}</td>
+        <td>{{ p.get_status_display }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'project_edit' p.id %}?societe={{ company.id }}">Modifier</a></td>
+      </tr>
+      {% empty %}<tr><td colspan="4" class="empty">Aucun projet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

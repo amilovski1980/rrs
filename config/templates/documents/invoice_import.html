@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Importer une facture PDF{% endblock %}
+{% block crumbs %}Facturation / Import PDF{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Importer une facture PDF</h1>
+    <p class="sub">{{ company.denomination }} — extraction texte, création automatique du client et des produits, puis brouillon à valider.</p>
+  </div>
+</div>
+<div class="card">
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div>
+      <label>Fichier PDF</label>
+      {{ form.pdf_file }}
+      {% if form.pdf_file.errors %}<p class="error">{{ form.pdf_file.errors.0 }}</p>{% endif %}
+      <p class="sub">PDF avec texte sélectionnable, 5 Mo maximum. Les scans sans OCR ne sont pas supportés.</p>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:10px">
+      <button class="btn btn-primary" type="submit">Analyser et créer le brouillon</button>
+      <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
