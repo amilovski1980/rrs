@@ -87,7 +87,10 @@ def seed_demo():
           [(a512, "2880.00", "0.00"), (a411, "0.00", "2880.00")])
 
     series, _ = InvoiceSeries.objects.get_or_create(
-        company=company, year=2026, defaults={"prefix": "FAC", "last_number": 43}
+        company=company,
+        year=2026,
+        prefix="FAC",
+        defaults={"last_number": 43},
     )
     if series.last_number < 43:
         series.last_number = 43
