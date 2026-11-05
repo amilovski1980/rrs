@@ -8,13 +8,46 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="{% static 'img/logo.svg' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.5">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.6">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-<div class="shell">
-  <aside class="sidebar">
-    <a class="brand" href="{% url 'cockpit' %}">
+<div class="shell" data-app-shell>
+  {# —— Header mobile (≤768px) : toggle à gauche, logo à droite —— #}
+  <header class="m-header" data-m-header>
+    <button
+      type="button"
+      class="m-nav-toggle"
+      data-nav-toggle
+      aria-expanded="false"
+      aria-controls="app-drawer"
+      aria-label="Ouvrir le menu"
+    >
+      <span class="m-nav-toggle-bars" aria-hidden="true"></span>
+    </button>
+    <a class="m-header-logo" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}" aria-label="Road Runner Solutions — Cockpit">
+      <img src="{% static 'img/logo.svg' %}" alt="">
+      <span class="m-header-brand">
+        <b>Road Runner</b>
+        <small>Solutions</small>
+      </span>
+    </a>
+  </header>
+
+  <div class="m-backdrop" data-nav-backdrop hidden tabindex="-1" aria-hidden="true"></div>
+
+  <aside
+    class="sidebar"
+    id="app-drawer"
+    data-app-drawer
+    aria-label="Navigation principale"
+  >
+    <div class="m-drawer-head">
+      <span class="m-drawer-title">Menu</span>
+      <button type="button" class="m-drawer-close" data-nav-close aria-label="Fermer le menu">×</button>
+    </div>
+
+    <a class="brand" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
       <img src="{% static 'img/logo.svg' %}" alt="">
       <span class="brand-text">
         <b>Road Runner</b>
@@ -121,9 +154,29 @@
       {% block content %}{% endblock %}
     </main>
   </div>
+
+  {# —— Footer mobile (≤768px) —— #}
+  <nav class="m-footer" data-m-footer aria-label="Raccourcis">
+    <a class="m-footer-btn" href="{% url 'profile' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
+      <span>Mon compte</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'company_settings' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
+      <span>Paramètres</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'help' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
+      <span>Aide</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'legal_notice' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="scales" %}</span>
+      <span>Mentions</span>
+    </a>
+  </nav>
 </div>
 {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.05.5" defer></script>
-  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.5" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.05.6" defer></script>
+  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.6" defer></script>
 </body>
 </html>

@@ -120,3 +120,88 @@ class CompanyColorTagTests(TestCase):
         b = company_color_class(self.companies[0])
         self.assertEqual(a, b)
         self.assertRegex(a, r"^co-c[0-9]$")
+
+
+class MobileNavChromeTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("mobnav@exemple.fr")
+        self.user = user
+        self.company = Company.objects.create(
+            owner=user,
+            siren="877777777",
+            denomination="Nav Mobile SARL",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            address="1 rue Mobile 75011 Paris",
+        )
+        self.client.force_login(user)
+
+    def test_cockpit_has_mobile_header_drawer_footer(self):
+        page = self.client.get(f"/cockpit/?societe={self.company.id}")
+        self.assertEqual(page.status_code, 200)
+        body = page.content.decode()
+        self.assertIn('data-m-header', body)
+        self.assertIn('data-nav-toggle', body)
+        self.assertIn('aria-controls="app-drawer"', body)
+        self.assertIn('aria-expanded="false"', body)
+        self.assertIn('id="app-drawer"', body)
+        self.assertIn('data-app-drawer', body)
+        self.assertIn('data-nav-backdrop', body)
+        self.assertIn('data-nav-close', body)
+        self.assertIn('data-m-footer', body)
+        # Liens principaux du drawer
+        for label in (
+            "Cockpit",
+            "Factures",
+            "Clients",
+            "Devis",
+            "Avoirs",
+            "Paiements",
+            "Projets",
+            "Catalogue",
+            "Tickets de caisse",
+            "Grand livre",
+            "Balance",
+        ):
+            self.assertIn(label, body)
+        # Footer
+        self.assertIn("Mon compte", body)
+        self.assertIn("Paramètres", body)
+        self.assertIn("Aide", body)
+        self.assertIn("Mentions", body)
+        self.assertIn("/compte/profil/", body)
+        self.assertIn("/societe/", body)
+        self.assertIn("/aide/", body)
+        self.assertIn("/mentions-legales/", body)
+        # Page courante mise en avant
+        self.assertIn('side-link active', body)
+
+    def test_help_requires_login_and_renders(self):
+        anon = self.client
+        anon.logout()
+        denied = anon.get("/aide/")
+        self.assertEqual(denied.status_code, 302)
+        self.assertIn("/compte/", denied["Location"])
+        self.client.force_login(self.user)
+        ok = self.client.get("/aide/")
+        self.assertEqual(ok.status_code, 200)
+        self.assertContains(ok, "Aide")
+        self.assertContains(ok, "Tickets de caisse")
+
+    def test_legal_notice_public_placeholders(self):
+        anon = self.client
+        anon.logout()
+        page = anon.get("/mentions-legales/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Mentions légales")
+        self.assertContains(page, "À compléter")
+        self.assertContains(page, "placeholders")
+
+    def test_invoices_page_keeps_mobile_chrome(self):
+        page = self.client.get(f"/factures/?societe={self.company.id}")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'data-nav-toggle')
+        self.assertContains(page, 'data-m-footer')
+        self.assertContains(page, "Factures")
