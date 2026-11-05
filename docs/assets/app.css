@@ -60,20 +60,11 @@ img { max-width: 100%; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-/* ---------- Bandeau tricolore + utilitaires ---------- */
+/* ---------- Bandeau tricolore ---------- */
 .tricolore { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 3px; }
 .tricolore span:nth-child(1) { background: var(--blue); }
 .tricolore span:nth-child(2) { background: #fff; }
 .tricolore span:nth-child(3) { background: var(--pink); }
-
-.utility { background: var(--blue); color: #cfe0ff; font-size: 12.5px; }
-.utility-in { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 38px; }
-.utility p { margin: 0; display: flex; align-items: center; gap: 8px; }
-.utility .utility-dot { width: 6px; height: 6px; border-radius: 50%; background: #7ee2b8; }
-.utility-links { display: flex; align-items: center; gap: 20px; }
-.utility-links a { color: #e7efff; font-weight: 500; }
-.utility-links a:hover { color: #fff; text-decoration: none; }
-.utility-links a.is-strong { color: #fff; font-weight: 700; }
 
 /* ---------- En-tête ---------- */
 .nav {
@@ -877,8 +868,6 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   .content { padding: 22px 16px 44px; }
   .topbar { padding: 0 16px; }
   .kpi-grid { grid-template-columns: 1fr; }
-  .utility-in { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 0; }
-  .utility-links { gap: 14px; }
   .nav-in { height: 72px; }
   .logo-text small { font-size: 10px; }
   .content h1 { font-size: 26px; }
