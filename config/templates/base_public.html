@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
-  <link rel="apple-touch-icon" href="{% static 'img/logo.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.12">
+  <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.13">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -19,7 +19,7 @@
   <nav class="nav">
     <div class="container nav-in">
       <a class="logo" href="{% url 'landing' %}">
-        <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
+        <img class="product-logo product-logo--lg" src="{% static 'img/logo-192.png' %}" alt="Road Runner Solutions" width="190" height="58">
         <span class="logo-text">
           <small>Comptabilité des bâtisseurs</small>
         </span>
@@ -57,7 +57,7 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="logo" href="{% url 'landing' %}">
-            <img src="{% static 'img/logo.png' %}" alt="Road Runner Solutions">
+            <img class="product-logo product-logo--lg" src="{% static 'img/logo-192.png' %}" alt="Road Runner Solutions" width="180" height="48">
             <span class="logo-text">
               <small>Comptabilité des bâtisseurs</small>
             </span>
@@ -101,7 +101,7 @@
     </div>
   </footer>
   {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.05.12" defer></script>
-  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.12" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.05.13" defer></script>
+  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.13" defer></script>
 </body>
 </html>

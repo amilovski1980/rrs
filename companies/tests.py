@@ -97,7 +97,12 @@ class LogoBrandTests(TestCase):
     def _assert_png_logo(self, response):
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        self.assertIn("img/logo.png", body)
+        # Chrome UI utilise logo-96 / logo-48 ; landing peut garder logo.png / logo-192
+        self.assertTrue(
+            ("img/logo" in body and ".png" in body),
+            msg="logo PNG produit attendu dans la page",
+        )
+        self.assertRegex(body, r"img/logo(?:-\d+)?\.png")
         self.assertNotIn("logo.svg", body)
         self.assertNotIn("img/logo.svg", body)
 
@@ -116,6 +121,8 @@ class LogoBrandTests(TestCase):
         path = find("img/logo.png")
         self.assertIsNotNone(path)
         self.assertTrue(path.endswith("logo.png"))
+        self.assertIsNotNone(find("img/logo-96.png"))
+        self.assertIsNotNone(find("img/logo-48.png"))
         self.assertIsNone(find("img/logo.svg"))
 
 
