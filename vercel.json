@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo skip-install",
-  "buildCommand": "mkdir -p docs/assets && cp -f static/css/app.css docs/assets/app.css && cp -f static/js/app.js docs/assets/app.js && cp -f static/js/grok-voice.js docs/assets/grok-voice.js && cp -f static/img/logo.png static/img/logo-48.png static/img/logo-96.png static/img/logo-192.png docs/assets/",
+  "buildCommand": "sh scripts/vercel_build.sh",
   "outputDirectory": "docs",
   "functions": {
     "api/index.py": {
