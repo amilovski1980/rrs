@@ -453,7 +453,11 @@
       });
     }
 
-    openBtn.addEventListener("click", function () {
+    /* Fab ouvre le sélecteur ; le vocal démarre via aminia:open-voice. */
+    document.addEventListener("aminia:open-voice", function () {
+      panel.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      document.body.classList.add("agent-open");
       window.setTimeout(start, 60);
     });
     root.querySelectorAll("[data-agent-close]").forEach(function (button) {

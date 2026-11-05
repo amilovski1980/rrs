@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   function initVoiceDemo(reduceMotion) {
     var stage = document.querySelector("[data-voice-demo]");
@@ -105,7 +105,7 @@
         current = 0;
         inView = true;
         setPlaying(true);
-        if (window.matchMedia("(max-width: 1000px)").matches) {
+        if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
           stage.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
@@ -417,7 +417,9 @@
     var dialog = root.querySelector(".agent-dialog");
     var mic = root.querySelector("[data-agent-mic]");
     var status = root.querySelector("[data-agent-status]");
-    if (!openBtn || !panel || !dialog) return;
+    var chooser = root.querySelector("[data-agent-chooser]");
+    var chat = root.querySelector("[data-agent-chat]");
+    if (!openBtn) return;
 
     var closeButtons = root.querySelectorAll("[data-agent-close]");
     var lastFocus = null;
@@ -434,6 +436,7 @@
     };
 
     var setState = function (state) {
+      if (!dialog) return;
       dialog.classList.remove("is-listening", "is-thinking", "is-done");
       if (state) dialog.classList.add(state);
       if (mic) mic.classList.toggle("is-listening", state === "is-listening");
@@ -446,23 +449,73 @@
       setStatus("Appuyez pour parler");
     };
 
-    var open = function () {
+    var isOpen = function (el) {
+      return !!(el && el.hidden === false);
+    };
+
+    var closeChooser = function () {
+      if (chooser) chooser.hidden = true;
+    };
+
+    var openChooser = function () {
+      lastFocus = document.activeElement;
+      if (panel) panel.hidden = true;
+      if (chat) chat.hidden = true;
+      if (!chooser) return;
+      /* Masquer le FAB (body.agent-open) pour ne pas couvrir le sélecteur, surtout mobile. */
+      chooser.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-chooser");
+      document.body.classList.add("agent-open");
+      var first = chooser.querySelector("[data-agent-pick]");
+      window.setTimeout(function () { if (first) first.focus(); }, 30);
+    };
+
+    var openVoice = function () {
+      closeChooser();
+      if (!panel || !dialog) {
+        document.dispatchEvent(new CustomEvent("aminia:open-voice"));
+        return;
+      }
       lastFocus = document.activeElement;
       panel.hidden = false;
       openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-panel");
       document.body.classList.add("agent-open");
       reset();
       window.setTimeout(function () {
         if (mic) mic.focus();
       }, 30);
+      document.dispatchEvent(new CustomEvent("aminia:open-voice"));
     };
 
-    var close = function () {
+    var closeVoice = function () {
       clearTimers();
-      panel.hidden = true;
+      if (panel) panel.hidden = true;
       openBtn.setAttribute("aria-expanded", "false");
       document.body.classList.remove("agent-open");
       setState("");
+      if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
+      else openBtn.focus();
+    };
+
+    var openChat = function () {
+      closeChooser();
+      if (!chat) return;
+      lastFocus = document.activeElement;
+      if (panel) panel.hidden = true;
+      chat.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-chat");
+      document.body.classList.add("agent-open");
+      var input = chat.querySelector("[data-agent-chat-input]");
+      window.setTimeout(function () { if (input) input.focus(); }, 30);
+    };
+
+    var closeChat = function () {
+      if (chat) chat.hidden = true;
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
       if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
       else openBtn.focus();
     };
@@ -488,10 +541,52 @@
       timers.push(window.setTimeout(reset, 7200));
     };
 
-    openBtn.addEventListener("click", open);
-    for (var i = 0; i < closeButtons.length; i++) {
-      closeButtons[i].addEventListener("click", close);
+    openBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (isOpen(chooser)) {
+        closeChooser();
+        openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
+        return;
+      }
+      if (isOpen(panel)) {
+        closeVoice();
+        return;
+      }
+      if (isOpen(chat)) {
+        closeChat();
+        return;
+      }
+      openChooser();
+    });
+
+    if (chooser) {
+      var picks = chooser.querySelectorAll("[data-agent-pick]");
+      for (var pi = 0; pi < picks.length; pi++) {
+        picks[pi].addEventListener("click", function (ev) {
+          var mode = ev.currentTarget.getAttribute("data-agent-pick");
+          if (mode === "voice") openVoice();
+          else if (mode === "chat") openChat();
+        });
+      }
+      var chooserClose = chooser.querySelector("[data-agent-chooser-close]");
+      if (chooserClose) {
+        chooserClose.addEventListener("click", function () {
+          closeChooser();
+          openBtn.setAttribute("aria-expanded", "false");
+          document.body.classList.remove("agent-open");
+          openBtn.focus();
+        });
+      }
     }
+
+    for (var i = 0; i < closeButtons.length; i++) {
+      closeButtons[i].addEventListener("click", closeVoice);
+    }
+    var chatClose = root.querySelector("[data-agent-chat-close]");
+    if (chatClose) chatClose.addEventListener("click", closeChat);
+
     if (mic) mic.addEventListener("click", function () {
       if (window.SIP && window.SIP.SimpleUser) {
         var evt;
@@ -503,9 +598,130 @@
     });
 
     document.addEventListener("keydown", function (event) {
-      if (panel.hidden || event.key !== "Escape") return;
-      close();
+      if (event.key !== "Escape") return;
+      if (isOpen(chooser)) {
+        closeChooser();
+        openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
+        openBtn.focus();
+        return;
+      }
+      if (isOpen(chat)) {
+        closeChat();
+        return;
+      }
+      if (isOpen(panel)) closeVoice();
     });
+
+    /* Clic extérieur : fermer le sélecteur (pas le panneau vocal/chat déjà modal). */
+    document.addEventListener("click", function (event) {
+      if (!isOpen(chooser)) return;
+      var t = event.target;
+      if (chooser.contains(t) || openBtn.contains(t)) return;
+      closeChooser();
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
+    });
+  }
+
+  function csrfTokenFrom(root) {
+    var input = (root && root.querySelector("input[name=csrfmiddlewaretoken]"))
+      || document.querySelector("[data-agent] input[name=csrfmiddlewaretoken]")
+      || document.querySelector("input[name=csrfmiddlewaretoken]");
+    return input ? input.value : "";
+  }
+
+  function appendChatBubble(log, role, text) {
+    if (!log) return;
+    var empty = log.querySelector(".agent-chat-empty");
+    if (empty) empty.remove();
+    var bubble = document.createElement("div");
+    bubble.className = "agent-chat-bubble agent-chat-bubble--" + role;
+    var p = document.createElement("p");
+    p.textContent = text;
+    bubble.appendChild(p);
+    log.appendChild(bubble);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function wireChatForm(container) {
+    if (!container || container.getAttribute("data-chat-wired") === "1") return;
+    var form = container.querySelector("[data-agent-chat-form]");
+    var input = container.querySelector("[data-agent-chat-input]");
+    var log = container.querySelector("[data-agent-chat-log]");
+    var err = container.querySelector("[data-agent-chat-error]");
+    var sendBtn = container.querySelector("[data-agent-chat-send]");
+    if (!form || !input || !log) return;
+    container.setAttribute("data-chat-wired", "1");
+    var conversationId = container.getAttribute("data-conversation-id") || "";
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var text = (input.value || "").trim();
+      if (!text) return;
+      if (err) { err.hidden = true; err.textContent = ""; }
+      appendChatBubble(log, "user", text);
+      input.value = "";
+      input.disabled = true;
+      if (sendBtn) sendBtn.disabled = true;
+      appendChatBubble(log, "assistant", "…");
+      var pending = log.lastElementChild;
+
+      fetch("/agent/chat/message/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfTokenFrom(container)
+        },
+        body: JSON.stringify({
+          message: text,
+          conversation_id: conversationId || undefined
+        })
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      }).then(function (payload) {
+        var data = payload.data || {};
+        if (data.conversation_id) {
+          conversationId = data.conversation_id;
+          container.setAttribute("data-conversation-id", conversationId);
+        }
+        var reply = data.reply || data.error || "Réponse indisponible.";
+        if (!payload.ok || data.ok === false) {
+          reply = data.error || reply;
+          if (err) {
+            err.hidden = false;
+            err.textContent = reply;
+          }
+        }
+        if (pending) {
+          var pp = pending.querySelector("p");
+          if (pp) pp.textContent = reply;
+        } else {
+          appendChatBubble(log, "assistant", reply);
+        }
+      }).catch(function () {
+        var msg = "Impossible de joindre Aminia. Réessayez.";
+        if (pending) {
+          var pp = pending.querySelector("p");
+          if (pp) pp.textContent = msg;
+        }
+        if (err) { err.hidden = false; err.textContent = msg; }
+      }).finally(function () {
+        input.disabled = false;
+        if (sendBtn) sendBtn.disabled = false;
+        input.focus();
+      });
+    });
+  }
+
+  function initAgentChat() {
+    var floating = document.querySelector("[data-agent-chat]");
+    if (floating) wireChatForm(floating);
+    var page = document.querySelector("[data-agent-chat-page]");
+    if (page) wireChatForm(page);
   }
 
   function initPhone() {
@@ -790,6 +1006,232 @@
     }
   }
 
+
+
+  function parseTicketDecimal(raw) {
+    if (raw == null) return null;
+    var s = String(raw).trim().replace(/\s/g, "").replace(",", ".");
+    if (!s) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatTicketEuro(n) {
+    try {
+      return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+      }).format(n);
+    } catch (e) {
+      return n.toFixed(2).replace(".", ",") + " €";
+    }
+  }
+
+  function initTicketFormUx() {
+    var form = document.querySelector("[data-ticket-form]");
+    if (!form) return;
+
+    var ttc = form.querySelector('[data-ticket-money="montant_ttc"]');
+    var tva = form.querySelector('[data-ticket-money="montant_tva"]');
+    var taux = form.querySelector('[data-ticket-money="taux_tva"]');
+    var htValue = form.querySelector("[data-ticket-ht-value]");
+
+    function refreshHt() {
+      if (!htValue) return;
+      var ttcN = parseTicketDecimal(ttc && ttc.value);
+      var tvaN = parseTicketDecimal(tva && tva.value);
+      var tauxN = parseTicketDecimal(taux && taux.value);
+      var ht = null;
+      if (ttcN != null && tvaN != null) {
+        ht = ttcN - tvaN;
+      } else if (ttcN != null && tauxN != null && tauxN >= 0) {
+        ht = ttcN / (1 + tauxN / 100);
+      }
+      if (ht == null || !Number.isFinite(ht)) {
+        htValue.textContent = "—";
+        return;
+      }
+      htValue.textContent = formatTicketEuro(ht);
+    }
+
+    ["input", "change"].forEach(function (evt) {
+      if (ttc) ttc.addEventListener(evt, refreshHt);
+      if (tva) tva.addEventListener(evt, refreshHt);
+      if (taux) taux.addEventListener(evt, refreshHt);
+    });
+    refreshHt();
+
+    var camera = form.querySelector("[data-ticket-form-camera]");
+    var imageInput = form.querySelector("#id_image");
+    if (camera && imageInput) {
+      camera.addEventListener("change", function () {
+        if (!camera.files || !camera.files.length) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(camera.files[0]);
+          imageInput.files = dt.files;
+        } catch (e) {
+          camera.setAttribute("name", "image");
+          imageInput.removeAttribute("name");
+        }
+        var label = form.querySelector("label[for='id_image']");
+        if (label) {
+          var note = form.querySelector("[data-ticket-camera-picked]");
+          if (!note) {
+            note = document.createElement("p");
+            note.className = "sub";
+            note.setAttribute("data-ticket-camera-picked");
+            imageInput.parentNode.appendChild(note);
+          }
+          note.textContent = "Photo sélectionnée : " + (camera.files[0].name || "ticket.jpg");
+        }
+      });
+    }
+  }
+
+
+  function initMobileNav() {
+    var shell = document.querySelector("[data-app-shell]");
+    if (!shell) return;
+    var toggle = shell.querySelector("[data-nav-toggle]");
+    var drawer = shell.querySelector("[data-app-drawer]") || document.getElementById("app-drawer");
+    var backdrop = shell.querySelector("[data-nav-backdrop]");
+    var closeBtn = shell.querySelector("[data-nav-close]");
+    if (!toggle || !drawer) return;
+
+    var lastFocus = null;
+    var mq = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null;
+
+    function isMobile() {
+      return !mq || mq.matches;
+    }
+
+    function getFocusable() {
+      return Array.prototype.slice.call(
+        drawer.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(function (el) {
+        return el.offsetParent !== null || el === document.activeElement;
+      });
+    }
+
+    function setOpen(open) {
+      if (!isMobile() && open) {
+        open = false;
+      }
+      document.body.classList.toggle("nav-open", !!open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+      drawer.setAttribute("aria-hidden", open ? "false" : "true");
+      if (backdrop) {
+        if (open) {
+          backdrop.hidden = false;
+          backdrop.setAttribute("aria-hidden", "false");
+        } else {
+          backdrop.hidden = true;
+          backdrop.setAttribute("aria-hidden", "true");
+        }
+      }
+      if (open) {
+        lastFocus = document.activeElement;
+        window.setTimeout(function () {
+          var focusables = getFocusable();
+          var target = closeBtn || focusables[0] || drawer;
+          try { target.focus(); } catch (e) { /* ignore */ }
+        }, 10);
+      } else if (lastFocus && typeof lastFocus.focus === "function") {
+        try { lastFocus.focus(); } catch (e) { /* ignore */ }
+        lastFocus = null;
+      }
+    }
+
+    // État initial : drawer hors flux mobile → aria-hidden
+    if (isMobile()) {
+      drawer.setAttribute("aria-hidden", "true");
+    } else {
+      drawer.removeAttribute("aria-hidden");
+    }
+
+    toggle.addEventListener("click", function () {
+      setOpen(!document.body.classList.contains("nav-open"));
+    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () { setOpen(false); });
+    }
+    if (backdrop) {
+      backdrop.addEventListener("click", function () { setOpen(false); });
+    }
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && document.body.classList.contains("nav-open")) {
+        ev.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (ev.key !== "Tab" || !document.body.classList.contains("nav-open")) return;
+      var focusables = getFocusable();
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (ev.shiftKey && document.activeElement === first) {
+        ev.preventDefault();
+        last.focus();
+      } else if (!ev.shiftKey && document.activeElement === last) {
+        ev.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Fermer si on passe en desktop
+    function onMq() {
+      if (!isMobile()) setOpen(false);
+      if (isMobile()) drawer.setAttribute("aria-hidden", document.body.classList.contains("nav-open") ? "false" : "true");
+      else drawer.removeAttribute("aria-hidden");
+    }
+    if (mq) {
+      if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
+      else if (typeof mq.addListener === "function") mq.addListener(onMq);
+    }
+
+    // Fermer après navigation interne (même page SPA non, mais liens)
+    drawer.addEventListener("click", function (ev) {
+      var a = ev.target && ev.target.closest ? ev.target.closest("a.side-link") : null;
+      if (a) setOpen(false);
+    });
+  }
+
+  function initTicketCamera() {
+    var form = document.querySelector("[data-ticket-upload-form]");
+    if (!form) return;
+    var camera = form.querySelector("[data-ticket-camera]");
+    var fileInput = form.querySelector("#id_fichier") || form.querySelector('input[type="file"][name="fichier"]');
+    var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
+    if (!camera || !fileInput) return;
+
+    camera.addEventListener("change", function () {
+      if (!camera.files || !camera.files.length) return;
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(camera.files[0]);
+        fileInput.files = dt.files;
+      } catch (e) {
+        /* Safari ancien : soumettre via le champ camera en lui donnant le name */
+        camera.setAttribute("name", "fichier");
+        fileInput.removeAttribute("name");
+      }
+      if (submitBtn) submitBtn.textContent = "Analyse OCR…";
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else form.submit();
+    });
+
+    var params = new URLSearchParams(window.location.search || "");
+    if (params.get("camera") === "1") {
+      window.setTimeout(function () {
+        try { camera.click(); } catch (e) { /* geste utilisateur requis sur certains OS */ }
+      }, 200);
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var nav = document.querySelector(".nav");
     if (nav) {
@@ -804,6 +1246,10 @@
     initSirenSearch();
     initActivityDemo();
     initAgent();
+    initAgentChat();
+    initTicketCamera();
+    initMobileNav();
+    initTicketFormUx();
     initPhone();
 
     if (reduceMotion) return;
@@ -827,6 +1273,8 @@
 
       targets.forEach(function (el, index) {
         if (el.classList.contains("auth-card")) return;
+        /* Cockpit : pas de reveal (casse position:fixed de la barre Actions + flash KPI). */
+        if (el.closest && el.closest(".shell")) return;
         el.classList.add("reveal");
         el.style.transitionDelay = (index % 6) * 45 + "ms";
         observer.observe(el);
