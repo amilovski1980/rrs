@@ -6,19 +6,191 @@
 <div class="page-head">
   <div>
     <h1>{% if ticket %}Modifier le ticket{% else %}Nouveau ticket de caisse{% endif %}</h1>
-    <p class="sub">{{ company.denomination }}</p>
+    <p class="sub">{{ company.denomination }} — saisie manuelle{% if ticket %} · {{ ticket.get_statut_display }}{% endif %}</p>
   </div>
   <a class="btn btn-ghost" href="{% if ticket %}{% url 'ticket_detail' ticket.id %}?societe={{ company.id }}{% else %}{% url 'tickets' %}?societe={{ company.id }}{% endif %}">Annuler</a>
 </div>
-<form class="card card-tight form-stack" method="post" enctype="multipart/form-data" style="max-width:640px">
+
+<form
+  class="card card-tight ticket-form"
+  method="post"
+  enctype="multipart/form-data"
+  data-ticket-form
+  novalidate
+>
   {% csrf_token %}
-  {% for field in form %}
-  <div class="field" style="margin-bottom:14px">
-    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-    {{ field }}
-    {% for err in field.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+
+  {% if form.errors %}
+  <div class="form-errors" role="alert" aria-live="assertive" id="ticket-form-errors">
+    <strong>Veuillez corriger les erreurs ci-dessous.</strong>
+    <ul>
+      {% for field in form %}
+        {% for err in field.errors %}
+        <li><a href="#{{ field.id_for_label }}">{{ field.label }} — {{ err }}</a></li>
+        {% endfor %}
+      {% endfor %}
+      {% for err in form.non_field_errors %}
+      <li>{{ err }}</li>
+      {% endfor %}
+    </ul>
   </div>
-  {% endfor %}
-  <button class="btn btn-primary" type="submit">Enregistrer</button>
+  {% endif %}
+
+  <div class="ticket-form-layout">
+    {# —— Justificatif —— #}
+    <section class="ticket-section" aria-labelledby="sec-justificatif">
+      <header class="ticket-section-head">
+        <h2 id="sec-justificatif">Justificatif</h2>
+        <p class="sub">Photo ou scan du ticket (optionnel à la saisie manuelle).</p>
+      </header>
+
+      <div class="field mobile-only ticket-camera-block">
+        <p class="ticket-camera-hint">Sur téléphone, photographiez directement le ticket :</p>
+        <label class="btn btn-primary ticket-camera-btn" for="id_ticket_form_camera">Prendre en photo</label>
+        <input
+          id="id_ticket_form_camera"
+          class="ticket-camera-input"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          data-ticket-form-camera
+        >
+        <p class="sub" id="hint_camera">La photo remplit le champ justificatif ci-dessous (aucun OCR automatique ici — utilisez « Importer » pour l’OCR).</p>
+      </div>
+
+      <div class="field{% if form.image.errors %} has-error{% endif %}">
+        <label for="{{ form.image.id_for_label }}">
+          {{ form.image.label }}
+        </label>
+        {{ form.image }}
+        {% if form.image.help_text %}
+        <p class="field-hint" id="hint_image">{{ form.image.help_text }}</p>
+        {% endif %}
+        {% for err in form.image.errors %}
+        <p class="form-error" id="err_image" role="alert">{{ err }}</p>
+        {% endfor %}
+        {% if ticket and ticket.image %}
+        <p class="sub">Fichier actuel : <a href="{{ ticket.image.url }}" target="_blank" rel="noopener">voir le justificatif</a></p>
+        {% endif %}
+      </div>
+    </section>
+
+    {# —— Informations —— #}
+    <section class="ticket-section" aria-labelledby="sec-infos">
+      <header class="ticket-section-head">
+        <h2 id="sec-infos">Informations</h2>
+        <p class="sub">Date et commerçant.</p>
+      </header>
+      <div class="ticket-fields-2">
+        <div class="field{% if form.date.errors %} has-error{% endif %}">
+          <label for="{{ form.date.id_for_label }}">
+            {{ form.date.label }} <span class="req" aria-hidden="true">*</span>
+            <span class="sr-only">(obligatoire)</span>
+          </label>
+          {{ form.date }}
+          {% if form.date.help_text %}<p class="field-hint" id="hint_date">{{ form.date.help_text }}</p>{% endif %}
+          {% for err in form.date.errors %}<p class="form-error" id="err_date" role="alert" aria-describedby="{{ form.date.id_for_label }}">{{ err }}</p>{% endfor %}
+        </div>
+        <div class="field{% if form.magasin.errors %} has-error{% endif %}">
+          <label for="{{ form.magasin.id_for_label }}">{{ form.magasin.label }}</label>
+          {{ form.magasin }}
+          {% if form.magasin.help_text %}<p class="field-hint" id="hint_magasin">{{ form.magasin.help_text }}</p>{% endif %}
+          {% for err in form.magasin.errors %}<p class="form-error" id="err_magasin" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+      </div>
+      <div class="field{% if form.moyen_paiement.errors %} has-error{% endif %}">
+        <label for="{{ form.moyen_paiement.id_for_label }}">{{ form.moyen_paiement.label }}</label>
+        {{ form.moyen_paiement }}
+        <datalist id="ticket-paiement-suggestions">
+          <option value="CB"></option>
+          <option value="Espèces"></option>
+          <option value="Virement"></option>
+          <option value="Chèque"></option>
+          <option value="Ticket restaurant"></option>
+        </datalist>
+        {% if form.moyen_paiement.help_text %}<p class="field-hint" id="hint_moyen_paiement">{{ form.moyen_paiement.help_text }}</p>{% endif %}
+        {% for err in form.moyen_paiement.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+      </div>
+    </section>
+
+    {# —— Montants —— #}
+    <section class="ticket-section" aria-labelledby="sec-montants">
+      <header class="ticket-section-head">
+        <h2 id="sec-montants">Montants</h2>
+        <p class="sub">TTC, TVA et taux — le HT est calculé automatiquement.</p>
+      </header>
+      <div class="ticket-fields-3">
+        <div class="field{% if form.montant_ttc.errors %} has-error{% endif %}">
+          <label for="{{ form.montant_ttc.id_for_label }}">
+            {{ form.montant_ttc.label }} <span class="req" aria-hidden="true">*</span>
+            <span class="sr-only">(obligatoire)</span>
+          </label>
+          {{ form.montant_ttc }}
+          {% if form.montant_ttc.help_text %}<p class="field-hint" id="hint_montant_ttc">{{ form.montant_ttc.help_text }}</p>{% endif %}
+          {% for err in form.montant_ttc.errors %}<p class="form-error" id="err_montant_ttc" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+        <div class="field{% if form.montant_tva.errors %} has-error{% endif %}">
+          <label for="{{ form.montant_tva.id_for_label }}">{{ form.montant_tva.label }}</label>
+          {{ form.montant_tva }}
+          {% if form.montant_tva.help_text %}<p class="field-hint" id="hint_montant_tva">{{ form.montant_tva.help_text }}</p>{% endif %}
+          {% for err in form.montant_tva.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+        <div class="field{% if form.taux_tva.errors %} has-error{% endif %}">
+          <label for="{{ form.taux_tva.id_for_label }}">{{ form.taux_tva.label }}</label>
+          {{ form.taux_tva }}
+          {% if form.taux_tva.help_text %}<p class="field-hint" id="hint_taux_tva">{{ form.taux_tva.help_text }}</p>{% endif %}
+          {% for err in form.taux_tva.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+      </div>
+      <p class="ticket-ht" data-ticket-ht aria-live="polite">
+        Montant HT estimé : <strong data-ticket-ht-value>—</strong>
+      </p>
+    </section>
+
+    {# —— Classement —— #}
+    <section class="ticket-section" aria-labelledby="sec-classement">
+      <header class="ticket-section-head">
+        <h2 id="sec-classement">Classement</h2>
+        <p class="sub">Catégorie et statut du ticket.</p>
+      </header>
+      <div class="ticket-fields-2">
+        <div class="field{% if form.categorie.errors %} has-error{% endif %}">
+          <label for="{{ form.categorie.id_for_label }}">
+            {{ form.categorie.label }} <span class="req" aria-hidden="true">*</span>
+            <span class="sr-only">(obligatoire)</span>
+          </label>
+          {{ form.categorie }}
+          {% if form.categorie.help_text %}<p class="field-hint" id="hint_categorie">{{ form.categorie.help_text }}</p>{% endif %}
+          {% for err in form.categorie.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+        <div class="field{% if form.statut.errors %} has-error{% endif %}">
+          <label for="{{ form.statut.id_for_label }}">{{ form.statut.label }}</label>
+          {{ form.statut }}
+          {% if form.statut.help_text %}<p class="field-hint" id="hint_statut">{{ form.statut.help_text }}</p>{% endif %}
+          {% for err in form.statut.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+        </div>
+      </div>
+    </section>
+
+    {# —— Notes —— #}
+    <section class="ticket-section" aria-labelledby="sec-notes">
+      <header class="ticket-section-head">
+        <h2 id="sec-notes">Notes</h2>
+      </header>
+      <div class="field{% if form.notes.errors %} has-error{% endif %}">
+        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.help_text %}<p class="field-hint" id="hint_notes">{{ form.notes.help_text }}</p>{% endif %}
+        {% for err in form.notes.errors %}<p class="form-error" role="alert">{{ err }}</p>{% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="ticket-form-actions">
+    <a class="btn btn-ghost" href="{% if ticket %}{% url 'ticket_detail' ticket.id %}?societe={{ company.id }}{% else %}{% url 'tickets' %}?societe={{ company.id }}{% endif %}">Annuler</a>
+    <button class="btn btn-primary form-submit" type="submit" data-ticket-form-submit>
+      {% if ticket %}Enregistrer les modifications{% else %}Enregistrer le ticket{% endif %}
+    </button>
+  </div>
 </form>
 {% endblock %}

@@ -785,3 +785,105 @@ class InvoiceThemeSettingsPageTests(TestCase):
         for code, label in INVOICE_THEMES:
             self.assertIn(f"model-{code}", body)
             self.assertIn(label, body)
+
+
+class TicketDeCaisseFormUxTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("ticketform@example.com")
+        self.user = user
+        self.company = _company(user, siren="866666666", name="Form Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_create_form_renders_sections_labels_and_camera(self):
+        r = self.http.get(f"/factures/tickets/nouveau/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+        for label in (
+            "Justificatif",
+            "Informations",
+            "Montants",
+            "Classement",
+            "Notes",
+            "Date du ticket",
+            "Magasin / fournisseur",
+            "Montant TTC",
+            "Montant TVA",
+            "Taux de TVA",
+            "Catégorie",
+            "Moyen de paiement",
+            "Statut",
+            "Prendre en photo",
+        ):
+            self.assertIn(label, body)
+        self.assertIn('data-ticket-form', body)
+        self.assertIn('data-ticket-form-camera', body)
+        self.assertIn('capture="environment"', body)
+        self.assertIn('data-ticket-ht', body)
+        self.assertIn('aria-required="true"', body)
+        self.assertIn('inputmode="decimal"', body)
+        self.assertIn('type="date"', body)
+        # Required markers
+        self.assertIn('class="req"', body)
+
+    def test_validation_errors_show_summary_and_inline(self):
+        r = self.http.post(
+            f"/factures/tickets/nouveau/?societe={self.company.id}",
+            {
+                # date manquante, montant invalide
+                "magasin": "Test",
+                "montant_ttc": "",
+                "categorie": "autre",
+                "taux_tva": "20",
+                "montant_tva": "0",
+                "statut": "brouillon",
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        body = r.content.decode()
+        self.assertIn("ticket-form-errors", body)
+        self.assertIn("Veuillez corriger les erreurs", body)
+        self.assertIn("aria-invalid", body)
+        self.assertIn("has-error", body)
+        self.assertIn("form-error", body)
+
+    def test_edit_form_keeps_existing_values(self):
+        from .models import TicketDeCaisse
+        ticket = TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 11, 4),
+            magasin="Fnac",
+            montant_ttc=Decimal("19.99"),
+            montant_tva=Decimal("3.33"),
+            taux_tva=Decimal("20.00"),
+            categorie="fournitures",
+            statut="brouillon",
+        )
+        r = self.http.get(
+            f"/factures/tickets/{ticket.id}/modifier/?societe={self.company.id}"
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Fnac")
+        self.assertContains(r, "19.99")
+        self.assertContains(r, "Justificatif")
+        self.assertContains(r, "Enregistrer les modifications")
+
+    def test_ocr_flow_still_works_with_mocked_ocr(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import TicketDeCaisse
+
+        png = SimpleUploadedFile(
+            "ocr.png", b"\x89PNG\r\n\x1a\nfake", content_type="image/png"
+        )
+        with patch("documents.views.extract_receipt_text", return_value=SAMPLE_RECEIPT_TEXT):
+            with patch("documents.views.validate_upload"):
+                response = self.http.post(
+                    f"/factures/tickets/import/?societe={self.company.id}",
+                    {"fichier": png, "categorie": "restauration"},
+                )
+        self.assertEqual(response.status_code, 302)
+        ticket = TicketDeCaisse.objects.get(company=self.company)
+        self.assertEqual(ticket.statut, "brouillon")
+        self.assertEqual(ticket.categorie, "restauration")
+        self.assertTrue(ticket.ocr_text)

@@ -1007,6 +1007,88 @@
   }
 
 
+
+  function parseTicketDecimal(raw) {
+    if (raw == null) return null;
+    var s = String(raw).trim().replace(/\s/g, "").replace(",", ".");
+    if (!s) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatTicketEuro(n) {
+    try {
+      return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+      }).format(n);
+    } catch (e) {
+      return n.toFixed(2).replace(".", ",") + " €";
+    }
+  }
+
+  function initTicketFormUx() {
+    var form = document.querySelector("[data-ticket-form]");
+    if (!form) return;
+
+    var ttc = form.querySelector('[data-ticket-money="montant_ttc"]');
+    var tva = form.querySelector('[data-ticket-money="montant_tva"]');
+    var taux = form.querySelector('[data-ticket-money="taux_tva"]');
+    var htValue = form.querySelector("[data-ticket-ht-value]");
+
+    function refreshHt() {
+      if (!htValue) return;
+      var ttcN = parseTicketDecimal(ttc && ttc.value);
+      var tvaN = parseTicketDecimal(tva && tva.value);
+      var tauxN = parseTicketDecimal(taux && taux.value);
+      var ht = null;
+      if (ttcN != null && tvaN != null) {
+        ht = ttcN - tvaN;
+      } else if (ttcN != null && tauxN != null && tauxN >= 0) {
+        ht = ttcN / (1 + tauxN / 100);
+      }
+      if (ht == null || !Number.isFinite(ht)) {
+        htValue.textContent = "—";
+        return;
+      }
+      htValue.textContent = formatTicketEuro(ht);
+    }
+
+    ["input", "change"].forEach(function (evt) {
+      if (ttc) ttc.addEventListener(evt, refreshHt);
+      if (tva) tva.addEventListener(evt, refreshHt);
+      if (taux) taux.addEventListener(evt, refreshHt);
+    });
+    refreshHt();
+
+    var camera = form.querySelector("[data-ticket-form-camera]");
+    var imageInput = form.querySelector("#id_image");
+    if (camera && imageInput) {
+      camera.addEventListener("change", function () {
+        if (!camera.files || !camera.files.length) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(camera.files[0]);
+          imageInput.files = dt.files;
+        } catch (e) {
+          camera.setAttribute("name", "image");
+          imageInput.removeAttribute("name");
+        }
+        var label = form.querySelector("label[for='id_image']");
+        if (label) {
+          var note = form.querySelector("[data-ticket-camera-picked]");
+          if (!note) {
+            note = document.createElement("p");
+            note.className = "sub";
+            note.setAttribute("data-ticket-camera-picked");
+            imageInput.parentNode.appendChild(note);
+          }
+          note.textContent = "Photo sélectionnée : " + (camera.files[0].name || "ticket.jpg");
+        }
+      });
+    }
+  }
+
   function initTicketCamera() {
     var form = document.querySelector("[data-ticket-upload-form]");
     if (!form) return;
@@ -1055,6 +1137,7 @@
     initAgent();
     initAgentChat();
     initTicketCamera();
+    initTicketFormUx();
     initPhone();
 
     if (reduceMotion) return;

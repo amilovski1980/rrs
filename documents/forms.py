@@ -340,9 +340,12 @@ class PdfImportForm(forms.Form):
 
 
 class TicketDeCaisseForm(forms.ModelForm):
+    """Création / édition d'un ticket de caisse — labels FR et attributs a11y."""
+
     class Meta:
         model = TicketDeCaisse
         fields = [
+            "image",
             "date",
             "magasin",
             "montant_ttc",
@@ -352,11 +355,88 @@ class TicketDeCaisseForm(forms.ModelForm):
             "moyen_paiement",
             "statut",
             "notes",
-            "image",
         ]
+        labels = {
+            "image": "Justificatif (photo ou scan)",
+            "date": "Date du ticket",
+            "magasin": "Magasin / fournisseur",
+            "montant_ttc": "Montant TTC",
+            "montant_tva": "Montant TVA",
+            "taux_tva": "Taux de TVA (%)",
+            "categorie": "Catégorie",
+            "moyen_paiement": "Moyen de paiement",
+            "statut": "Statut",
+            "notes": "Notes",
+        }
+        help_texts = {
+            "image": "JPG, PNG, WEBP ou PDF — 10 Mo max. Sur mobile, utilisez « Prendre en photo ».",
+            "date": "Date figurant sur le ticket (obligatoire).",
+            "magasin": "Nom du magasin ou du fournisseur.",
+            "montant_ttc": "Total toutes taxes comprises.",
+            "montant_tva": "Montant de TVA indiqué, ou calculé à partir du taux.",
+            "taux_tva": "Ex. 20, 10, 5,5. Sert aussi au calcul du HT.",
+            "categorie": "Classe le ticket pour le suivi et la compta.",
+            "moyen_paiement": "CB, espèces, virement…",
+            "statut": "Brouillon jusqu'à validation humaine.",
+            "notes": "Informations libres (référence, projet…).",
+        }
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
-            "notes": forms.Textarea(attrs={"rows": 3}),
+            "date": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "autocomplete": "off",
+                },
+                format="%Y-%m-%d",
+            ),
+            "magasin": forms.TextInput(
+                attrs={
+                    "autocomplete": "organization",
+                    "placeholder": "Ex. Carrefour, Total…",
+                }
+            ),
+            "montant_ttc": forms.NumberInput(
+                attrs={
+                    "inputmode": "decimal",
+                    "step": "0.01",
+                    "min": "0",
+                    "placeholder": "0,00",
+                }
+            ),
+            "montant_tva": forms.NumberInput(
+                attrs={
+                    "inputmode": "decimal",
+                    "step": "0.01",
+                    "min": "0",
+                    "placeholder": "0,00",
+                }
+            ),
+            "taux_tva": forms.NumberInput(
+                attrs={
+                    "inputmode": "decimal",
+                    "step": "0.01",
+                    "min": "0",
+                    "placeholder": "20",
+                }
+            ),
+            "moyen_paiement": forms.TextInput(
+                attrs={
+                    "autocomplete": "off",
+                    "placeholder": "CB, espèces…",
+                    "list": "ticket-paiement-suggestions",
+                }
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Référence, projet, commentaire…",
+                }
+            ),
+            "image": forms.ClearableFileInput(
+                attrs={
+                    "accept": "image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf",
+                    "id": "id_image",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -364,8 +444,57 @@ class TicketDeCaisseForm(forms.ModelForm):
         self.fields["date"].input_formats = ["%Y-%m-%d", "%d/%m/%Y"]
         self.fields["image"].required = False
         self.fields["statut"].required = False
+        self.fields["magasin"].required = False
+        self.fields["notes"].required = False
+        self.fields["moyen_paiement"].required = False
+        # Champs obligatoires pour la saisie manuelle
+        self.fields["date"].required = True
+        self.fields["montant_ttc"].required = True
+        self.fields["categorie"].required = True
+
+        for name, field in self.fields.items():
+            css = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = (css + " form-control").strip()
+            if field.help_text:
+                field.widget.attrs.setdefault("aria-describedby", f"hint_{name}")
+            if field.required:
+                field.widget.attrs["aria-required"] = "true"
+                field.label_suffix = ""
+
         for name in ("montant_ttc", "montant_tva", "taux_tva"):
-            self.fields[name].widget.attrs.update({"inputmode": "decimal"})
+            self.fields[name].widget.attrs.update({
+                "inputmode": "decimal",
+                "data-ticket-money": name,
+            })
+
+        if self.is_bound:
+            for name, field in self.fields.items():
+                if self.errors.get(name):
+                    field.widget.attrs["aria-invalid"] = "true"
+                    described = field.widget.attrs.get("aria-describedby", "")
+                    err_id = f"err_{name}"
+                    parts = [p for p in described.split() if p]
+                    if err_id not in parts:
+                        parts.append(err_id)
+                    field.widget.attrs["aria-describedby"] = " ".join(parts)
+
+    def clean_montant_ttc(self):
+        amount = self.cleaned_data["montant_ttc"]
+        if amount is None or amount < 0:
+            raise forms.ValidationError("Le montant TTC doit être positif ou nul.")
+        return amount
+
+    def clean_montant_tva(self):
+        amount = self.cleaned_data.get("montant_tva")
+        if amount is not None and amount < 0:
+            raise forms.ValidationError("Le montant de TVA ne peut pas être négatif.")
+        return amount
+
+    def clean_taux_tva(self):
+        rate = self.cleaned_data.get("taux_tva")
+        if rate is not None and (rate < 0 or rate > 100):
+            raise forms.ValidationError("Le taux de TVA doit être compris entre 0 et 100.")
+        return rate
 
 
 class TicketUploadForm(forms.Form):
