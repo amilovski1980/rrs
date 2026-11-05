@@ -415,3 +415,102 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.amount} € — {self.invoice.number}"
+
+
+TICKET_CATEGORIES = [
+    ("carburant", "Carburant"),
+    ("restauration", "Restauration"),
+    ("fournitures", "Fournitures"),
+    ("transport", "Transport"),
+    ("deplacement", "Déplacement"),
+    ("autre", "Autre"),
+]
+
+TICKET_STATUSES = [
+    ("brouillon", "Brouillon"),
+    ("valide", "Validé"),
+]
+
+
+class TicketDeCaisse(models.Model):
+    """Ticket de caisse (reçu) saisi ou OCR — draft jusqu'à validation humaine."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.ForeignKey(
+        "companies.Company",
+        on_delete=models.CASCADE,
+        related_name="tickets_de_caisse",
+    )
+    date = models.DateField(verbose_name="Date")
+    magasin = models.CharField(
+        max_length=200, blank=True, verbose_name="Magasin / fournisseur"
+    )
+    montant_ttc = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Montant TTC"
+    )
+    montant_tva = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name="Montant TVA",
+    )
+    taux_tva = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("20.00"),
+        verbose_name="Taux TVA %",
+    )
+    categorie = models.CharField(
+        max_length=20,
+        choices=TICKET_CATEGORIES,
+        default="autre",
+        verbose_name="Catégorie",
+    )
+    moyen_paiement = models.CharField(
+        max_length=40, blank=True, verbose_name="Moyen de paiement"
+    )
+    statut = models.CharField(
+        max_length=12,
+        choices=TICKET_STATUSES,
+        default="brouillon",
+        verbose_name="Statut",
+    )
+    image = models.FileField(
+        upload_to="tickets/",
+        null=True,
+        blank=True,
+        verbose_name="Image / scan",
+    )
+    ocr_text = models.TextField(blank=True, verbose_name="Texte OCR brut")
+    line_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Lignes détectées [{description, montant}]",
+    )
+    journal_entry = models.ForeignKey(
+        "accounting.JournalEntry",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_de_caisse",
+        verbose_name="Écriture liée",
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+        verbose_name = "Ticket de caisse"
+        verbose_name_plural = "Tickets de caisse"
+
+    def __str__(self):
+        label = self.magasin or "Ticket"
+        return f"{label} · {self.montant_ttc} € · {self.date}"
+
+    @property
+    def montant_ht(self):
+        ht = self.montant_ttc - self.montant_tva
+        if ht < 0:
+            return Decimal("0.00")
+        return ht.quantize(Decimal("0.01"))

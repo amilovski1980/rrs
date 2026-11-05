@@ -12,6 +12,8 @@ from .models import (
     Project,
     Quote,
     QuoteLine,
+    TicketDeCaisse,
+    TICKET_CATEGORIES,
 )
 
 
@@ -315,3 +317,43 @@ class PdfImportForm(forms.Form):
         if header != b"%PDF-":
             raise forms.ValidationError("Le fichier n'est pas un PDF valide.")
         return upload
+
+
+
+class TicketDeCaisseForm(forms.ModelForm):
+    class Meta:
+        model = TicketDeCaisse
+        fields = [
+            "date",
+            "magasin",
+            "montant_ttc",
+            "montant_tva",
+            "taux_tva",
+            "categorie",
+            "moyen_paiement",
+            "statut",
+            "notes",
+            "image",
+        ]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].input_formats = ["%Y-%m-%d", "%d/%m/%Y"]
+        self.fields["image"].required = False
+        self.fields["statut"].required = False
+
+
+class TicketUploadForm(forms.Form):
+    fichier = forms.FileField(
+        label="Photo ou scan du ticket",
+        help_text="JPG, PNG, WEBP ou PDF — 8 Mo max.",
+    )
+    categorie = forms.ChoiceField(
+        choices=[("", "Détecter automatiquement")] + list(TICKET_CATEGORIES),
+        required=False,
+        label="Catégorie (optionnel)",
+    )

@@ -340,6 +340,7 @@ class CrudPagesSmokeTests(TestCase):
             "/factures/devis/",
             "/factures/avoirs/",
             "/factures/paiements/",
+            "/factures/tickets/",
             "/factures/import-pdf/",
             "/agent/brouillons/",
         ):
@@ -525,3 +526,160 @@ class InvoiceDashboardTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "FAC-2026-00001")
         self.assertContains(r, "BR-draft1")
+
+
+
+SAMPLE_RECEIPT_TEXT = """
+CARREFOUR MARKET
+12 rue de la Paix
+Paris
+Date: 03/11/2026
+Eau 50cl                 1,20
+Pain                     2,40
+TOTAL TTC               45,60 €
+TVA 20 %                 7,60
+CB
+Merci de votre visite
+"""
+
+
+class TicketDeCaisseTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("tickets@example.com")
+        self.user = user
+        self.company = _company(user, siren="876543210", name="Tickets Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_parse_receipt_heuristics(self):
+        from .receipt_ocr import parse_receipt_text
+        data = parse_receipt_text(SAMPLE_RECEIPT_TEXT)
+        self.assertIn("CARREFOUR", data["magasin"].upper())
+        self.assertEqual(data["montant_ttc"], Decimal("45.60"))
+        self.assertEqual(data["taux_tva"], Decimal("20.00"))
+        self.assertTrue(data["moyen_paiement"])
+        self.assertEqual(str(data["date"].year), "2026")
+
+    def test_ocr_missing_engine_french_error(self):
+        from unittest.mock import patch
+        from .receipt_ocr import ReceiptOcrError, ocr_image_bytes
+        with patch("documents.receipt_ocr._tesseract_available", return_value=False):
+            with self.assertRaises(ReceiptOcrError) as ctx:
+                ocr_image_bytes(b"fake", filename="x.jpg")
+        self.assertIn("Tesseract", str(ctx.exception))
+
+    def test_upload_with_mocked_ocr_creates_draft_entry(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import TicketDeCaisse
+        from accounting.models import JournalEntry
+
+        png = SimpleUploadedFile("ticket.png", b"\x89PNG\r\n\x1a\nfake", content_type="image/png")
+        with patch("documents.views.extract_receipt_text", return_value=SAMPLE_RECEIPT_TEXT):
+            with patch("documents.views.validate_upload"):
+                response = self.http.post(
+                    f"/factures/tickets/import/?societe={self.company.id}",
+                    {"fichier": png, "categorie": "fournitures"},
+                )
+        self.assertEqual(response.status_code, 302)
+        ticket = TicketDeCaisse.objects.get(company=self.company)
+        self.assertEqual(ticket.statut, "brouillon")
+        self.assertEqual(ticket.montant_ttc, Decimal("45.60"))
+        self.assertEqual(ticket.categorie, "fournitures")
+        self.assertTrue(ticket.ocr_text)
+        self.assertIsNotNone(ticket.journal_entry_id)
+        entry = ticket.journal_entry
+        self.assertFalse(entry.validated)
+        self.assertTrue(entry.drafted_by_ai)
+        debit = sum(line.debit for line in entry.lines.all())
+        credit = sum(line.credit for line in entry.lines.all())
+        self.assertEqual(debit, credit)
+        self.assertEqual(debit, Decimal("45.60"))
+
+    def test_list_filters_and_totals(self):
+        from .models import TicketDeCaisse
+        TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 11, 1),
+            magasin="Total Energies",
+            montant_ttc=Decimal("60.00"),
+            montant_tva=Decimal("10.00"),
+            taux_tva=Decimal("20.00"),
+            categorie="carburant",
+            statut="brouillon",
+        )
+        TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 10, 1),
+            magasin="Boulangerie",
+            montant_ttc=Decimal("12.00"),
+            montant_tva=Decimal("1.09"),
+            taux_tva=Decimal("10.00"),
+            categorie="restauration",
+            statut="valide",
+        )
+        r = self.http.get(
+            f"/factures/tickets/?societe={self.company.id}&categorie=carburant"
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Total Energies")
+        self.assertNotContains(r, "Boulangerie")
+        self.assertContains(r, "60,00")
+
+    def test_dashboard_tickets_card(self):
+        from .models import TicketDeCaisse
+        TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 11, 2),
+            magasin="Station",
+            montant_ttc=Decimal("30.00"),
+            montant_tva=Decimal("5.00"),
+            categorie="carburant",
+        )
+        r = self.http.get(f"/factures/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Tickets de caisse")
+        self.assertContains(r, "30,00")
+
+    def test_validate_keeps_entry_unposted(self):
+        from .models import TicketDeCaisse
+        from .receipt_services import validate_ticket
+        ticket = TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 11, 3),
+            magasin="Leclerc",
+            montant_ttc=Decimal("24.00"),
+            montant_tva=Decimal("4.00"),
+            taux_tva=Decimal("20.00"),
+            categorie="fournitures",
+            moyen_paiement="CB",
+        )
+        entry = validate_ticket(ticket)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.statut, "valide")
+        self.assertFalse(entry.validated)
+        self.assertEqual(entry.lines.count(), 3)  # HT + TVA + crédit
+
+    def test_tenant_isolation(self):
+        from .models import TicketDeCaisse
+        other_user = get_user_model().objects.create_user("other-tk@example.com")
+        other = _company(other_user, siren="111222333", name="Autre")
+        ticket = TicketDeCaisse.objects.create(
+            company=other,
+            date=date(2026, 11, 1),
+            magasin="Secret",
+            montant_ttc=Decimal("9.00"),
+            montant_tva=Decimal("1.50"),
+        )
+        r = self.http.get(f"/factures/tickets/{ticket.id}/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 404)
+
+    def test_wrong_type_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        bad = SimpleUploadedFile("x.txt", b"hello", content_type="text/plain")
+        response = self.http.post(
+            f"/factures/tickets/import/?societe={self.company.id}",
+            {"fichier": bad},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Type de fichier")

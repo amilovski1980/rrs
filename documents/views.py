@@ -2,6 +2,7 @@ import uuid
 from decimal import Decimal
 
 from django.contrib import messages
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -20,8 +21,20 @@ from .forms import (
     ProductForm,
     ProjectForm,
     QuoteForm,
+    TicketDeCaisseForm,
+    TicketUploadForm,
 )
-from .models import Client, CreditNote, Invoice, Payment, Product, Project, Quote
+from .models import (
+    Client,
+    CreditNote,
+    Invoice,
+    Payment,
+    Product,
+    Project,
+    Quote,
+    TicketDeCaisse,
+    TICKET_CATEGORIES,
+)
 from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
 from .pdf_import import PdfImportError, import_invoice_pdf
 from .services import (
@@ -84,6 +97,9 @@ def invoice_dashboard(request):
     credit_count = company.credit_notes.count()
     payment_count = company.payments.count()
     client_count = company.clients.count()
+    tickets_qs = company.tickets_de_caisse.all()
+    tickets_count = tickets_qs.count()
+    tickets_ttc = sum((tk.montant_ttc for tk in tickets_qs), zero)
 
     recent = invoices[:8]
     return render(request, "documents/invoice_dashboard.html", {
@@ -102,6 +118,8 @@ def invoice_dashboard(request):
             "credit_count": credit_count,
             "payment_count": payment_count,
             "client_count": client_count,
+            "tickets_count": tickets_count,
+            "tickets_ttc": tickets_ttc,
         },
         "recent_invoices": recent,
     })
@@ -789,3 +807,227 @@ def invoice_import_pdf(request):
     return render(request, "documents/invoice_import.html", {
         "company": company, "form": form,
     })
+
+# ---------------------------------------------------------------------------
+# Tickets de caisse (OCR + CRUD)
+# ---------------------------------------------------------------------------
+from datetime import datetime
+
+from .receipt_ocr import (
+    ReceiptOcrError,
+    extract_receipt_text,
+    parse_receipt_text,
+    validate_upload,
+)
+from .receipt_services import propose_ticket_entry, validate_ticket
+
+
+@login_required
+def ticket_list(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    qs = company.tickets_de_caisse.all()
+    date_from = (request.GET.get("du") or "").strip()
+    date_to = (request.GET.get("au") or "").strip()
+    categorie = (request.GET.get("categorie") or "").strip()
+    fournisseur = (request.GET.get("fournisseur") or "").strip()
+    statut = (request.GET.get("statut") or "").strip()
+
+    if date_from:
+        try:
+            qs = qs.filter(date__gte=datetime.strptime(date_from, "%Y-%m-%d").date())
+        except ValueError:
+            messages.error(request, "Date de début invalide (AAAA-MM-JJ).")
+    if date_to:
+        try:
+            qs = qs.filter(date__lte=datetime.strptime(date_to, "%Y-%m-%d").date())
+        except ValueError:
+            messages.error(request, "Date de fin invalide (AAAA-MM-JJ).")
+    if categorie:
+        qs = qs.filter(categorie=categorie)
+    if fournisseur:
+        qs = qs.filter(magasin__icontains=fournisseur)
+    if statut:
+        qs = qs.filter(statut=statut)
+
+    tickets = list(qs)
+    total_ttc = sum((tk.montant_ttc for tk in tickets), Decimal("0.00"))
+    total_tva = sum((tk.montant_tva for tk in tickets), Decimal("0.00"))
+    return render(request, "documents/ticket_list.html", {
+        "company": company,
+        "tickets": tickets,
+        "total_ttc": total_ttc,
+        "total_tva": total_tva,
+        "categories": TICKET_CATEGORIES,
+        "filters": {
+            "du": date_from,
+            "au": date_to,
+            "categorie": categorie,
+            "fournisseur": fournisseur,
+            "statut": statut,
+        },
+    })
+
+
+@login_required
+def ticket_upload(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    form = TicketUploadForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data["fichier"]
+        data = upload.read()
+        upload.seek(0)
+        try:
+            validate_upload(upload.name, getattr(upload, "content_type", ""), upload.size)
+            text = extract_receipt_text(
+                data,
+                filename=upload.name or "",
+                content_type=getattr(upload, "content_type", "") or "",
+            )
+            parsed = parse_receipt_text(text)
+        except ReceiptOcrError as exc:
+            messages.error(request, str(exc))
+            return render(request, "documents/ticket_upload.html", {
+                "company": company,
+                "form": form,
+            })
+        cat = form.cleaned_data.get("categorie") or parsed.get("categorie") or "autre"
+        ttc = parsed.get("montant_ttc") or Decimal("0.00")
+        tva = parsed.get("montant_tva") or Decimal("0.00")
+        ticket = TicketDeCaisse(
+            company=company,
+            date=parsed.get("date") or timezone.localdate(),
+            magasin=parsed.get("magasin") or "",
+            montant_ttc=ttc,
+            montant_tva=tva,
+            taux_tva=parsed.get("taux_tva") or Decimal("20.00"),
+            categorie=cat,
+            moyen_paiement=parsed.get("moyen_paiement") or "",
+            statut="brouillon",
+            ocr_text=text,
+            line_items=parsed.get("line_items") or [],
+        )
+        ticket.image = upload
+        ticket.save()
+        # Propose draft entry (still brouillon / unvalidated)
+        try:
+            propose_ticket_entry(ticket)
+        except ValueError as exc:
+            messages.warning(request, f"Ticket créé, mais écriture non proposée : {exc}")
+        messages.success(
+            request,
+            "Ticket importé par OCR. Vérifiez les montants puis validez.",
+        )
+        return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+    return render(request, "documents/ticket_upload.html", {
+        "company": company,
+        "form": form,
+    })
+
+
+@login_required
+def ticket_create(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    form = TicketDeCaisseForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        ticket = form.save(commit=False)
+        ticket.company = company
+        if not ticket.statut:
+            ticket.statut = "brouillon"
+        ticket.save()
+        try:
+            propose_ticket_entry(ticket)
+        except ValueError:
+            pass
+        messages.success(request, "Ticket enregistré en brouillon.")
+        return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+    return render(request, "documents/ticket_form.html", {
+        "company": company,
+        "form": form,
+        "ticket": None,
+    })
+
+
+@login_required
+def ticket_detail(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    return render(request, "documents/ticket_detail.html", {
+        "company": company,
+        "ticket": ticket,
+    })
+
+
+@login_required
+def ticket_edit(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    form = TicketDeCaisseForm(request.POST or None, request.FILES or None, instance=ticket)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if ticket.statut == "brouillon":
+            try:
+                # Recréer le brouillon si montants changés et ancienne non validée
+                if ticket.journal_entry_id and not ticket.journal_entry.validated:
+                    ticket.journal_entry.delete()
+                    ticket.journal_entry = None
+                    ticket.save(update_fields=["journal_entry"])
+                propose_ticket_entry(ticket)
+            except ValueError:
+                pass
+        messages.success(request, "Ticket mis à jour.")
+        return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+    return render(request, "documents/ticket_form.html", {
+        "company": company,
+        "form": form,
+        "ticket": ticket,
+    })
+
+
+@login_required
+@require_POST
+def ticket_validate(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    try:
+        validate_ticket(ticket)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+    messages.success(
+        request,
+        "Ticket validé. Une écriture brouillon a été proposée — confirmez-la "
+        "dans la comptabilité avant passage au grand livre.",
+    )
+    return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+
+
+@login_required
+@require_POST
+def ticket_delete(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    if ticket.journal_entry_id and ticket.journal_entry and ticket.journal_entry.validated:
+        messages.error(
+            request,
+            "Impossible de supprimer : l'écriture liée est déjà validée au grand livre.",
+        )
+        return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+    if ticket.journal_entry_id and ticket.journal_entry and not ticket.journal_entry.validated:
+        ticket.journal_entry.delete()
+    ticket.delete()
+    messages.success(request, "Ticket supprimé.")
+    return redirect(reverse("tickets") + _qs(company))

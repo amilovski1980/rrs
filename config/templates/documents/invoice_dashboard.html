@@ -59,6 +59,10 @@
     <h3>Clients</h3>
     <div class="s">{{ kpi.client_count }} fiche{{ kpi.client_count|pluralize }}</div>
   </a>
+  <a class="company" href="{% url 'tickets' %}?societe={{ company.id }}">
+    <h3>Tickets de caisse</h3>
+    <div class="s">{{ kpi.tickets_ttc|floatformat:2 }} € TTC · {{ kpi.tickets_count }} ticket{{ kpi.tickets_count|pluralize }}</div>
+  </a>
   <a class="company" href="{% url 'invoice_create' %}?societe={{ company.id }}">
     <h3>Nouvelle facture</h3>
     <div class="s">Créer un brouillon à émettre</div>
