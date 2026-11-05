@@ -105,7 +105,7 @@
         current = 0;
         inView = true;
         setPlaying(true);
-        if (window.matchMedia && window.matchMedia("(max-width: 1000px)").matches) {
+        if (window.matchMedia && window.matchMedia("(max-width: 768px)").matches) {
           stage.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
