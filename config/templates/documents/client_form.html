@@ -23,7 +23,7 @@
     </div>
     <div><label>Adresse</label>{{ form.address }}</div>
     <div style="margin-top:12px"><label>Notes</label>{{ form.notes }}</div>
-    <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap">
+    <div class="form-actions-bar">
       <button class="btn btn-primary" type="submit">Enregistrer</button>
       <a class="btn btn-ghost" href="{% url 'clients' %}?societe={{ company.id }}">Annuler</a>
     </div>

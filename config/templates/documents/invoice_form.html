@@ -50,8 +50,10 @@
         {% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}
       </div>
     </div>
-    <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
-    <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+    <div class="form-actions-bar">
+      <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
+      <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+    </div>
   </form>
 </div>
 {% endblock %}
