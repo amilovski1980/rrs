@@ -16,6 +16,7 @@
   --muted: #6c757d;
   --bg: #f8f9fa;
   --surface: #ffffff;
+  --card: #ffffff;
   --blue: #004192;
   --blue-2: #0d6efd;
   --blue-soft: #dfeaff;
@@ -1197,12 +1198,12 @@ details.page-actions > .actions-list {
   position: fixed;
   right: 22px;
   bottom: 92px;
-  z-index: 60;
+  z-index: 120; /* au-dessus du FAB (90) et de la barre d'actions mobile (70) */
   width: min(320px, calc(100vw - 28px));
   padding: 18px 18px 16px;
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: var(--card);
+  background: var(--card, var(--surface, #fff));
   box-shadow: 0 24px 50px -24px rgba(8, 24, 48, .55);
 }
 .agent-chooser[hidden] { display: none; }
@@ -1233,7 +1234,7 @@ details.page-actions > .actions-list {
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 58;
+  z-index: 120;
   width: min(420px, calc(100vw - 24px));
   max-height: min(640px, calc(100vh - 36px));
 }
@@ -1342,7 +1343,9 @@ details.page-actions > .actions-list {
 }
 @media (max-width: 640px) {
   .agent-chooser, .agent-chat { right: 12px; left: 12px; width: auto; }
-  .agent-chooser { bottom: 84px; }
+  /* FAB mobile ~ bottom 84px + safe-area : placer le sélecteur clairement au-dessus */
+  .agent-chooser { bottom: calc(148px + env(safe-area-inset-bottom, 0px)); }
+  .agent-chat { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-height: min(640px, calc(100vh - 24px - env(safe-area-inset-bottom, 0px))); }
 }
 
 /* Synthèse facturation */

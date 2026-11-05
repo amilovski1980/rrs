@@ -255,3 +255,47 @@ class ChatAminiaTests(TestCase):
         r = self.client.get("/agent/chat/")
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Aminia")
+
+
+
+class AminiaChooserMarkupTests(TestCase):
+    """Le FAB Aminia expose le sélecteur Vocal|Chat sur les pages cockpit."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("chooser@example.com", password="x")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="845678901",
+            denomination="Chooser SARL",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            activites=["menuiserie"],
+        )
+        generate_portal(self.company)
+
+    def test_cockpit_contains_chooser_and_chat_panel(self):
+        self.client.force_login(self.user)
+        r = self.client.get(f"/cockpit/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'data-agent-open')
+        self.assertContains(r, 'data-agent-chooser')
+        self.assertContains(r, 'data-agent-pick="voice"')
+        self.assertContains(r, 'data-agent-pick="chat"')
+        self.assertContains(r, 'data-agent-chat')
+        self.assertContains(r, 'data-agent-chat-form')
+        self.assertContains(r, "aminia-chooser-2")  # cache-bust static
+
+    def test_chat_endpoint_still_reachable(self):
+        self.client.force_login(self.user)
+        from django.test import override_settings
+        with override_settings(LLM_BASE_URL=""):
+            r = self.client.post(
+                "/agent/chat/message/",
+                data='{"message": "Salut"}',
+                content_type="application/json",
+            )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["ok"])

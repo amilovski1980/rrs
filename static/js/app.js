@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   function initVoiceDemo(reduceMotion) {
     var stage = document.querySelector("[data-voice-demo]");
@@ -105,7 +105,7 @@
         current = 0;
         inView = true;
         setPlaying(true);
-        if (window.matchMedia("(max-width: 1000px)").matches) {
+        if (window.matchMedia && window.matchMedia("(max-width: 1000px)").matches) {
           stage.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
@@ -449,6 +449,10 @@
       setStatus("Appuyez pour parler");
     };
 
+    var isOpen = function (el) {
+      return !!(el && el.hidden === false);
+    };
+
     var closeChooser = function () {
       if (chooser) chooser.hidden = true;
     };
@@ -457,13 +461,14 @@
       lastFocus = document.activeElement;
       if (panel) panel.hidden = true;
       if (chat) chat.hidden = true;
-      if (chooser) {
-        chooser.hidden = false;
-        openBtn.setAttribute("aria-expanded", "true");
-        openBtn.setAttribute("aria-controls", "agent-chooser");
-        var first = chooser.querySelector("[data-agent-pick]");
-        window.setTimeout(function () { if (first) first.focus(); }, 30);
-      }
+      if (!chooser) return;
+      /* Masquer le FAB (body.agent-open) pour ne pas couvrir le sélecteur, surtout mobile. */
+      chooser.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-chooser");
+      document.body.classList.add("agent-open");
+      var first = chooser.querySelector("[data-agent-pick]");
+      window.setTimeout(function () { if (first) first.focus(); }, 30);
     };
 
     var openVoice = function () {
@@ -538,16 +543,18 @@
 
     openBtn.addEventListener("click", function (event) {
       event.preventDefault();
-      if (chooser && chooser.hidden === false) {
+      event.stopPropagation();
+      if (isOpen(chooser)) {
         closeChooser();
         openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
         return;
       }
-      if (panel && panel.hidden === false) {
+      if (isOpen(panel)) {
         closeVoice();
         return;
       }
-      if (chat && chat.hidden === false) {
+      if (isOpen(chat)) {
         closeChat();
         return;
       }
@@ -568,6 +575,8 @@
         chooserClose.addEventListener("click", function () {
           closeChooser();
           openBtn.setAttribute("aria-expanded", "false");
+          document.body.classList.remove("agent-open");
+          openBtn.focus();
         });
       }
     }
@@ -590,16 +599,28 @@
 
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
-      if (chooser && !chooser.hidden) {
+      if (isOpen(chooser)) {
         closeChooser();
         openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
+        openBtn.focus();
         return;
       }
-      if (chat && !chat.hidden) {
+      if (isOpen(chat)) {
         closeChat();
         return;
       }
-      if (panel && !panel.hidden) closeVoice();
+      if (isOpen(panel)) closeVoice();
+    });
+
+    /* Clic extérieur : fermer le sélecteur (pas le panneau vocal/chat déjà modal). */
+    document.addEventListener("click", function (event) {
+      if (!isOpen(chooser)) return;
+      var t = event.target;
+      if (chooser.contains(t) || openBtn.contains(t)) return;
+      closeChooser();
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
     });
   }
 
