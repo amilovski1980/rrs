@@ -10,7 +10,7 @@
   </div>
 </div>
 <div class="card">
-  <form method="post">
+  <form class="form-stack" method="post">
     {% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     <div class="form-grid">

@@ -214,6 +214,14 @@ class CompanySettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["forme"].widget = forms.Select(choices=FORME_CHOICES)
+        self.fields["phone"].widget.input_type = "tel"
+        self.fields["phone"].widget.attrs.update(
+            {"autocomplete": "tel", "inputmode": "tel"}
+        )
+        self.fields["email"].widget.input_type = "email"
+        self.fields["email"].widget.attrs.update(
+            {"autocomplete": "email", "inputmode": "email"}
+        )
 
     def clean_logo(self):
         upload = self.cleaned_data.get("logo")

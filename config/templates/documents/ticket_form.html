@@ -10,7 +10,7 @@
   </div>
   <a class="btn btn-ghost" href="{% if ticket %}{% url 'ticket_detail' ticket.id %}?societe={{ company.id }}{% else %}{% url 'tickets' %}?societe={{ company.id }}{% endif %}">Annuler</a>
 </div>
-<form class="card card-tight" method="post" enctype="multipart/form-data" style="max-width:640px">
+<form class="card card-tight form-stack" method="post" enctype="multipart/form-data" style="max-width:640px">
   {% csrf_token %}
   {% for field in form %}
   <div class="field" style="margin-bottom:14px">

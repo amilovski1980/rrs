@@ -1370,3 +1370,80 @@ details.page-actions > .actions-list {
   border-radius: 8px;
 }
 .form-error { color: #b42318; font-size: 12.5px; margin: 4px 0 0; }
+
+/* ---------- Mobile / tactile : utilitaires & formulaires cockpit ---------- */
+.mobile-only { display: none !important; }
+.desktop-only { display: block; }
+@media (max-width: 860px), (pointer: coarse) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+  .mobile-only.btn,
+  a.mobile-only.btn,
+  label.mobile-only.btn,
+  .mobile-only.ticket-camera-btn { display: inline-flex !important; }
+}
+
+@media (max-width: 860px) {
+  .content, .main, .card, .form-stack, .page-head {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  input, select, textarea {
+    font-size: 16px; /* évite le zoom iOS */
+    min-height: 44px;
+    width: 100%;
+    max-width: 100%;
+  }
+  textarea { min-height: 96px; }
+  input[type="checkbox"], input[type="radio"] {
+    width: auto; min-height: 0; min-width: 22px; min-height: 22px;
+  }
+  input[type="file"] { min-height: 0; padding: 8px 0; }
+  label { margin-top: 14px; }
+  .form-stack .btn.form-submit,
+  .form-stack button[type="submit"],
+  .card form .btn.btn-primary[type="submit"] {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .card form .btn + .btn,
+  .form-stack .btn + .btn { width: 100%; }
+  /* Tables : scroll horizontal dans la carte, pas la page */
+  .card, .card-tight {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  table { min-width: 520px; }
+  .page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .page-head .btn { width: 100%; justify-content: center; min-height: 44px; }
+}
+
+.ticket-camera-block { margin-bottom: 18px; }
+.ticket-camera-hint { margin: 0 0 10px; font-weight: 600; }
+.ticket-camera-btn {
+  width: 100%;
+  min-height: 52px;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+.ticket-camera-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.ticket-file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}

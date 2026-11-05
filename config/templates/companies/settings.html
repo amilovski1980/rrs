@@ -12,7 +12,7 @@
 
 <div class="grid g2" style="align-items:start">
   <div class="card">
-    <form method="post" enctype="multipart/form-data">
+    <form class="form-stack" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <input type="hidden" name="invoice_theme" value="{{ company.invoice_theme }}">
       {% if form.non_field_errors %}

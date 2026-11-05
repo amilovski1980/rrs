@@ -683,3 +683,68 @@ class TicketDeCaisseTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Type de fichier")
+
+
+
+class TicketCameraUploadTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("camera@example.com")
+        self.user = user
+        self.company = _company(user, siren="855555555", name="Camera Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_upload_page_has_mobile_camera_capture(self):
+        r = self.http.get(f"/factures/tickets/import/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Prendre en photo")
+        self.assertContains(r, 'data-ticket-camera')
+        self.assertContains(r, 'capture="environment"')
+        self.assertContains(r, 'accept="image/*"')
+        self.assertContains(r, "mobile-only")
+        self.assertContains(r, "desktop-only")
+        self.assertContains(r, 'data-ticket-upload-form')
+
+    def test_list_has_mobile_camera_entry(self):
+        r = self.http.get(f"/factures/tickets/?societe={self.company.id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Prendre en photo")
+        self.assertContains(r, "camera=1")
+        self.assertContains(r, "mobile-only")
+
+    def test_camera_field_goes_through_ocr_flow(self):
+        """Le même champ name=fichier (alimenté par la caméra côté JS) passe l'OCR."""
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import TicketDeCaisse
+
+        png = SimpleUploadedFile(
+            "camera-shot.jpg",
+            b"\xff\xd8\xff\xe0fakejpeg",
+            content_type="image/jpeg",
+        )
+        with patch("documents.views.extract_receipt_text", return_value=SAMPLE_RECEIPT_TEXT):
+            with patch("documents.views.validate_upload"):
+                response = self.http.post(
+                    f"/factures/tickets/import/?societe={self.company.id}",
+                    {"fichier": png, "categorie": "carburant"},
+                )
+        self.assertEqual(response.status_code, 302)
+        ticket = TicketDeCaisse.objects.get(company=self.company)
+        self.assertEqual(ticket.categorie, "carburant")
+        self.assertTrue(ticket.ocr_text)
+        self.assertIsNotNone(ticket.journal_entry_id)
+        self.assertFalse(ticket.journal_entry.validated)
+
+    def test_heic_rejected_with_french_message(self):
+        from .receipt_ocr import ReceiptOcrError, validate_upload
+        with self.assertRaises(ReceiptOcrError) as ctx:
+            validate_upload("ticket.heic", "image/heic", 120_000)
+        self.assertIn("HEIC", str(ctx.exception))
+
+    def test_size_limit_is_10mb(self):
+        from .receipt_ocr import MAX_UPLOAD_BYTES, ReceiptOcrError, validate_upload
+        self.assertEqual(MAX_UPLOAD_BYTES, 10 * 1024 * 1024)
+        with self.assertRaises(ReceiptOcrError) as ctx:
+            validate_upload("big.jpg", "image/jpeg", MAX_UPLOAD_BYTES + 1)
+        self.assertIn("10 Mo", str(ctx.exception))

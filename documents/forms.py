@@ -33,6 +33,15 @@ class ClientForm(forms.ModelForm):
         self.fields["phone"].label = "Téléphone"
         self.fields["notes"].label = "Notes"
         self.fields["notes"].required = False
+        self.fields["email"].widget.input_type = "email"
+        self.fields["email"].widget.attrs.update(
+            {"autocomplete": "email", "inputmode": "email"}
+        )
+        self.fields["phone"].widget.input_type = "tel"
+        self.fields["phone"].widget.attrs.update(
+            {"autocomplete": "tel", "inputmode": "tel"}
+        )
+        self.fields["siren"].widget.attrs.update({"inputmode": "numeric", "pattern": "[0-9]*"})
 
     def clean_siren(self):
         raw = "".join(c for c in (self.cleaned_data.get("siren") or "") if c.isdigit())
@@ -55,6 +64,8 @@ class ProductForm(forms.ModelForm):
         self.fields["vat_rate"].label = "Taux de TVA (%)"
         self.fields["unit"].label = "Unité"
         self.fields["active"].label = "Actif"
+        self.fields["unit_price"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
 
     def clean_unit_price(self):
         price = self.cleaned_data["unit_price"]
@@ -109,6 +120,9 @@ class InvoiceForm(forms.ModelForm):
         self.fields["project"].required = False
         self.fields["amount_ht"].label = "Montant HT"
         self.fields["vat_rate"].label = "Taux de TVA (%)"
+        self.fields["amount_ht"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["client_siren"].widget.attrs.update({"inputmode": "numeric", "pattern": "[0-9]*"})
         if company is not None:
             self.fields["client"].queryset = Client.objects.filter(company=company)
             self.fields["project"].queryset = Project.objects.filter(company=company)
@@ -186,6 +200,8 @@ class QuoteForm(forms.ModelForm):
         self.fields["project"].required = False
         self.fields["amount_ht"].label = "Montant HT"
         self.fields["vat_rate"].label = "Taux de TVA (%)"
+        self.fields["amount_ht"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
         self.fields["valid_until"].label = "Valable jusqu'au"
         self.fields["valid_until"].required = False
         self.fields["notes"].label = "Notes"
@@ -239,6 +255,8 @@ class CreditNoteForm(forms.ModelForm):
         self.fields["invoice"].label = "Facture"
         self.fields["amount_ht"].label = "Montant HT"
         self.fields["vat_rate"].label = "Taux de TVA (%)"
+        self.fields["amount_ht"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
         self.fields["reason"].label = "Motif"
         self.fields["reason"].required = False
         if company is not None:
@@ -276,6 +294,7 @@ class PaymentForm(forms.ModelForm):
         self.company = company
         self.fields["invoice"].label = "Facture"
         self.fields["amount"].label = "Montant"
+        self.fields["amount"].widget.attrs.update({"inputmode": "decimal"})
         self.fields["method"].label = "Mode de paiement"
         self.fields["paid_at"].label = "Date"
         self.fields["reference"].label = "Référence"
@@ -345,12 +364,20 @@ class TicketDeCaisseForm(forms.ModelForm):
         self.fields["date"].input_formats = ["%Y-%m-%d", "%d/%m/%Y"]
         self.fields["image"].required = False
         self.fields["statut"].required = False
+        for name in ("montant_ttc", "montant_tva", "taux_tva"):
+            self.fields[name].widget.attrs.update({"inputmode": "decimal"})
 
 
 class TicketUploadForm(forms.Form):
     fichier = forms.FileField(
         label="Photo ou scan du ticket",
-        help_text="JPG, PNG, WEBP ou PDF — 8 Mo max.",
+        help_text="JPG, PNG, WEBP ou PDF — 10 Mo max.",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": "image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf",
+                "id": "id_fichier",
+            }
+        ),
     )
     categorie = forms.ChoiceField(
         choices=[("", "Détecter automatiquement")] + list(TICKET_CATEGORIES),

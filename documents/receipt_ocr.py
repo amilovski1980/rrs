@@ -22,7 +22,7 @@ ALLOWED_IMAGE_TYPES = {
     "application/pdf",
 }
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
-MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 Mo
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 Mo
 
 MONEY_RE = re.compile(
     r"(?<!\d)(\d{1,3}(?:[ \u00a0]\d{3})*|\d+)([.,]\d{2})\s*€?",
@@ -86,13 +86,20 @@ def validate_upload(filename: str, content_type: str | None, size: int) -> None:
         raise ReceiptOcrError("Le fichier est vide.")
     if size > MAX_UPLOAD_BYTES:
         raise ReceiptOcrError(
-            "Fichier trop volumineux (maximum 8 Mo). Compressez l'image ou le PDF."
+            "Fichier trop volumineux (maximum 10 Mo). "
+            "Reprenez la photo en résolution plus basse, ou compressez l'image."
         )
     name = (filename or "").lower()
     ext = ""
     if "." in name:
         ext = "." + name.rsplit(".", 1)[-1]
     ctype = (content_type or "").split(";")[0].strip().lower()
+    if ext in {".heic", ".heif"} or "heic" in ctype or "heif" in ctype:
+        raise ReceiptOcrError(
+            "Le format HEIC/HEIF n'est pas pris en charge. "
+            "Dans Réglages → Appareil photo, choisissez « Compatible au maximum » "
+            "(JPG), ou exportez la photo en JPG/PNG avant l'envoi."
+        )
     ok_ext = ext in ALLOWED_EXTENSIONS
     ok_type = ctype in ALLOWED_IMAGE_TYPES or ctype in ("application/octet-stream", "")
     if not ok_ext and not (ctype in ALLOWED_IMAGE_TYPES):
@@ -103,6 +110,41 @@ def validate_upload(filename: str, content_type: str | None, size: int) -> None:
         raise ReceiptOcrError(
             "Type de fichier non pris en charge. Envoyez un JPG, PNG, WEBP ou PDF."
         )
+
+
+
+def prepare_image_bytes_for_ocr(data: bytes, filename: str = "") -> bytes:
+    """Réduit les photos téléphone trop lourdes avant OCR (max ~2000 px, JPEG)."""
+    name = (filename or "").lower()
+    if name.endswith(".pdf"):
+        return data
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        return data
+    try:
+        image = Image.open(io.BytesIO(data))
+    except Exception:
+        return data
+    image = ImageOps.exif_transpose(image)
+    # HEIC peut s'ouvrir avec un plugin rare ; si format inconnu on laisse validate_upload
+    fmt = (image.format or "").upper()
+    if fmt in {"HEIC", "HEIF"}:
+        raise ReceiptOcrError(
+            "Le format HEIC/HEIF n'est pas pris en charge. "
+            "Enregistrez la photo en JPG ou PNG."
+        )
+    max_side = 2000
+    w, h = image.size
+    if max(w, h) > max_side:
+        image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+    if image.mode not in ("RGB", "L"):
+        image = image.convert("RGB")
+    elif image.mode == "L":
+        image = image.convert("RGB")
+    out = io.BytesIO()
+    image.save(out, format="JPEG", quality=85, optimize=True)
+    return out.getvalue()
 
 
 def preprocess_receipt_image(image):
@@ -159,7 +201,10 @@ def ocr_image_bytes(data: bytes, filename: str = "") -> str:
         )
 
     try:
+        data = prepare_image_bytes_for_ocr(data, filename=filename)
         image = Image.open(io.BytesIO(data))
+    except ReceiptOcrError:
+        raise
     except Exception as exc:
         raise ReceiptOcrError(
             "Image illisible. Vérifiez que le fichier n'est pas corrompu."

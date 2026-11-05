@@ -1006,6 +1006,39 @@
     }
   }
 
+
+  function initTicketCamera() {
+    var form = document.querySelector("[data-ticket-upload-form]");
+    if (!form) return;
+    var camera = form.querySelector("[data-ticket-camera]");
+    var fileInput = form.querySelector("#id_fichier") || form.querySelector('input[type="file"][name="fichier"]');
+    var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
+    if (!camera || !fileInput) return;
+
+    camera.addEventListener("change", function () {
+      if (!camera.files || !camera.files.length) return;
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(camera.files[0]);
+        fileInput.files = dt.files;
+      } catch (e) {
+        /* Safari ancien : soumettre via le champ camera en lui donnant le name */
+        camera.setAttribute("name", "fichier");
+        fileInput.removeAttribute("name");
+      }
+      if (submitBtn) submitBtn.textContent = "Analyse OCR…";
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else form.submit();
+    });
+
+    var params = new URLSearchParams(window.location.search || "");
+    if (params.get("camera") === "1") {
+      window.setTimeout(function () {
+        try { camera.click(); } catch (e) { /* geste utilisateur requis sur certains OS */ }
+      }, 200);
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var nav = document.querySelector(".nav");
     if (nav) {
@@ -1021,6 +1054,7 @@
     initActivityDemo();
     initAgent();
     initAgentChat();
+    initTicketCamera();
     initPhone();
 
     if (reduceMotion) return;
