@@ -73,3 +73,50 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, 'class="utility"')
         self.assertNotContains(response, "utility-in")
         self.assertContains(response, 'class="nav"')
+
+
+class CompanyColorTagTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("couleurs@exemple.fr")
+        self.user = user
+        self.companies = []
+        for i, name in enumerate(["Alpha SARL", "Beta SAS", "Gamma EURL"]):
+            self.companies.append(
+                Company.objects.create(
+                    owner=user,
+                    siren=f"81234568{i}",
+                    denomination=name,
+                    forme="SARL",
+                    regime="reel_simple",
+                    tva="reel",
+                    exercice_debut=date(2026, 1, 1),
+                    address="1 rue Test 75011 Paris",
+                )
+            )
+        self.client.force_login(user)
+
+    def test_cockpit_company_cards_have_distinct_color_classes(self):
+        page = self.client.get(f"/cockpit/?societe={self.companies[0].id}")
+        self.assertEqual(page.status_code, 200)
+        body = page.content.decode()
+        found = []
+        for i in range(10):
+            if f"company co-c{i}" in body or f"company co-c{i} " in body:
+                found.append(i)
+        # Au moins 3 pastilles distinctes pour 3 sociétés
+        classes = []
+        for c in self.companies:
+            # classe attribuée par index dans la liste
+            from companies.templatetags.company_colors import company_color_class
+            classes.append(company_color_class(c, self.companies))
+        self.assertEqual(len(set(classes)), 3)
+        for cls in classes:
+            self.assertIn(cls, body)
+        self.assertIn("co-avatar", body)
+
+    def test_color_class_stable_by_id(self):
+        from companies.templatetags.company_colors import company_color_class
+        a = company_color_class(self.companies[0])
+        b = company_color_class(self.companies[0])
+        self.assertEqual(a, b)
+        self.assertRegex(a, r"^co-c[0-9]$")

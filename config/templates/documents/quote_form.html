@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-head"><div><h1>{% if quote %}Modifier {{ quote.number }}{% else %}Nouveau devis{% endif %}</h1></div></div>
 <div class="card">
-  <form method="post">{% csrf_token %}
+  <form class="form-stack" method="post">{% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     <div class="form-grid">
       <div><label>Fiche client</label>{{ form.client }}</div>

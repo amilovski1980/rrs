@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   function initVoiceDemo(reduceMotion) {
     var stage = document.querySelector("[data-voice-demo]");
@@ -105,7 +105,7 @@
         current = 0;
         inView = true;
         setPlaying(true);
-        if (window.matchMedia("(max-width: 1000px)").matches) {
+        if (window.matchMedia && window.matchMedia("(max-width: 1000px)").matches) {
           stage.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       });
@@ -449,6 +449,10 @@
       setStatus("Appuyez pour parler");
     };
 
+    var isOpen = function (el) {
+      return !!(el && el.hidden === false);
+    };
+
     var closeChooser = function () {
       if (chooser) chooser.hidden = true;
     };
@@ -457,13 +461,14 @@
       lastFocus = document.activeElement;
       if (panel) panel.hidden = true;
       if (chat) chat.hidden = true;
-      if (chooser) {
-        chooser.hidden = false;
-        openBtn.setAttribute("aria-expanded", "true");
-        openBtn.setAttribute("aria-controls", "agent-chooser");
-        var first = chooser.querySelector("[data-agent-pick]");
-        window.setTimeout(function () { if (first) first.focus(); }, 30);
-      }
+      if (!chooser) return;
+      /* Masquer le FAB (body.agent-open) pour ne pas couvrir le sélecteur, surtout mobile. */
+      chooser.hidden = false;
+      openBtn.setAttribute("aria-expanded", "true");
+      openBtn.setAttribute("aria-controls", "agent-chooser");
+      document.body.classList.add("agent-open");
+      var first = chooser.querySelector("[data-agent-pick]");
+      window.setTimeout(function () { if (first) first.focus(); }, 30);
     };
 
     var openVoice = function () {
@@ -538,16 +543,18 @@
 
     openBtn.addEventListener("click", function (event) {
       event.preventDefault();
-      if (chooser && chooser.hidden === false) {
+      event.stopPropagation();
+      if (isOpen(chooser)) {
         closeChooser();
         openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
         return;
       }
-      if (panel && panel.hidden === false) {
+      if (isOpen(panel)) {
         closeVoice();
         return;
       }
-      if (chat && chat.hidden === false) {
+      if (isOpen(chat)) {
         closeChat();
         return;
       }
@@ -568,6 +575,8 @@
         chooserClose.addEventListener("click", function () {
           closeChooser();
           openBtn.setAttribute("aria-expanded", "false");
+          document.body.classList.remove("agent-open");
+          openBtn.focus();
         });
       }
     }
@@ -590,16 +599,28 @@
 
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
-      if (chooser && !chooser.hidden) {
+      if (isOpen(chooser)) {
         closeChooser();
         openBtn.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("agent-open");
+        openBtn.focus();
         return;
       }
-      if (chat && !chat.hidden) {
+      if (isOpen(chat)) {
         closeChat();
         return;
       }
-      if (panel && !panel.hidden) closeVoice();
+      if (isOpen(panel)) closeVoice();
+    });
+
+    /* Clic extérieur : fermer le sélecteur (pas le panneau vocal/chat déjà modal). */
+    document.addEventListener("click", function (event) {
+      if (!isOpen(chooser)) return;
+      var t = event.target;
+      if (chooser.contains(t) || openBtn.contains(t)) return;
+      closeChooser();
+      openBtn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("agent-open");
     });
   }
 
@@ -985,6 +1006,121 @@
     }
   }
 
+
+
+  function parseTicketDecimal(raw) {
+    if (raw == null) return null;
+    var s = String(raw).trim().replace(/\s/g, "").replace(",", ".");
+    if (!s) return null;
+    var n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatTicketEuro(n) {
+    try {
+      return new Intl.NumberFormat("fr-FR", {
+        style: "currency",
+        currency: "EUR",
+      }).format(n);
+    } catch (e) {
+      return n.toFixed(2).replace(".", ",") + " €";
+    }
+  }
+
+  function initTicketFormUx() {
+    var form = document.querySelector("[data-ticket-form]");
+    if (!form) return;
+
+    var ttc = form.querySelector('[data-ticket-money="montant_ttc"]');
+    var tva = form.querySelector('[data-ticket-money="montant_tva"]');
+    var taux = form.querySelector('[data-ticket-money="taux_tva"]');
+    var htValue = form.querySelector("[data-ticket-ht-value]");
+
+    function refreshHt() {
+      if (!htValue) return;
+      var ttcN = parseTicketDecimal(ttc && ttc.value);
+      var tvaN = parseTicketDecimal(tva && tva.value);
+      var tauxN = parseTicketDecimal(taux && taux.value);
+      var ht = null;
+      if (ttcN != null && tvaN != null) {
+        ht = ttcN - tvaN;
+      } else if (ttcN != null && tauxN != null && tauxN >= 0) {
+        ht = ttcN / (1 + tauxN / 100);
+      }
+      if (ht == null || !Number.isFinite(ht)) {
+        htValue.textContent = "—";
+        return;
+      }
+      htValue.textContent = formatTicketEuro(ht);
+    }
+
+    ["input", "change"].forEach(function (evt) {
+      if (ttc) ttc.addEventListener(evt, refreshHt);
+      if (tva) tva.addEventListener(evt, refreshHt);
+      if (taux) taux.addEventListener(evt, refreshHt);
+    });
+    refreshHt();
+
+    var camera = form.querySelector("[data-ticket-form-camera]");
+    var imageInput = form.querySelector("#id_image");
+    if (camera && imageInput) {
+      camera.addEventListener("change", function () {
+        if (!camera.files || !camera.files.length) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(camera.files[0]);
+          imageInput.files = dt.files;
+        } catch (e) {
+          camera.setAttribute("name", "image");
+          imageInput.removeAttribute("name");
+        }
+        var label = form.querySelector("label[for='id_image']");
+        if (label) {
+          var note = form.querySelector("[data-ticket-camera-picked]");
+          if (!note) {
+            note = document.createElement("p");
+            note.className = "sub";
+            note.setAttribute("data-ticket-camera-picked");
+            imageInput.parentNode.appendChild(note);
+          }
+          note.textContent = "Photo sélectionnée : " + (camera.files[0].name || "ticket.jpg");
+        }
+      });
+    }
+  }
+
+  function initTicketCamera() {
+    var form = document.querySelector("[data-ticket-upload-form]");
+    if (!form) return;
+    var camera = form.querySelector("[data-ticket-camera]");
+    var fileInput = form.querySelector("#id_fichier") || form.querySelector('input[type="file"][name="fichier"]');
+    var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
+    if (!camera || !fileInput) return;
+
+    camera.addEventListener("change", function () {
+      if (!camera.files || !camera.files.length) return;
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(camera.files[0]);
+        fileInput.files = dt.files;
+      } catch (e) {
+        /* Safari ancien : soumettre via le champ camera en lui donnant le name */
+        camera.setAttribute("name", "fichier");
+        fileInput.removeAttribute("name");
+      }
+      if (submitBtn) submitBtn.textContent = "Analyse OCR…";
+      if (typeof form.requestSubmit === "function") form.requestSubmit();
+      else form.submit();
+    });
+
+    var params = new URLSearchParams(window.location.search || "");
+    if (params.get("camera") === "1") {
+      window.setTimeout(function () {
+        try { camera.click(); } catch (e) { /* geste utilisateur requis sur certains OS */ }
+      }, 200);
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var nav = document.querySelector(".nav");
     if (nav) {
@@ -1000,6 +1136,8 @@
     initActivityDemo();
     initAgent();
     initAgentChat();
+    initTicketCamera();
+    initTicketFormUx();
     initPhone();
 
     if (reduceMotion) return;

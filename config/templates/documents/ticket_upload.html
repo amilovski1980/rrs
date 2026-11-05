@@ -10,16 +10,43 @@
   </div>
   <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Retour</a>
 </div>
-<form class="card card-tight" method="post" enctype="multipart/form-data" style="max-width:560px">
+
+<form class="card card-tight form-stack" method="post" enctype="multipart/form-data" data-ticket-upload-form style="max-width:560px">
   {% csrf_token %}
-  {% for field in form %}
-  <div class="field" style="margin-bottom:14px">
-    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-    {{ field }}
-    {% if field.help_text %}<p class="sub">{{ field.help_text }}</p>{% endif %}
-    {% for err in field.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+
+  <div class="field mobile-only ticket-camera-block">
+    <p class="ticket-camera-hint">Sur téléphone, photographiez directement le ticket :</p>
+    <label class="btn btn-primary ticket-camera-btn" for="id_ticket_camera">Prendre en photo</label>
+    <input
+      id="id_ticket_camera"
+      class="ticket-camera-input"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      data-ticket-camera
+    >
+    <p class="sub">La photo est envoyée au même OCR que l'import classique (brouillon à valider).</p>
   </div>
-  {% endfor %}
-  <button class="btn btn-primary" type="submit">Lancer l'OCR</button>
+
+  <div class="field desktop-only">
+    <label for="{{ form.fichier.id_for_label }}">{{ form.fichier.label }}</label>
+    {{ form.fichier }}
+    {% if form.fichier.help_text %}<p class="sub">{{ form.fichier.help_text }}</p>{% endif %}
+    {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+  </div>
+
+  {# Sur mobile le champ fichier reste présent (pour recevoir la photo via JS) mais masqué. #}
+  <div class="field mobile-only ticket-file-hidden">
+    {{ form.fichier }}
+    {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+  </div>
+
+  <div class="field">
+    <label for="{{ form.categorie.id_for_label }}">{{ form.categorie.label }}</label>
+    {{ form.categorie }}
+    {% for err in form.categorie.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+  </div>
+
+  <button class="btn btn-primary form-submit" type="submit" data-ticket-ocr-submit>Lancer l'OCR</button>
 </form>
 {% endblock %}

@@ -13,6 +13,9 @@
     <summary class="btn btn-primary actions-summary">Actions</summary>
     <div class="actions-list">
       <a class="btn btn-ghost" href="{% url 'ticket_create' %}?societe={{ company.id }}">Saisie manuelle</a>
+      <a class="btn btn-primary mobile-only" href="{% url 'ticket_upload' %}?societe={{ company.id }}&camera=1">
+        Prendre en photo
+      </a>
       <a class="btn btn-primary" href="{% url 'ticket_upload' %}?societe={{ company.id }}">
         {% include "partials/icon.html" with name="plus" %} Importer (OCR)
       </a>

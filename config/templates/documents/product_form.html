@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-head"><div><h1>{% if product %}Modifier {{ product.label }}{% else %}Nouveau produit / service{% endif %}</h1><p class="sub">{{ company.denomination }}</p></div></div>
 <div class="card">
-  <form method="post">
+  <form class="form-stack" method="post">
     {% csrf_token %}
     <div class="form-grid">
       <div><label>Libellé</label>{{ form.label }}{% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}</div>

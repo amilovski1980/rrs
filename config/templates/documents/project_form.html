@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-head"><div><h1>{% if project %}Modifier {{ project.name }}{% else %}Nouveau projet{% endif %}</h1></div></div>
 <div class="card">
-  <form method="post">{% csrf_token %}
+  <form class="form-stack" method="post">{% csrf_token %}
     <div class="form-grid">
       <div><label>Nom</label>{{ form.name }}{% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}</div>
       <div><label>Client</label>{{ form.client }}</div>
