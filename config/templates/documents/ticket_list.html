@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Tickets de caisse{% endblock %}
+{% block crumbs %}Facturation · Tickets{% endblock %}
+{% block nav_tickets %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Tickets de caisse</h1>
+    <p class="sub">{{ company.denomination }} — {{ tickets|length }} ticket{{ tickets|length|pluralize }} ·
+      total TTC {{ total_ttc|floatformat:2 }} € · TVA {{ total_tva|floatformat:2 }} €</p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'ticket_create' %}?societe={{ company.id }}">Saisie manuelle</a>
+      <a class="btn btn-primary" href="{% url 'ticket_upload' %}?societe={{ company.id }}">
+        {% include "partials/icon.html" with name="plus" %} Importer (OCR)
+      </a>
+    </div>
+  </details>
+</div>
+
+<form class="card card-tight ticket-filters" method="get" style="margin-bottom:16px">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <div class="form-grid">
+    <div>
+      <label for="f-du">Du</label>
+      <input id="f-du" type="date" name="du" value="{{ filters.du }}">
+    </div>
+    <div>
+      <label for="f-au">Au</label>
+      <input id="f-au" type="date" name="au" value="{{ filters.au }}">
+    </div>
+    <div>
+      <label for="f-cat">Catégorie</label>
+      <select id="f-cat" name="categorie">
+        <option value="">Toutes</option>
+        {% for value, label in categories %}
+        <option value="{{ value }}" {% if filters.categorie == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="f-four">Fournisseur</label>
+      <input id="f-four" type="text" name="fournisseur" value="{{ filters.fournisseur }}" placeholder="Magasin…">
+    </div>
+    <div>
+      <label for="f-st">Statut</label>
+      <select id="f-st" name="statut">
+        <option value="">Tous</option>
+        <option value="brouillon" {% if filters.statut == "brouillon" %}selected{% endif %}>Brouillon</option>
+        <option value="valide" {% if filters.statut == "valide" %}selected{% endif %}>Validé</option>
+      </select>
+    </div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button class="btn btn-primary" type="submit">Filtrer</button>
+    <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Réinitialiser</a>
+  </div>
+</form>
+
+<div class="card card-tight">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th><th>Magasin</th><th>Catégorie</th>
+        <th class="num">TTC</th><th class="num">TVA</th><th>Statut</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tk in tickets %}
+      <tr>
+        <td>{{ tk.date|date:"d/m/Y" }}</td>
+        <td><a href="{% url 'ticket_detail' tk.id %}?societe={{ company.id }}"><b>{{ tk.magasin|default:"—" }}</b></a></td>
+        <td>{{ tk.get_categorie_display }}</td>
+        <td class="num">{{ tk.montant_ttc|floatformat:2 }} €</td>
+        <td class="num">{{ tk.montant_tva|floatformat:2 }} €</td>
+        <td>
+          <span class="badge {% if tk.statut == 'valide' %}badge-green{% else %}badge-amber{% endif %}">
+            {{ tk.get_statut_display }}
+          </span>
+        </td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'ticket_detail' tk.id %}?societe={{ company.id }}">Voir</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="empty">Aucun ticket. Importez une photo ou saisissez-en un.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if tickets %}
+    <tfoot>
+      <tr>
+        <td colspan="3"><b>Totaux (filtre)</b></td>
+        <td class="num"><b>{{ total_ttc|floatformat:2 }} €</b></td>
+        <td class="num"><b>{{ total_tva|floatformat:2 }} €</b></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

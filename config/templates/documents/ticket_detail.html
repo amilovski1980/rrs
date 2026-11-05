@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Ticket · {{ ticket.magasin|default:"caisse" }}{% endblock %}
+{% block crumbs %}Facturation · Tickets{% endblock %}
+{% block nav_tickets %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ ticket.magasin|default:"Ticket de caisse" }}</h1>
+    <p class="sub">{{ ticket.date|date:"d/m/Y" }} ·
+      <span class="badge {% if ticket.statut == 'valide' %}badge-green{% else %}badge-amber{% endif %}">
+        {{ ticket.get_statut_display }}
+      </span>
+    </p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Liste</a>
+      <a class="btn btn-ghost" href="{% url 'ticket_edit' ticket.id %}?societe={{ company.id }}">Modifier</a>
+      {% if ticket.statut != 'valide' %}
+      <form method="post" action="{% url 'ticket_validate' ticket.id %}?societe={{ company.id }}" style="display:inline">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Valider</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'ticket_delete' ticket.id %}?societe={{ company.id }}" style="display:inline" onsubmit="return confirm('Supprimer ce ticket ?');">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Supprimer</button>
+      </form>
+    </div>
+  </details>
+</div>
+
+<div class="grid g2" style="margin-bottom:18px">
+  <div class="card card-tight">
+    <h3>Montants</h3>
+    <p><b>TTC</b> {{ ticket.montant_ttc|floatformat:2 }} € · <b>TVA</b> {{ ticket.montant_tva|floatformat:2 }} € ({{ ticket.taux_tva }} %) · <b>HT</b> {{ ticket.montant_ht|floatformat:2 }} €</p>
+    <p>Catégorie : {{ ticket.get_categorie_display }}{% if ticket.moyen_paiement %} · Paiement : {{ ticket.moyen_paiement }}{% endif %}</p>
+    {% if ticket.notes %}<p class="sub">{{ ticket.notes }}</p>{% endif %}
+    {% if ticket.journal_entry %}
+    <p class="sub">Écriture proposée : {{ ticket.journal_entry.label }}
+      ({% if ticket.journal_entry.validated %}validée{% else %}brouillon{% endif %})</p>
+    {% endif %}
+  </div>
+  <div class="card card-tight">
+    <h3>Image</h3>
+    {% if ticket.image %}
+    <p><a href="{{ ticket.image.url }}" target="_blank" rel="noopener">Voir le fichier</a></p>
+    {% else %}
+    <p class="sub">Aucune image jointe.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if ticket.line_items %}
+<div class="card card-tight" style="margin-bottom:18px">
+  <h3>Lignes détectées</h3>
+  <ul>
+    {% for line in ticket.line_items %}
+    <li>{{ line.description }} — {{ line.montant }} €</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if ticket.ocr_text %}
+<details class="card card-tight">
+  <summary>Texte OCR brut</summary>
+  <pre class="ticket-ocr-raw">{{ ticket.ocr_text }}</pre>
+</details>
+{% endif %}
+{% endblock %}

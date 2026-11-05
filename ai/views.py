@@ -214,3 +214,63 @@ def draft_reject(request, pk):
     messages.success(request, "Brouillon rejeté.")
     return redirect("ai_drafts")
 
+
+
+
+# ---------------------------------------------------------------------------
+# Chat texte Aminia
+# ---------------------------------------------------------------------------
+from core.context import resolve_company as resolve_web_company_chat
+
+from .chat import get_or_create_conversation, run_chat_turn
+from .models import Conversation
+
+
+@login_required
+def chat_page(request):
+    """Page chat dédiée (fallback hors panneau) — company-scoped."""
+    company = resolve_web_company_chat(request)
+    if company is None:
+        return redirect("onboarding")
+    conversation = get_or_create_conversation(request.user, company)
+    messages_qs = conversation.messages.order_by("created_at")
+    return render(request, "ai/chat.html", {
+        "company": company,
+        "conversation": conversation,
+        "chat_messages": messages_qs,
+    })
+
+
+@login_required
+@require_POST
+def chat_message(request):
+    """JSON : envoi d'un message chat (CSRF + login + tenant)."""
+    company = resolve_web_company_chat(request)
+    if company is None:
+        return JsonResponse(
+            {"ok": False, "error": "Aucune société sélectionnée."},
+            status=400,
+        )
+    body = _json_body(request)
+    if body is None:
+        text = (request.POST.get("message") or "").strip()
+        conversation_id = request.POST.get("conversation_id") or ""
+    else:
+        text = (body.get("message") or "").strip()
+        conversation_id = body.get("conversation_id") or ""
+
+    conversation = None
+    if conversation_id:
+        conversation = Conversation.objects.filter(
+            pk=conversation_id, user=request.user, company=company
+        ).first()
+        if conversation is None:
+            return JsonResponse({"ok": False, "error": "Conversation introuvable."}, status=404)
+    else:
+        conversation = get_or_create_conversation(request.user, company)
+
+    result = run_chat_turn(request.user, company, conversation, text)
+    status = result.pop("status", 200)
+    if not result.get("ok") and status == 200:
+        status = 400
+    return JsonResponse(result, status=status)

@@ -164,3 +164,94 @@ class ClientDraftTests(TestCase):
         self.assertEqual(client.name, "À Valider SARL")
         self.assertEqual(client.siren, "987654321")
 
+
+
+
+class ChatAminiaTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("chat@example.com", password="x")
+        self.other = User.objects.create_user("chat-other@example.com", password="x")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="823456789",
+            denomination="Atelier Chat",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            activites=["menuiserie"],
+        )
+        generate_portal(self.company)
+
+    def test_chat_requires_login(self):
+        r = self.client.post("/agent/chat/message/", {"message": "Bonjour"}, content_type="application/json")
+        self.assertEqual(r.status_code, 302)
+
+    def test_chat_empty_message(self):
+        self.client.force_login(self.user)
+        r = self.client.post(
+            "/agent/chat/message/",
+            data='{"message": "  "}',
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(r.json()["ok"])
+
+    def test_chat_fallback_without_llm(self):
+        from django.test import override_settings
+        self.client.force_login(self.user)
+        with override_settings(LLM_BASE_URL=""):
+            r = self.client.post(
+                "/agent/chat/message/",
+                data='{"message": "Bonjour Aminia"}',
+                content_type="application/json",
+            )
+        self.assertEqual(r.status_code, 200)
+        payload = r.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["fallback"])
+        self.assertIn("disponible", payload["reply"].lower())
+        from .models import Conversation, Message
+        conv = Conversation.objects.get(pk=payload["conversation_id"])
+        self.assertEqual(conv.user_id, self.user.id)
+        self.assertEqual(conv.company_id, self.company.id)
+        roles = list(conv.messages.order_by("created_at").values_list("role", flat=True))
+        self.assertEqual(roles, ["user", "assistant"])
+
+    def test_chat_tenant_isolation_on_conversation(self):
+        from .models import Conversation
+        self.client.force_login(self.user)
+        from django.test import override_settings
+        with override_settings(LLM_BASE_URL=""):
+            r = self.client.post(
+                "/agent/chat/message/",
+                data='{"message": "Premier"}',
+                content_type="application/json",
+            )
+        cid = r.json()["conversation_id"]
+        self.client.force_login(self.other)
+        other_co = Company.objects.create(
+            owner=self.other,
+            siren="899999999",
+            denomination="Autre",
+            forme="SAS",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            activites=["plomberie"],
+        )
+        generate_portal(other_co)
+        with override_settings(LLM_BASE_URL=""):
+            r2 = self.client.post(
+                "/agent/chat/message/",
+                data=f'{{"message": "Intrus", "conversation_id": "{cid}"}}',
+                content_type="application/json",
+            )
+        self.assertEqual(r2.status_code, 404)
+
+    def test_chat_page_ok(self):
+        self.client.force_login(self.user)
+        r = self.client.get("/agent/chat/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Aminia")

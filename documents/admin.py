@@ -11,6 +11,7 @@ from .models import (
     Project,
     Quote,
     QuoteLine,
+    TicketDeCaisse,
 )
 
 
@@ -81,3 +82,20 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ("invoice", "company", "amount", "method", "paid_at")
     list_filter = ("method", "paid_at", "company")
     search_fields = ("invoice__number", "reference")
+
+
+
+@admin.register(TicketDeCaisse)
+class TicketDeCaisseAdmin(admin.ModelAdmin):
+    list_display = (
+        "date",
+        "magasin",
+        "montant_ttc",
+        "categorie",
+        "statut",
+        "company",
+        "created_at",
+    )
+    list_filter = ("statut", "categorie", "company", "date")
+    search_fields = ("magasin", "ocr_text", "moyen_paiement")
+    readonly_fields = ("id", "created_at", "updated_at", "ocr_text")
