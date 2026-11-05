@@ -549,11 +549,52 @@ h2 { font-family: var(--font-head); font-size: 36px; letter-spacing: -.5px; marg
 
 /* ---------- Pied de page ---------- */
 footer { background: #fff; border-top: 3px solid var(--blue); color: var(--muted); font-size: 13.5px; }
-.foot-main { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 28px; padding: 42px 0 30px; }
-.foot-main h4 { font-family: var(--font-head); font-size: 15px; color: var(--ink); margin: 0 0 12px; text-transform: uppercase; letter-spacing: .4px; }
-.foot-main ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.foot-main a { color: var(--muted); }
-.foot-main a:hover { color: var(--blue); }
+.foot-main { 
+  display: grid; 
+  grid-template-columns: 1.6fr 1fr 1fr 1fr; 
+  gap: 40px; 
+  padding: 60px 0 40px; 
+  border-top: 1px solid var(--line);
+  background: #fcfdfe;
+}
+.foot-main h4 { 
+  font-family: var(--font-head); 
+  font-size: 13px; 
+  color: var(--ink); 
+  margin: 0 0 20px; 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+  font-weight: 700;
+  position: relative;
+}
+.foot-main h4::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 20px;
+  height: 2px;
+  background: var(--blue);
+}
+.foot-main ul { 
+  list-style: none; 
+  margin: 0; 
+  padding: 0; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+}
+.foot-main a { 
+  color: var(--muted); 
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+.foot-main a:hover { 
+  color: var(--blue); 
+  transform: translateX(4px);
+  text-decoration: none;
+}
 .foot-brand p { margin: 10px 0 0; max-width: 320px; line-height: 1.7; }
 .foot-brand img { width: 40px; height: 40px; border-radius: 7px; }
 .foot-brand .logo img { width: auto; height: 48px; max-width: 180px; border-radius: 0; }
@@ -1832,12 +1873,48 @@ label.ticket-camera-btn.btn-primary:hover {
   .ticket-form-actions .btn-primary,
   .form-actions-bar .btn-primary { flex: 2 1 auto; }
 
+  .ticket-filters {
+    padding: 24px !important;
+    background: var(--surface) !important;
+    border-radius: var(--radius-lg) !important;
+  }
   .ticket-filters .form-grid {
-    grid-template-columns: 1fr 1fr;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 32px !important;
+    align-items: flex-end !important;
+  }
+  .ticket-filters .form-grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    flex: 0 1 220px !important;
+  }
+  .ticket-filters label {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    color: var(--muted) !important;
+    margin-bottom: 2px !important;
+  }
+  .ticket-filters input, 
+  .ticket-filters select {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    border: 1px solid var(--line-2) !important;
+    border-radius: var(--radius) !important;
+    font-size: 15px !important;
+    transition: all 0.2s ease !important;
+  }
+  .ticket-filters input:focus, 
+  .ticket-filters select:focus {
+    border-color: var(--blue-2) !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1) !important;
+    outline: none !important;
   }
   .ticket-filters .form-grid > .tf-span,
   .ticket-filters .form-grid > div:nth-child(5) {
-    grid-column: 1 / -1;
+    flex: 1 1 100% !important;
   }
 
   /* page-actions — pleine largeur au-dessus du footer ; menu VERS LE HAUT */
@@ -1983,4 +2060,139 @@ label.ticket-camera-btn.btn-primary:hover {
   .agent-fab { right: var(--space-3); }
   h1 { font-size: 34px; }
   .content h1 { font-size: 24px; }
+}
+
+/* ---------- Dashboard & Data Visualization ---------- */
+:root {
+  --data-indigo: #6366f1;
+  --data-emerald: #10b981;
+  --data-amber: #f59e0b;
+  --data-rose: #f43f5e;
+  --data-sky: #0ea5e9;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.stat-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 24px !important;
+  padding: 24px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-card .value {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, var(--ink) 0%, var(--muted) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  margin-bottom: 4px !important;
+}
+
+/* Stylisation des graphiques (Camemberts/Barres) */
+.chart-container {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 24px !important;
+  border: 1px solid var(--glass-border) !important;
+  padding: 20px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Tableaux de bord modernes */
+.data-table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 8px !important;
+  margin-top: 20px !important;
+}
+
+.data-table thead th {
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  padding: 12px 16px !important;
+  border: none !important;
+}
+
+.data-table tbody td {
+  background: #fff !important;
+  padding: 16px !important;
+  border-top: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line) !important;
+  font-size: 14px !important;
+}
+
+.data-table tbody tr td:first-child {
+  border-left: 1px solid var(--line) !important;
+  border-top-left-radius: 12px !important;
+  border-bottom-left-radius: 12px !important;
+}
+
+.data-table tbody tr td:last-child {
+  border-right: 1px solid var(--line) !important;
+  border-top-right-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+
+.data-table tbody tr:hover td {
+  background: #f8faff !important;
+  color: var(--blue-2) !important;
+  cursor: pointer;
+}
+
+/* Badges de couleur pour camemberts/status */
+.badge-indigo { background: var(--data-indigo); color: white; }
+.badge-emerald { background: var(--data-emerald); color: white; }
+.badge-amber { background: var(--data-amber); color: white; }
+.badge-rose { background: var(--data-rose); color: white; }
+.badge-sky { background: var(--data-sky); color: white; }
+
+.badge {
+  padding: 4px 10px !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
 }
