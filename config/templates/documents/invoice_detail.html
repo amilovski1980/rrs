@@ -8,13 +8,16 @@
     <h1>{{ invoice.number }}</h1>
     <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
   </div>
-  <div class="page-actions">
-    <a class="btn btn-primary" href="{% url 'invoice_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF</a>
-    <a class="btn btn-ghost" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">
-      {% include "partials/icon.html" with name="pencil" %} Modifier
-    </a>
-    <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'invoice_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      <a class="btn btn-ghost" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">
+        {% include "partials/icon.html" with name="pencil" %} Modifier
+      </a>
+      <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
 
 <div class="model-grid model-grid-inline">
@@ -31,16 +34,16 @@
         </span>
         <span class="mp-who"><i></i><i></i></span>
         <span class="mp-row"></span>
-        <span class="mp-row"></span>
         <span class="mp-row short"></span>
         <span class="mp-due"><i></i><b></b></span>
       </span>
+      <span class="model-label">{{ label }}</span>
     </button>
   </form>
   {% endfor %}
 </div>
 
-{% include "documents/invoice_sheet.html" %}
+<section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
 <div class="card" style="padding:18px 22px;margin-top:16px">
   <p class="sub">Payé {{ invoice.amount_paid|floatformat:2 }} € · Restant {{ invoice.amount_remaining|floatformat:2 }} € TTC</p>

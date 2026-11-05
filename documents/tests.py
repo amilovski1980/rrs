@@ -345,3 +345,133 @@ class CrudPagesSmokeTests(TestCase):
         ):
             response = self.http.get(url)
             self.assertEqual(response.status_code, 200, url)
+
+
+
+class ThemeAndDocumentPdfTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("themes@example.com")
+        self.user = user
+        self.company = _company(user, siren="919191919", name="Thèmes Co")
+        self.http = self.client
+        self.http.force_login(user)
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-theme",
+            client_name="Client Lignes",
+            amount_ht=Decimal("250.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        InvoiceLine.objects.create(
+            invoice=self.invoice,
+            position=1,
+            description="Prestation catalogue A",
+            quantity=Decimal("2"),
+            unit_price=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        InvoiceLine.objects.create(
+            invoice=self.invoice,
+            position=2,
+            description="Prestation catalogue B avec une description assez longue pour le PDF",
+            quantity=Decimal("1"),
+            unit_price=Decimal("50.00"),
+            vat_rate=Decimal("20.00"),
+        )
+
+    def test_all_themes_render_pdf_bytes(self):
+        from companies.models import INVOICE_THEMES
+        from documents.pdf import render_invoice_pdf
+
+        for code, _label in INVOICE_THEMES:
+            self.company.invoice_theme = code
+            self.company.save(update_fields=["invoice_theme"])
+            payload = render_invoice_pdf(self.invoice, self.company)
+            self.assertTrue(payload.startswith(b"%PDF"), code)
+            self.assertGreater(len(payload), 500, code)
+
+    def test_sheet_shows_invoice_lines(self):
+        response = self.http.get(f"/factures/{self.invoice.id}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Prestation catalogue A")
+        self.assertContains(response, "Prestation catalogue B")
+        self.assertNotContains(response, "Prestation — Client Lignes")
+
+    def test_legacy_sheet_without_lines(self):
+        bare = Invoice.objects.create(
+            company=self.company,
+            number="BR-legacy",
+            client_name="Sans Lignes",
+            amount_ht=Decimal("80.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        response = self.http.get(f"/factures/{bare.id}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Prestation — Sans Lignes")
+
+    def test_new_themes_accepted_in_settings(self):
+        for theme in ("graphite", "indigo", "terra"):
+            response = self.http.post("/societe/", {
+                "theme": theme,
+                "next": "/cockpit/",
+            })
+            self.assertEqual(response.status_code, 302, theme)
+            self.company.refresh_from_db()
+            self.assertEqual(self.company.invoice_theme, theme)
+
+    def test_quote_and_credit_pdf_endpoints(self):
+        quote = Quote.objects.create(
+            company=self.company,
+            number="BR-theme-q",
+            client_name="Prospect",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        qpdf = self.http.get(f"/factures/devis/{quote.id}/pdf/")
+        self.assertEqual(qpdf.status_code, 200)
+        self.assertTrue(qpdf.content.startswith(b"%PDF"))
+
+        issue_invoice(self.invoice)
+        self.invoice.refresh_from_db()
+        note = CreditNote.objects.create(
+            company=self.company,
+            invoice=self.invoice,
+            number="BR-theme-av",
+            amount_ht=Decimal("10.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        cpdf = self.http.get(f"/factures/avoirs/{note.id}/pdf/")
+        self.assertEqual(cpdf.status_code, 200)
+        self.assertTrue(cpdf.content.startswith(b"%PDF"))
+
+    def test_quote_credit_pdf_tenant_isolation(self):
+        other_user = get_user_model().objects.create_user("other-theme@example.com")
+        other = _company(other_user, siren="929292929", name="Autre")
+        quote = Quote.objects.create(
+            company=other,
+            number="BR-iso-q",
+            client_name="X",
+            amount_ht=Decimal("10.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        inv = Invoice.objects.create(
+            company=other,
+            number="BR-iso-f",
+            client_name="X",
+            amount_ht=Decimal("10.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        note = CreditNote.objects.create(
+            company=other,
+            invoice=inv,
+            number="BR-iso-av",
+            amount_ht=Decimal("5.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        self.assertEqual(self.http.get(f"/factures/devis/{quote.id}/pdf/").status_code, 404)
+        self.assertEqual(self.http.get(f"/factures/avoirs/{note.id}/pdf/").status_code, 404)

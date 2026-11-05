@@ -5,10 +5,13 @@
 {% block content %}
 <div class="page-head">
   <div><h1>{{ project.name }}</h1><p class="sub">{{ project.get_status_display }}{% if project.client %} · {{ project.client.name }}{% endif %}</p></div>
-  <div class="page-actions">
-    <a class="btn btn-primary" href="{% url 'project_edit' project.id %}?societe={{ company.id }}">Modifier</a>
-    <a class="btn btn-ghost" href="{% url 'projects' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'project_edit' project.id %}?societe={{ company.id }}">Modifier</a>
+      <a class="btn btn-ghost" href="{% url 'projects' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
 <div class="card">
   <p>{{ project.description|default:"Pas de description." }}</p>

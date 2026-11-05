@@ -8,13 +8,20 @@
     <h1>{{ credit_note.number }}</h1>
     <p class="sub">{{ credit_note.get_status_display }} · Facture <a href="{% url 'invoice_detail' credit_note.invoice.id %}?societe={{ company.id }}">{{ credit_note.invoice.number }}</a></p>
   </div>
-  <div class="page-actions">
-    {% if credit_note.status == "draft" %}
-    <a class="btn btn-ghost" href="{% url 'credit_note_edit' credit_note.id %}?societe={{ company.id }}">Modifier</a>
-    {% endif %}
-    <a class="btn btn-ghost" href="{% url 'credit_notes' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'credit_note_pdf' credit_note.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      {% if credit_note.status == "draft" %}
+      <a class="btn btn-ghost" href="{% url 'credit_note_edit' credit_note.id %}?societe={{ company.id }}">Modifier</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'credit_notes' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
+
+{% if messages %}{% for message in messages %}<div class="flash {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
 <div class="card">
   <p><b>HT</b> {{ credit_note.amount_ht|floatformat:2 }} € · <b>TTC</b> {{ credit_note.amount_ttc|floatformat:2 }} €</p>
   {% if credit_note.reason %}<p>Motif : {{ credit_note.reason }}</p>{% endif %}
@@ -27,4 +34,8 @@
   </form>
   {% endif %}
 </div>
+
+<section class="sheet-stage" style="margin-top:16px">
+  {% include "documents/credit_note_sheet.html" %}
+</section>
 {% endblock %}

@@ -22,7 +22,7 @@ from .forms import (
     QuoteForm,
 )
 from .models import Client, CreditNote, Invoice, Payment, Product, Project, Quote
-from .pdf import render_invoice_pdf
+from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
 from .pdf_import import PdfImportError, import_invoice_pdf
 from .services import (
     convert_quote_to_invoice,
@@ -136,6 +136,30 @@ def invoice_pdf(request, pk):
     payload = render_invoice_pdf(invoice, company)
     response = HttpResponse(payload, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{invoice.number}.pdf"'
+    return response
+
+
+@login_required
+def quote_pdf(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    quote = _scoped(Quote, company, pk)
+    payload = render_quote_pdf(quote, company)
+    response = HttpResponse(payload, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{quote.number}.pdf"'
+    return response
+
+
+@login_required
+def credit_note_pdf(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    note = _scoped(CreditNote, company, pk)
+    payload = render_credit_note_pdf(note, company)
+    response = HttpResponse(payload, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{note.number}.pdf"'
     return response
 
 

@@ -33,6 +33,7 @@ urlpatterns = [
 
     path("devis/", views.quote_list, name="quotes"),
     path("devis/nouveau/", views.quote_create, name="quote_create"),
+    path("devis/<uuid:pk>/pdf/", views.quote_pdf, name="quote_pdf"),
     path("devis/<uuid:pk>/", views.quote_detail, name="quote_detail"),
     path("devis/<uuid:pk>/modifier/", views.quote_edit, name="quote_edit"),
     path("devis/<uuid:pk>/numeroter/", views.quote_issue, name="quote_issue"),
@@ -41,6 +42,7 @@ urlpatterns = [
 
     path("avoirs/", views.credit_note_list, name="credit_notes"),
     path("avoirs/nouveau/", views.credit_note_create, name="credit_note_create"),
+    path("avoirs/<uuid:pk>/pdf/", views.credit_note_pdf, name="credit_note_pdf"),
     path("avoirs/<uuid:pk>/", views.credit_note_detail, name="credit_note_detail"),
     path("avoirs/<uuid:pk>/modifier/", views.credit_note_edit, name="credit_note_edit"),
     path("avoirs/<uuid:pk>/emettre/", views.credit_note_issue, name="credit_note_issue"),

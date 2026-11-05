@@ -8,10 +8,13 @@
     <h1>{{ client.name }}</h1>
     <p class="sub">{% if client.siren %}SIREN {{ client.siren }}{% else %}Sans SIREN{% endif %}</p>
   </div>
-  <div class="page-actions">
-    <a class="btn btn-primary" href="{% url 'client_edit' client.id %}?societe={{ company.id }}">Modifier</a>
-    <a class="btn btn-ghost" href="{% url 'clients' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'client_edit' client.id %}?societe={{ company.id }}">Modifier</a>
+      <a class="btn btn-ghost" href="{% url 'clients' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
 <div class="card" style="margin-bottom:16px">
   <p><b>E-mail</b> — {{ client.email|default:"—" }}</p>

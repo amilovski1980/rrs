@@ -8,10 +8,13 @@
     <h1>{{ product.label }}</h1>
     <p class="sub">{{ product.unit_price|floatformat:2 }} € HT · TVA {{ product.vat_rate|floatformat:2 }} %</p>
   </div>
-  <div class="page-actions">
-    <a class="btn btn-primary" href="{% url 'product_edit' product.id %}?societe={{ company.id }}">Modifier</a>
-    <a class="btn btn-ghost" href="{% url 'products' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'product_edit' product.id %}?societe={{ company.id }}">Modifier</a>
+      <a class="btn btn-ghost" href="{% url 'products' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
 <div class="card">
   <p>{{ product.description|default:"Pas de description." }}</p>

@@ -8,13 +8,20 @@
     <h1>{{ quote.number }}</h1>
     <p class="sub">{{ quote.get_status_display }} · {{ quote.client_name }} · {{ quote.amount_ttc|floatformat:2 }} € TTC</p>
   </div>
-  <div class="page-actions">
-    {% if quote.status != "converted" %}
-    <a class="btn btn-ghost" href="{% url 'quote_edit' quote.id %}?societe={{ company.id }}">Modifier</a>
-    {% endif %}
-    <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Retour</a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'quote_pdf' quote.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      {% if quote.status != "converted" %}
+      <a class="btn btn-ghost" href="{% url 'quote_edit' quote.id %}?societe={{ company.id }}">Modifier</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
 </div>
+
+{% if messages %}{% for message in messages %}<div class="flash {{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+
 <div class="card" style="margin-bottom:16px">
   <p><b>HT</b> {{ quote.amount_ht|floatformat:2 }} € · <b>TVA</b> {{ quote.vat_rate|floatformat:2 }} % · <b>TTC</b> {{ quote.amount_ttc|floatformat:2 }} €</p>
   {% if quote.project %}<p>Projet : <a href="{% url 'project_detail' quote.project.id %}?societe={{ company.id }}">{{ quote.project.name }}</a></p>{% endif %}
@@ -37,4 +44,28 @@
   </form>
   {% endif %}
 </div>
+
+{% if lines %}
+<div class="card card-tight" style="margin-bottom:16px">
+  <h2 style="font-size:18px;margin:0 0 12px">Lignes</h2>
+  <table>
+    <thead><tr><th>Désignation</th><th class="num">Qté</th><th class="num">PU HT</th><th class="num">TVA</th><th class="num">HT</th></tr></thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
+        <td class="num">{{ line.vat_rate|floatformat:2 }} %</td>
+        <td class="num">{{ line.amount_ht|floatformat:2 }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<section class="sheet-stage">
+  {% include "documents/quote_sheet.html" %}
+</section>
 {% endblock %}

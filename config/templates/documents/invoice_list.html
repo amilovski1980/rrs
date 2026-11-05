@@ -8,12 +8,15 @@
     <h1>Factures</h1>
     <p class="sub">{{ company.denomination }} — {{ open_amount|floatformat:2 }} € TTC encore à encaisser.</p>
   </div>
-  <div class="page-actions">
-    <a class="btn btn-ghost" href="{% url 'invoice_import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
-    <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
-      {% include "partials/icon.html" with name="plus" %} Nouvelle facture
-    </a>
-  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'invoice_import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+      <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
+        {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+      </a>
+    </div>
+  </details>
 </div>
 
 <p data-saisie-demo style="margin:-8px 0 16px">
