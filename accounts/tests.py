@@ -24,3 +24,24 @@ class EmailLoginTests(TestCase):
         response = self.client.post("/compte/", {"email": DEMO_EMAIL}, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Menuiserie Dupont")
+
+    def test_demo_login_with_existing_devis_avoir_series(self):
+        """seed_demo must target FAC explicitly when DEV/AVO series already exist."""
+        from core.demo import seed_demo
+        from documents.models import InvoiceSeries
+
+        user, company = seed_demo()
+        InvoiceSeries.objects.get_or_create(
+            company=company, year=2026, prefix="DEV", defaults={"last_number": 1}
+        )
+        InvoiceSeries.objects.get_or_create(
+            company=company, year=2026, prefix="AVO", defaults={"last_number": 1}
+        )
+        # Second seed (and /compte/ demo email) used to raise MultipleObjectsReturned.
+        seed_demo()
+        response = self.client.post("/compte/", {"email": DEMO_EMAIL}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Menuiserie Dupont")
+        self.assertEqual(
+            InvoiceSeries.objects.filter(company=company, year=2026).count(), 3
+        )
