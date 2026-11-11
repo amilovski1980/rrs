@@ -23,18 +23,47 @@ class DashboardView(AdminStaffMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_users'] = User.objects.count()
-        context['total_companies'] = Company.objects.count()
-        active_subs = Subscription.objects.filter(status__in=['active', 'trialing'])
-        context['mrr'] = active_subs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
-        context['subs_past_due'] = Subscription.objects.filter(status='past_due').count()
-        drafts = AiDraftEntry.objects.all()
-        total_drafts = drafts.count()
-        validated_drafts = drafts.filter(status='validated').count()
-        context['ai_validation_rate'] = (validated_drafts / total_drafts * 100) if total_drafts > 0 else 0
-        context['total_ai_drafts'] = total_drafts
-        context['recent_companies'] = Company.objects.order_by('-created_at')[:5]
-        context['recent_logs'] = SystemLog.objects.all()[:10]
+        try:
+            context['total_users'] = User.objects.count()
+        except Exception:
+            context['total_users'] = 0
+            
+        try:
+            context['total_companies'] = Company.objects.count()
+        except Exception:
+            context['total_companies'] = 0
+
+        try:
+            active_subs = Subscription.objects.filter(status__in=['active', 'trialing'])
+            context['mrr'] = active_subs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
+        except Exception:
+            context['mrr'] = 0
+
+        try:
+            context['subs_past_due'] = Subscription.objects.filter(status='past_due').count()
+        except Exception:
+            context['subs_past_due'] = 0
+
+        try:
+            drafts = AiDraftEntry.objects.all()
+            total_drafts = drafts.count()
+            validated_drafts = drafts.filter(status='validated').count()
+            context['ai_validation_rate'] = (validated_drafts / total_drafts * 100) if total_drafts > 0 else 0
+            context['total_ai_drafts'] = total_drafts
+        except Exception:
+            context['ai_validation_rate'] = 0
+            context['total_ai_drafts'] = 0
+
+        try:
+            context['recent_companies'] = Company.objects.order_by('-created_at')[:5]
+        except Exception:
+            context['recent_companies'] = []
+
+        try:
+            context['recent_logs'] = SystemLog.objects.all()[:10]
+        except Exception:
+            context['recent_logs'] = []
+            
         return context
 
 # --- CONFIGURATION ---
