@@ -1,9 +1,15 @@
 from django.urls import path
 from . import views
+from django.http import HttpResponse
 
 app_name = "admin_backoffice"
 
+def health_check(request):
+    return HttpResponse("Admin Backoffice is ALIVE")
+
 urlpatterns = [
+    # Health Check
+    path('health/', health_check, name='health'),
     # Dashboard & Config
     path('', views.DashboardView.as_view(), name='dashboard'),
     path('settings/', views.SiteSettingsView.as_view(), name='settings'),
