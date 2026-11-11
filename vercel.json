@@ -1,179 +1,21 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "echo skip-install",
-  "buildCommand": "sh scripts/vercel_build.sh",
-  "outputDirectory": "docs",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "includeFiles": "config/**,companies/**,accounts/**,accounting/**,documents/**,ai/**,integrations/**,billing/**,core/**,static/**,requirements.txt"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/cockpit",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/cockpit/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/demo/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/magic/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/logout/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/profil/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compta",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compta/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compta/grand-livre/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compta/balance/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compta/ecriture/nouvelle/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/nouvelle",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/nouvelle/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/modifier",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/modifier/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/emettre",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/emettre/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/payer",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/payer/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/factures/:pk/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/ajouter",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/ajouter/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/ajouter/confirmer",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/ajouter/confirmer/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/magic/:token",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/compte/magic/:token/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/admin/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/agent-config",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/agent/session/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/agent/outil/",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/static/css/app.css",
-      "destination": "/assets/app.css"
-    },
-    {
-      "source": "/static/js/app.js",
-      "destination": "/assets/app.js"
-    },
-    {
-      "source": "/static/js/grok-voice.js",
-      "destination": "/assets/grok-voice.js"
-    },
-    {
-      "source": "/static/img/:path*",
-      "destination": "/assets/:path*"
-    },
-    {
-      "source": "/static/:path*",
-      "destination": "/assets/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
+    "version": 2,
+    "builds": [
+        {
+            "src": "config/wsgi.py",
+            "use": "@vercel/python",
+            "config": { "runtime": "python3.9" }
+        }
+    ],
+    "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "config/wsgi.py"
+        }
+    ],
+    "installCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput"
 }
