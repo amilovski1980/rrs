@@ -62,8 +62,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Synchronisation dynamique des settings via DB
-    "admin_backoffice.middleware.DynamicConfigMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
