@@ -21,10 +21,14 @@ class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
 class DashboardView(TemplateView):
     template_name = 'admin_backoffice/dashboard.html'
 
+    def get(self, request, *args, **kwargs):
+        try:
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            return HttpResponse(f"CRASH DashboardView: {str(e)}", status=500)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # On initialise tout à 0/vide pour éviter toute erreur de template
         context['total_users'] = 0
         context['total_companies'] = 0
         context['mrr'] = 0
@@ -33,40 +37,6 @@ class DashboardView(TemplateView):
         context['total_ai_drafts'] = 0
         context['recent_companies'] = []
         context['recent_logs'] = []
-
-        try:
-            context['total_users'] = User.objects.count()
-        except Exception: pass
-            
-        try:
-            context['total_companies'] = Company.objects.count()
-        except Exception: pass
-
-        try:
-            active_subs = Subscription.objects.filter(status__in=['active', 'trialing'])
-            context['mrr'] = active_subs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
-        except Exception: pass
-
-        try:
-            context['subs_past_due'] = Subscription.objects.filter(status='past_due').count()
-        except Exception: pass
-
-        try:
-            drafts = AiDraftEntry.objects.all()
-            total_drafts = drafts.count()
-            validated_drafts = drafts.filter(status='validated').count()
-            context['ai_validation_rate'] = (validated_drafts / total_drafts * 100) if total_drafts > 0 else 0
-            context['total_ai_drafts'] = total_drafts
-        except Exception: pass
-
-        try:
-            context['recent_companies'] = Company.objects.order_by('-created_at')[:5]
-        except Exception: pass
-
-        try:
-            context['recent_logs'] = SystemLog.objects.all()[:10]
-        except Exception: pass
-            
         return context
 
 # --- CONFIGURATION ---
