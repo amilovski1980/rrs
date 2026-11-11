@@ -16,8 +16,9 @@ def create_temp_admin(request):
     email = "admin@rrs.com"
     password = "Admin12345!"
     try:
-        if not User.objects.filter(username=email).exists():
-            User.objects.create_superuser(username=email, email=email, password=password)
+        if not User.objects.filter(email=email).exists():
+            # Utilisation de email au lieu de username car le modèle User personnalisé utilise l'email
+            User.objects.create_superuser(email=email, password=password)
             return HttpResponse(f"Admin créé avec succès : {email} / {password}")
         return HttpResponse("L'admin existe déjà.")
     except Exception as e:
