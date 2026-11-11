@@ -21,22 +21,56 @@ class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
 class DashboardView(TemplateView):
     template_name = 'admin_backoffice/dashboard.html'
 
-    def get(self, request, *args, **kwargs):
-        try:
-            return super().get(request, *args, **kwargs)
-        except Exception as e:
-            return HttpResponse(f"CRASH DashboardView: {str(e)}", status=500)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_users'] = 0
-        context['total_companies'] = 0
-        context['mrr'] = 0
-        context['subs_past_due'] = 0
-        context['ai_validation_rate'] = 0
-        context['total_ai_drafts'] = 0
-        context['recent_companies'] = []
-        context['recent_logs'] = []
+        
+        # Valeurs par défaut pour éviter tout crash de template
+        context.update({
+            'total_users': '?',
+            'total_companies': '?',
+            'mrr': '0',
+            'subs_past_due': '?',
+            'ai_validation_rate': '0%',
+            'total_ai_drafts': '?',
+            'recent_companies': [],
+            'recent_logs': [],
+        })
+
+        # On récupère chaque donnée indépendamment pour isoler les erreurs
+        try:
+            from django.contrib.auth.models import User
+            context['total_users'] = User.objects.count()
+        except Exception: pass
+            
+        try:
+            from companies.models import Company
+            context['total_companies'] = Company.objects.count()
+            context['recent_companies'] = Company.objects.order_by('-created_at')[:5]
+        except Exception: pass
+
+        try:
+            from billing.models import Subscription
+            from django.db.models import Sum
+            active_subs = Subscription.objects.filter(status__in=['active', 'trialing'])
+            mrr_val = active_subs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
+            context['mrr'] = f"{mrr_val:,.2f} €"
+            context['subs_past_due'] = Subscription.objects.filter(status='past_due').count()
+        except Exception: pass
+
+        try:
+            from ai.models import AiDraftEntry
+            drafts = AiDraftEntry.objects.all()
+            total = drafts.count()
+            validated = drafts.filter(status='validated').count()
+            context['ai_validation_rate'] = f"{(validated / total * 100):.1f}%" if total > 0 else "0%"
+            context['total_ai_drafts'] = total
+        except Exception: pass
+
+        try:
+            from admin_backoffice.models import SystemLog
+            context['recent_logs'] = SystemLog.objects.all().order_by('-timestamp')[:10]
+        except Exception: pass
+            
         return context
 
 # --- CONFIGURATION ---
