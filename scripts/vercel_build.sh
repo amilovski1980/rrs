@@ -7,6 +7,11 @@ set -eu
 ROOT=${0%/*}/..
 cd "$ROOT"
 
+# --- AJOUT : Migration de la base de données ---
+echo "vercel_build: Lancement des migrations..."
+python manage.py migrate --no-input || echo "Migration failed or skipped (normal if DB not connected during build)"
+# ----------------------------------------------
+
 mkdir -p docs/assets
 
 cp -f static/css/app.css docs/assets/app.css
