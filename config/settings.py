@@ -64,8 +64,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Synchronisation dynamique des settings via DB
     "admin_backoffice.middleware.DynamicConfigMiddleware",
-    # tenant isolation (middleware custom a S1)
-    "core.tenancy.TenantMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -81,7 +79,6 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "core.context.selected_company",
             ],
         },
     },
