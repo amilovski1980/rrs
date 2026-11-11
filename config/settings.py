@@ -27,7 +27,13 @@ env = os.environ
 
 SECRET_KEY = env.get("DJANGO_SECRET_KEY", "dev-only-change-me")
 DEBUG = env.get("DJANGO_DEBUG", "").lower() in ("1", "true", "yes")
-ALLOWED_HOSTS = env.get("ALLOWED_HOSTS", "localhost,127.0.0.1,rrs-sandy.vercel.app").split(",")
+ALLOWED_HOSTS = env.get("ALLOWED_HOSTS", "").split(",")
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == [""]:
+    ALLOWED_HOSTS = [".vercel.app", "localhost", "127.0.0.1"]
+else:
+    if ".vercel.app" not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(".vercel.app")
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
