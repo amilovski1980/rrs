@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = "admin_backoffice"
+
 urlpatterns = [
     path('', views.DashboardView.as_view(), name='dashboard'),
     path('companies/', views.CompanyListView.as_view(), name='companies_list'),
