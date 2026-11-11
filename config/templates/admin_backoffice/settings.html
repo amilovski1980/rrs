@@ -1,0 +1,60 @@
+{% extends "admin_backoffice/dashboard.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>⚙️ Configuration Globale du Site</h2>
+        <a href="{% url 'admin_backoffice:dashboard' %}" class="btn btn-secondary">Retour au Dashboard</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Paramètres Système & Clés API</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Section SMTP -->
+                    <div class="col-md-6">
+                        <h5 class="border-bottom pb-2 mb-3 text-primary">📧 Configuration SMTP (Emails)</h5>
+                        <div class="mb-3">{{ form.smtp_host.label_tag }} {{ form.smtp_host }}</div>
+                        <div class="mb-3">{{ form.smtp_port.label_tag }} {{ form.smtp_port }}</div>
+                        <div class="mb-3">{{ form.smtp_user.label_tag }} {{ form.smtp_user }}</div>
+                        <div class="mb-3">{{ form.smtp_password.label_tag }} {{ form.smtp_password }}</div>
+                        <div class="mb-3">{{ form.email_from.label_tag }} {{ form.email_from }}</div>
+                    </div>
+
+                    <!-- Section API -->
+                    <div class="col-md-6">
+                        <h5 class="border-bottom pb-2 mb-3 text-primary">🔑 Clés API & Intégrations</h5>
+                        <div class="mb-3">{{ form.stripe_secret_key.label_tag }} {{ form.stripe_secret_key }}</div>
+                        <div class="mb-3">{{ form.llm_api_key.label_tag }} {{ form.llm_api_key }}</div>
+                        <div class="mb-3">{{ form.insee_api_key.label_tag }} {{ form.insee_api_key }}</div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="row">
+                    <!-- Section Site -->
+                    <div class="col-md-6">
+                        <h5 class="border-bottom pb-2 mb-3 text-primary">🌐 Paramètres du Site</h5>
+                        <div class="mb-3">{{ form.site_name.label_tag }} {{ form.site_name }}</div>
+                        <div class="form-check form-switch mt-3">
+                            {{ form.maintenance_mode }}
+                            <label class="form-check-label" for="{{ form.maintenance_mode.id_for_label }}">
+                                Activer le Mode Maintenance
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">💾 Sauvegarder la Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
