@@ -33,23 +33,21 @@ class CompanyAdminForm(forms.ModelForm):
 class PlanAdminForm(forms.ModelForm):
     class Meta:
         model = Plan
-        fields = ['name', 'price_eur', 'description']
+        fields = ['name', 'price_eur']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'price_eur': forms.NumberInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
 class SubscriptionAdminForm(forms.ModelForm):
     class Meta:
         model = Subscription
-        fields = ['company', 'plan', 'status', 'start_date', 'end_date']
+        fields = ['user', 'plan', 'status', 'current_period_end']
         widgets = {
-            'company': forms.Select(attrs={'class': 'form-control'}),
+            'user': forms.Select(attrs={'class': 'form-control'}),
             'plan': forms.Select(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
-            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'current_period_end': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 class UserAdminForm(forms.ModelForm):
