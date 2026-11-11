@@ -12,16 +12,19 @@ application = get_wsgi_application()
 try:
     call_command('migrate', interactive=False)
     
-    # --- CRÉATION ADMIN TEMPORAIRE ---
+    # --- FORCE ADMIN ACCESS ---
     User = get_user_model()
-    if not User.objects.filter(email="admin@rrs.com").exists():
-        User.objects.create_superuser(
-            email="admin@rrs.com", 
-            username="admin", 
-            password="Yahkouba2026"
-        )
-        print("✅ Superuser admin@rrs.com créé avec succès.")
-    # --------------------------------
+    user, created = User.objects.get_or_create(
+        email="admin@rrs.com", 
+        defaults={"username": "admin"}
+    )
+    # On force le mot de passe à chaque démarrage pour être sûr
+    user.set_password("Yahkouba2026")
+    user.is_superuser = True
+    user.is_staff = True
+    user.save()
+    print(f"✅ Admin access forced for admin@rrs.com")
+    # ---------------------------
     
 except Exception as e:
     print(f"Vercel Auto-Migration Error: {e}")
