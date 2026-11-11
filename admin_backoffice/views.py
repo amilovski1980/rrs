@@ -18,7 +18,7 @@ class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.is_staff
 
 # --- DASHBOARD ---
-class DashboardView(AdminStaffMixin, TemplateView):
+class DashboardView(TemplateView):
     template_name = 'admin_backoffice/dashboard.html'
 
     def get_context_data(self, **kwargs):
