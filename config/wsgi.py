@@ -18,12 +18,14 @@ try:
         email="admin@rrs.com", 
         defaults={"username": "admin"}
     )
-    # On force le mot de passe à chaque démarrage pour être sûr
     user.set_password("Yahkouba2026")
     user.is_superuser = True
     user.is_staff = True
     user.save()
-    print(f"✅ Admin access forced for admin@rrs.com")
+    
+    # --- LANCEMENT DU SEEDING ---
+    from seed import run_seed
+    run_seed()
     # ---------------------------
     
 except Exception as e:
