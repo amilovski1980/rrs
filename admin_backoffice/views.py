@@ -1,21 +1,23 @@
-from django.views.generic import TemplateView, ListView, UpdateView, CreateView
+from django.views.generic import TemplateView, ListView, UpdateView, CreateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, Count, Q
 from django.shortcuts import redirect, render
 from django.http import HttpResponse
 from django.contrib import messages
+from django.urls import reverse_lazy
 from accounts.models import User
 from companies.models import Company
 from billing.models import Subscription, Plan
 from ai.models import AiDraftEntry
 from .models import SiteConfiguration, SystemLog
-from .forms import SiteConfigurationForm
+from .forms import SiteConfigurationForm, CompanyAdminForm, PlanAdminForm, SubscriptionAdminForm, UserAdminForm
 
 class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin pour restreindre l'accès au personnel administratif."""
     def test_func(self):
         return self.request.user.is_staff
 
+# --- DASHBOARD ---
 class DashboardView(AdminStaffMixin, TemplateView):
     template_name = 'admin_backoffice/dashboard.html'
 
@@ -35,8 +37,8 @@ class DashboardView(AdminStaffMixin, TemplateView):
         context['recent_logs'] = SystemLog.objects.all()[:10]
         return context
 
+# --- CONFIGURATION ---
 class SiteSettingsView(AdminStaffMixin, TemplateView):
-    """Gestion complète de la configuration du site et des clés API."""
     template_name = 'admin_backoffice/settings.html'
 
     def get(self, request):
@@ -54,33 +56,103 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
         messages.error(request, "Erreur lors de la mise à jour de la configuration.")
         return self.render_to_response(self.template_name, {'form': form, 'config': config})
 
-class SystemLogsView(AdminStaffMixin, ListView):
-    """Consultation des logs système."""
-    model = SystemLog
-    template_name = 'admin_backoffice/logs.html'
-    context_object_name = 'logs'
-    paginate_by = 50
-
+# --- CRUD COMPANIES ---
 class CompanyListView(AdminStaffMixin, ListView):
     model = Company
     template_name = 'admin_backoffice/companies_list.html'
     context_object_name = 'companies'
     paginate_by = 20
 
+class CompanyCreateView(AdminStaffMixin, CreateView):
+    model = Company
+    form_class = CompanyAdminForm
+    template_name = 'admin_backoffice/company_form.html'
+    success_url = reverse_lazy('admin_backoffice:companies')
+
+class CompanyUpdateView(AdminStaffMixin, UpdateView):
+    model = Company
+    form_class = CompanyAdminForm
+    template_name = 'admin_backoffice/company_form.html'
+    success_url = reverse_lazy('admin_backoffice:companies')
+
+class CompanyDeleteView(AdminStaffMixin, DeleteView):
+    model = Company
+    template_name = 'admin_backoffice/company_confirm_delete.html'
+    success_url = reverse_lazy('admin_backoffice:companies')
+
+# --- CRUD PLANS ---
+class PlanListView(AdminStaffMixin, ListView):
+    model = Plan
+    template_name = 'admin_backoffice/plans_list.html'
+    context_object_name = 'plans'
+
+class PlanCreateView(AdminStaffMixin, CreateView):
+    model = Plan
+    form_class = PlanAdminForm
+    template_name = 'admin_backoffice/plan_form.html'
+    success_url = reverse_lazy('admin_backoffice:plans')
+
+class PlanUpdateView(AdminStaffMixin, UpdateView):
+    model = Plan
+    form_class = PlanAdminForm
+    template_name = 'admin_backoffice/plan_form.html'
+    success_url = reverse_lazy('admin_backoffice:plans')
+
+class PlanDeleteView(AdminStaffMixin, DeleteView):
+    model = Plan
+    template_name = 'admin_backoffice/plan_confirm_delete.html'
+    success_url = reverse_lazy('admin_backoffice:plans')
+
+# --- CRUD SUBSCRIPTIONS ---
 class SubscriptionListView(AdminStaffMixin, ListView):
     model = Subscription
     template_name = 'admin_backoffice/subscriptions_list.html'
     context_object_name = 'subscriptions'
     paginate_by = 20
 
-class PlanListView(AdminStaffMixin, ListView):
-    """Gestion des forfaits d'abonnement."""
-    model = Plan
-    template_name = 'admin_backoffice/plans_list.html'
-    context_object_name = 'plans'
+class SubscriptionCreateView(AdminStaffMixin, CreateView):
+    model = Subscription
+    form_class = SubscriptionAdminForm
+    template_name = 'admin_backoffice/subscription_form.html'
+    success_url = reverse_lazy('admin_backoffice:subscriptions')
+
+class SubscriptionUpdateView(AdminStaffMixin, UpdateView):
+    model = Subscription
+    form_class = SubscriptionAdminForm
+    template_name = 'admin_backoffice/subscription_form.html'
+    success_url = reverse_lazy('admin_backoffice:subscriptions')
+
+class SubscriptionDeleteView(AdminStaffMixin, DeleteView):
+    model = Subscription
+    template_name = 'admin_backoffice/subscription_confirm_delete.html'
+    success_url = reverse_lazy('admin_backoffice:subscriptions')
+
+# --- CRUD USERS ---
+class UserListView(AdminStaffMixin, ListView):
+    model = User
+    template_name = 'admin_backoffice/users_list.html'
+    context_object_name = 'users'
+    paginate_by = 20
+
+class UserUpdateView(AdminStaffMixin, UpdateView):
+    model = User
+    form_class = UserAdminForm
+    template_name = 'admin_backoffice/user_form.html'
+    success_url = reverse_lazy('admin_backoffice:users')
+
+class UserDeleteView(AdminStaffMixin, DeleteView):
+    model = User
+    template_name = 'admin_backoffice/user_confirm_delete.html'
+    success_url = reverse_lazy('admin_backoffice:users')
+
+# --- LOGS & AI ---
+class SystemLogsView(AdminStaffMixin, ListView):
+    model = SystemLog
+    template_name = 'admin_backoffice/logs.html'
+    context_object_name = 'logs'
+    paginate_by = 50
 
 class AiMonitoringView(AdminStaffMixin, TemplateView):
-    """Analyse détaillée des performances de l'IA."""
     template_name = 'admin_backoffice/ai_monitoring.html'
 
     def get_context_data(self, **kwargs):
@@ -94,7 +166,6 @@ class AiMonitoringView(AdminStaffMixin, TemplateView):
         return context
 
 class AiPromptView(AdminStaffMixin, TemplateView):
-    """Personnalisation du prompt système de l'IA."""
     template_name = 'admin_backoffice/ai_prompt.html'
 
     def get(self, request):
