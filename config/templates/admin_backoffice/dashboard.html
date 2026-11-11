@@ -1,8 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head><title>TEST DASHBOARD</title></head>
-<body>
-    <h1>TEST SUCCESS : LE DASHBOARD FONCTIONNE</h1>
-    <p>Si vous voyez ceci, le problème vient du fichier base.html ou des templates parents.</p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+{% block crumbs %}Administration{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Bienvenue dans le Backoffice</h2>
+    <p>Le système est maintenant stable.</p>
+</div>
+{% endblock %}
