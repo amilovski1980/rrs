@@ -1,74 +1,19 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="admin-container" style="display: flex; min-height: 100vh; font-family: sans-serif;">
-    <!-- Sidebar -->
-    <aside style="width: 250px; background: #1a202c; color: white; padding: 20px;">
-        <h2 style="font-size: 1.2rem; margin-bottom: 30px; color: #edf2f7;">RRS Admin</h2>
-        <nav>
-            <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:dashboard' %}" style="color: white; text-decoration: none; font-weight: bold;">📊 Dashboard</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:companies_list' %}" style="color: #a0aec0; text-decoration: none;">🏢 Entreprises</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:subscriptions_list' %}" style="color: #a0aec0; text-decoration: none;">💳 Abonnements</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:plans_list' %}" style="color: #a0aec0; text-decoration: none;">📦 Forfaits</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_monitoring' %}" style="color: #a0aec0; text-decoration: none;">🤖 IA Monitoring</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_prompt' %}" style="color: #a0aec0; text-decoration: none;">✍️ Prompt IA</a></li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main style="flex: 1; background: #f7fafc; padding: 30px;">
-        <header style="margin-bottom: 30px;">
-            <h1 style="font-size: 1.8rem; color: #2d3748;">Tableau de Bord Administrateur</h1>
-            <p style="color: #718096;">Vue d'ensemble de la plateforme Road Runner Solution</p>
-        </header>
-
-        <!-- KPI Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #4299e1;">
-                <div style="color: #718096; font-size: 0.9rem;">Utilisateurs</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ total_users }}</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #48bb78;">
-                <div style="color: #718096; font-size: 0.9rem;">MRR (Revenu)</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ mrr }} €</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #ed8936;">
-                <div style="color: #718096; font-size: 0.9rem;">Entreprises</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ total_companies }}</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #9f7aea;">
-                <div style="color: #718096; font-size: 0.9rem;">Taux Validation IA</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ ai_validation_rate|floatformat:1 }}%</div>
-            </div>
-        </div>
-
-        <!-- Recent Activity Table -->
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h3 style="margin-bottom: 20px; color: #2d3748;">Dernières Entreprises Inscrites</h3>
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #edf2f7; color: #718096; font-size: 0.9rem;">
-                        <th style="padding: 10px;">Dénomination</th>
-                        <th style="padding: 10px;">SIREN</th>
-                        <th style="padding: 10px;">Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for company in recent_companies %}
-                    <tr style="border-bottom: 1px solid #edf2f7;">
-                        <td style="padding: 10px; color: #2d3748;">{{ company.denomination }}</td>
-                        <td style="padding: 10px; color: #4a5568;">{{ company.siren }}</td>
-                        <td style="padding: 10px; color: #718096;">{{ company.created_at|date:"d M Y" }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" style="padding: 20px; text-align: center; color: #a0aec0;">Aucune entreprise trouvée.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </main>
-</div>
-{% endblock %}
+# config/templates/admin_backoffice/dashboard.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Debug</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Diagnostic Dashboard</h1>
+    <p>Si vous voyez ceci, le problème vient de base.html ou des tags complexes.</p>
+    <hr>
+    <h3>Données reçues :</h3>
+    <ul>
+        <li>Total Users: {{ total_users }}</li>
+        <li>Total Companies: {{ total_companies }}</li>
+        <li>MRR: {{ mrr }}</li>
+        <li>AI Rate: {{ ai_validation_rate }}%</li>
+    </ul>
+</body>
+</html>
