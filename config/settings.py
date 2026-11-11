@@ -27,7 +27,7 @@ env = os.environ
 
 SECRET_KEY = env.get("DJANGO_SECRET_KEY", "dev-only-change-me")
 DEBUG = env.get("DJANGO_DEBUG", "").lower() in ("1", "true", "yes")
-ALLOWED_HOSTS = env.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = env.get("ALLOWED_HOSTS", "localhost,127.0.0.1,rrs-sandy.vercel.app").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -169,6 +169,8 @@ LOGIN_URL = "/compte/"
 
 # --- Déploiement (Render / Railway / VPS) ---
 CSRF_TRUSTED_ORIGINS = [
+    "https://rrs-sandy.vercel.app",
+] + [
     o.strip() for o in env.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
 ]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
