@@ -62,6 +62,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Synchronisation dynamique des settings via DB
+    "admin_backoffice.middleware.DynamicConfigMiddleware",
     # tenant isolation (middleware custom a S1)
     "core.tenancy.TenantMiddleware",
 ]
