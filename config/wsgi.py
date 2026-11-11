@@ -4,7 +4,7 @@ from django.core.management import call_command
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Auto-migration pour Vercel
+# Auto-migration pour Vercel : crée les tables si la DB est vide
 try:
     call_command('migrate', interactive=False)
 except Exception as e:
