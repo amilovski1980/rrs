@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "ai",
     "integrations",
     "billing",
+    "admin_backoffice",
 ]
 
 MIDDLEWARE = [
