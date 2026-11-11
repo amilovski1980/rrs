@@ -24,9 +24,9 @@ class SiteConfigurationForm(forms.ModelForm):
 class CompanyAdminForm(forms.ModelForm):
     class Meta:
         model = Company
-        fields = ['name', 'invoice_theme']
+        fields = ['denomination', 'invoice_theme']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'denomination': forms.TextInput(attrs={'class': 'form-control'}),
             'invoice_theme': forms.Select(attrs={'class': 'form-control'}),
         }
 
