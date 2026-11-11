@@ -2,10 +2,26 @@ from django.views.generic import TemplateView, ListView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, Count, Q
 from django.shortcuts import redirect
+from django.http import HttpResponse
 from accounts.models import User
 from companies.models import Company
 from billing.models import Subscription, Plan
 from ai.models import AiDraftEntry
+
+def create_temp_admin(request):
+    """
+    Vue temporaire pour créer un superutilisateur en production.
+    À SUPPRIMER IMMÉDIATEMENT APRÈS UTILISATION.
+    """
+    email = "admin@rrs.com"
+    password = "Admin12345!"
+    try:
+        if not User.objects.filter(username=email).exists():
+            User.objects.create_superuser(username=email, email=email, password=password)
+            return HttpResponse(f"Admin créé avec succès : {email} / {password}")
+        return HttpResponse("L'admin existe déjà.")
+    except Exception as e:
+        return HttpResponse(f"Erreur : {str(e)}")
 
 class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin pour restreindre l'accès au personnel administratif."""
