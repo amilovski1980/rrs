@@ -1,6 +1,6 @@
 from django import forms
 from .models import SiteConfiguration
-from companies.models import Company, CompanyProfile
+from companies.models import Company
 from billing.models import Plan, Subscription
 from accounts.models import User
 
