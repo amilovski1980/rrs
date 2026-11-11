@@ -26,7 +26,7 @@
     >
       <span class="m-nav-toggle-bars" aria-hidden="true"></span>
     </button>
-    <a class="m-header-logo" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}" aria-label="Road Runner Solutions — Cockpit">
+    <a class="m-header-logo" href="{% url 'cockpit' %}" aria-label="Road Runner Solutions — Cockpit">
       <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
       <span class="m-header-brand">
         <b>Road Runner</b>
@@ -48,7 +48,7 @@
       <button type="button" class="m-drawer-close" data-nav-close aria-label="Fermer le menu">×</button>
     </div>
 
-    <a class="brand" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="brand" href="{% url 'cockpit' %}">
       <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
       <span class="brand-text">
         <b>Road Runner</b>
@@ -58,53 +58,53 @@
 
     <div class="sidebar-nav-scroll">
     <div class="nav-sec">Pilotage</div>
-    <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
     </a>
     <a class="side-link {% block nav_onboarding %}{% endblock %}" href="{% url 'onboarding' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="plus" %}</span> Ajouter une société
     </a>
-    <a class="side-link {% block nav_settings %}{% endblock %}" href="{% url 'company_settings' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_settings %}{% endblock %}" href="{% url 'company_settings' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Configuration
     </a>
 
     <div class="nav-sec">Comptabilité</div>
-    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Nouvelle écriture
     </a>
-    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Grand livre
     </a>
-    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Balance
     </a>
 
     <div class="nav-sec">Facturation</div>
-    <a class="side-link {% block nav_invoices %}{% endblock %}" href="{% url 'invoices' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_invoices %}{% endblock %}" href="{% url 'invoices' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Factures
     </a>
-    <a class="side-link {% block nav_quotes %}{% endblock %}" href="{% url 'quotes' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_quotes %}{% endblock %}" href="{% url 'quotes' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Devis
     </a>
-    <a class="side-link {% block nav_clients %}{% endblock %}" href="{% url 'clients' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_clients %}{% endblock %}" href="{% url 'clients' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Clients
     </a>
-    <a class="side-link {% block nav_products %}{% endblock %}" href="{% url 'products' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_products %}{% endblock %}" href="{% url 'products' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> Catalogue
     </a>
-    <a class="side-link {% block nav_projects %}{% endblock %}" href="{% url 'projects' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_projects %}{% endblock %}" href="{% url 'projects' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="folder" %}</span> Projets
     </a>
-    <a class="side-link {% block nav_credit_notes %}{% endblock %}" href="{% url 'credit_notes' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_credit_notes %}{% endblock %}" href="{% url 'credit_notes' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="arrow" %}</span> Avoirs
     </a>
-    <a class="side-link {% block nav_payments %}{% endblock %}" href="{% url 'payments' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_payments %}{% endblock %}" href="{% url 'payments' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="check" %}</span> Paiements
     </a>
-    <a class="side-link {% block nav_tickets %}{% endblock %}" href="{% url 'tickets' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_tickets %}{% endblock %}" href="{% url 'tickets' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Tickets de caisse
     </a>
-    <a class="side-link {% block nav_ai_drafts %}{% endblock %}" href="{% url 'ai_drafts' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="side-link {% block nav_ai_drafts %}{% endblock %}" href="{% url 'ai_drafts' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
     </a>
     </div>{# /.sidebar-nav-scroll #}
@@ -135,9 +135,6 @@
     <header class="topbar">
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
       <div class="top-actions">
-        {% if selected and selected.denomination %}
-        <span class="badge badge-blue">{{ selected.denomination }}</span>
-        {% endif %}
         {% if request.user.is_authenticated %}
         <span class="badge top-mail" title="{{ request.user.email|default:'' }}">{{ request.user.email|default:'' }}</span>
         <form method="post" action="{% url 'logout' %}">
@@ -166,7 +163,7 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
       <span>Mon compte</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'company_settings' %}{% if selected %}?societe={{ selected.id }}{% endif %}">
+    <a class="m-footer-btn" href="{% url 'company_settings' %}">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
       <span>Paramètres</span>
     </a>
