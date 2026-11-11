@@ -1,6 +1,7 @@
 import os
 from django.core.wsgi import get_wsgi_application
 from django.core.management import call_command
+from django.contrib.auth import get_user_model
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -9,8 +10,18 @@ application = get_wsgi_application()
 
 # 2. On lance l'auto-migration APRÈS l'initialisation
 try:
-    # On utilise call_command pour s'assurer que les tables existent
     call_command('migrate', interactive=False)
+    
+    # --- CRÉATION ADMIN TEMPORAIRE ---
+    User = get_user_model()
+    if not User.objects.filter(email="admin@rrs.com").exists():
+        User.objects.create_superuser(
+            email="admin@rrs.com", 
+            username="admin", 
+            password="Yahkouba2026"
+        )
+        print("✅ Superuser admin@rrs.com créé avec succès.")
+    # --------------------------------
+    
 except Exception as e:
-    # On log l'erreur mais on ne bloque pas le démarrage
     print(f"Vercel Auto-Migration Error: {e}")
