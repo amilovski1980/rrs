@@ -77,7 +77,7 @@ class CompanyUpdateView(AdminStaffMixin, UpdateView):
 
 class CompanyDeleteView(AdminStaffMixin, DeleteView):
     model = Company
-    template_name = 'admin_backoffice/company_confirm_delete.html'
+    template_name = 'admin_backoffice/confirm_delete.html'
     success_url = reverse_lazy('admin_backoffice:companies')
 
 # --- CRUD PLANS ---
@@ -100,7 +100,7 @@ class PlanUpdateView(AdminStaffMixin, UpdateView):
 
 class PlanDeleteView(AdminStaffMixin, DeleteView):
     model = Plan
-    template_name = 'admin_backoffice/plan_confirm_delete.html'
+    template_name = 'admin_backoffice/confirm_delete.html'
     success_url = reverse_lazy('admin_backoffice:plans')
 
 # --- CRUD SUBSCRIPTIONS ---
@@ -124,7 +124,7 @@ class SubscriptionUpdateView(AdminStaffMixin, UpdateView):
 
 class SubscriptionDeleteView(AdminStaffMixin, DeleteView):
     model = Subscription
-    template_name = 'admin_backoffice/subscription_confirm_delete.html'
+    template_name = 'admin_backoffice/confirm_delete.html'
     success_url = reverse_lazy('admin_backoffice:subscriptions')
 
 # --- CRUD USERS ---
@@ -142,7 +142,7 @@ class UserUpdateView(AdminStaffMixin, UpdateView):
 
 class UserDeleteView(AdminStaffMixin, DeleteView):
     model = User
-    template_name = 'admin_backoffice/user_confirm_delete.html'
+    template_name = 'admin_backoffice/confirm_delete.html'
     success_url = reverse_lazy('admin_backoffice:users')
 
 # --- LOGS & AI ---
