@@ -8,29 +8,6 @@ from companies.models import Company
 from billing.models import Subscription, Plan
 from ai.models import AiDraftEntry
 
-def create_temp_admin(request):
-    """
-    Vue temporaire pour créer un superutilisateur en production.
-    À SUPPRIMER IMMÉDIATEMENT APRÈS UTILISATION.
-    """
-    email = "admin@rrs.com"
-    password = "Admin12345!"
-    try:
-        if not User.objects.filter(email=email).exists():
-            # Le UserManager personnalisé n'a pas create_superuser, on crée l'objet manuellement
-            user = User.objects.create(
-                email=email,
-                is_staff=True,
-                is_superuser=True,
-                is_active=True
-            )
-            user.set_password(password)
-            user.save()
-            return HttpResponse(f"Admin créé avec succès : {email} / {password}")
-        return HttpResponse("L'admin existe déjà.")
-    except Exception as e:
-        return HttpResponse(f"Erreur : {str(e)}")
-
 class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin pour restreindre l'accès au personnel administratif."""
     def test_func(self):
