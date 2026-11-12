@@ -88,8 +88,10 @@ class CompanyProfileForm(forms.Form):
 
 
 def landing(request):
-    """Vitrine publique : promesse produit, tarifs, CTA connexion."""
-    return render(request, "landing.html")
+    """Vitrine publique : promesse produit, forfaits, recherche de société."""
+    from billing.public_pricing import pricing_context
+
+    return render(request, "landing.html", pricing_context())
 
 
 @login_required

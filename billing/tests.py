@@ -7,6 +7,7 @@ from decimal import Decimal
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import OperationalError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -323,3 +324,200 @@ class InvoicePdfAndPagesTests(TestCase):
         self.assertEqual(settings_page.status_code, 200)
         self.assertContains(settings_page, "Fournisseur du chat Aminia")
         self.assertNotContains(settings_page, "xai-secret")
+
+
+def _pricing_section(response) -> str:
+    body = response.content.decode()
+    start = body.index('id="pricing"')
+    end = body.index('id="securite"')
+    return body[start:end]
+
+
+class HomepagePricingTests(TestCase):
+    """La vitrine publique affiche les forfaits, sans ouvrir un autre parcours d'inscription."""
+
+    def test_fallback_shows_default_matrix_without_writing(self):
+        self.assertEqual(Plan.objects.count(), 0)
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Plan.objects.count(), 0)
+        section = _pricing_section(response)
+        self.assertIn("29 €", section)
+        self.assertIn("49 €", section)
+        self.assertIn("79 €", section)
+        self.assertIn("HT / mois", section)
+        self.assertIn("1 société", section)
+        self.assertIn("20 factures / mois", section)
+        self.assertIn("40 messages Aminia / mois", section)
+        self.assertIn("Modèles Azur et Carmin", section)
+        self.assertIn("Écritures, grand livre et balance", section)
+        self.assertIn("Factures, clients et PDF", section)
+        self.assertIn("3 sociétés", section)
+        self.assertIn("80 factures / mois", section)
+        self.assertIn("200 messages Aminia / mois", section)
+        self.assertIn("Modèles Azur, Carmin, Encre et Sauge", section)
+        self.assertIn("Devis, catalogue et projets", section)
+        self.assertIn("Avoirs, paiements et import PDF", section)
+        self.assertIn("Brouillons IA", section)
+        self.assertIn("Sociétés illimitées", section)
+        self.assertIn("Factures illimitées", section)
+        self.assertIn("Messages Aminia illimités", section)
+        self.assertIn("Les 7 modèles de facture", section)
+        self.assertIn("Tickets de caisse", section)
+        self.assertIn("Voix Aminia", section)
+        self.assertIn("Tarifs mensuels hors taxes", section)
+        self.assertIn("Le montant débité correspond au prix affiché.", section)
+        self.assertNotIn("TTC", section)
+        self.assertNotIn("20 %", section)
+        self.assertIn('class="plan hot" data-plan="reel"', section)
+        self.assertIn("Le plus choisi", section)
+        self.assertIn("Sans carte bancaire · essai 14 jours", response.content.decode())
+
+    def test_calls_to_action_reuse_company_search(self):
+        response = self.client.get("/")
+        self.assertContains(response, 'id="recherche"')
+        self.assertContains(response, 'name="q"')
+        self.assertContains(response, 'action="/recherche/"')
+        self.assertContains(response, "SIRET")
+        section = _pricing_section(response)
+        self.assertEqual(section.count('href="#recherche"'), 3)
+        self.assertContains(
+            response,
+            '<a class="btn btn-lg btn-primary" href="#recherche">Commencer l\'essai</a>',
+            html=True,
+        )
+        self.assertNotIn("/inscription/", section)
+        self.assertNotIn("/forfait/", section)
+        self.assertNotIn("plan_checkout", section)
+        self.assertIn("btn-lg btn-primary", section)
+        self.assertIn("btn-lg btn-ghost", section)
+
+    def test_published_plans_replace_the_fallback(self):
+        Plan.objects.create(
+            code="micro",
+            name="Micro secret",
+            price_eur=Decimal("29.00"),
+            is_active=False,
+            description="Ne doit pas s'afficher.",
+        )
+        Plan.objects.create(
+            code="atelier",
+            name="Atelier",
+            price_eur=Decimal("19.50"),
+            is_active=True,
+            description="Pour un seul atelier.",
+            max_companies=2,
+            max_invoices_month=1,
+            max_ai_requests_month=None,
+            trial_days=7,
+            entitlements={
+                "custom": True,
+                "entries": True,
+                "ledger": False,
+                "balance": False,
+                "invoices": True,
+                "clients": True,
+                "invoice_pdf": False,
+                "themes": ["sauge"],
+            },
+        )
+        Plan.objects.create(
+            code="pro",
+            name="Pro",
+            price_eur=Decimal("90.00"),
+            is_active=True,
+            description="Le grand atelier.",
+            max_companies=None,
+            max_invoices_month=None,
+            max_ai_requests_month=3,
+            trial_days=7,
+            entitlements={
+                "custom": True,
+                "entries": True,
+                "ledger": True,
+                "balance": True,
+                "tickets": False,
+                "ai_voice": False,
+                "themes": ["azur", "carmin"],
+            },
+        )
+        response = self.client.get("/")
+        section = _pricing_section(response)
+        self.assertLess(section.index('data-plan="atelier"'), section.index('data-plan="pro"'))
+        self.assertIn("19,50 €", section)
+        self.assertIn("90 €", section)
+        self.assertIn("2 sociétés", section)
+        self.assertIn("1 facture / mois", section)
+        self.assertIn("Messages Aminia illimités", section)
+        self.assertIn("Modèle Sauge", section)
+        self.assertIn("Pour un seul atelier.", section)
+        self.assertIn("3 messages Aminia / mois", section)
+        self.assertIn("Essai 7 jours", section)
+        self.assertNotIn("Micro secret", section)
+        self.assertNotIn("29 €", section)
+        self.assertNotIn("49 €", section)
+        self.assertNotIn("Tickets de caisse", section)
+        self.assertNotIn("Voix Aminia", section)
+        self.assertNotIn("Le plus choisi", section)
+        self.assertIn("Sans carte bancaire · essai 7 jours", response.content.decode())
+
+    def test_entitlement_edit_changes_the_reel_card(self):
+        from billing.catalog import matrix_for_tier
+
+        matrix = matrix_for_tier("standard")
+        matrix["products"] = False
+        matrix["projects"] = False
+        matrix["themes"] = ["azur", "encre"]
+        Plan.objects.create(
+            code="reel",
+            name="Réel",
+            price_eur=Decimal("59.00"),
+            is_active=True,
+            max_companies=5,
+            max_invoices_month=12,
+            max_ai_requests_month=8,
+            description="Réel ajusté.",
+            entitlements=matrix,
+        )
+        response = self.client.get("/")
+        section = _pricing_section(response)
+        self.assertIn("59 €", section)
+        self.assertIn("5 sociétés", section)
+        self.assertIn("12 factures / mois", section)
+        self.assertIn("8 messages Aminia / mois", section)
+        self.assertIn("Modèles Azur et Encre", section)
+        self.assertIn("Devis", section)
+        self.assertNotIn("catalogue", section)
+        self.assertNotIn("projets", section)
+        self.assertIn('class="plan hot" data-plan="reel"', section)
+        self.assertIn('href="#recherche"', section)
+
+    def test_unpublished_plans_are_not_replaced_by_the_catalog(self):
+        Plan.objects.create(
+            code="micro",
+            name="Micro secret",
+            price_eur=Decimal("29.00"),
+            is_active=False,
+        )
+        response = self.client.get("/")
+        section = _pricing_section(response)
+        self.assertIn("dès qu'ils seront publiés", section)
+        self.assertNotIn("Micro secret", section)
+        self.assertNotIn("49 €", section)
+        self.assertNotIn('href="#recherche"', section)
+        self.assertContains(response, 'id="recherche"')
+        self.assertContains(response, 'action="/recherche/"')
+
+    def test_database_error_falls_back_to_the_catalog(self):
+        with mock.patch(
+            "billing.models.Plan.objects.order_by",
+            side_effect=OperationalError("billing_plan absente"),
+        ):
+            response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        section = _pricing_section(response)
+        self.assertIn("Micro", section)
+        self.assertIn("29 €", section)
+        self.assertIn("Réel", section)
+        self.assertIn("Pro", section)
+        self.assertIn('href="#recherche"', section)
