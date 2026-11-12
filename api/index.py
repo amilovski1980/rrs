@@ -1,7 +1,8 @@
 """WSGI handler pour Vercel Python serverless.
 
-Au démarrage à froid : base SQLite temporaire, migrations puis seed de la
-société de démonstration. Toutes les données vivent dans /tmp (éphémère).
+Au démarrage à froid : migrations puis seed de la démonstration. Si un
+démarrage échoue, la première requête rattrape les migrations (robustesse
+base Postgres / Neon : le migrate est idempotent).
 """
 import os
 import sys
@@ -27,15 +28,44 @@ django.setup()
 
 from django.core.management import call_command  # noqa: E402
 
-call_command("migrate", verbosity=0, interactive=False)
+_etat = {"migrations": False}
 
-try:
-    from core.demo import seed_demo
 
-    seed_demo()
-except Exception:  # la démo doit rester disponible même si le seed échoue
-    pass
+def assurer_migrations():
+    """Applique les migrations une seule fois par instance, sans jamais bloquer.
+
+    Un échec (réseau, limite de connexions du pooler…) est journalisé et la
+    première requête suivante réessaie automatiquement.
+    """
+    if _etat["migrations"]:
+        return
+    try:
+        call_command("migrate", verbosity=0, interactive=False)
+        _etat["migrations"] = True
+        print("[migrations] base à jour", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[migrations] échec (nouvel essai à la prochaine requête) : {exc}", flush=True)
+
+
+def lancer_seed():
+    """Seed de la démonstration : échec non bloquant."""
+    try:
+        from core.demo import seed_demo
+
+        seed_demo()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[seed] ignoré : {exc}", flush=True)
+
+
+assurer_migrations()
+lancer_seed()
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
 
-app = get_wsgi_application()
+_app_django = get_wsgi_application()
+
+
+def app(environ, start_response):
+    """Point d'entrée WSGI : rattrapage des migrations à la première requête."""
+    assurer_migrations()
+    return _app_django(environ, start_response)
