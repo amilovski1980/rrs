@@ -1,10 +1,13 @@
 import logging
 
-from django.http import HttpResponseForbidden
+from django.db.utils import OperationalError, ProgrammingError
+from django.http import HttpResponse, HttpResponseForbidden
 
 from .models import SiteConfiguration
 
 logger = logging.getLogger(__name__)
+
+_SCHEMA_ERRORS = (OperationalError, ProgrammingError)
 
 
 class DynamicConfigMiddleware:
@@ -80,3 +83,60 @@ class DynamicConfigMiddleware:
             logger.exception("Configuration dynamique indisponible")
 
         return self.get_response(request)
+
+
+def _is_schema_error(exc) -> bool:
+    if isinstance(exc, _SCHEMA_ERRORS):
+        return True
+    cause = getattr(exc, "__cause__", None)
+    return isinstance(cause, _SCHEMA_ERRORS)
+
+
+def _schema_fallback():
+    """Page lisible quand le schéma n'a pas pu être rattrapé. Jamais un 500."""
+    return HttpResponse(
+        "<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"utf-8\">"
+        "<title>Mise à jour</title></head><body>"
+        "<h1>Mise à jour de la base</h1>"
+        "<p>Les pages d'administration seront de nouveau disponibles dès que "
+        "le schéma est à jour. Rechargez la page dans un instant.</p>"
+        "</body></html>",
+        status=200,
+        content_type="text/html; charset=utf-8",
+    )
+
+
+class SchemaRetryMiddleware:
+    """Si une page admin lit une colonne absente, on migre puis on réaffiche.
+
+    C'est le cas des forfaits, abonnements, paramètres, intégrations et
+    consignes quand la migration du back-office n'est pas encore passée.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_exception(self, request, exception):
+        if not _is_schema_error(exception):
+            return None
+        if not (request.path or "").startswith("/admin-backoffice/"):
+            return None
+        if getattr(request, "_schema_retried", False):
+            return _schema_fallback()
+        request._schema_retried = True
+        logger.error("Admin : schéma incomplet (%s), nouvel essai de migration", exception)
+        from core.deploy import assurer_migrations
+
+        assurer_migrations(force=True)
+        try:
+            response = self.get_response(request)
+        except Exception as exc:
+            if _is_schema_error(exc):
+                return _schema_fallback()
+            return None
+        if getattr(response, "status_code", 500) >= 500:
+            return _schema_fallback()
+        return response

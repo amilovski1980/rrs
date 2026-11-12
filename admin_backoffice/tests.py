@@ -1,4 +1,4 @@
-from django.test import TestCase, RequestFactory
+from django.test import Client, TestCase, TransactionTestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 from companies.models import Company
@@ -438,3 +438,240 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.assertEqual(layers[1], custom_micro)
         self.micro.refresh_from_db()
         self.assertEqual(self.micro.ai_prompt, custom_micro)
+
+
+def _staff(email):
+    user = User.objects.create_user(email=email, is_staff=True, is_superuser=True)
+    user.set_password("password123")
+    user.save()
+    return user
+
+
+class EveryAdminPageTests(TestCase):
+    """Un compte staff qui ouvre chaque écran du back-office doit recevoir 200.
+
+    Régression des HTTP 500 signalés sur Forfaits, Abonnements, Intégrations,
+    Consignes et Paramètres (et sur les autres routes du même module).
+    """
+
+    def setUp(self):
+        self.admin = _staff("pages-admin@rrs.fr")
+        self.client_user = User.objects.create_user(email="pages-client@rrs.fr", phone="0601020304")
+        self.company = Company.objects.create(
+            denomination="Atelier Pages", siren="222222222", owner=self.client_user, regime="micro",
+        )
+        self.plan = Plan.objects.create(
+            code="pro", name="Pro", price_eur=79, features=["Export FEC", 12],
+        )
+        self.subscription = Subscription.objects.create(
+            user=self.client_user, plan=self.plan, status="active",
+        )
+        from admin_backoffice.models import SmsTemplate
+
+        self.sms_template = SmsTemplate.objects.create(
+            code="bienvenue", name="Bienvenue", body="Bonjour {prenom}",
+        )
+        self.client.login(email="pages-admin@rrs.fr", password="password123")
+
+    def test_every_named_route_is_covered(self):
+        from admin_backoffice.urls import urlpatterns
+
+        covered = set(self._get_pages()) | {name for name, _kwargs, _payload in self._post_pages()}
+        names = {pattern.name for pattern in urlpatterns}
+        self.assertEqual(covered, names)
+
+    def test_staff_get_returns_200_on_every_page(self):
+        markers = {
+            "dashboard": "Tableau de Bord Administrateur",
+            "settings": "Paramètres",
+            "plans": "Forfaits",
+            "subscriptions": "Abonnements",
+            "integrations": "Intégrations",
+            "ai_prompt": "Personnalisation de l'IA",
+            "users": "Utilisateurs",
+            "companies": "Sociétés",
+            "sms": "SMS",
+            "logs": "Journal",
+            "ai_monitoring": "Suivi de l'agent",
+        }
+        for name, kwargs in self._get_pages().items():
+            response = self.client.get(reverse(f"admin_backoffice:{name}", kwargs=kwargs))
+            self.assertEqual(response.status_code, 200, name)
+            self.assertNotContains(response, "Mise à jour de la base")
+            if name in markers:
+                self.assertContains(response, markers[name])
+
+    def test_filters_and_odd_plan_features_do_not_500(self):
+        queries = {
+            "users": {"q": "pages", "role": "client", "active": "1", "phone": "0"},
+            "companies": {"q": "Atelier"},
+            "subscriptions": {"q": "Pro", "status": "active"},
+            "logs": {"q": "rien", "level": "INFO"},
+            "plans": {},
+        }
+        for name, query in queries.items():
+            response = self.client.get(reverse(f"admin_backoffice:{name}"), query)
+            self.assertEqual(response.status_code, 200, name)
+        edited = self.client.get(reverse("admin_backoffice:plan_edit", kwargs={"pk": self.plan.pk}))
+        self.assertEqual(edited.status_code, 200)
+        self.assertContains(edited, "Export FEC")
+
+    def test_post_actions_do_not_500(self):
+        for name, kwargs, payload in self._post_pages():
+            other = self.client if name != "impersonate_start" else Client()
+            if name == "impersonate_start":
+                other.login(email="pages-admin@rrs.fr", password="password123")
+            response = other.post(reverse(f"admin_backoffice:{name}", kwargs=kwargs), payload)
+            self.assertNotEqual(response.status_code, 500, name)
+            self.assertIn(response.status_code, (200, 302, 403), name)
+
+    def _get_pages(self):
+        return {
+            "health": {},
+            "dashboard": {},
+            "dashboard_url": {},
+            "settings": {},
+            "logs": {},
+            "companies": {},
+            "companies_list": {},
+            "company_create": {},
+            "company_edit": {"pk": self.company.pk},
+            "company_delete": {"pk": self.company.pk},
+            "plans": {},
+            "plans_list": {},
+            "plan_create": {},
+            "plan_edit": {"pk": self.plan.pk},
+            "plan_delete": {"pk": self.plan.pk},
+            "subscriptions": {},
+            "subscriptions_list": {},
+            "subscription_create": {},
+            "subscription_edit": {"pk": self.subscription.pk},
+            "subscription_delete": {"pk": self.subscription.pk},
+            "users": {},
+            "user_create": {},
+            "user_edit": {"pk": self.client_user.pk},
+            "user_delete": {"pk": self.client_user.pk},
+            "ai_monitoring": {},
+            "ai_prompt": {},
+            "integrations": {},
+            "sms": {},
+            "sms_template_edit": {"pk": self.sms_template.pk},
+            "sms_template_delete": {"pk": self.sms_template.pk},
+        }
+
+    def _post_pages(self):
+        return [
+            ("user_toggle", {"pk": self.client_user.pk}, {}),
+            ("impersonate_start", {"pk": self.client_user.pk}, {}),
+            ("impersonate_stop", {}, {}),
+            ("integrations_test", {"code": "insee"}, {}),
+            ("sms_test", {"code": "ovh"}, {}),
+        ]
+
+
+class AdminPagesWithoutBusinessDataTests(TestCase):
+    """Listes vides, intégrations sans clé : 200, pas un 500."""
+
+    def setUp(self):
+        _staff("empty-admin@rrs.fr")
+        self.client.login(email="empty-admin@rrs.fr", password="password123")
+
+    def test_empty_admin_pages(self):
+        names = [
+            "dashboard", "dashboard_url", "settings", "logs", "companies",
+            "plans", "subscriptions", "users", "ai_monitoring", "ai_prompt",
+            "integrations", "sms", "health", "company_create", "plan_create",
+            "subscription_create", "user_create",
+        ]
+        for name in names:
+            response = self.client.get(reverse(f"admin_backoffice:{name}"))
+            self.assertEqual(response.status_code, 200, name)
+            self.assertNotContains(response, "Mise à jour de la base")
+        integrations = self.client.get(reverse("admin_backoffice:integrations"))
+        self.assertContains(integrations, "Non configurée")
+        self.assertContains(integrations, "Disponible sans clé")
+
+
+class SchemaRepairTests(TransactionTestCase):
+    """Colonnes du back-office absentes : la page se répare au lieu de répondre 500."""
+
+    def setUp(self):
+        from core import deploy
+
+        deploy._state["ok"] = False
+        self.admin = _staff("schema-admin@rrs.fr")
+        self.plan = Plan.objects.create(code="pro", name="Pro", price_eur=49)
+        self.client.login(email="schema-admin@rrs.fr", password="password123")
+
+    def tearDown(self):
+        from core import deploy
+
+        deploy._state["ok"] = False
+        deploy.assurer_migrations(force=True)
+
+    def _exec(self, statements):
+        from django.db import connection, connections
+
+        with connection.cursor() as cursor:
+            for statement in statements:
+                try:
+                    cursor.execute(statement)
+                except Exception as exc:
+                    message = str(exc).lower()
+                    if "no such column" in message or "no such table" in message:
+                        continue
+                    raise
+        connections.close_all()
+
+    def _drop_backoffice_columns(self):
+        self._exec([
+            "ALTER TABLE billing_plan DROP COLUMN ai_prompt",
+            "ALTER TABLE billing_plan DROP COLUMN description",
+            "ALTER TABLE billing_plan DROP COLUMN features",
+            "ALTER TABLE billing_plan DROP COLUMN is_active",
+            "ALTER TABLE billing_plan DROP COLUMN max_companies",
+            "ALTER TABLE billing_plan DROP COLUMN max_invoices_month",
+            "ALTER TABLE billing_plan DROP COLUMN max_ai_requests_month",
+            "ALTER TABLE admin_backoffice_siteconfiguration DROP COLUMN ai_system_prompt",
+        ])
+
+    def _drop_extension_tables(self):
+        self._exec([
+            "DROP TABLE admin_backoffice_smsmessage",
+            "DROP TABLE admin_backoffice_smstemplate",
+            "DROP TABLE admin_backoffice_smsproviderconfig",
+            "DROP TABLE admin_backoffice_smssettings",
+        ])
+
+    def test_pages_recover_when_migrations_are_marked_applied_but_columns_are_missing(self):
+        self._drop_backoffice_columns()
+        plans = self.client.get(reverse("admin_backoffice:plans"))
+        self.assertEqual(plans.status_code, 200)
+        self.assertContains(plans, "Forfaits")
+        self.assertContains(plans, "Pro")
+        for name, marker in (
+            ("subscriptions", "Abonnements"),
+            ("settings", "Paramètres"),
+            ("integrations", "Intégrations"),
+            ("ai_prompt", "Personnalisation de l'IA"),
+            ("sms", "SMS"),
+        ):
+            page = self.client.get(reverse(f"admin_backoffice:{name}"))
+            self.assertEqual(page.status_code, 200, name)
+            self.assertContains(page, marker)
+
+    def test_pages_recover_when_migrations_were_never_recorded(self):
+        from django.db.migrations.recorder import MigrationRecorder
+
+        self._drop_backoffice_columns()
+        self._drop_extension_tables()
+        MigrationRecorder.Migration.objects.filter(
+            app__in=["billing", "admin_backoffice"],
+            name="0002_backoffice_extensions",
+        ).delete()
+        page = self.client.get(reverse("admin_backoffice:plans"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Pro")
+        settings_page = self.client.get(reverse("admin_backoffice:settings"))
+        self.assertEqual(settings_page.status_code, 200)
+        self.assertContains(settings_page, "Paramètres")

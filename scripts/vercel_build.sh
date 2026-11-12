@@ -7,10 +7,14 @@ set -eu
 ROOT=${0%/*}/..
 cd "$ROOT"
 
-# --- AJOUT : Migration de la base de données ---
-echo "vercel_build: Lancement des migrations..."
-python manage.py migrate --no-input || echo "Migration failed or skipped (normal if DB not connected during build)"
-# ----------------------------------------------
+# Migrations pendant le build. Si la base n'est pas joignable depuis le
+# builder, la fonction (api/index.py) réapplique migrate au démarrage.
+if [ -n "${DATABASE_URL:-}" ]; then
+  echo "vercel_build: migrate"
+  python manage.py migrate --no-input || echo "vercel_build: migrate non appliqué ici — nouvel essai au démarrage de la fonction"
+else
+  echo "vercel_build: DATABASE_URL absent — migrate au démarrage de la fonction"
+fi
 
 mkdir -p docs/assets
 
