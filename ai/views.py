@@ -2,7 +2,6 @@
 import json
 
 import httpx
-from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
@@ -37,9 +36,12 @@ def _auth_required(request):
 
 
 def _mint_secret():
-    key = settings.XAI_API_KEY
+    from .providers import voice_config
+
+    material = voice_config()
+    key = material["key"]
     if not key:
-        return None, "La clé XAI_API_KEY n'est pas configurée sur le serveur."
+        return None, "La voix Aminia n'est pas configurée pour le moment."
     response = httpx.post(
         "https://api.x.ai/v1/realtime/client_secrets",
         headers={
@@ -80,11 +82,14 @@ def voice_session(request):
     secret, error = _mint_secret()
     if error:
         return JsonResponse({"error": "voice", "message": error}, status=503)
+    from .providers import voice_config
+
+    spoken = voice_config()
     return JsonResponse({
         "token": secret["token"],
         "expires_at": secret["expires_at"],
-        "url": f"wss://api.x.ai/v1/realtime?model={settings.XAI_VOICE_MODEL}",
-        "voice": settings.XAI_VOICE,
+        "url": f"wss://api.x.ai/v1/realtime?model={spoken['model']}",
+        "voice": spoken["voice"],
         "instructions": agent_instructions(request.user, company, channel="voice"),
         "tools": [tool for tool in TOOLS if tool_allowed(request.user, tool["name"])],
         "company_id": str(company.id) if company else None,

@@ -14,6 +14,7 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
         <p>
           {% if company.address %}{{ company.address }}<br>{% endif %}
           SIREN {{ company.siren }}
+          {% if company.source_data.siret %} · SIRET {{ company.source_data.siret }}{% endif %}
           {% if company.phone %} · {{ company.phone }}{% endif %}
           {% if company.email %}<br>{{ company.email }}{% endif %}
         </p>
@@ -22,7 +23,7 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
     <div class="sheet-meta">
       <p class="sheet-kind">{{ kind_label }}</p>
       <p class="sheet-num">{{ number }}</p>
-      <p>{{ created_at|date:"d/m/Y" }}</p>
+      <p>Émise le {{ created_at|date:"d/m/Y" }}</p>
       {% if status_label %}<p class="sheet-state">{{ status_label }}</p>{% endif %}
     </div>
   </header>
@@ -31,6 +32,7 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
     <h3>{{ client_name }}</h3>
     <p>{% if client_siren %}SIREN {{ client_siren }}{% else %}Client{% endif %}</p>
   </section>
+  <div class="sheet-table-wrap">
   <table class="sheet-table">
     <thead>
       <tr>
@@ -66,8 +68,20 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
       {% endif %}
     </tbody>
   </table>
+  </div>
   <footer class="sheet-foot">
-    <p>{{ foot_note|default:"Payable à réception." }} TVA {{ vat_rate|floatformat:2 }} %.</p>
+    <div class="sheet-legal">
+      <p>{{ foot_note|default:"Payable à réception." }}</p>
+      <p>SIREN {{ company.siren }}{% if company.source_data.siret %} · SIRET {{ company.source_data.siret }}{% endif %} · {{ company.forme }}</p>
+      {% if company.tva == "franchise" %}
+      <p>TVA non applicable, article 293 B du CGI.</p>
+      {% else %}
+      <p>TVA {{ vat_rate|floatformat:2 }} % · {{ vat_amount|floatformat:2 }} €.</p>
+      {% endif %}
+      {% if kind_label == "Facture" %}
+      <p>En cas de retard de paiement : pénalités de trois fois le taux d'intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce).</p>
+      {% endif %}
+    </div>
     <div class="sheet-totals">
       <p>Total HT <b>{{ amount_ht|floatformat:2 }} €</b></p>
       <p>TVA <b>{{ vat_amount|floatformat:2 }} €</b></p>

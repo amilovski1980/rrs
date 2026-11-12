@@ -1,6 +1,7 @@
 from datetime import date
 
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
@@ -164,46 +165,52 @@ def onboarding_confirm(request):
                 )
             else:
                 cleaned = form.cleaned_data
-                if lookup.get("origin") == "annuaire":
-                    source_name = "annuaire_entreprises"
-                elif data:
-                    source_name = "insee_sirene"
-                else:
-                    source_name = "manuel"
-                source = {
-                    "source": source_name,
-                    "fetched_at": lookup.get("fetched_at"),
-                    "siren": siren,
-                    "siret": (data.get("siret") or "") if data else "",
-                }
-                try:
-                    with transaction.atomic():
-                        company = Company.objects.create(
-                            owner=request.user,
-                            siren=siren,
-                            denomination=cleaned["denomination"],
-                            forme=cleaned["forme"],
-                            address=data.get("adresse", ""),
-                            phone=cleaned.get("phone", ""),
-                            email=cleaned.get("email", ""),
-                            code_naf=data.get("code_naf", ""),
-                            activites=list(cleaned["activites"]),
-                            regime=cleaned["regime"],
-                            tva=cleaned["tva"],
-                            exercice_debut=cleaned["exercice_debut"],
-                            source_data=source,
-                        )
-                        from accounting.services import generate_portal
+                from billing.access import company_create_block
 
-                        generate_portal(company)
-                except IntegrityError:
-                    form.add_error(
-                        None,
-                        "Ce SIREN est déjà rattaché à un autre compte.",
-                    )
+                blocked = company_create_block(request.user)
+                if blocked:
+                    form.add_error(None, blocked)
                 else:
-                    request.session.pop("onboarding_lookup", None)
-                    return redirect(reverse("cockpit") + f"?societe={company.id}")
+                    if lookup.get("origin") == "annuaire":
+                        source_name = "annuaire_entreprises"
+                    elif data:
+                        source_name = "insee_sirene"
+                    else:
+                        source_name = "manuel"
+                    source = {
+                        "source": source_name,
+                        "fetched_at": lookup.get("fetched_at"),
+                        "siren": siren,
+                        "siret": (data.get("siret") or "") if data else "",
+                    }
+                    try:
+                        with transaction.atomic():
+                            company = Company.objects.create(
+                                owner=request.user,
+                                siren=siren,
+                                denomination=cleaned["denomination"],
+                                forme=cleaned["forme"],
+                                address=data.get("adresse", ""),
+                                phone=cleaned.get("phone", ""),
+                                email=cleaned.get("email", ""),
+                                code_naf=data.get("code_naf", ""),
+                                activites=list(cleaned["activites"]),
+                                regime=cleaned["regime"],
+                                tva=cleaned["tva"],
+                                exercice_debut=cleaned["exercice_debut"],
+                                source_data=source,
+                            )
+                            from accounting.services import generate_portal
+
+                            generate_portal(company)
+                    except IntegrityError:
+                        form.add_error(
+                            None,
+                            "Ce SIREN est déjà rattaché à un autre compte.",
+                        )
+                    else:
+                        request.session.pop("onboarding_lookup", None)
+                        return redirect(reverse("cockpit") + f"?societe={company.id}")
     else:
         form = CompanyProfileForm(initial=initial)
 
@@ -273,6 +280,11 @@ def company_settings(request):
         return bounce
     if request.method == "POST" and request.POST.get("theme") and "denomination" not in request.POST:
         theme = request.POST.get("theme")
+        from billing.access import UPGRADE_MESSAGE, theme_allowed
+
+        if theme in dict(INVOICE_THEMES) and not theme_allowed(request.user, theme):
+            messages.info(request, UPGRADE_MESSAGE)
+            return redirect("plan_upgrade")
         if theme in dict(INVOICE_THEMES):
             company.invoice_theme = theme
             company.save(update_fields=["invoice_theme"])
@@ -282,6 +294,12 @@ def company_settings(request):
         return redirect(nxt)
     form = CompanySettingsForm(request.POST or None, request.FILES or None, instance=company)
     if request.method == "POST" and form.is_valid():
+        from billing.access import UPGRADE_MESSAGE, theme_allowed
+
+        chosen = form.cleaned_data.get("invoice_theme")
+        if chosen and not theme_allowed(request.user, chosen):
+            messages.info(request, UPGRADE_MESSAGE)
+            return redirect("plan_upgrade")
         company = form.save()
         if request.POST.get("remove_logo"):
             company.logo = None

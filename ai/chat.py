@@ -4,10 +4,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from django.conf import settings
-
 from .assistant import TOOLS, execute_tool
 from .models import Conversation, Message
+from .providers import text_provider
 from .qwen import QwenClient
 
 UNAVAILABLE = (
@@ -18,8 +17,7 @@ UNAVAILABLE = (
 
 
 def llm_configured() -> bool:
-    base = (getattr(settings, "LLM_BASE_URL", "") or "").strip()
-    return bool(base)
+    return bool(text_provider()["configured"])
 
 
 def _openai_tools():
@@ -71,23 +69,38 @@ def run_chat_turn(user, company, conversation: Conversation, text: str, client: 
     if len(text) > 2000:
         return {"ok": False, "error": "Message trop long (2 000 caractères max).", "status": 400}
 
-    Message.objects.create(conversation=conversation, role="user", content=text)
+    from billing.access import ai_quota_block
 
-    if not llm_configured():
-        reply = UNAVAILABLE
-        msg = Message.objects.create(conversation=conversation, role="assistant", content=reply)
+    block = ai_quota_block(user)
+    if block:
+        Message.objects.create(conversation=conversation, role="user", content=text)
+        msg = Message.objects.create(conversation=conversation, role="assistant", content=block)
         return {
             "ok": True,
             "fallback": True,
-            "reply": reply,
+            "reply": block,
             "conversation_id": str(conversation.id),
             "message_id": str(msg.id),
         }
 
+    Message.objects.create(conversation=conversation, role="user", content=text)
+
+    if client is None:
+        spec = text_provider()
+        if not spec["configured"]:
+            reply = UNAVAILABLE
+            msg = Message.objects.create(conversation=conversation, role="assistant", content=reply)
+            return {
+                "ok": True,
+                "fallback": True,
+                "reply": reply,
+                "conversation_id": str(conversation.id),
+                "message_id": str(msg.id),
+            }
+        client = QwenClient(base=spec["base"], model=spec["model"], api_key=spec["key"])
+
     messages: list[dict] = [{"role": "system", "content": _text_instructions(user, company)}]
     messages.extend(_history(conversation))
-
-    client = client or QwenClient()
     from admin_backoffice.agent_prompts import tool_allowed
 
     tools = [

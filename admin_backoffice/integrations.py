@@ -66,11 +66,54 @@ def inpi_token() -> str:
 
 
 def qwen_material():
+    from ai.providers import text_provider
+
+    # Le fournisseur actif peut être xAI : la carte Qwen décrit quand même le déploiement local.
     config = _config()
-    base = (getattr(settings, "LLM_BASE_URL", "") or "").strip()
+    base = _overlay(getattr(settings, "LLM_BASE_URL", ""), getattr(config, "llm_base_url", "") if config else "")
     key = _overlay(getattr(settings, "LLM_API_KEY", ""), getattr(config, "llm_api_key", "") if config else "")
-    model = (getattr(settings, "LLM_MODEL", "") or "").strip()
-    return {"base": base, "key": key, "model": model, "configured": bool(base)}
+    model = _overlay(getattr(settings, "LLM_MODEL", ""), getattr(config, "llm_model", "") if config else "")
+    spec = text_provider()
+    return {
+        "base": base,
+        "key": key,
+        "model": model,
+        "configured": bool(base),
+        "active": spec["code"] == "qwen",
+    }
+
+
+def xai_material():
+    from ai.providers import text_provider, voice_config
+
+    spoken = voice_config()
+    config = _config()
+    text_model = _overlay(
+        getattr(settings, "XAI_TEXT_MODEL", "") or "grok-3",
+        getattr(config, "xai_text_model", "") if config else "",
+    ) or "grok-3"
+    return {
+        "key": spoken["key"],
+        "text_model": text_model,
+        "voice_model": spoken["model"],
+        "voice": spoken["voice"],
+        "configured": bool(spoken["key"]),
+        "active_chat": text_provider()["code"] == "xai",
+    }
+
+
+def stripe_material():
+    from billing.stripe_api import stripe_publishable, stripe_secret, stripe_webhook_secret
+
+    secret = stripe_secret()
+    public = stripe_publishable()
+    webhook = stripe_webhook_secret()
+    return {
+        "secret": secret,
+        "public": public,
+        "webhook": webhook,
+        "configured": bool(secret),
+    }
 
 
 def integration_cards() -> list[dict]:
@@ -92,6 +135,31 @@ def integration_cards() -> list[dict]:
         qwen_detail = f"URL {_host(qwen['base'])} · clé non requise (déploiement local)"
     else:
         qwen_detail = f"URL {_host(qwen['base'])} · clé {mask_secret(qwen['key'])}"
+    if qwen["model"]:
+        qwen_detail += f" · modèle {qwen['model']}"
+    if qwen["active"]:
+        qwen_detail += " · fournisseur du chat"
+
+    xai = xai_material()
+    if xai["configured"]:
+        xai_detail = (
+            f"Clé {mask_secret(xai['key'])} · chat {xai['text_model']} · "
+            f"voix {xai['voice_model']} / {xai['voice']}"
+        )
+        if xai["active_chat"]:
+            xai_detail += " · fournisseur du chat"
+    else:
+        xai_detail = "Non configurée"
+
+    stripe = stripe_material()
+    if stripe["configured"]:
+        stripe_detail = "Clé secrète " + mask_secret(stripe["secret"])
+        if stripe["public"]:
+            stripe_detail += " · clé publique " + mask_secret(stripe["public"])
+        if stripe["webhook"]:
+            stripe_detail += " · webhook " + mask_secret(stripe["webhook"])
+    else:
+        stripe_detail = "Non configurée"
 
     return [
         {
@@ -124,7 +192,23 @@ def integration_cards() -> list[dict]:
             "description": "Modèle self-hébergé, API compatible OpenAI.",
             "configured": qwen["configured"],
             "detail": qwen_detail,
-            "origin": "LLM_BASE_URL et LLM_MODEL viennent de l'environnement. La clé API peut être surchargée dans les paramètres.",
+            "origin": "LLM_BASE_URL, LLM_MODEL et la clé peuvent être surchargés dans les paramètres. La valeur enregistrée prime.",
+        },
+        {
+            "code": "xai",
+            "name": "xAI / Grok",
+            "description": "Chat (api.x.ai) et voix temps réel. La clé n'est jamais affichée en entier.",
+            "configured": xai["configured"],
+            "detail": xai_detail,
+            "origin": "XAI_API_KEY, XAI_TEXT_MODEL, XAI_VOICE_MODEL et XAI_VOICE. Une valeur saisie dans les paramètres remplace l'environnement.",
+        },
+        {
+            "code": "stripe",
+            "name": "Stripe",
+            "description": "Abonnements par carte, en euros.",
+            "configured": stripe["configured"],
+            "detail": stripe_detail,
+            "origin": "STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY et STRIPE_WEBHOOK_SECRET. Une valeur saisie dans les paramètres remplace l'environnement.",
         },
     ]
 
@@ -135,6 +219,8 @@ def probe(code: str) -> dict:
         "inpi": probe_inpi,
         "annuaire": probe_annuaire,
         "qwen": probe_qwen,
+        "xai": probe_xai,
+        "stripe": probe_stripe,
     }
     handler = handlers.get(code)
     if handler is None:
@@ -227,3 +313,28 @@ def probe_qwen() -> dict:
     if response.status_code in (401, 403):
         return {"ok": False, "message": "Qwen : authentification refusée."}
     return {"ok": False, "message": f"Qwen : réponse HTTP {response.status_code}."}
+
+
+def probe_xai() -> dict:
+    material = xai_material()
+    if not material["configured"]:
+        return {"ok": False, "message": "xAI : non configuré."}
+    try:
+        response = httpx.get(
+            "https://api.x.ai/v1/models",
+            headers={"Authorization": f"Bearer {material['key']}", "Accept": "application/json"},
+            timeout=8,
+        )
+    except httpx.HTTPError:
+        return {"ok": False, "message": "xAI : service injoignable."}
+    if response.status_code == 200:
+        return {"ok": True, "message": "Connexion xAI établie."}
+    if response.status_code in (401, 403):
+        return {"ok": False, "message": "xAI : authentification refusée."}
+    return {"ok": False, "message": f"xAI : réponse HTTP {response.status_code}."}
+
+
+def probe_stripe() -> dict:
+    from billing.stripe_api import probe_balance
+
+    return probe_balance()

@@ -15,7 +15,40 @@ class SiteConfiguration(models.Model):
 
     # --- Clés API ---
     stripe_secret_key = models.CharField(max_length=255, default="", verbose_name="Clé Secrète Stripe")
+    stripe_publishable_key = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="Clé publique Stripe",
+    )
+    stripe_webhook_secret = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="Secret webhook Stripe",
+    )
     llm_api_key = models.CharField(max_length=255, default="", verbose_name="Clé API LLM")
+    llm_base_url = models.CharField(
+        max_length=255, blank=True, default="", verbose_name="URL de base Qwen",
+        help_text="Vide = variable LLM_BASE_URL.",
+    )
+    llm_model = models.CharField(
+        max_length=120, blank=True, default="", verbose_name="Modèle Qwen",
+        help_text="Vide = variable LLM_MODEL.",
+    )
+    xai_api_key = models.CharField(max_length=512, blank=True, default="", verbose_name="Clé API xAI")
+    xai_text_model = models.CharField(
+        max_length=120, blank=True, default="", verbose_name="Modèle de chat xAI",
+        help_text="Vide = variable XAI_TEXT_MODEL (grok-3 par défaut).",
+    )
+    xai_voice_model = models.CharField(
+        max_length=120, blank=True, default="", verbose_name="Modèle vocal xAI",
+        help_text="Vide = variable XAI_VOICE_MODEL.",
+    )
+    xai_voice = models.CharField(
+        max_length=40, blank=True, default="", verbose_name="Voix xAI",
+        help_text="Vide = variable XAI_VOICE.",
+    )
+    ai_text_provider = models.CharField(
+        max_length=12,
+        choices=[("qwen", "Qwen (auto-hébergé)"), ("xai", "xAI / Grok")],
+        default="qwen",
+        verbose_name="Fournisseur du chat Aminia",
+    )
     insee_api_key = models.CharField(max_length=255, default="", verbose_name="Clé API INSEE")
 
     # --- Paramètres Site ---

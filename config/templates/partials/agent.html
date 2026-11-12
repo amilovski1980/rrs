@@ -10,9 +10,12 @@
   <div class="agent-chooser" id="agent-chooser" data-agent-chooser hidden role="dialog" aria-label="Choisir le mode Aminia">
     <p class="agent-chooser-title">Comment souhaitez-vous parler à Aminia&nbsp;?</p>
     <div class="agent-chooser-actions">
-      <button class="btn btn-primary" type="button" data-agent-pick="voice">Vocal</button>
-      <button class="btn btn-ghost" type="button" data-agent-pick="chat">Chat</button>
+      <button class="btn {% if forfait.locks.ai_voice %}btn-ghost is-locked{% else %}btn-primary{% endif %}" type="button" data-agent-pick="voice" {% if forfait.locks.ai_voice %}data-plan-locked="1" data-upgrade-url="{% url 'plan_upgrade' %}"{% endif %}>Vocal</button>
+      <button class="btn {% if forfait.locks.ai_chat %}btn-ghost is-locked{% else %}btn-ghost{% endif %}" type="button" data-agent-pick="chat" {% if forfait.locks.ai_chat %}data-plan-locked="1" data-upgrade-url="{% url 'plan_upgrade' %}"{% endif %}>Chat</button>
     </div>
+    {% if forfait.locks.ai_voice or forfait.locks.ai_chat %}
+    <p class="agent-plan-note"><a href="{% url 'plan_upgrade' %}">Mettre à jour le forfait</a> pour débloquer Aminia.</p>
+    {% endif %}
     <button class="agent-chooser-close" type="button" data-agent-chooser-close aria-label="Fermer">×</button>
   </div>
 

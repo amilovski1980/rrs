@@ -149,6 +149,12 @@ def invoice_create(request):
         return bounce
     form = InvoiceForm(request.POST or None, company=company)
     if request.method == "POST" and form.is_valid():
+        from billing.access import invoice_create_block
+
+        blocked = invoice_create_block(request.user)
+        if blocked:
+            messages.info(request, blocked)
+            return redirect("plan_upgrade")
         invoice = form.save(commit=False)
         invoice.company = company
         invoice.status = "draft"
@@ -571,6 +577,12 @@ def quote_convert(request, pk):
     if bounce:
         return bounce
     quote = _scoped(Quote, company, pk)
+    from billing.access import invoice_create_block
+
+    blocked = invoice_create_block(request.user)
+    if blocked:
+        messages.info(request, blocked)
+        return redirect("plan_upgrade")
     try:
         invoice = convert_quote_to_invoice(quote)
     except ValueError as exc:

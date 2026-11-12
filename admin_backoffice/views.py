@@ -251,7 +251,10 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
         context["secrets"] = {
             "smtp_password": bool(config.smtp_password),
             "stripe_secret_key": bool(config.stripe_secret_key),
+            "stripe_publishable_key": bool(config.stripe_publishable_key),
+            "stripe_webhook_secret": bool(config.stripe_webhook_secret),
             "llm_api_key": bool(config.llm_api_key),
+            "xai_api_key": bool(config.xai_api_key),
             "insee_api_key": bool(config.insee_api_key),
         }
         return context

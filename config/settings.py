@@ -62,6 +62,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "admin_backoffice.middleware.DynamicConfigMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "billing.middleware.PlanGateMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -78,6 +79,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "billing.context.forfait",
             ],
         },
     },
@@ -148,8 +150,9 @@ LLM_BASE_URL = env.get("LLM_BASE_URL", "http://localhost:8000/v1")
 LLM_MODEL = env.get("LLM_MODEL", "qwen3-32b-awq")
 LLM_API_KEY = env.get("LLM_API_KEY", "not-needed-for-vllm-local")
 
-# Stripe (abonnements clients)
+# Stripe (abonnements clients). Une valeur saisie dans le back-office prime.
 STRIPE_SECRET_KEY = env.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = env.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = env.get("STRIPE_WEBHOOK_SECRET", "")
 
 # Email de connexion (dev : fichier EMAIL_FILE_PATH ; prod : Brevo, Postal…)
@@ -226,7 +229,10 @@ VOICE_AGENT_NAME = env.get("VOICE_AGENT_NAME", "Aminia")
 
 # Agent vocal Grok (xAI Realtime). La clé reste sur le serveur :
 # le navigateur ne reçoit qu'un jeton éphémère.
+# Le chat texte peut aussi pointer vers xAI si le back-office le choisit.
 XAI_API_KEY = env.get("XAI_API_KEY", "")
+XAI_TEXT_MODEL = env.get("XAI_TEXT_MODEL", "grok-3")
 XAI_VOICE_MODEL = env.get("XAI_VOICE_MODEL", "grok-voice-latest")
 XAI_VOICE = env.get("XAI_VOICE", "eve")
+AI_TEXT_PROVIDER = env.get("AI_TEXT_PROVIDER", "qwen")
 

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load billing_tags %}
+{% block title %}Forfait{% endblock %}
+{% block crumbs %}Mon forfait{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Mettre à jour le forfait</h1>
+    <p class="sub">
+      {% if state.open %}
+        Choisissez un forfait. Le paiement se fait par carte, en euros.
+      {% else %}
+        Forfait actuel : <b>{{ state.name }}</b>
+        {% if state.past_due %} — paiement en échec. Régularisez pour conserver l'accès.{% endif %}
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{% if not stripe_ready %}
+<div class="plan-banner" role="status">
+  <p>Le paiement par carte n'est pas ouvert : Stripe n'est pas configuré. Un administrateur peut renseigner la clé dans le back-office.</p>
+</div>
+{% endif %}
+
+<div class="pricing">
+  {% for card in cards %}
+  <article class="plan {% if card.plan.code == 'reel' %}hot{% endif %} {% if card.current %}is-current{% endif %}">
+    {% if card.plan.code == 'reel' %}<span class="tag-top">Le plus choisi</span>{% endif %}
+    <h3>{{ card.plan.name }}</h3>
+    <div class="price">{{ card.plan.price_eur|floatformat:0 }} €<small> / mois</small></div>
+    <p class="desc">{{ card.plan.description }}</p>
+    <ul>
+      <li>Sociétés : {% if card.plan.max_companies %}{{ card.plan.max_companies }}{% else %}illimité{% endif %}</li>
+      <li>Factures / mois : {% if card.plan.max_invoices_month %}{{ card.plan.max_invoices_month }}{% else %}illimité{% endif %}</li>
+      <li>Messages Aminia / mois : {% if card.plan.max_ai_requests_month %}{{ card.plan.max_ai_requests_month }}{% else %}illimité{% endif %}</li>
+      {% for line in card.plan.features %}
+      <li><span class="check">✓</span> {{ line }}</li>
+      {% endfor %}
+      {% if card.plan.trial_days %}<li>Essai {{ card.plan.trial_days }} jours</li>{% endif %}
+    </ul>
+    {% if card.current %}
+    <span class="btn btn-ghost" aria-current="true">Forfait actuel</span>
+    {% elif stripe_ready %}
+    <form method="post" action="{% url 'plan_checkout' %}">
+      {% csrf_token %}
+      <input type="hidden" name="plan" value="{{ card.plan.code }}">
+      <button class="btn btn-primary" type="submit">Mettre à jour le forfait</button>
+    </form>
+    {% else %}
+    <span class="btn btn-ghost">Paiement indisponible</span>
+    {% endif %}
+  </article>
+  {% empty %}
+  <p>Aucun forfait n'est proposé pour le moment.</p>
+  {% endfor %}
+</div>
+
+<div class="card card-tight" style="margin-top:28px">
+  <div class="card-head">
+    <h3>Ce que chaque forfait débloque</h3>
+  </div>
+  <div class="table-wrap">
+    <table class="compare">
+      <thead>
+        <tr>
+          <th>Fonction</th>
+          {% for card in cards %}<th>{{ card.plan.name }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for key, label in features %}
+        <tr>
+          <td>{{ label }}</td>
+          {% for card in cards %}
+          <td>
+            {% if card.matrix|matrix_on:key %}
+            <span class="check">Inclus</span>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+        <tr>
+          <td>Modèles de facture</td>
+          {% for card in cards %}
+          <td>{{ card.themes }}</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

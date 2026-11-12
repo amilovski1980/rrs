@@ -36,8 +36,26 @@ class DynamicConfigMiddleware:
 
             if config.stripe_secret_key:
                 settings.STRIPE_SECRET_KEY = config.stripe_secret_key
+            if config.stripe_publishable_key:
+                settings.STRIPE_PUBLISHABLE_KEY = config.stripe_publishable_key
+            if config.stripe_webhook_secret:
+                settings.STRIPE_WEBHOOK_SECRET = config.stripe_webhook_secret
             if config.llm_api_key:
                 settings.LLM_API_KEY = config.llm_api_key
+            if getattr(config, "llm_base_url", ""):
+                settings.LLM_BASE_URL = config.llm_base_url
+            if getattr(config, "llm_model", ""):
+                settings.LLM_MODEL = config.llm_model
+            if getattr(config, "xai_api_key", ""):
+                settings.XAI_API_KEY = config.xai_api_key
+            if getattr(config, "xai_text_model", ""):
+                settings.XAI_TEXT_MODEL = config.xai_text_model
+            if getattr(config, "xai_voice_model", ""):
+                settings.XAI_VOICE_MODEL = config.xai_voice_model
+            if getattr(config, "xai_voice", ""):
+                settings.XAI_VOICE = config.xai_voice
+            if getattr(config, "ai_text_provider", "") in ("qwen", "xai"):
+                settings.AI_TEXT_PROVIDER = config.ai_text_provider
             if config.insee_api_key:
                 settings.INSEE_API_KEY = config.insee_api_key
             if config.site_name:

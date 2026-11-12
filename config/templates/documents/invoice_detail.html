@@ -26,7 +26,7 @@
     {% csrf_token %}
     <input type="hidden" name="theme" value="{{ code }}">
     <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
-    <button class="model-card {% if company.invoice_theme == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}">
+        <button class="model-card {% if company.invoice_theme == code %}is-on{% endif %}{% if code in forfait.locked_themes %} is-locked{% endif %}" type="{% if code in forfait.locked_themes %}button{% else %}submit{% endif %}" aria-label="{{ label }}{% if code in forfait.locked_themes %}. Mettre à jour le forfait{% endif %}" {% if code in forfait.locked_themes %}onclick="window.location.href='{% url 'plan_upgrade' %}'; return false;"{% endif %}>
       <span class="model-preview model-{{ code }}" aria-hidden="true">
         <span class="mp-top">
           <span class="mp-logo"></span>
@@ -38,6 +38,7 @@
         <span class="mp-due"><i></i><b></b></span>
       </span>
       <span class="model-label">{{ label }}</span>
+      {% if code in forfait.locked_themes %}<span class="model-lock">Mettre à jour le forfait</span>{% endif %}
     </button>
   </form>
   {% endfor %}

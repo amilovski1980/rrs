@@ -44,14 +44,46 @@
   </div>
 
   <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Clés</h2>
-    <p class="sub">Une clé saisie ici remplace la variable d'environnement. L'état se vérifie dans Intégrations.</p>
+    <h2 style="margin-top:0;font-family:var(--font-head)">Paiement Stripe</h2>
+    <p class="sub">Une clé saisie ici remplace la variable d'environnement. Elle n'est jamais réaffichée.</p>
     <label for="{{ form.stripe_secret_key.id_for_label }}">{{ form.stripe_secret_key.label }}</label>
     {{ form.stripe_secret_key }}
-    <p class="secret-hint">{% if secrets.stripe_secret_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <p class="secret-hint">{% if secrets.stripe_secret_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %} {{ form.stripe_secret_key.help_text }}</p>
+    <label for="{{ form.stripe_publishable_key.id_for_label }}">{{ form.stripe_publishable_key.label }}</label>
+    {{ form.stripe_publishable_key }}
+    <p class="secret-hint">{% if secrets.stripe_publishable_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <label for="{{ form.stripe_webhook_secret.id_for_label }}">{{ form.stripe_webhook_secret.label }}</label>
+    {{ form.stripe_webhook_secret }}
+    <p class="secret-hint">{% if secrets.stripe_webhook_secret %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %}</p>
+  </div>
+
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Aminia — chat et voix</h2>
+    <p class="sub">Le chat utilise le fournisseur choisi. La voix reste sur xAI. Les secrets laissés vides sont conservés.</p>
+    <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>
+    {{ form.ai_text_provider }}
+    <label for="{{ form.llm_base_url.id_for_label }}">{{ form.llm_base_url.label }}</label>
+    {{ form.llm_base_url }}
+    <p class="secret-hint">{{ form.llm_base_url.help_text }}</p>
+    <label for="{{ form.llm_model.id_for_label }}">{{ form.llm_model.label }}</label>
+    {{ form.llm_model }}
     <label for="{{ form.llm_api_key.id_for_label }}">{{ form.llm_api_key.label }}</label>
     {{ form.llm_api_key }}
     <p class="secret-hint">{% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <label for="{{ form.xai_api_key.id_for_label }}">{{ form.xai_api_key.label }}</label>
+    {{ form.xai_api_key }}
+    <p class="secret-hint">{% if secrets.xai_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <label for="{{ form.xai_text_model.id_for_label }}">{{ form.xai_text_model.label }}</label>
+    {{ form.xai_text_model }}
+    <p class="secret-hint">{{ form.xai_text_model.help_text }}</p>
+    <label for="{{ form.xai_voice_model.id_for_label }}">{{ form.xai_voice_model.label }}</label>
+    {{ form.xai_voice_model }}
+    <label for="{{ form.xai_voice.id_for_label }}">{{ form.xai_voice.label }}</label>
+    {{ form.xai_voice }}
+  </div>
+
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Annuaire INSEE</h2>
     <label for="{{ form.insee_api_key.id_for_label }}">{{ form.insee_api_key.label }}</label>
     {{ form.insee_api_key }}
     <p class="secret-hint">{% if secrets.insee_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>

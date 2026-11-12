@@ -9,6 +9,12 @@
     <p class="sub">Saisissez le SIREN : nous récupérons les informations légales officielles auprès de l'API Sirene de l'INSEE.</p>
   </div>
 </div>
+{% if not forfait.can_company %}
+<div class="plan-banner">
+  <p>Votre forfait ne permet pas d'ajouter une autre société.</p>
+  <a class="btn btn-primary" href="{% url 'plan_upgrade' %}">Mettre à jour le forfait</a>
+</div>
+{% endif %}
 
 <div class="grid g2" style="align-items:start">
   <div class="card" style="border-top:4px solid var(--blue)">

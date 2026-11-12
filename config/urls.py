@@ -12,5 +12,6 @@ urlpatterns = [
     path("compta/", include("accounting.urls")),
     path("factures/", include("documents.urls")),
     path("agent/", include("ai.urls")),
+    path("", include("billing.urls")),
     path("agent-config", demo.agent_config, name="agent_config"),
 ]

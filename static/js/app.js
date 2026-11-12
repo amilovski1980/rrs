@@ -566,6 +566,11 @@
       for (var pi = 0; pi < picks.length; pi++) {
         picks[pi].addEventListener("click", function (ev) {
           var mode = ev.currentTarget.getAttribute("data-agent-pick");
+          if (ev.currentTarget.getAttribute("data-plan-locked") === "1") {
+            var upgrade = ev.currentTarget.getAttribute("data-upgrade-url");
+            if (upgrade) window.location.href = upgrade;
+            return;
+          }
           if (mode === "voice") openVoice();
           else if (mode === "chat") openChat();
         });
