@@ -1,0 +1,14 @@
+/* Admin Django historique, seulement quand il est ouvert sous /dark. */
+body { background: #070708; color: #f6f6f4; }
+#header, #branding, .module caption, .module h2, #nav-sidebar .current-model { background: #121214; color: #f6f6f4; }
+#header a:link, #header a:visited, #user-tools a { color: #c6ffb1; }
+div.breadcrumbs { background: #101012; color: #a4a4ab; }
+.module, #content-related, #changelist .results, .paginator { background: #141416; color: #f6f6f4; border-color: rgba(255,255,255,.12); }
+a:link, a:visited { color: #c6ffb1; }
+input, select, textarea { background: #0c0c0e; color: #f6f6f4; border-color: rgba(255,255,255,.2); }
+.button, input[type="submit"], .submit-row input {
+  background: linear-gradient(100deg, #ff9a1a, #ff4d6a 50%, #7a3cff);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+}

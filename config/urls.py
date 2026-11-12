@@ -7,7 +7,6 @@ from core import demo
 urlpatterns = [
     path("admin-backoffice/", include("admin_backoffice.urls", namespace="admin_backoffice")),
     path("admin/", admin.site.urls),
-    path("dark/", include(("config.dark_urls", "dark"))),
     path("", include("companies.urls")),      # cockpit + onboarding
     path("compte/", include("accounts.urls")),  # magic link, logout, profil
     path("compta/", include("accounting.urls")),

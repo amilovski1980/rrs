@@ -17,7 +17,7 @@
       <p class="flash flash-ok">Numéro confirmé.</p>
       {% else %}
       <p class="sub">Saisissez le code reçu par SMS.</p>
-      <form method="post" action="{% url 'dark:signup_phone_check' %}">
+      <form method="post" action="{% url 'signup_phone_check' %}">
         {% csrf_token %}
         <label for="sms-code">Code SMS</label>
         <input id="sms-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
@@ -39,7 +39,7 @@
     </p>
     {% endif %}
 
-    <p class="micro"><a href="{% url 'dark:landing' %}#recherche">Recommencer avec une autre société</a></p>
+    <p class="micro"><a href="{% url 'landing' %}#recherche">Recommencer avec une autre société</a></p>
   </div>
 </div>
 {% endblock %}

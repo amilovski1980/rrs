@@ -1,0 +1,190 @@
+/* Cockpit et back-office sous /dark. Le site clair ne charge pas cette feuille. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f6f6f4;
+  --ink-2: #d4d4d8;
+  --muted: #a4a4ab;
+  --bg: #070708;
+  --surface: #121214;
+  --card: #141416;
+  --blue: #f4f4f5;
+  --blue-2: #c6ffb1;
+  --blue-soft: rgba(61, 220, 106, 0.16);
+  --blue-pale: rgba(255, 255, 255, 0.04);
+  --pink: #ff4d8d;
+  --pink-soft: rgba(255, 77, 141, 0.16);
+  --red: #ff8aa0;
+  --red-soft: rgba(255, 61, 120, 0.12);
+  --green: #3ddc6a;
+  --green-soft: rgba(61, 220, 106, 0.14);
+  --amber: #ffb020;
+  --amber-soft: rgba(255, 154, 26, 0.16);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-2: rgba(255, 255, 255, 0.22);
+  --shadow-sm: none;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --font: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --font-head: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgba(20, 184, 106, 0.14), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(122, 60, 255, 0.18), transparent 50%),
+    var(--bg);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .shell,
+html[data-theme="dark"] .main { background: transparent; }
+
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .m-header,
+html[data-theme="dark"] .m-footer,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .kpi,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .filters,
+html[data-theme="dark"] .module {
+  background: #121214;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] .sidebar {
+  border-right: 1px solid var(--line);
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #14b86a, #d8ff86 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff) 1;
+}
+
+html[data-theme="dark"] .brand img,
+html[data-theme="dark"] .brand .product-logo,
+html[data-theme="dark"] .m-header-logo img,
+html[data-theme="dark"] .product-logo,
+html[data-theme="dark"] .auth-card img {
+  background: transparent;
+}
+
+html[data-theme="dark"] .brand .brand-word,
+html[data-theme="dark"] .m-header-logo .brand-word {
+  width: auto;
+  max-width: 168px;
+  height: 34px;
+  flex: 1 1 auto;
+  object-fit: contain;
+  object-position: left center;
+  background: transparent;
+}
+
+html[data-theme="dark"] .m-header .brand-word { height: 26px; max-width: 132px; }
+
+html[data-theme="dark"] .avatar,
+html[data-theme="dark"] .user-chip {
+  background: #1c1c1f;
+  color: #f6f6f4;
+}
+
+html[data-theme="dark"] .side-link { color: var(--ink-2); }
+html[data-theme="dark"] .side-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+html[data-theme="dark"] .side-link.active {
+  background: rgba(61, 220, 106, 0.14);
+  color: #c6ffb1;
+  box-shadow: inset 3px 0 0 #3ddc6a;
+}
+
+html[data-theme="dark"] .btn {
+  border-radius: 999px;
+}
+html[data-theme="dark"] .btn-primary {
+  background: linear-gradient(100deg, #ff9a1a 0%, #ff4d6a 42%, #7a3cff 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .btn-primary:hover { filter: brightness(1.06); color: #fff; background: linear-gradient(100deg, #ff9a1a 0%, #ff4d6a 42%, #7a3cff 100%); }
+html[data-theme="dark"] .btn-ghost,
+html[data-theme="dark"] .btn-danger {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: none;
+}
+html[data-theme="dark"] .btn-ghost:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
+
+html[data-theme="dark"] a { color: #c6ffb1; }
+html[data-theme="dark"] a:hover { color: #fff; }
+html[data-theme="dark"] .side-link,
+html[data-theme="dark"] .m-footer-btn,
+html[data-theme="dark"] .btn { text-decoration: none; }
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background: #0c0c0e;
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] textarea:focus {
+  border-color: #3ddc6a;
+  box-shadow: 0 0 0 3px rgba(61, 220, 106, 0.2);
+}
+
+html[data-theme="dark"] table,
+html[data-theme="dark"] th,
+html[data-theme="dark"] td { color: inherit; border-color: var(--line); }
+html[data-theme="dark"] tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
+html[data-theme="dark"] .card table td:first-child,
+html[data-theme="dark"] .card table td:first-child a { color: var(--ink); }
+
+html[data-theme="dark"] .badge { border-color: transparent; }
+html[data-theme="dark"] .badge-blue { background: rgba(122, 60, 255, 0.25); color: #fff; }
+html[data-theme="dark"] .badge-green { background: rgba(61, 220, 106, 0.16); color: #c6ffb1; }
+html[data-theme="dark"] .badge-amber { background: rgba(255, 154, 26, 0.18); color: #ffc56b; }
+
+html[data-theme="dark"] .kpi { border-top: 3px solid #3ddc6a; }
+html[data-theme="dark"] .content h1,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .crumbs { color: var(--ink); }
+
+html[data-theme="dark"] .m-header,
+html[data-theme="dark"] .m-footer {
+  background: rgba(7, 7, 8, 0.94);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .m-nav-toggle-bars,
+html[data-theme="dark"] .m-nav-toggle-bars::before,
+html[data-theme="dark"] .m-nav-toggle-bars::after { background: #fff; }
+
+html[data-theme="dark"] .agent-fab,
+html[data-theme="dark"] .agent-chat-card,
+html[data-theme="dark"] .agent-dialog {
+  background: #141416;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+html[data-theme="dark"] .agent-fab-orb {
+  background: linear-gradient(135deg, #083d22, #18c26a 50%, #d8ff86);
+}
+
+html[data-theme="dark"] .sheet {
+  background: #fff;
+  color: #212529;
+}
+html[data-theme="dark"] .sheet h2,
+html[data-theme="dark"] .sheet h3,
+html[data-theme="dark"] .sheet td,
+html[data-theme="dark"] .sheet th { color: inherit; }
+html[data-theme="dark"] .sheet-azur .sheet-head,
+html[data-theme="dark"] .sheet-azur .sheet-head h2,
+html[data-theme="dark"] .sheet-graphite .sheet-head,
+html[data-theme="dark"] .sheet-graphite .sheet-head h2 { color: #fff; }
+
+html[data-theme="dark"] .admin-chart-bar { background: linear-gradient(180deg, #d8ff86, #14b86a); }
+html[data-theme="dark"] .impersonation-banner { background: #3a2a08; color: #ffe7b0; border-color: #8a6d00; }
+html[data-theme="dark"] .impersonation-banner button { background: transparent; color: #ffe7b0; border-color: #ffe7b0; }
+
+html[data-theme="dark"] ::selection { background: rgba(61, 220, 106, 0.35); color: #fff; }

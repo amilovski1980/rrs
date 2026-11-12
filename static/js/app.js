@@ -3,6 +3,13 @@
 
   var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+  function themePath(path) {
+    if (document.documentElement.getAttribute("data-theme") === "dark" && path.charAt(0) === "/" && path.indexOf("/dark/") !== 0) {
+      return "/dark" + path;
+    }
+    return path;
+  }
+
   function initVoiceDemo(reduceMotion) {
     var stage = document.querySelector("[data-voice-demo]");
     if (!stage) return;
@@ -672,7 +679,7 @@
       appendChatBubble(log, "assistant", "…");
       var pending = log.lastElementChild;
 
-      fetch("/agent/chat/message/", {
+      fetch(themePath("/agent/chat/message/"), {
         method: "POST",
         credentials: "same-origin",
         headers: {
@@ -811,7 +818,7 @@
 
     var fetchConfig = function (done) {
       if (cfg) { done(cfg); return; }
-      fetch("/agent-config", { headers: { Accept: "application/json" } })
+      fetch(themePath("/agent-config"), { headers: { Accept: "application/json" } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) { cfg = data && data.sip ? data : null; done(cfg); })
         .catch(function () { cfg = null; done(null); });

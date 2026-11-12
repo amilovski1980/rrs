@@ -1,7 +1,8 @@
-"""Vitrine publique alternative, servie sous /dark.
+"""Habillage /dark.
 
-Les vues restent celles du parcours classique. Seuls le gabarit, les URLs
-internes et la voix des textes changent. Le cockpit connecté n'est pas concerné.
+Les vues restent celles du parcours classique. Le middleware DarkMount sert
+les mêmes URLs sous /dark et préfixe les liens. Les gabarits publics dédiés
+et la voix de la vitrine ne s'appliquent qu'aux pages d'entrée.
 """
 from __future__ import annotations
 
@@ -9,24 +10,6 @@ from django.shortcuts import redirect
 from django.urls import reverse
 
 DARK_NAMESPACE = "dark"
-
-PUBLIC_NAMES = frozenset({
-    "landing",
-    "company_search",
-    "signup_wizard",
-    "signup_start",
-    "signup_pending",
-    "signup_verify",
-    "signup_phone_check",
-    "magic_link_request",
-    "magic_link_email",
-    "magic_link_email_done",
-    "magic_link_verify",
-    "password_reset",
-    "password_reset_done",
-    "password_reset_confirm",
-    "password_reset_complete",
-})
 
 # Voix startups. On ne remplace une accroche publiée que si elle est vide
 # ou encore égale au catalogue par défaut : un texte saisi dans le back-office reste.
@@ -38,6 +21,8 @@ DARK_BLURBS = {
 
 
 def is_dark(request) -> bool:
+    if getattr(request, "dark_ui", False):
+        return True
     match = getattr(request, "resolver_match", None)
     return bool(match and match.namespace == DARK_NAMESPACE)
 
@@ -49,9 +34,12 @@ def themed_template(request, template_name: str) -> str:
 
 
 def themed_reverse(request, viewname: str, *args, **kwargs) -> str:
-    if is_dark(request) and viewname in PUBLIC_NAMES:
-        viewname = f"{DARK_NAMESPACE}:{viewname}"
-    return reverse(viewname, args=args, kwargs=kwargs)
+    # Le préfixe /dark est ajouté par le script prefix pendant la requête.
+    # Filet de sécurité si un appel arrive sans ce préfixe.
+    url = reverse(viewname, args=args, kwargs=kwargs)
+    if is_dark(request) and url.startswith("/") and not url.startswith("/dark/") and not url.startswith("//"):
+        return "/dark" + url
+    return url
 
 
 def themed_redirect(request, viewname: str, *args, **kwargs):
