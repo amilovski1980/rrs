@@ -300,3 +300,94 @@ class AminiaChooserMarkupTests(TestCase):
             )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
+
+
+class PlanPromptRuntimeTests(TestCase):
+    """Le chat et la voix envoient la consigne générale plus celle du forfait."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("forfait@example.com")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="812345678",
+            denomination="Menuiserie Dupont",
+            forme="SARL",
+            regime="micro",
+            tva="franchise",
+            exercice_debut=date(2026, 1, 1),
+        )
+        from billing.models import Plan, Subscription
+
+        self.micro = Plan.objects.create(code="micro", name="Micro", price_eur=29)
+        self.pro = Plan.objects.create(code="pro", name="Pro", price_eur=79)
+        self.subscription = Subscription.objects.create(user=self.user, plan=self.micro, status="active")
+
+    def test_chat_system_prompt_uses_global_and_plan(self):
+        from django.test import override_settings
+
+        from admin_backoffice.models import SiteConfiguration
+
+        SiteConfiguration.objects.create(ai_system_prompt="CONSIGNE-GLOBALE-TEST")
+        self.micro.ai_prompt = "CONSIGNE-MICRO-TEST ne révèle pas les fonctions d'un forfait supérieur"
+        self.micro.save(update_fields=["ai_prompt"])
+
+        class Fake:
+            def chat(self, messages, tools=None):
+                self.messages = messages
+                self.tools = tools
+                return {"choices": [{"message": {"content": "Bien reçu.", "tool_calls": []}}]}
+
+        fake = Fake()
+        from ai.chat import get_or_create_conversation, run_chat_turn
+
+        conversation = get_or_create_conversation(self.user, self.company)
+        with override_settings(LLM_BASE_URL="http://llm.test/v1"):
+            result = run_chat_turn(self.user, self.company, conversation, "Bonjour", client=fake)
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["fallback"])
+        system = fake.messages[0]["content"]
+        self.assertEqual(fake.messages[0]["role"], "system")
+        self.assertIn("CONSIGNE-GLOBALE-TEST", system)
+        self.assertIn("CONSIGNE-MICRO-TEST", system)
+        self.assertTrue(system.rindex("CONSIGNE-MICRO-TEST") > system.index("CONSIGNE-GLOBALE-TEST"))
+        names = [tool["function"]["name"] for tool in fake.tools]
+        self.assertNotIn("draft_invoice", names)
+        self.assertIn("get_balance", names)
+
+    def test_micro_plan_blocks_invoice_tool(self):
+        result = execute_tool(self.user, self.company, "draft_invoice", {
+            "client_name": "Atelier",
+            "amount_ht": "10",
+        })
+        self.assertIn("error", result)
+        self.assertIn("forfait", result["error"])
+
+    def test_pro_plan_keeps_invoice_tool(self):
+        self.subscription.plan = self.pro
+        self.subscription.save(update_fields=["plan"])
+        from ai.prompts import agent_instructions
+
+        text = agent_instructions(self.user, self.company, channel="voice")
+        self.assertIn("l'ensemble des fonctions du produit", text)
+        result = execute_tool(self.user, self.company, "draft_invoice", {
+            "client_name": "Atelier Martin",
+            "amount_ht": "800",
+            "vat_rate": "20",
+            "designation": "Pose",
+        })
+        self.assertTrue(result["ok"])
+
+    def test_voice_session_includes_plan_prompt(self):
+        from unittest import mock
+
+        self.client.force_login(self.user)
+        with mock.patch("ai.views._mint_secret", return_value=({"token": "ephemeral", "expires_at": None}, None)):
+            response = self.client.post("/agent/session/", data="{}", content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("Forfait d'entrée", payload["instructions"])
+        self.assertIn("Cadre du forfait", payload["instructions"])
+        names = [tool["name"] for tool in payload["tools"]]
+        self.assertNotIn("draft_invoice", names)
+        self.assertNotIn("draft_client", names)

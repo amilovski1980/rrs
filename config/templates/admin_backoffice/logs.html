@@ -1,58 +1,50 @@
-{% extends "admin_backoffice/dashboard.html" %}
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Journal{% endblock %}
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>📜 Logs Système</h2>
-        <a href="{% url 'admin_backoffice:dashboard' %}" class="btn btn-secondary">Retour au Dashboard</a>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date & Heure</th>
-                        <th>Niveau</th>
-                        <th>Message</th>
-                        <th>Utilisateur</th>
-                        <th>IP</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td class="text-muted small">{{ log.timestamp }}</td>
-                        <td>
-                            {% if log.level == 'ERROR' %}<span class="badge bg-danger">{{ log.level }}</span>
-                            {% elif log.level == 'WARNING' %}<span class="badge bg-warning text-dark">{{ log.level }}</span>
-                            {% else %}<span class="badge bg-info">{{ log.level }}</span>{% endif %}
-                        </td>
-                        <td>{{ log.message }}</td>
-                        <td>{{ log.user.email|default:"Système" }}</td>
-                        <td class="text-muted small">{{ log.ip_address }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4">Aucun log disponible pour le moment.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    {% if is_paginated %}
-    <nav class="mt-3">
-        <ul class="pagination justify-content-center">
-            {% if page_obj.has_previous %}
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Précédent</a></li>
-            {% endif %}
-            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-            {% if page_obj.has_next %}
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Suivant</a></li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+<div class="page-head">
+  <div>
+    <h1>Journal</h1>
+    <p class="sub">Actions d'administration, erreurs et avertissements. Aucun secret n'y est écrit.</p>
+  </div>
+</div>
+<form method="get" class="filters card">
+  <div class="filter-field">
+    <label for="q">Recherche</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Message">
+  </div>
+  <div class="filter-field">
+    <label for="level">Niveau</label>
+    <select id="level" name="level">
+      <option value="">Tous</option>
+      {% for code, label in levels %}
+      <option value="{{ code }}" {% if level == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Filtrer</button>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:logs' %}">Réinitialiser</a>
+</form>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Niveau</th><th>Message</th><th>Auteur</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+          <td><span class="badge {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}badge-red{% elif log.level == 'WARNING' %}badge-amber{% else %}badge-blue{% endif %}">{{ log.get_level_display }}</span></td>
+          <td>{{ log.message }}</td>
+          <td>{{ log.user.email|default:"Système" }}</td>
+          <td>{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucune entrée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "admin_backoffice/_pagination.html" %}
 </div>
 {% endblock %}

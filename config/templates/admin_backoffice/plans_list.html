@@ -1,54 +1,57 @@
-{% extends 'base.html' %}
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Forfaits{% endblock %}
 {% block content %}
-<div class="admin-container" style="display: flex; min-height: 100vh; font-family: sans-serif;">
-    <aside style="width: 250px; background: #1a202c; color: white; padding: 20px;">
-        <h2 style="font-size: 1.2rem; margin-bottom: 30px; color: #edf2f7;">RRS Admin</h2>
-        <nav>
-            <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:dashboard' %}" style="color: #a0aec0; text-decoration: none;">📊 Dashboard</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:companies' %}" style="color: #a0aec0; text-decoration: none;">🏢 Entreprises</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:subscriptions' %}" style="color: #a0aec0; text-decoration: none;">💳 Abonnements</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:plans' %}" style="color: white; text-decoration: none; font-weight: bold;">📦 Forfaits</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_monitoring' %}" style="color: #a0aec0; text-decoration: none;">🤖 IA Monitoring</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_prompt' %}" style="color: #a0aec0; text-decoration: none;">✍️ Prompt IA</a></li>
-            </ul>
-        </nav>
-    </aside>
-
-    <main style="flex: 1; background: #f7fafc; padding: 30px;">
-        <header style="margin-bottom: 30px;">
-            <h1 style="font-size: 1.8rem; color: #2d3748;">Gestion des Forfaits</h1>
-            <p style="color: #718096;">Configuration des offres d'abonnement et tarifs</p>
-        </header>
-
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="background: #edf2f7;">
-                    <tr style="color: #4a5568; font-size: 0.9rem;">
-                        <th style="padding: 12px;">Nom du Plan</th>
-                        <th style="padding: 12px;">Prix Mensuel</th>
-                        <th style="padding: 12px;">Devise</th>
-                        <th style="padding: 12px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for plan in plans %}
-                    <tr style="border-bottom: 1px solid #edf2f7;">
-                        <td style="padding: 12px; font-weight: 500; color: #2d3748;">{{ plan.name }}</td>
-                        <td style="padding: 12px; color: #4a5568;">{{ plan.price_eur }} €</td>
-                        <td style="padding: 12px; color: #4a5568;">EUR</td>
-                        <td style="padding: 12px;">
-                            <a href="#" style="color: #4299e1; text-decoration: none; font-size: 0.9rem;">Modifier</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" style="padding: 20px; text-align: center; color: #a0aec0;">Aucun forfait configuré.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </main>
+<div class="page-head">
+  <div>
+    <h1>Forfaits</h1>
+    <p class="sub">Prix, limites et fonctions. La consigne de l'agent se règle aussi dans Consignes de l'agent.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'admin_backoffice:plan_create' %}">{% include "partials/icon.html" with name="plus" %} Nouveau forfait</a>
+</div>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Forfait</th>
+          <th>Prix</th>
+          <th>Limites</th>
+          <th>Fonctions</th>
+          <th>Abonnés</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for plan in plans %}
+        <tr>
+          <td>
+            <b>{{ plan.name }}</b>
+            <div class="muted">{{ plan.code }}{% if not plan.is_active %} · masqué{% endif %}</div>
+          </td>
+          <td>{{ plan.price_eur }} € <span class="muted">/ mois</span><div class="muted">Essai {{ plan.trial_days }} j</div></td>
+          <td>
+            Sociétés : {% if plan.max_companies %}{{ plan.max_companies }}{% else %}illimité{% endif %}<br>
+            Factures / mois : {% if plan.max_invoices_month %}{{ plan.max_invoices_month }}{% else %}illimité{% endif %}<br>
+            IA / mois : {% if plan.max_ai_requests_month %}{{ plan.max_ai_requests_month }}{% else %}illimité{% endif %}
+          </td>
+          <td>
+            {% for feature in plan.features %}
+            <span class="tag">{{ feature }}</span>
+            {% empty %}
+            <span class="muted">—</span>
+            {% endfor %}
+          </td>
+          <td>{{ plan.abonnes }}</td>
+          <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:plan_edit' plan.pk %}">Modifier</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:plan_delete' plan.pk %}">Supprimer</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">Aucun forfait.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

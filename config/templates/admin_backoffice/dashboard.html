@@ -1,248 +1,176 @@
-{% extends "base.html" %}
+{% extends "admin_backoffice/base.html" %}
 {% block title %}Dashboard Admin{% endblock %}
-{% block crumbs %}Administration Système{% endblock %}
-
 {% block content %}
-<h1 class="page-title">Tableau de Bord Administrateur</h1>
+<div class="page-head">
+  <div>
+    <h1>Tableau de Bord Administrateur</h1>
+    <p class="sub">Utilisateurs, sociétés, abonnements et usage de l'agent.</p>
+  </div>
+</div>
 
-<style>
-    .admin-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 25px;
-    }
-    .admin-nav a {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 16px;
-        border-radius: 8px;
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        color: #333;
-        font-size: 0.9rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
-    .admin-nav a:hover {
-        background: #f5f7ff;
-        border-color: #4a6cf7;
-        color: #4a6cf7;
-    }
-    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 30px; }
-    .stat-card { background: #fff; padding: 18px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .stat-card .label { color: #666; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; display: block; }
-    .stat-card .value { font-size: 1.7rem; font-weight: 700; color: #111; }
-    .stat-card .trend { font-size: 0.75rem; margin-top: 8px; display: block; }
-    .stat-card .trend.up { color: #2ecc71; }
-    .stat-card .trend.down { color: #e74c3c; }
-    .stat-card .trend.neutral { color: #888; }
-    .stat-card .trend.unavailable { color: #c0392b; font-weight: 600; }
-
-    /* Graphique des inscriptions : barres CSS, aucune librairie externe */
-    .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; padding: 16px 20px 6px; }
-    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
-    .chart-bar { width: 100%; max-width: 36px; min-height: 3px; background: linear-gradient(180deg, #4a6cf7, #3a5bd9); border-radius: 6px 6px 0 0; }
-    .chart-label { font-size: 0.65rem; color: #999; white-space: nowrap; }
-    .chart-value { font-size: 0.75rem; font-weight: 700; color: #333; }
-
-    /* Répartition des abonnements par statut */
-    .status-distribution { display: flex; flex-wrap: wrap; gap: 18px; padding: 16px 20px; align-items: center; }
-    .status-item { display: flex; align-items: center; gap: 8px; }
-    .status-count { font-size: 1.1rem; font-weight: 700; color: #111; }
-
-    .admin-section { background: #fff; border-radius: 12px; border: 1px solid #eee; margin-bottom: 30px; overflow: hidden; }
-    .section-header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
-    .section-header a { font-size: 0.8rem; color: #4a6cf7; text-decoration: none; }
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th { text-align: left; padding: 12px 20px; background: #f8f9fa; font-size: 0.8rem; color: #666; text-transform: uppercase; }
-    .data-table td { padding: 12px 20px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-    .data-table tr:last-child td { border-bottom: none; }
-    .badge-status { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-    .status-active { background: #e8f5e9; color: #2e7d32; }
-    .status-trialing { background: #fffde7; color: #f57f17; }
-    .status-past_due { background: #ffebee; color: #c62828; }
-    .status-canceled { background: #eceff1; color: #546e7a; }
-    .status-pending { background: #fff3e0; color: #ef6c00; }
-    .status-error { background: #ffebee; color: #c62828; }
-    .status-warning { background: #fffde7; color: #f57f17; }
-    .status-info { background: #e3f2fd; color: #1565c0; }
-
-    @media (max-width: 600px) {
-        .admin-grid { grid-template-columns: 1fr; }
-        .data-table th, .data-table td { padding: 10px 12px; font-size: 0.85rem; }
-        .admin-nav a { flex: 1 1 auto; justify-content: center; }
-        .chart-bars { height: 110px; }
-    }
-</style>
-
-<nav class="admin-nav" aria-label="Navigation rapide administration">
-    <a href="{% url 'admin_backoffice:users' %}">👤 Utilisateurs</a>
-    <a href="{% url 'admin_backoffice:companies' %}">🏢 Sociétés</a>
-    <a href="{% url 'admin_backoffice:subscriptions' %}">💳 Abonnements</a>
-    <a href="{% url 'admin_backoffice:plans' %}">📋 Plans</a>
-    <a href="{% url 'admin_backoffice:logs' %}">📜 Logs</a>
-    <a href="{% url 'admin_backoffice:ai_monitoring' %}">🤖 IA</a>
-    <a href="{% url 'admin_backoffice:settings' %}">⚙️ Paramètres</a>
-</nav>
-
-<div class="admin-grid">
-    <div class="stat-card">
-        <span class="label">Revenu Mensuel (MRR)</span>
-        <span class="value">{{ mrr }}</span>
-        <span class="trend {% if facturation_indisponible %}unavailable{% else %}neutral{% endif %}">
-            {% if facturation_indisponible %}Indisponible — voir journaux{% else %}{{ mrr_abonnements }} abonnement(s) actif(s){% endif %}
-        </span>
+<div class="grid kpi-row">
+  <div class="kpi">
+    <div class="l">Revenu mensuel (MRR)</div>
+    <div class="v">{{ mrr }}</div>
+    <div class="d {% if facturation_indisponible %}trend-bad{% endif %}">
+      {% if facturation_indisponible %}Indisponible — voir journaux{% else %}{{ mrr_abonnements }} abonnement(s) actif(s){% endif %}
     </div>
-    <div class="stat-card">
-        <span class="label">Sociétés Actives</span>
-        <span class="value">{{ total_companies }}</span>
-        {% if companies_indisponible %}
-        <span class="trend unavailable">Indisponible — voir journaux</span>
-        {% else %}
-        <span class="trend neutral">+{{ companies_nouveaux_30j|default:0 }} en 30 jours</span>
-        {% if companies_variation is not None %}
-        <span class="trend {% if companies_variation > 0 %}up{% elif companies_variation < 0 %}down{% else %}neutral{% endif %}">
-            {% if companies_variation > 0 %}▲ +{{ companies_variation }}{% elif companies_variation < 0 %}▼ {{ companies_variation }}{% else %}◆ 0{% endif %}% vs 30 j précédents
-        </span>
-        {% endif %}
-        {% endif %}
+  </div>
+  <div class="kpi">
+    <div class="l">Sociétés</div>
+    <div class="v">{{ total_companies }}</div>
+    {% if companies_indisponible %}
+    <div class="d trend-bad">Indisponible — voir journaux</div>
+    {% else %}
+    <div class="d">+{{ companies_nouveaux_30j|default:0 }} en 30 jours</div>
+    {% if companies_variation is not None %}
+    <div class="d {% if companies_variation > 0 %}trend-up{% elif companies_variation < 0 %}trend-down{% endif %}">{{ companies_variation }} % vs 30 j précédents</div>
+    {% endif %}
+    {% endif %}
+  </div>
+  <div class="kpi">
+    <div class="l">Utilisateurs</div>
+    <div class="v">{{ total_users }}</div>
+    {% if users_indisponible %}
+    <div class="d trend-bad">Indisponible — voir journaux</div>
+    {% else %}
+    <div class="d">+{{ users_nouveaux_30j|default:0 }} en 30 jours</div>
+    {% if users_variation is not None %}
+    <div class="d {% if users_variation > 0 %}trend-up{% elif users_variation < 0 %}trend-down{% endif %}">{{ users_variation }} % vs 30 j précédents</div>
+    {% endif %}
+    {% endif %}
+  </div>
+  <div class="kpi">
+    <div class="l">Forfaits</div>
+    <div class="v">{{ total_plans }}</div>
+    <div class="d">{% if facturation_indisponible %}Indisponible — voir journaux{% else %}{{ plans_actifs }} proposé(s){% endif %}</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Validation IA</div>
+    <div class="v">{{ ai_validation_rate }}</div>
+    <div class="d {% if ia_indisponible %}trend-bad{% endif %}">
+      {% if ia_indisponible %}Indisponible — voir journaux{% else %}Sur {{ total_ai_drafts }} brouillons{% endif %}
     </div>
-    <div class="stat-card">
-        <span class="label">Utilisateurs Totaux</span>
-        <span class="value">{{ total_users }}</span>
-        {% if users_indisponible %}
-        <span class="trend unavailable">Indisponible — voir journaux</span>
-        {% else %}
-        <span class="trend neutral">+{{ users_nouveaux_30j|default:0 }} en 30 jours</span>
-        {% if users_variation is not None %}
-        <span class="trend {% if users_variation > 0 %}up{% elif users_variation < 0 %}down{% else %}neutral{% endif %}">
-            {% if users_variation > 0 %}▲ +{{ users_variation }}{% elif users_variation < 0 %}▼ {{ users_variation }}{% else %}◆ 0{% endif %}% vs 30 j précédents
-        </span>
-        {% endif %}
-        {% endif %}
+  </div>
+  <div class="kpi">
+    <div class="l">Retards d'abonnement</div>
+    <div class="v">{{ subs_past_due }}</div>
+    <div class="d {% if facturation_indisponible %}trend-bad{% elif subs_past_due %}trend-down{% else %}trend-up{% endif %}">
+      {% if facturation_indisponible %}Indisponible — voir journaux{% elif subs_past_due %}À relancer{% else %}Tous à jour{% endif %}
     </div>
-    <div class="stat-card">
-        <span class="label">Taux Validation IA</span>
-        <span class="value">{{ ai_validation_rate }}</span>
-        <span class="trend {% if ia_indisponible %}unavailable{% else %}neutral{% endif %}">
-            {% if ia_indisponible %}Indisponible — voir journaux{% else %}Sur {{ total_ai_drafts }} brouillons{% endif %}
-        </span>
+  </div>
+  <div class="kpi">
+    <div class="l">Brouillons IA en attente</div>
+    <div class="v">{{ ai_pending_drafts }}</div>
+    <div class="d {% if ia_indisponible %}trend-bad{% endif %}">
+      {% if ia_indisponible %}Indisponible — voir journaux{% else %}{{ ai_conversations }} conversation(s), {{ ai_messages }} message(s){% endif %}
     </div>
-    <div class="stat-card">
-        <span class="label">Abonnements en Retard</span>
-        <span class="value">{{ subs_past_due }}</span>
-        <span class="trend {% if facturation_indisponible %}unavailable{% elif subs_past_due > 0 %}down{% else %}up{% endif %}">
-            {% if facturation_indisponible %}Indisponible — voir journaux
-            {% elif subs_past_due > 0 %}⚠️ À relancer{% else %}✓ Tous à jour{% endif %}
-        </span>
-    </div>
-    <div class="stat-card">
-        <span class="label">Brouillons IA en Attente</span>
-        <span class="value">{{ ai_pending_drafts }}</span>
-        <span class="trend {% if ia_indisponible %}unavailable{% else %}neutral{% endif %}">
-            {% if ia_indisponible %}Indisponible — voir journaux{% else %}En attente de validation{% endif %}
-        </span>
-    </div>
+  </div>
 </div>
 
 {% if users_series %}
-<div class="admin-section">
-    <div class="section-header">
-        <span>Inscriptions — 14 derniers jours</span>
-        <span style="font-size: 0.8rem; color: #888; font-weight: 500;">{{ users_nouveaux_30j|default:0 }} en 30 jours</span>
+<div class="card" style="margin-bottom:16px">
+  <div class="card-head" style="padding:0 0 12px;border:0">
+    <h3>Inscriptions — 14 derniers jours</h3>
+    <span class="muted">{{ users_nouveaux_30j|default:0 }} en 30 jours</span>
+  </div>
+  <div class="admin-chart" role="img" aria-label="Inscriptions des 14 derniers jours">
+    {% for jour in users_series %}
+    <div class="admin-chart-col" title="{{ jour.label }} : {{ jour.total }}">
+      <span class="n">{{ jour.total }}</span>
+      <div class="admin-chart-bar {% if jour.total == 0 %}is-empty{% endif %}" style="height: {{ jour.hauteur }}%"></div>
+      <span>{{ jour.label }}</span>
     </div>
-    <div class="chart-bars" role="img" aria-label="Inscriptions des 14 derniers jours">
-        {% for jour in users_series %}
-        <div class="chart-col" title="{{ jour.label }} : {{ jour.total }} inscription(s)">
-            <span class="chart-value">{{ jour.total }}</span>
-            <div class="chart-bar" style="height: {{ jour.hauteur }}%;{% if jour.total == 0 %} background: #e3e6ee;{% endif %}"></div>
-            <span class="chart-label">{{ jour.label }}</span>
-        </div>
-        {% endfor %}
-    </div>
+    {% endfor %}
+  </div>
 </div>
 {% endif %}
 
-<div class="admin-section">
-    <div class="section-header">
-        <span>Abonnements par Statut</span>
-        <a href="{% url 'admin_backoffice:subscriptions' %}">Voir tout →</a>
+<div class="card card-tight" style="margin-bottom:16px">
+  <div class="card-head">
+    <h3>Abonnements par statut</h3>
+    <a href="{% url 'admin_backoffice:subscriptions' %}">Voir tout</a>
+  </div>
+  <div class="card-body">
+    <div class="status-row">
+      {% for statut in subs_par_statut %}
+      <div>
+        <span class="badge {% if statut.code == 'active' %}badge-green{% elif statut.code == 'past_due' %}badge-red{% elif statut.code == 'trialing' %}badge-amber{% endif %}">{{ statut.label }}</span>
+        <strong>{{ statut.total }}</strong>
+      </div>
+      {% empty %}
+      <span class="muted">Aucun abonnement enregistré</span>
+      {% endfor %}
     </div>
-    <div class="status-distribution">
-        {% for statut in subs_par_statut %}
-        <div class="status-item">
-            <span class="badge-status status-{{ statut.code }}">{{ statut.label }}</span>
-            <span class="status-count">{{ statut.total }}</span>
-        </div>
+  </div>
+</div>
+
+<div class="grid g2">
+  <div class="card card-tight">
+    <div class="card-head">
+      <h3>Inscriptions récentes</h3>
+      <a href="{% url 'admin_backoffice:users' %}">Voir tout</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Email</th><th>Rôle</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td><a href="{% url 'admin_backoffice:user_edit' u.pk %}">{{ u.email }}</a></td>
+            <td>{% if u.is_superuser %}Super-admin{% elif u.is_staff %}Admin{% else %}Client{% endif %}</td>
+            <td>{{ u.created_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">Aucune inscription</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card card-tight">
+    <div class="card-head">
+      <h3>Sociétés récentes</h3>
+      <a href="{% url 'admin_backoffice:companies' %}">Voir tout</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dénomination</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for company in recent_companies %}
+          <tr>
+            <td><a href="{% url 'admin_backoffice:company_edit' company.id %}">{{ company.denomination }}</a></td>
+            <td>{{ company.created_at|date:"d/m/Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2" class="empty">Aucune société</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card card-tight" style="margin-top:16px">
+  <div class="card-head">
+    <h3>Journal récent</h3>
+    <a href="{% url 'admin_backoffice:logs' %}">Voir tout</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Quand</th><th>Niveau</th><th>Message</th></tr></thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>{{ log.timestamp|date:"d/m H:i" }}</td>
+          <td><span class="badge {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}badge-red{% elif log.level == 'WARNING' %}badge-amber{% else %}badge-blue{% endif %}">{{ log.level }}</span></td>
+          <td>{{ log.message }}</td>
+        </tr>
         {% empty %}
-        <span style="color: #999;">Aucun abonnement enregistré</span>
+        <tr><td colspan="3" class="empty">{% if logs_indisponible %}Journal indisponible{% else %}Aucune entrée{% endif %}</td></tr>
         {% endfor %}
-    </div>
-</div>
-
-<div class="admin-section">
-    <div class="section-header">
-        <span>Sociétés Récemment Créées</span>
-        <a href="{% url 'admin_backoffice:companies' %}">Voir tout →</a>
-    </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Dénomination</th>
-                <th>Date de création</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for company in recent_companies %}
-            <tr>
-                <td><strong>{{ company.denomination }}</strong></td>
-                <td>{{ company.created_at|date:"d M Y" }}</td>
-                <td><a href="{% url 'admin_backoffice:company_edit' company.id %}" class="btn btn-ghost btn-sm">Éditer</a></td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" style="text-align:center; color:#999;">Aucune société trouvée</td></tr>
-            {% endfor %}
-        </tbody>
+      </tbody>
     </table>
-</div>
-
-<div class="admin-section">
-    <div class="section-header">
-        <span>Logs Système Récents</span>
-        <a href="{% url 'admin_backoffice:logs' %}">Voir tout →</a>
-    </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Niveau</th>
-                <th>Message</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in recent_logs %}
-            <tr>
-                <td>{{ log.timestamp|date:"d/m H:i" }}</td>
-                <td>
-                    <span class="badge-status
-                        {% if log.level == 'ERROR' %}status-error
-                        {% elif log.level == 'WARNING' %}status-warning
-                        {% elif log.level == 'CRITICAL' %}status-error
-                        {% elif log.level == 'INFO' %}status-info
-                        {% else %}status-active{% endif %}">
-                        {{ log.level }}
-                    </span>
-                </td>
-                <td>{{ log.message }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="3" style="text-align:center; color:#999;">Aucun log disponible</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  </div>
 </div>
 {% endblock %}

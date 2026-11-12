@@ -13,6 +13,27 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+{% if request.session.admin_impersonator_id %}
+<div class="impersonation-banner" role="status">
+  <p>Consultation du cockpit de <strong>{{ request.user.email }}</strong>. Les actions sont celles de ce compte.</p>
+  <form method="post" action="{% url 'admin_backoffice:impersonate_stop' %}">
+    {% csrf_token %}
+    <button type="submit">Revenir à l'administration</button>
+  </form>
+</div>
+<style>
+  .impersonation-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding: 10px 16px; background: #fff3cd; color: #212529;
+    border-bottom: 1px solid #e6d48a; font-family: Roboto, system-ui, sans-serif;
+  }
+  .impersonation-banner p { margin: 0; font-size: 14px; }
+  .impersonation-banner button {
+    border: 1px solid #212529; background: #fff; color: #212529;
+    border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer;
+  }
+</style>
+{% endif %}
 <div class="shell" data-app-shell>
   {# —— Header mobile (≤768px) : toggle à gauche, logo à droite —— #}
   <header class="m-header" data-m-header>
@@ -117,6 +138,11 @@
           <small>Espace artisan</small>
         </span>
       </div>
+      {% if request.user.is_staff and not request.session.admin_impersonator_id %}
+      <a class="side-link" href="{% url 'admin_backoffice:dashboard' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="shield" %}</span> Administration
+      </a>
+      {% endif %}
       {% if request.user.is_authenticated %}
       <a class="side-link" href="{% url 'profile' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Mon profil

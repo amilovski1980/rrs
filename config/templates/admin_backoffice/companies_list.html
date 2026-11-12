@@ -1,68 +1,46 @@
-{% extends 'base.html' %}
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Sociétés{% endblock %}
 {% block content %}
-<div class="admin-container" style="display: flex; min-height: 100vh; font-family: sans-serif;">
-    <!-- Sidebar -->
-    <aside style="width: 250px; background: #1a202c; color: white; padding: 20px;">
-        <h2 style="font-size: 1.2rem; margin-bottom: 30px; color: #edf2f7;">RRS Admin</h2>
-        <nav>
-            <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:dashboard' %}" style="color: #a0aec0; text-decoration: none;">📊 Dashboard</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:companies' %}" style="color: white; text-decoration: none; font-weight: bold;">🏢 Entreprises</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:subscriptions' %}" style="color: #a0aec0; text-decoration: none;">💳 Abonnements</a></li>
-                <li style="margin-bottom: 15px;"><a href="#" style="color: #a0aec0; text-decoration: none;">🤖 IA Monitoring</a></li>
-            </ul>
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main style="flex: 1; background: #f7fafc; padding: 30px;">
-        <header style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1 style="font-size: 1.8rem; color: #2d3748;">Gestion des Entreprises</h1>
-                <p style="color: #718096;">Liste complète des sociétés inscrites sur la plateforme</p>
-            </div>
-        </header>
-
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="background: #edf2f7;">
-                    <tr style="color: #4a5568; font-size: 0.9rem;">
-                        <th style="padding: 12px;">Dénomination</th>
-                        <th style="padding: 12px;">SIREN</th>
-                        <th style="padding: 12px;">Propriétaire</th>
-                        <th style="padding: 12px;">Régime</th>
-                        <th style="padding: 12px;">Date Création</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for company in companies %}
-                    <tr style="border-bottom: 1px solid #edf2f7;">
-                        <td style="padding: 12px; font-weight: 500; color: #2d3748;">{{ company.denomination }}</td>
-                        <td style="padding: 12px; color: #4a5568;">{{ company.siren }}</td>
-                        <td style="padding: 12px; color: #4a5568;">{{ company.owner.email }}</td>
-                        <td style="padding: 12px;"><span style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">{{ company.get_regime_display }}</span></td>
-                        <td style="padding: 12px; color: #718096;">{{ company.created_at|date:"d M Y" }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" style="padding: 20px; text-align: center; color: #a0aec0;">Aucune entreprise trouvée.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            
-            {% if is_paginated %}
-            <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}" style="padding: 8px 16px; background: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 4px;">Précédent</a>
-                {% endif %}
-                <span style="padding: 8px 16px; color: #718096;">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}" style="padding: 8px 16px; background: #edf2f7; color: #4a5568; text-decoration: none; border-radius: 4px;">Suivant</a>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-    </main>
+<div class="page-head">
+  <div>
+    <h1>Sociétés</h1>
+    <p class="sub">Toutes les sociétés, quel que soit le propriétaire.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'admin_backoffice:company_create' %}">{% include "partials/icon.html" with name="plus" %} Nouvelle société</a>
+</div>
+<form method="get" class="filters card">
+  <div class="filter-field">
+    <label for="q">Recherche</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Dénomination, SIREN ou email">
+  </div>
+  <button class="btn btn-primary" type="submit">Filtrer</button>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:companies' %}">Réinitialiser</a>
+</form>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Dénomination</th><th>SIREN</th><th>Propriétaire</th><th>Régime</th><th>Créée</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for company in companies %}
+        <tr>
+          <td><b>{{ company.denomination }}</b></td>
+          <td>{{ company.siren }}</td>
+          <td>{{ company.owner.email }}</td>
+          <td>{{ company.get_regime_display|default:"—" }}</td>
+          <td>{{ company.created_at|date:"d/m/Y" }}</td>
+          <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:company_edit' company.pk %}">Modifier</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:company_delete' company.pk %}">Supprimer</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">Aucune société.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "admin_backoffice/_pagination.html" %}
 </div>
 {% endblock %}

@@ -1,60 +1,65 @@
-{% extends "admin_backoffice/dashboard.html" %}
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Paramètres{% endblock %}
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>⚙️ Configuration Globale du Site</h2>
-        <a href="{% url 'admin_backoffice:dashboard' %}" class="btn btn-secondary">Retour au Dashboard</a>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Paramètres Système & Clés API</h5>
-        </div>
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="row">
-                    <!-- Section SMTP -->
-                    <div class="col-md-6">
-                        <h5 class="border-bottom pb-2 mb-3 text-primary">📧 Configuration SMTP (Emails)</h5>
-                        <div class="mb-3">{{ form.smtp_host.label_tag }} {{ form.smtp_host }}</div>
-                        <div class="mb-3">{{ form.smtp_port.label_tag }} {{ form.smtp_port }}</div>
-                        <div class="mb-3">{{ form.smtp_user.label_tag }} {{ form.smtp_user }}</div>
-                        <div class="mb-3">{{ form.smtp_password.label_tag }} {{ form.smtp_password }}</div>
-                        <div class="mb-3">{{ form.email_from.label_tag }} {{ form.email_from }}</div>
-                    </div>
-
-                    <!-- Section API -->
-                    <div class="col-md-6">
-                        <h5 class="border-bottom pb-2 mb-3 text-primary">🔑 Clés API & Intégrations</h5>
-                        <div class="mb-3">{{ form.stripe_secret_key.label_tag }} {{ form.stripe_secret_key }}</div>
-                        <div class="mb-3">{{ form.llm_api_key.label_tag }} {{ form.llm_api_key }}</div>
-                        <div class="mb-3">{{ form.insee_api_key.label_tag }} {{ form.insee_api_key }}</div>
-                    </div>
-                </div>
-
-                <hr class="my-4">
-
-                <div class="row">
-                    <!-- Section Site -->
-                    <div class="col-md-6">
-                        <h5 class="border-bottom pb-2 mb-3 text-primary">🌐 Paramètres du Site</h5>
-                        <div class="mb-3">{{ form.site_name.label_tag }} {{ form.site_name }}</div>
-                        <div class="form-check form-switch mt-3">
-                            {{ form.maintenance_mode }}
-                            <label class="form-check-label" for="{{ form.maintenance_mode.id_for_label }}">
-                                Activer le Mode Maintenance
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-end mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">💾 Sauvegarder la Configuration</button>
-                </div>
-            </form>
-        </div>
-    </div>
+<div class="page-head">
+  <div>
+    <h1>Paramètres</h1>
+    <p class="sub">Nom du site, maintenance, email et clés. Un champ secret laissé vide conserve la valeur déjà enregistrée.</p>
+  </div>
 </div>
+<form method="post" class="stack" autocomplete="off">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Site</h2>
+    <label for="{{ form.site_name.id_for_label }}">{{ form.site_name.label }}</label>
+    {{ form.site_name }}
+    <div class="check-row">
+      {{ form.maintenance_mode }}
+      <label for="{{ form.maintenance_mode.id_for_label }}">Mode maintenance (les admins et une consultation de cockpit restent ouverts)</label>
+    </div>
+  </div>
+
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Email (SMTP)</h2>
+    <p class="sub">Appliqué seulement si un utilisateur ou un mot de passe est renseigné.</p>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.smtp_host.id_for_label }}">{{ form.smtp_host.label }}</label>
+        {{ form.smtp_host }}
+      </div>
+      <div>
+        <label for="{{ form.smtp_port.id_for_label }}">{{ form.smtp_port.label }}</label>
+        {{ form.smtp_port }}
+      </div>
+    </div>
+    <label for="{{ form.smtp_user.id_for_label }}">{{ form.smtp_user.label }}</label>
+    {{ form.smtp_user }}
+    <label for="{{ form.smtp_password.id_for_label }}">{{ form.smtp_password.label }}</label>
+    {{ form.smtp_password }}
+    <p class="secret-hint">{% if secrets.smtp_password %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %} Jamais réaffiché.</p>
+    <label for="{{ form.email_from.id_for_label }}">{{ form.email_from.label }}</label>
+    {{ form.email_from }}
+  </div>
+
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Clés</h2>
+    <p class="sub">Une clé saisie ici remplace la variable d'environnement. L'état se vérifie dans Intégrations.</p>
+    <label for="{{ form.stripe_secret_key.id_for_label }}">{{ form.stripe_secret_key.label }}</label>
+    {{ form.stripe_secret_key }}
+    <p class="secret-hint">{% if secrets.stripe_secret_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <label for="{{ form.llm_api_key.id_for_label }}">{{ form.llm_api_key.label }}</label>
+    {{ form.llm_api_key }}
+    <p class="secret-hint">{% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    <label for="{{ form.insee_api_key.id_for_label }}">{{ form.insee_api_key.label }}</label>
+    {{ form.insee_api_key }}
+    <p class="secret-hint">{% if secrets.insee_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+    {% for field in form %}{% for err in field.errors %}<p class="error">{{ field.label }} : {{ err }}</p>{% endfor %}{% endfor %}
+  </div>
+
+  <div>
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+  </div>
+</form>
 {% endblock %}

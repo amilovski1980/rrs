@@ -6,7 +6,7 @@ from typing import Any
 
 from django.conf import settings
 
-from .assistant import TOOLS, execute_tool, instructions_for
+from .assistant import TOOLS, execute_tool
 from .models import Conversation, Message
 from .qwen import QwenClient
 
@@ -40,14 +40,9 @@ def _openai_tools():
 
 
 def _text_instructions(user, company) -> str:
-    base = instructions_for(user, company)
-    return (
-        base.replace("assistante comptable vocale", "assistante comptable")
-        .replace("phrases très courtes, adaptées à la voix", "phrases claires et concises")
-        .replace("à voix haute", "clairement")
-        + " Tu réponds en mode chat texte. Les brouillons (écritures, clients) "
-        "restent à valider par un humain."
-    )
+    from .prompts import agent_instructions
+
+    return agent_instructions(user, company, channel="chat")
 
 
 def get_or_create_conversation(user, company) -> Conversation:
@@ -93,7 +88,12 @@ def run_chat_turn(user, company, conversation: Conversation, text: str, client: 
     messages.extend(_history(conversation))
 
     client = client or QwenClient()
-    tools = _openai_tools()
+    from admin_backoffice.agent_prompts import tool_allowed
+
+    tools = [
+        tool for tool in _openai_tools()
+        if tool_allowed(user, tool["function"]["name"])
+    ] or None
     session_company = company
 
     def remember(selected):

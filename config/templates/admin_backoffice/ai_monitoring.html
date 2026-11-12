@@ -1,80 +1,52 @@
-{% extends 'base.html' %}
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Suivi IA{% endblock %}
 {% block content %}
-<div class="admin-container" style="display: flex; min-height: 100vh; font-family: sans-serif;">
-    <aside style="width: 250px; background: #1a202c; color: white; padding: 20px;">
-        <h2 style="font-size: 1.2rem; margin-bottom: 30px; color: #edf2f7;">RRS Admin</h2>
-        <nav>
-            <ul style="list-style: none; padding: 0;">
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:dashboard' %}" style="color: #a0aec0; text-decoration: none;">📊 Dashboard</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:companies' %}" style="color: #a0aec0; text-decoration: none;">🏢 Entreprises</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:subscriptions' %}" style="color: #a0aec0; text-decoration: none;">💳 Abonnements</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:plans' %}" style="color: #a0aec0; text-decoration: none;">📦 Forfaits</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_monitoring' %}" style="color: white; text-decoration: none; font-weight: bold;">🤖 IA Monitoring</a></li>
-                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_prompt' %}" style="color: #a0aec0; text-decoration: none;">✍️ Prompt IA</a></li>
-            </ul>
-        </nav>
-    </aside>
-
-    <main style="flex: 1; background: #f7fafc; padding: 30px;">
-        <header style="margin-bottom: 30px;">
-            <h1 style="font-size: 1.8rem; color: #2d3748;">Monitoring de l'IA</h1>
-            <p style="color: #718096;">Analyse de la qualité des écritures comptables générées</p>
-        </header>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-top: 4px solid #4299e1;">
-                <div style="color: #718096; font-size: 0.9rem;">Total Brouillons</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ total_drafts }}</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-top: 4px solid #48bb78;">
-                <div style="color: #718096; font-size: 0.9rem;">Validés</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ validated_count }}</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-top: 4px solid #f56565;">
-                <div style="color: #718096; font-size: 0.9rem;">Rejetés</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ rejected_count }}</div>
-            </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-top: 4px solid #ed8936;">
-                <div style="color: #718096; font-size: 0.9rem;">En attente</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #2d3748;">{{ pending_count }}</div>
-            </div>
-        </div>
-
-        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h3 style="margin-bottom: 20px; color: #2d3748;">Derniers Brouillons Générés</h3>
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="background: #edf2f7;">
-                    <tr style="color: #4a5568; font-size: 0.9rem;">
-                        <th style="padding: 12px;">Date</th>
-                        <th style="padding: 12px;">Entreprise</th>
-                        <th style="padding: 12px;">Statut</th>
-                        <th style="padding: 12px;">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for draft in recent_drafts %}
-                    <tr style="border-bottom: 1px solid #edf2f7;">
-                        <td style="padding: 12px; color: #718096;">{{ draft.created_at|date:"d M Y H:i" }}</td>
-                        <td style="padding: 12px; color: #2d3748;">{{ draft.company.denomination }}</td>
-                        <td style="padding: 12px;">
-                            {% if draft.status == 'validated' %}
-                                <span style="background: #c6f6d5; color: #22543d; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">Validé</span>
-                            {% elif draft.status == 'rejected' %}
-                                <span style="background: #fed7d7; color: #822727; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">Rejeté</span>
-                            {% else %}
-                                <span style="background: #edf2f7; color: #4a5568; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">En attente</span>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 12px;"><a href="#" style="color: #4299e1; text-decoration: none; font-size: 0.9rem;">Voir</a></td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" style="padding: 20px; text-align: center; color: #a0aec0;">Aucun brouillon trouvé.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </main>
+<div class="page-head">
+  <div>
+    <h1>Suivi de l'agent</h1>
+    <p class="sub">Brouillons produits par Aminia et volume des conversations.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:ai_prompt' %}">Consignes</a>
+</div>
+<div class="grid kpi-row">
+  <div class="kpi"><div class="l">Brouillons</div><div class="v">{{ total_drafts }}</div></div>
+  <div class="kpi"><div class="l">Validés</div><div class="v">{{ validated_count }}</div></div>
+  <div class="kpi"><div class="l">Rejetés</div><div class="v">{{ rejected_count }}</div></div>
+  <div class="kpi"><div class="l">En attente</div><div class="v">{{ pending_count }}</div></div>
+  <div class="kpi"><div class="l">Conversations</div><div class="v">{{ conversations }}</div></div>
+  <div class="kpi"><div class="l">Messages</div><div class="v">{{ messages_count }}</div></div>
+</div>
+{% if by_model %}
+<div class="card" style="margin-bottom:16px">
+  <h3 style="margin-top:0">Modèles</h3>
+  {% for row in by_model %}
+  <span class="tag">{{ row.model_name|default:"—" }} · {{ row.total }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="card card-tight">
+  <div class="card-head"><h3>Derniers brouillons</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Société</th><th>Type</th><th>Modèle</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for draft in recent_drafts %}
+        <tr>
+          <td>{{ draft.created_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ draft.company.denomination|default:"—" }}</td>
+          <td>{{ draft.get_kind_display }}</td>
+          <td>{{ draft.model_name }}</td>
+          <td>
+            {% if draft.status == "validated" %}<span class="badge badge-green">Validé</span>
+            {% elif draft.status == "rejected" %}<span class="badge badge-red">Rejeté</span>
+            {% else %}<span class="badge badge-amber">En attente</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucun brouillon.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
