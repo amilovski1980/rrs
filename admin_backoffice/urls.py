@@ -25,12 +25,35 @@ def _diag_tables(request):
 
     from .models import SiteConfiguration, SystemLog
 
-    lines = [f"DIAG v2 (main 39c827a+)"]
+    lines = ["DIAG v3"]
     migdir = Path(settings.BASE_DIR) / "admin_backoffice" / "migrations"
     if migdir.is_dir():
         lines.append(f"migrations embarquées: {sorted(p.name for p in migdir.iterdir())}")
     else:
         lines.append("migrations embarquées: ABSENT du bundle")
+    try:
+        src = (Path(settings.BASE_DIR) / "api" / "index.py").read_text(encoding="utf-8", errors="replace")
+        extrait = " | ".join(
+            l.strip() for l in src.splitlines()
+            if "call_command" in l or "migrate" in l or "DATABASE_URL" in l
+        )[:300]
+        lines.append(f"api/index.py embarqué (extraits): {extrait}")
+    except Exception as exc:  # noqa: BLE001
+        lines.append(f"api/index.py: non lisible ({type(exc).__name__}: {exc})")
+    db = settings.DATABASES["default"]
+    lines.append(
+        f"DB: engine={db['ENGINE']} name={db.get('NAME')} host={db.get('HOST') or '(local)'}"
+    )
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+
+        tampon = StringIO()
+        call_command("migrate", verbosity=1, interactive=False, stdout=tampon)
+        lignes_mig = [l for l in tampon.getvalue().splitlines() if l.strip()][-8:]
+        lines.append("migrate à la demande: OK (" + " ; ".join(l.strip() for l in lignes_mig) + ")")
+    except Exception as exc:  # noqa: BLE001
+        lines.append(f"migrate à la demande: ERREUR {type(exc).__name__}: {exc}")
     try:
         executor = MigrationExecutor(connection)
         appliquees = sorted(
