@@ -139,6 +139,24 @@ def cancel_subscription(subscription_id: str) -> None:
         logger.info("Ancien abonnement Stripe non annulé (%s).", subscription_id[:8])
 
 
+def retrieve_subscription(subscription_id: str) -> dict:
+    if not subscription_id or not str(subscription_id).startswith("sub_"):
+        raise StripeError("Abonnement Stripe inconnu.")
+    return stripe_request("GET", f"/v1/subscriptions/{subscription_id}")
+
+
+def list_invoices(*, subscription_id: str = "", limit: int = 24) -> list:
+    if not subscription_id:
+        return []
+    payload = stripe_request(
+        "GET",
+        "/v1/invoices",
+        params={"subscription": subscription_id, "limit": str(int(limit))},
+    )
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, list) else []
+
+
 def probe_balance() -> dict:
     secret = stripe_secret()
     if not secret:

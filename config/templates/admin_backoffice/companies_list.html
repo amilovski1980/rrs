@@ -31,6 +31,7 @@
           <td>{{ company.get_regime_display|default:"—" }}</td>
           <td>{{ company.created_at|date:"d/m/Y" }}</td>
           <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:company_billing' company.pk %}">Facturation</a>
             <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:company_edit' company.pk %}">Modifier</a>
             <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:company_delete' company.pk %}">Supprimer</a>
           </td>

@@ -119,8 +119,19 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Modèle user custom (sans mot de passe)
+# Modèle user custom. Le mot de passe est haché par Django (jamais en clair).
 AUTH_USER_MODEL = "accounts.User"
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+# Lien « mot de passe oublié » : 1 heure.
+PASSWORD_RESET_TIMEOUT = 60 * 60
 
 # --- Intégrations ---
 INPI_TOKEN = env.get("INPI_TOKEN", "")

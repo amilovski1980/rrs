@@ -65,6 +65,9 @@
       <a class="side-link {% if admin_section == 'subscriptions' %}active{% endif %}" href="{% url 'admin_backoffice:subscriptions' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Abonnements
       </a>
+      <a class="side-link {% if admin_section == 'billing' %}active{% endif %}" href="{% url 'admin_backoffice:billing' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Facturation
+      </a>
 
       <div class="nav-sec">Connexions</div>
       <a class="side-link {% if admin_section == 'integrations' %}active{% endif %}" href="{% url 'admin_backoffice:integrations' %}">

@@ -1,0 +1,12 @@
+{% extends "base_public.html" %}
+{% block title %}Lien envoyé{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    {% include "accounts/_brand.html" %}
+    <h1>Vérifiez votre boîte mail</h1>
+    <p class="sub">Si un compte correspond à cette adresse, le lien de connexion vient d'être envoyé. Il est valable 30 minutes. Ensuite, définissez un mot de passe depuis votre profil.</p>
+    <a class="btn btn-primary" style="width:100%" href="{% url 'magic_link_request' %}">Retour à la connexion</a>
+  </div>
+</div>
+{% endblock %}

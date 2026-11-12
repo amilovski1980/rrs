@@ -9,17 +9,21 @@ from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, **extra):
+    def create_user(self, email, password=None, **extra):
         if not email:
             raise ValueError("Email requis")
         user = self.model(email=self.normalize_email(email), **extra)
-        user.set_unusable_password()  # aucun mot de passe : magic link uniquement
+        if password:
+            user.set_password(password)
+        else:
+            # Compte historique ou invitation : pas de secret en clair, hash inutilisable.
+            user.set_unusable_password()
         user.save()
         return user
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """Utilisateur sans mot de passe : connexion par magic link usage unique."""
+    """Compte identifié par email. Le mot de passe est haché par Django, jamais stocké en clair."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)

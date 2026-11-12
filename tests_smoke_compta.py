@@ -20,9 +20,14 @@ def main():
 
     def login_as(email):
         User = get_user_model()
-        if not User.objects.filter(email__iexact=email).exists():
-            User.objects.create_user(email.lower())
-        c.post("/compte/", {"email": email})
+        password = "Cockpit-Lyonnais-2026"
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            user = User.objects.create_user(email.lower(), password=password)
+        else:
+            user.set_password(password)
+            user.save(update_fields=["password"])
+        c.post("/compte/", {"email": email, "password": password})
 
     def add_company(siren, den, regime="reel_simple", tva="franchise", acts=("btp",)):
         import companies.views as _views

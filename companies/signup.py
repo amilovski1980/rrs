@@ -12,6 +12,9 @@ from datetime import date, datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth import login
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -61,9 +64,20 @@ SIREN_TAKEN = (
 
 
 class SignupProfileForm(CompanyProfileForm):
-    """Même questionnaire comptable que l'ajout de société, avec email et téléphone obligatoires."""
+    """Même questionnaire comptable que l'ajout de société, avec email, téléphone et mot de passe."""
 
-    def __init__(self, *args, **kwargs):
+    password1 = forms.CharField(
+        label="Mot de passe",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        error_messages={"required": "Choisissez un mot de passe."},
+    )
+    password2 = forms.CharField(
+        label="Confirmation du mot de passe",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        error_messages={"required": "Confirmez le mot de passe."},
+    )
+
+    def __init__(self, *args, require_password=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["email"].required = True
         self.fields["phone"].required = True
@@ -80,6 +94,12 @@ class SignupProfileForm(CompanyProfileForm):
             "autocomplete": "email",
             "placeholder": "vous@exemple.fr",
         })
+        self.require_password = require_password
+        if not require_password:
+            self.fields.pop("password1", None)
+            self.fields.pop("password2", None)
+        else:
+            self.fields["password1"].help_text = "8 caractères minimum. Il sert à retrouver votre cockpit."
         activities = forms.CheckboxSelectMultiple()
         activities.choices = self.fields["activites"].choices
         self.fields["activites"].widget = activities
@@ -97,6 +117,26 @@ class SignupProfileForm(CompanyProfileForm):
             return normalize_french_phone(self.cleaned_data.get("phone") or "")
         except PhoneError as exc:
             raise forms.ValidationError(str(exc)) from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        if "password1" not in self.fields:
+            return cleaned
+        first = cleaned.get("password1") or ""
+        second = cleaned.get("password2") or ""
+        if first and second and first != second:
+            self.add_error("password2", "Les deux mots de passe ne correspondent pas.")
+            return cleaned
+        if not first:
+            return cleaned
+        email = cleaned.get("email") or ""
+        existing = User.objects.filter(email__iexact=email).first() if email else None
+        if existing is None or not existing.has_usable_password():
+            try:
+                validate_password(first, existing)
+            except ValidationError as exc:
+                self.add_error("password1", exc)
+        return cleaned
 
 
 def _session_lookup(card: dict) -> dict:
@@ -208,15 +248,34 @@ def _apply_phone(user, phone: str, phone_verified: bool):
         user.save(update_fields=updates)
 
 
-def complete_signup(*, email, phone, payload, phone_verified=False, owner=None):
+def _assign_password(user, *, password, password_hash, created):
+    """Pose le hash Django. Ne remplace pas un mot de passe existant qui ne correspond pas."""
+    if password:
+        if user.has_usable_password() and not created:
+            return user.check_password(password)
+        user.set_password(password)
+        user.save(update_fields=["password"])
+        return True
+    if password_hash and (created or not user.has_usable_password()):
+        user.password = password_hash
+        user.save(update_fields=["password"])
+    return True
+
+
+def complete_signup(*, email, phone, payload, phone_verified=False, owner=None, password=None):
     """Crée l'utilisateur s'il le faut, puis la société et son portail comptable.
 
-    Retourne ((user, company), None) ou (None, "taken").
+    Retourne ((user, company), None) ou (None, "taken"|"auth"|"invalid").
     """
     siren = str(payload.get("siren") or "")
     if len(siren) != 9 or not siren.isdigit():
         return None, "invalid"
     email = (email or "").strip().lower()
+    password_hash = payload.get("password_hash") or ""
+    if owner is None and password:
+        existing = User.objects.filter(email__iexact=email).first()
+        if existing and existing.has_usable_password() and not existing.check_password(password):
+            return None, "auth"
     exercice = payload.get("exercice_debut")
     if isinstance(exercice, str):
         exercice = datetime.strptime(exercice, "%Y-%m-%d").date()
@@ -226,8 +285,17 @@ def complete_signup(*, email, phone, payload, phone_verified=False, owner=None):
                 return None, "taken"
             if owner is None:
                 user = User.objects.filter(email__iexact=email).first()
-                if user is None:
+                created = user is None
+                if created:
                     user = User.objects.create_user(email)
+                if not _assign_password(
+                    user,
+                    password=password,
+                    password_hash=password_hash,
+                    created=created,
+                ):
+                    transaction.set_rollback(True)
+                    return None, "auth"
             else:
                 user = owner
             _apply_phone(user, phone, phone_verified)
@@ -290,8 +358,9 @@ def signup_wizard(request):
         company = Company.objects.get(owner=request.user, siren=siren)
         return _open_cockpit(request, request.user, company)
 
+    require_password = not request.user.is_authenticated
     if request.method == "POST" and not taken:
-        form = SignupProfileForm(request.POST)
+        form = SignupProfileForm(request.POST, require_password=require_password)
         posted_siren = "".join(char for char in (request.POST.get("siren") or "") if char.isdigit())
         if posted_siren != siren:
             form.add_error(None, "La société confirmée ne correspond plus à la recherche. Recommencez.")
@@ -306,19 +375,39 @@ def signup_wizard(request):
                     phone=cleaned["phone"],
                     payload=payload,
                     owner=request.user if request.user.is_authenticated else None,
+                    password=None if request.user.is_authenticated else cleaned.get("password1"),
                 )
                 if err == "taken":
                     return _render_wizard(request, form, lookup, siren_taken=True)
+                if err == "auth":
+                    form.add_error(
+                        "password1",
+                        "Le mot de passe ne correspond pas au compte déjà ouvert pour cette adresse.",
+                    )
+                    return _render_wizard(request, form, lookup, siren_taken=False)
                 user, company = result
                 return _open_cockpit(request, user, company)
             return _begin_verification(request, form, lookup, payload, cleaned)
     else:
-        form = SignupProfileForm(initial=_wizard_initial(data, request.user))
+        form = SignupProfileForm(
+            initial=_wizard_initial(data, request.user),
+            require_password=require_password,
+        )
     return _render_wizard(request, form, lookup, siren_taken=taken)
 
 
 def _begin_verification(request, form, lookup, payload, cleaned):
     """Étape email + SMS. Le SMS reste un crochet tant qu'aucun opérateur n'est branché."""
+    existing = User.objects.filter(email__iexact=cleaned["email"]).first()
+    if existing and existing.has_usable_password() and not existing.check_password(cleaned["password1"]):
+        form.add_error(
+            "password1",
+            "Le mot de passe ne correspond pas au compte déjà ouvert pour cette adresse.",
+        )
+        return _render_wizard(request, form, lookup, siren_taken=False)
+    if not (existing and existing.has_usable_password()):
+        payload = dict(payload)
+        payload["password_hash"] = make_password(cleaned["password1"])
     pending = None
     try:
         raw, code, pending = PendingSignup.issue(

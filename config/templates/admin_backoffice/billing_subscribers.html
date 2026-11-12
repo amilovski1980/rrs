@@ -1,0 +1,99 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Facturation{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Facturation</h1>
+    <p class="sub">Abonnés, statuts de paiement et montants. Les clés Stripe ne sont pas affichées ici.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'admin_backoffice:subscription_create' %}">{% include "partials/icon.html" with name="plus" %} Nouvel abonnement</a>
+</div>
+<div class="form-actions" style="margin-top:0">
+  <a class="btn btn-primary" href="{% url 'admin_backoffice:billing' %}">Abonnés</a>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing_invoices' %}">Factures</a>
+</div>
+<form method="get" class="filters card">
+  <div class="filter-field">
+    <label for="q">Recherche</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Email, société, SIREN ou forfait">
+  </div>
+  <div class="filter-field">
+    <label for="status">Statut</label>
+    <select id="status" name="status">
+      <option value="">Tous</option>
+      {% for code, label in statuses %}
+      <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="plan">Forfait</label>
+    <select id="plan" name="plan">
+      <option value="">Tous</option>
+      {% for item in plans %}
+      <option value="{{ item.pk }}" {% if plan == item.pk|stringformat:"s" %}selected{% endif %}>{{ item.name }} — {{ item.price_eur }} €</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="follow">Suivi</label>
+    <select id="follow" name="follow">
+      <option value="">Tous</option>
+      {% for code, label in follows %}
+      <option value="{{ code }}" {% if follow == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Filtrer</button>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing' %}">Réinitialiser</a>
+</form>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Société</th>
+          <th>Compte</th>
+          <th>Forfait</th>
+          <th>Montant</th>
+          <th>Statut</th>
+          <th>Période</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr>
+          <td>
+            {% for company in sub.user.companies.all %}
+            <div><a href="{% url 'admin_backoffice:company_billing' company.pk %}">{{ company.denomination }}</a></div>
+            {% empty %}
+            <span class="muted">—</span>
+            {% endfor %}
+          </td>
+          <td>
+            <a href="{% url 'admin_backoffice:user_billing' sub.user.pk %}">{{ sub.user.email }}</a>
+          </td>
+          <td>{{ sub.plan.name }}</td>
+          <td class="num">{{ sub.plan.price_eur }} €</td>
+          <td>
+            <span class="badge {% if sub.status == 'active' %}badge-green{% elif sub.status == 'past_due' or sub.status == 'unpaid' %}badge-red{% elif sub.status == 'trialing' %}badge-amber{% endif %}">{{ sub.get_status_display }}</span>
+            {% if sub.follow_up %}<div class="muted">{{ sub.get_follow_up_display }}</div>{% endif %}
+          </td>
+          <td>
+            <div>{{ sub.created_at|date:"d/m/Y" }}</div>
+            <div class="muted">Fin {{ sub.current_period_end|date:"d/m/Y"|default:"—" }}</div>
+          </td>
+          <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_subscriber' sub.pk %}">Ouvrir</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">Aucun abonné.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "admin_backoffice/_pagination.html" %}
+</div>
+{% endblock %}

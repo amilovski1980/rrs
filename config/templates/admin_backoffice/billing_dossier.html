@@ -1,0 +1,73 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Facturation — {{ heading }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ heading }}</h1>
+    <p class="sub">{{ intro }}</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing' %}">Tous les abonnés</a>
+</div>
+
+{% if company %}
+<div class="card" style="margin-bottom:16px">
+  <p style="margin:0"><b>{{ company.denomination }}</b> — SIREN {{ company.siren }}</p>
+  <p class="muted" style="margin:6px 0 0">Compte propriétaire : <a href="{% url 'admin_backoffice:user_billing' account.pk %}">{{ account.email }}</a></p>
+</div>
+{% endif %}
+
+{% if attention %}
+<div class="flash" style="background:var(--red-soft);border-color:#f5c2c7;color:var(--red)">
+  Un paiement est en échec ou en retard. Ouvrez l'abonnement pour rafraîchir Stripe ou noter le suivi.
+</div>
+{% endif %}
+
+<div class="card card-tight" style="margin-bottom:16px">
+  <div class="card-head"><h3>Abonnements</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Forfait</th><th>Montant</th><th>Statut</th><th>Fin de période</th><th>Suivi</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr>
+          <td>{{ sub.plan.name }}</td>
+          <td class="num">{{ sub.plan.price_eur }} €</td>
+          <td><span class="badge {% if sub.status == 'active' %}badge-green{% elif sub.status == 'past_due' or sub.status == 'unpaid' %}badge-red{% elif sub.status == 'trialing' %}badge-amber{% endif %}">{{ sub.get_status_display }}</span></td>
+          <td>{{ sub.current_period_end|date:"d/m/Y"|default:"—" }}</td>
+          <td>{{ sub.get_follow_up_display|default:"—" }}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_subscriber' sub.pk %}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">Aucun abonnement. <a href="{% url 'admin_backoffice:subscription_create' %}">En créer un</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-tight">
+  <div class="card-head"><h3>Factures et encaissements</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Libellé</th><th>Montant</th><th>Statut</th><th>Date</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for invoice in invoices %}
+        <tr>
+          <td>{{ invoice.number|default:invoice.description|default:"Reçu" }}{% if invoice.failure_message %}<div class="muted">{{ invoice.failure_message }}</div>{% endif %}</td>
+          <td class="num">{{ invoice.amount_eur }} €</td>
+          <td><span class="badge {% if invoice.status == 'paid' %}badge-green{% elif invoice.status == 'failed' or invoice.status == 'uncollectible' %}badge-red{% elif invoice.status == 'open' %}badge-amber{% endif %}">{{ invoice.get_status_display }}</span></td>
+          <td>{{ invoice.issued_at|date:"d/m/Y" }}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_invoice' invoice.pk %}">Détail</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucun encaissement enregistré pour ce compte.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

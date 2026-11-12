@@ -83,6 +83,22 @@
             </div>
           </div>
 
+          {% if form.password1 %}
+          <div class="form-grid">
+            <div>
+              <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+              {{ form.password1 }}
+              {% if form.password1.help_text %}<p class="helptext">{{ form.password1.help_text }}</p>{% endif %}
+              {% if form.password1.errors %}<p class="error">{{ form.password1.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+              {{ form.password2 }}
+              {% if form.password2.errors %}<p class="error">{{ form.password2.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+
           <div class="form-actions">
             <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Changer de société</a>
             <button class="btn btn-primary" type="submit">

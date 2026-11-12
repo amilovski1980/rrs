@@ -1,0 +1,64 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Facture d'abonnement{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ invoice.number|default:"Facture d'abonnement" }}</h1>
+    <p class="sub">{{ invoice.description|default:"Encaissement d'abonnement" }} — {{ invoice.user.email }}</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing_invoices' %}">Retour aux factures</a>
+</div>
+
+{% if invoice.status == 'failed' or invoice.status == 'uncollectible' %}
+<div class="flash" style="background:var(--red-soft);border-color:#f5c2c7;color:var(--red)">
+  Paiement en échec{% if invoice.failure_message %} : {{ invoice.failure_message }}{% endif %}.
+  {% if invoice.subscription %}
+  <a href="{% url 'admin_backoffice:billing_subscriber' invoice.subscription.pk %}">Ouvrir l'abonnement</a>
+  {% endif %}
+</div>
+{% elif invoice.status == 'open' %}
+<div class="flash">Cette facture est encore à payer.</div>
+{% endif %}
+
+<div class="grid g2" style="align-items:start">
+  <div class="card">
+    <h2 style="margin:0 0 12px;font-size:18px">Détail</h2>
+    <table>
+      <tbody>
+        <tr><td class="muted">Client</td><td><a href="{% url 'admin_backoffice:user_billing' invoice.user.pk %}">{{ invoice.user.email }}</a></td></tr>
+        <tr>
+          <td class="muted">Sociétés</td>
+          <td>
+            {% for company in companies %}
+            <div><a href="{% url 'admin_backoffice:company_billing' company.pk %}">{{ company.denomination }}</a></div>
+            {% empty %}—{% endfor %}
+          </td>
+        </tr>
+        <tr><td class="muted">Montant</td><td class="num"><b>{{ invoice.amount_eur }} €</b></td></tr>
+        <tr><td class="muted">Statut</td><td>{{ invoice.get_status_display }}</td></tr>
+        <tr><td class="muted">Émise</td><td>{{ invoice.issued_at|date:"d/m/Y H:i" }}</td></tr>
+        <tr><td class="muted">Payée</td><td>{{ invoice.paid_at|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+        <tr><td class="muted">Référence</td><td>{{ invoice.external_id }}</td></tr>
+        {% if invoice.subscription %}
+        <tr><td class="muted">Abonnement</td><td><a href="{% url 'admin_backoffice:billing_subscriber' invoice.subscription.pk %}">{{ invoice.subscription.plan.name }} — {{ invoice.subscription.get_status_display }}</a></td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    {% if invoice.hosted_url|slice:":8" == "https://" %}
+    <p style="margin-top:14px"><a class="btn btn-ghost" href="{{ invoice.hosted_url }}" rel="noopener">Ouvrir la facture hébergée</a></p>
+    {% endif %}
+  </div>
+  <div class="card admin-form">
+    <h2 style="margin:0 0 8px;font-size:18px">Note interne</h2>
+    <form method="post">
+      {% csrf_token %}
+      <label for="{{ note_form.staff_note.id_for_label }}">{{ note_form.staff_note.label }}</label>
+      {{ note_form.staff_note }}
+      {% for err in note_form.staff_note.errors %}<p class="error">{{ err }}</p>{% endfor %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

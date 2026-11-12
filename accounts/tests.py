@@ -4,23 +4,42 @@ from django.test import TestCase
 from core.demo import DEMO_EMAIL
 
 
+PASSWORD = "Cockpit-Lyonnais-2026"
+
+
 class EmailLoginTests(TestCase):
     def test_unknown_email_does_not_open_an_empty_cockpit(self):
-        response = self.client.post("/compte/", {"email": "artisan@exemple.fr"})
+        response = self.client.post("/compte/", {
+            "email": "artisan@exemple.fr",
+            "password": PASSWORD,
+        })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Aucun compte ne correspond")
+        self.assertContains(response, "Email ou mot de passe incorrect")
         self.assertContains(response, "Essayer la démo")
+        self.assertNotContains(response, "Aucun compte ne correspond")
         self.assertFalse(get_user_model().objects.filter(email="artisan@exemple.fr").exists())
 
     def test_same_email_reopens_the_same_account(self):
-        get_user_model().objects.create_user("artisan@exemple.fr")
-        self.client.post("/compte/", {"email": "artisan@exemple.fr"})
+        user = get_user_model().objects.create_user("artisan@exemple.fr", password=PASSWORD)
+        self.assertTrue(user.has_usable_password())
+        self.client.post("/compte/", {"email": "artisan@exemple.fr", "password": PASSWORD})
         cockpit = self.client.get("/cockpit/")
         self.assertContains(cockpit, "artisan@exemple.fr")
         self.client.post("/compte/logout/")
-        again = self.client.post("/compte/", {"email": "Artisan@exemple.fr"})
+        again = self.client.post("/compte/", {"email": "Artisan@exemple.fr", "password": PASSWORD})
         self.assertRedirects(again, "/cockpit/", fetch_redirect_response=False)
         self.assertEqual(get_user_model().objects.filter(email__iexact="artisan@exemple.fr").count(), 1)
+
+    def test_wrong_password_stays_on_the_login_page(self):
+        get_user_model().objects.create_user("artisan@exemple.fr", password=PASSWORD)
+        response = self.client.post("/compte/", {
+            "email": "artisan@exemple.fr",
+            "password": "autre-mot-de-passe",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Email ou mot de passe incorrect")
+        cockpit = self.client.get("/cockpit/")
+        self.assertEqual(cockpit.status_code, 302)
 
     def test_demo_email_opens_the_seeded_company(self):
         response = self.client.post("/compte/", {"email": DEMO_EMAIL}, follow=True)

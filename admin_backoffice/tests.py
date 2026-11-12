@@ -229,6 +229,7 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.client.login(email="client@rrs.fr", password="password123")
         names = [
             "dashboard", "users", "companies", "plans", "subscriptions",
+            "billing", "billing_invoices",
             "settings", "logs", "ai_monitoring", "ai_prompt", "integrations", "sms", "health",
         ]
         for name in names:
@@ -466,6 +467,19 @@ class EveryAdminPageTests(TestCase):
         self.subscription = Subscription.objects.create(
             user=self.client_user, plan=self.plan, status="active",
         )
+        from django.utils import timezone
+        from decimal import Decimal
+        from billing.models import SubscriptionInvoice
+
+        self.receipt = SubscriptionInvoice.objects.create(
+            user=self.client_user,
+            subscription=self.subscription,
+            external_id="in_pages_test",
+            amount_eur=Decimal("79.00"),
+            status="paid",
+            issued_at=timezone.now(),
+            description="Abonnement Pro",
+        )
         from admin_backoffice.models import SmsTemplate
 
         self.sms_template = SmsTemplate.objects.create(
@@ -486,6 +500,12 @@ class EveryAdminPageTests(TestCase):
             "settings": "Paramètres",
             "plans": "Forfaits",
             "subscriptions": "Abonnements",
+            "billing": "Facturation",
+            "billing_invoices": "Factures d'abonnement",
+            "billing_subscriber": "Abonnement",
+            "billing_invoice": "Facture d'abonnement",
+            "user_billing": "Abonnement, encaissements",
+            "company_billing": "compte propriétaire",
             "integrations": "Intégrations",
             "ai_prompt": "Personnalisation de l'IA",
             "users": "Utilisateurs",
@@ -547,6 +567,12 @@ class EveryAdminPageTests(TestCase):
             "subscription_create": {},
             "subscription_edit": {"pk": self.subscription.pk},
             "subscription_delete": {"pk": self.subscription.pk},
+            "billing": {},
+            "billing_subscriber": {"pk": self.subscription.pk},
+            "billing_invoices": {},
+            "billing_invoice": {"pk": self.receipt.pk},
+            "user_billing": {"pk": self.client_user.pk},
+            "company_billing": {"pk": self.company.pk},
             "users": {},
             "user_create": {},
             "user_edit": {"pk": self.client_user.pk},
@@ -562,6 +588,7 @@ class EveryAdminPageTests(TestCase):
     def _post_pages(self):
         return [
             ("user_toggle", {"pk": self.client_user.pk}, {}),
+            ("user_send_reset", {"pk": self.client_user.pk}, {}),
             ("impersonate_start", {"pk": self.client_user.pk}, {}),
             ("impersonate_stop", {}, {}),
             ("integrations_test", {"code": "insee"}, {}),
@@ -579,7 +606,8 @@ class AdminPagesWithoutBusinessDataTests(TestCase):
     def test_empty_admin_pages(self):
         names = [
             "dashboard", "dashboard_url", "settings", "logs", "companies",
-            "plans", "subscriptions", "users", "ai_monitoring", "ai_prompt",
+            "plans", "subscriptions", "billing", "billing_invoices",
+            "users", "ai_monitoring", "ai_prompt",
             "integrations", "sms", "health", "company_create", "plan_create",
             "subscription_create", "user_create",
         ]

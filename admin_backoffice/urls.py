@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import billing_admin, views
 
 app_name = "admin_backoffice"
 
@@ -29,11 +29,19 @@ urlpatterns = [
     path("subscriptions/<uuid:pk>/edit/", views.SubscriptionUpdateView.as_view(), name="subscription_edit"),
     path("subscriptions/<uuid:pk>/delete/", views.SubscriptionDeleteView.as_view(), name="subscription_delete"),
 
+    path("facturation/", billing_admin.SubscriberListView.as_view(), name="billing"),
+    path("facturation/abonnes/<uuid:pk>/", billing_admin.SubscriberDetailView.as_view(), name="billing_subscriber"),
+    path("facturation/factures/", billing_admin.BillingInvoiceListView.as_view(), name="billing_invoices"),
+    path("facturation/factures/<uuid:pk>/", billing_admin.BillingInvoiceDetailView.as_view(), name="billing_invoice"),
+    path("users/<uuid:pk>/facturation/", billing_admin.UserBillingView.as_view(), name="user_billing"),
+    path("companies/<uuid:pk>/facturation/", billing_admin.CompanyBillingView.as_view(), name="company_billing"),
+
     path("users/", views.UserListView.as_view(), name="users"),
     path("users/create/", views.UserCreateView.as_view(), name="user_create"),
     path("users/<uuid:pk>/edit/", views.UserUpdateView.as_view(), name="user_edit"),
     path("users/<uuid:pk>/delete/", views.UserDeleteView.as_view(), name="user_delete"),
     path("users/<uuid:pk>/toggle/", views.user_toggle, name="user_toggle"),
+    path("users/<uuid:pk>/reinitialiser/", views.user_send_reset, name="user_send_reset"),
     path("users/<uuid:pk>/consulter/", views.impersonate_start, name="impersonate_start"),
     path("consulter/stop/", views.impersonate_stop, name="impersonate_stop"),
 
