@@ -11,6 +11,24 @@ from .models import SiteConfiguration, SmsTemplate
 SECRET_FIELDS = ("smtp_password", "stripe_secret_key", "llm_api_key", "insee_api_key")
 
 
+def _feature_lines(raw) -> list[str]:
+    """Texte « une fonction par ligne », même si le JSON stocké n'est pas une liste de textes."""
+    if isinstance(raw, str):
+        items = raw.splitlines()
+    elif isinstance(raw, (list, tuple)):
+        items = raw
+    else:
+        items = []
+    lines = []
+    for item in items:
+        if isinstance(item, (dict, list, tuple)) or item is None:
+            continue
+        text = str(item).strip()
+        if text:
+            lines.append(text)
+    return lines
+
+
 def _style_fields(form):
     for field in form.fields.values():
         widget = field.widget
@@ -135,8 +153,8 @@ class PlanAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        features = self.instance.features if self.instance and self.instance.pk else []
-        self.fields["features_text"].initial = "\n".join(features or [])
+        raw = self.instance.features if self.instance and self.instance.pk else []
+        self.fields["features_text"].initial = "\n".join(_feature_lines(raw))
         self.fields["code"].help_text = "Exemples : micro, reel, pro, starter, illimite."
         self.fields["ai_prompt"].help_text = (
             "Vide = consigne par défaut selon le code (Micro limité, Pro complet)."
