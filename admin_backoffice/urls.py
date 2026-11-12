@@ -10,7 +10,12 @@ def health_check(request):
 
 def _diag_tables(request):
     """Diagnostic temporaire : état de chaque table + rendu du template dashboard."""
+    from pathlib import Path
+
+    from django.conf import settings
     from django.contrib.auth.models import User as DjangoUser
+    from django.db import connection
+    from django.db.migrations.executor import MigrationExecutor
     from django.template.loader import render_to_string
 
     from accounts.models import User
@@ -20,10 +25,28 @@ def _diag_tables(request):
 
     from .models import SiteConfiguration, SystemLog
 
-    lines = []
+    lines = [f"DIAG v2 (main 39c827a+)"]
+    migdir = Path(settings.BASE_DIR) / "admin_backoffice" / "migrations"
+    if migdir.is_dir():
+        lines.append(f"migrations embarquées: {sorted(p.name for p in migdir.iterdir())}")
+    else:
+        lines.append("migrations embarquées: ABSENT du bundle")
+    try:
+        executor = MigrationExecutor(connection)
+        appliquees = sorted(
+            name for app, name in executor.loader.applied_migrations if app == "admin_backoffice"
+        )
+        lines.append(f"migrations admin_backoffice appliquées: {appliquees}")
+        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        en_attente = sorted(
+            f"{m.app_label}.{m.name}" for m, _ in plan if m.app_label == "admin_backoffice"
+        )
+        lines.append(f"admin_backoffice en attente: {en_attente}")
+    except Exception as exc:  # noqa: BLE001
+        lines.append(f"MigrationExecutor: ERREUR {type(exc).__name__}: {exc}")
+
     probes = [
         ("accounts.User", lambda: User.objects.count()),
-        ("auth.User", lambda: DjangoUser.objects.count()),
         ("companies.Company", lambda: Company.objects.count()),
         ("billing.Plan", lambda: Plan.objects.count()),
         ("billing.Subscription", lambda: Subscription.objects.count()),
