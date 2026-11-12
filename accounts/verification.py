@@ -9,7 +9,7 @@ import logging
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.urls import reverse
+from core.public_theme import themed_reverse
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def send_phone_verification(phone: str, code: str) -> bool:
 
 def send_signup_link(request, email: str, token: str) -> str:
     """Envoie le lien magique d'ouverture de cockpit. Retourne l'URL absolue."""
-    url = request.build_absolute_uri(reverse("signup_verify", kwargs={"token": token}))
+    url = request.build_absolute_uri(themed_reverse(request, "signup_verify", token=token))
     send_mail(
         subject="Confirmez votre cockpit Road Runner Solutions",
         message=(

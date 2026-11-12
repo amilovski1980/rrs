@@ -1,0 +1,45 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Vérifier l'email{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <p class="signup-steps">
+      <span class="badge">1. Recherche</span>
+      <span class="badge">2. Société</span>
+      <span class="badge is-on">3. Vérification</span>
+    </p>
+    <h1>Ouvrez le lien reçu</h1>
+    <p class="sub">Il part vers <b>{{ pending.email }}</b>. Valable 60 minutes, une seule fois. Le cockpit est créé quand vous l'ouvrez.</p>
+
+    <h2>Téléphone {{ pending.phone }}</h2>
+    {% if sms_sent %}
+      {% if pending.phone_verified %}
+      <p class="flash flash-ok">Numéro confirmé.</p>
+      {% else %}
+      <p class="sub">Saisissez le code reçu par SMS.</p>
+      <form method="post" action="{% url 'dark:signup_phone_check' %}">
+        {% csrf_token %}
+        <label for="sms-code">Code SMS</label>
+        <input id="sms-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button class="btn btn-gradient btn-block" type="submit">Valider le code</button>
+      </form>
+      {% endif %}
+    {% else %}
+    <p class="sub">La vérification par SMS n'est pas encore disponible : aucun opérateur n'est configuré. Le lien reçu par email suffit pour ouvrir le cockpit.</p>
+    {% endif %}
+
+    {% if phone_status == "bad" %}<p class="error">Ce code ne correspond pas. Réessayez.</p>{% endif %}
+    {% if phone_status == "unavailable" %}<p class="error">Aucun SMS n'a été envoyé.</p>{% endif %}
+    {% if phone_status == "ok" %}<p class="flash flash-ok">Numéro confirmé. Il reste à ouvrir le lien email.</p>{% endif %}
+
+    {% if debug_url %}
+    <p class="micro">Développement — le lien n'est affiché que lorsque DEBUG est actif :<br>
+      <a href="{{ debug_url }}">{{ debug_url }}</a>
+      {% if debug_code %}<br>Code SMS de développement : {{ debug_code }}{% endif %}
+    </p>
+    {% endif %}
+
+    <p class="micro"><a href="{% url 'dark:landing' %}#recherche">Recommencer avec une autre société</a></p>
+  </div>
+</div>
+{% endblock %}

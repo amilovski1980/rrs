@@ -1,0 +1,13 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Lien expiré{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    {% include "dark/accounts/_brand.html" %}
+    <h1>Lien expiré ou déjà utilisé</h1>
+    <p class="sub">Chaque lien ne fonctionne qu'une fois, pendant 30 minutes. La connexion habituelle se fait avec l'email et le mot de passe.</p>
+    <a class="btn btn-white btn-block" href="{% url 'dark:magic_link_request' %}">Se connecter</a>
+    <p class="micro"><a href="{% url 'dark:magic_link_email' %}">Recevoir un nouveau lien</a></p>
+  </div>
+</div>
+{% endblock %}

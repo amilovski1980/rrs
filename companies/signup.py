@@ -18,6 +18,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
+
+from core.public_theme import themed_redirect, themed_template
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -166,12 +168,12 @@ def company_search(request):
     """Résultats de l'annuaire public (nom, SIREN ou SIRET)."""
     query = (request.GET.get("q") or "").strip()
     if not query:
-        return redirect("landing")
+        return themed_redirect(request, "landing")
     results, error = search_entreprises(query)
     message = SEARCH_MESSAGES.get(error or "")
     if not error and not results:
         message = SEARCH_MESSAGES["empty"]
-    return render(request, "companies/search_results.html", {
+    return render(request, themed_template(request, "companies/search_results.html"), {
         "query": query[:80],
         "results": results,
         "error_message": message,
@@ -183,10 +185,10 @@ def signup_start(request):
     """Mémorise la fiche officielle choisie, sans le JSON brut de l'API."""
     siren = "".join(char for char in (request.GET.get("siren") or "") if char.isdigit())
     if len(siren) != 9:
-        return redirect("landing")
+        return themed_redirect(request, "landing")
     card, error = official_card(siren)
     if error or not card:
-        return render(request, "companies/search_results.html", {
+        return render(request, themed_template(request, "companies/search_results.html"), {
             "query": siren,
             "results": [],
             "error_message": SEARCH_MESSAGES.get(error or "empty", SEARCH_MESSAGES["error"]),
@@ -196,7 +198,7 @@ def signup_start(request):
         request.session["onboarding_lookup"] = lookup
         return redirect("onboarding_confirm")
     request.session[SIGNUP_SESSION_KEY] = lookup
-    return redirect("signup_wizard")
+    return themed_redirect(request, "signup_wizard")
 
 
 def _wizard_initial(data: dict, user) -> dict:
@@ -335,7 +337,7 @@ def _open_cockpit(request, user, company):
 
 def _render_wizard(request, form, lookup, siren_taken=False):
     data = lookup.get("data") or {}
-    return render(request, "companies/signup_wizard.html", {
+    return render(request, themed_template(request, "companies/signup_wizard.html"), {
         "form": form,
         "siren": lookup.get("siren"),
         "data": data,
@@ -350,7 +352,7 @@ def signup_wizard(request):
     """Confirme la fiche officielle, l'email, le téléphone et le régime."""
     lookup = request.session.get(SIGNUP_SESSION_KEY)
     if not lookup or not lookup.get("siren"):
-        return redirect("landing")
+        return themed_redirect(request, "landing")
     data = lookup.get("data") or {}
     siren = lookup["siren"]
     taken = Company.objects.filter(siren=siren).exists()
@@ -436,7 +438,7 @@ def _begin_verification(request, form, lookup, payload, cleaned):
     else:
         request.session.pop("signup_debug_url", None)
         request.session.pop("signup_debug_code", None)
-    return redirect("signup_pending")
+    return themed_redirect(request, "signup_pending")
 
 
 def _pending_from_session(request):
@@ -454,8 +456,8 @@ def signup_pending(request):
     """Page d'attente : lien email envoyé, SMS en attente d'un fournisseur."""
     pending = _pending_from_session(request)
     if pending is None:
-        return redirect("signup_wizard")
-    return render(request, "companies/signup_verify.html", {
+        return themed_redirect(request, "signup_wizard")
+    return render(request, themed_template(request, "companies/signup_verify.html"), {
         "pending": pending,
         "sms_sent": bool(request.session.get("signup_sms_sent")),
         "phone_status": request.session.pop("signup_phone_status", ""),
@@ -469,17 +471,17 @@ def signup_phone_check(request):
     """Contrôle le code SMS si un fournisseur en a réellement envoyé un."""
     pending = _pending_from_session(request)
     if pending is None:
-        return redirect("signup_wizard")
+        return themed_redirect(request, "signup_wizard")
     if not request.session.get("signup_sms_sent"):
         request.session["signup_phone_status"] = "unavailable"
-        return redirect("signup_pending")
+        return themed_redirect(request, "signup_pending")
     if pending.check_phone_code(request.POST.get("code") or ""):
         pending.phone_verified = True
         pending.save(update_fields=["phone_verified"])
         request.session["signup_phone_status"] = "ok"
     else:
         request.session["signup_phone_status"] = "bad"
-    return redirect("signup_pending")
+    return themed_redirect(request, "signup_pending")
 
 
 @require_GET
@@ -487,10 +489,10 @@ def signup_verify(request, token):
     """Consomme le lien email et ouvre le cockpit de la société choisie."""
     pending = PendingSignup.lookup(token)
     if pending is None:
-        return render(request, "companies/signup_invalid.html", status=410)
+        return render(request, themed_template(request, "companies/signup_invalid.html"), status=410)
     payload = pending.payload or {}
     if payload.get("siren") != pending.siren:
-        return render(request, "companies/signup_invalid.html", status=410)
+        return render(request, themed_template(request, "companies/signup_invalid.html"), status=410)
     result, err = complete_signup(
         email=pending.email,
         phone=pending.phone,
@@ -503,8 +505,8 @@ def signup_verify(request, token):
         existing = Company.objects.filter(siren=pending.siren).select_related("owner").first()
         if existing and existing.owner.email.lower() == pending.email.lower():
             return _open_cockpit(request, existing.owner, existing)
-        return render(request, "companies/signup_taken.html", {"siren": pending.siren})
+        return render(request, themed_template(request, "companies/signup_taken.html"), {"siren": pending.siren})
     if result is None:
-        return render(request, "companies/signup_invalid.html", status=410)
+        return render(request, themed_template(request, "companies/signup_invalid.html"), status=410)
     user, company = result
     return _open_cockpit(request, user, company)

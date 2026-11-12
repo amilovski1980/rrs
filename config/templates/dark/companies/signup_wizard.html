@@ -1,0 +1,114 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Ouvrir le cockpit{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <p class="signup-steps">
+          <span class="badge">1. Recherche</span>
+          <span class="badge is-on">2. Votre société</span>
+          {% if verification_enabled %}<span class="badge">3. Vérification</span>{% endif %}
+        </p>
+        <h1>C'est bien cette société ?</h1>
+        <p class="sub">SIREN {{ siren }}. Fiche officielle de l'annuaire. Le régime fiscal règle le plan comptable, les journaux et la TVA.</p>
+      </div>
+    </div>
+
+    {% if error_message %}
+    <div class="alert" role="alert">
+      <p><b>{{ error_message }}</b></p>
+      <p><a class="btn btn-white" href="{% url 'dark:magic_link_request' %}">Se connecter</a></p>
+    </div>
+    {% endif %}
+
+    <div class="wizard-grid">
+      <div>
+        {% include "companies/_official_card.html" %}
+      </div>
+      <div class="card">
+        {% if siren_taken %}
+        <h2>Société déjà ouverte</h2>
+        <p class="sub">Utilisez l'email du compte qui détient déjà ce SIREN.</p>
+        <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Choisir une autre société</a>
+        {% else %}
+        <h2>Votre cadre comptable</h2>
+        <p class="sub">Il détermine les comptes, les journaux et la TVA du cockpit.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="siren" value="{{ siren }}">
+          {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+          <label>{{ form.denomination.label }}</label>
+          {{ form.denomination }}
+          {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label>{{ form.forme.label }}</label>
+              {{ form.forme }}
+            </div>
+            <div>
+              <label>{{ form.exercice_debut.label }}</label>
+              {{ form.exercice_debut }}
+              {% if form.exercice_debut.errors %}<p class="error">{{ form.exercice_debut.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <label>{{ form.activites.label }}</label>
+          <div class="signup-activities">{{ form.activites }}</div>
+          {% if form.activites.errors %}<p class="error">{{ form.activites.errors.0 }}</p>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label>{{ form.regime.label }}</label>
+              {{ form.regime }}
+            </div>
+            <div>
+              <label>{{ form.tva.label }}</label>
+              {{ form.tva }}
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+              {{ form.email }}
+              {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<p class="error">{{ form.phone.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          {% if form.password1 %}
+          <div class="form-grid">
+            <div>
+              <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+              {{ form.password1 }}
+              <p class="helptext">Huit caractères minimum. C'est ce mot de passe qui rouvre le cockpit.</p>
+              {% if form.password1.errors %}<p class="error">{{ form.password1.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+              {{ form.password2 }}
+              {% if form.password2.errors %}<p class="error">{{ form.password2.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-actions">
+            <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Changer de société</a>
+            <button class="btn btn-gradient" type="submit">
+              {% if verification_enabled %}Continuer{% else %}Créer mon espace{% endif %}
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

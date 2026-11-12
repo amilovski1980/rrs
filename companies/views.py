@@ -90,8 +90,12 @@ class CompanyProfileForm(forms.Form):
 def landing(request):
     """Vitrine publique : promesse produit, forfaits, recherche de société."""
     from billing.public_pricing import pricing_context
+    from core.public_theme import is_dark, themed_template, with_dark_voice
 
-    return render(request, "landing.html", pricing_context())
+    context = pricing_context()
+    if is_dark(request):
+        context = with_dark_voice(context)
+    return render(request, themed_template(request, "landing.html"), context)
 
 
 @login_required

@@ -7,12 +7,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetView
 from django.core.mail import send_mail
 from django.shortcuts import redirect, render
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import TemplateView
 
 from core.demo import ADMIN_EMAIL, DEMO_EMAIL, seed_admin, seed_demo
+
+from core.public_theme import is_dark, themed_redirect, themed_reverse, themed_template
 
 from .forms import EmailOnlyForm, FrenchPasswordResetForm, FrenchSetPasswordForm, LoginForm, OwnPasswordForm
 from .models import MagicLink, User
@@ -71,7 +73,7 @@ def login_view(request):
         else:
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             return redirect(_safe_next(request, request.POST.get("next") or "") or "cockpit")
-    return render(request, "accounts/magic_link_form.html", {
+    return render(request, themed_template(request, "accounts/magic_link_form.html"), {
         "form": form,
         "next": request.GET.get("next") or "",
     })
@@ -86,7 +88,7 @@ def magic_link_email(request):
         if user is not None:
             try:
                 raw, _link = MagicLink.issue(user, minutes=30, ip=_client_ip(request))
-                url = request.build_absolute_uri(reverse("magic_link_verify", kwargs={"token": raw}))
+                url = request.build_absolute_uri(themed_reverse(request, "magic_link_verify", token=raw))
                 send_mail(
                     subject="Votre lien de connexion Road Runner Solutions",
                     message=(
@@ -102,18 +104,18 @@ def magic_link_email(request):
                 )
             except Exception:
                 logger.exception("Lien de connexion non envoyé")
-        return redirect("magic_link_email_done")
-    return render(request, "accounts/magic_link_email.html", {"form": form})
+        return themed_redirect(request, "magic_link_email_done")
+    return render(request, themed_template(request, "accounts/magic_link_email.html"), {"form": form})
 
 
 def magic_link_email_done(request):
-    return render(request, "accounts/magic_link_email_done.html")
+    return render(request, themed_template(request, "accounts/magic_link_email_done.html"))
 
 
 def magic_link_verify(request, token):
     user = MagicLink.verify(token)
     if user is None or not user.is_active:
-        return render(request, "accounts/magic_link_invalid.html", status=410)
+        return render(request, themed_template(request, "accounts/magic_link_invalid.html"), status=410)
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     if not user.has_usable_password():
         messages.info(
@@ -148,20 +150,33 @@ def profile(request):
     })
 
 
-class FrenchPasswordResetView(PasswordResetView):
+class _DarkPublicTemplates:
+    """Même vue, gabarit /dark quand l'URL est dans l'espace dark."""
+
+    def get_template_names(self):
+        return [themed_template(self.request, name) for name in super().get_template_names()]
+
+
+class FrenchPasswordResetView(_DarkPublicTemplates, PasswordResetView):
     form_class = FrenchPasswordResetForm
     template_name = "accounts/password_reset_form.html"
     email_template_name = "accounts/password_reset_email.txt"
     subject_template_name = "accounts/password_reset_subject.txt"
     success_url = reverse_lazy("password_reset_done")
 
+    def get_success_url(self):
+        return themed_reverse(self.request, "password_reset_done")
+
     def form_valid(self, form):
+        email_template = self.email_template_name
+        if is_dark(self.request):
+            email_template = "accounts/password_reset_email_dark.txt"
         try:
             form.save(
                 use_https=self.request.is_secure(),
                 token_generator=self.token_generator,
                 from_email=self.from_email,
-                email_template_name=self.email_template_name,
+                email_template_name=email_template,
                 subject_template_name=self.subject_template_name,
                 request=self.request,
                 html_email_template_name=self.html_email_template_name,
@@ -172,15 +187,18 @@ class FrenchPasswordResetView(PasswordResetView):
         return redirect(self.get_success_url())
 
 
-class FrenchPasswordResetDoneView(TemplateView):
+class FrenchPasswordResetDoneView(_DarkPublicTemplates, TemplateView):
     template_name = "accounts/password_reset_done.html"
 
 
-class FrenchPasswordResetConfirmView(PasswordResetConfirmView):
+class FrenchPasswordResetConfirmView(_DarkPublicTemplates, PasswordResetConfirmView):
     form_class = FrenchSetPasswordForm
     template_name = "accounts/password_reset_confirm.html"
     success_url = reverse_lazy("password_reset_complete")
 
+    def get_success_url(self):
+        return themed_reverse(self.request, "password_reset_complete")
 
-class FrenchPasswordResetCompleteView(TemplateView):
+
+class FrenchPasswordResetCompleteView(_DarkPublicTemplates, TemplateView):
     template_name = "accounts/password_reset_complete.html"
