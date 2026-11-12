@@ -278,6 +278,22 @@ def execute_tool(user, company, name, args, session_company_setter=None):
 
     if not tool_allowed(user, name):
         return {"error": "Cette action n'est pas incluse dans votre forfait."}
+    from billing.access import feature_on, invoice_create_block
+
+    tool_feature = {
+        "draft_invoice": "invoices",
+        "draft_client": "clients",
+        "propose_entry": "entries",
+        "confirm_entry": "entries",
+        "get_balance": "balance",
+        "list_entries": "ledger",
+    }.get(name)
+    if tool_feature and not feature_on(user, tool_feature):
+        return {"error": "Cette action n'est pas incluse dans votre forfait."}
+    if name == "draft_invoice":
+        block = invoice_create_block(user)
+        if block:
+            return {"error": block}
     if name == "list_companies":
         return {"companies": [company_card(c) for c in owned_companies(user)]}
 

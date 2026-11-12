@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.1">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.2">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -82,51 +82,64 @@
     <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
     </a>
-    <a class="side-link {% block nav_onboarding %}{% endblock %}" href="{% url 'onboarding' %}">
+    <a class="side-link {% block nav_onboarding %}{% endblock %}{% if forfait.locks.extra_company %} is-locked{% endif %}" href="{% if forfait.locks.extra_company %}{% url 'plan_upgrade' %}{% else %}{% url 'onboarding' %}{% endif %}" {% if forfait.locks.extra_company %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="plus" %}</span> Ajouter une société
+      {% if forfait.locks.extra_company %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
     <a class="side-link {% block nav_settings %}{% endblock %}" href="{% url 'company_settings' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Configuration
     </a>
 
     <div class="nav-sec">Comptabilité</div>
-    <a class="side-link {% block nav_entry %}{% endblock %}" href="{% url 'entry_create' %}">
+    <a class="side-link {% block nav_entry %}{% endblock %}{% if forfait.locks.entries %} is-locked{% endif %}" href="{% if forfait.locks.entries %}{% url 'plan_upgrade' %}{% else %}{% url 'entry_create' %}{% endif %}" {% if forfait.locks.entries %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Nouvelle écriture
+      {% if forfait.locks.entries %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_ledger %}{% endblock %}" href="{% url 'ledger' %}">
+    <a class="side-link {% block nav_ledger %}{% endblock %}{% if forfait.locks.ledger %} is-locked{% endif %}" href="{% if forfait.locks.ledger %}{% url 'plan_upgrade' %}{% else %}{% url 'ledger' %}{% endif %}" {% if forfait.locks.ledger %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Grand livre
+      {% if forfait.locks.ledger %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_balance %}{% endblock %}" href="{% url 'balance' %}">
+    <a class="side-link {% block nav_balance %}{% endblock %}{% if forfait.locks.balance %} is-locked{% endif %}" href="{% if forfait.locks.balance %}{% url 'plan_upgrade' %}{% else %}{% url 'balance' %}{% endif %}" {% if forfait.locks.balance %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Balance
+      {% if forfait.locks.balance %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
 
     <div class="nav-sec">Facturation</div>
-    <a class="side-link {% block nav_invoices %}{% endblock %}" href="{% url 'invoices' %}">
+    <a class="side-link {% block nav_invoices %}{% endblock %}{% if forfait.locks.invoices %} is-locked{% endif %}" href="{% if forfait.locks.invoices %}{% url 'plan_upgrade' %}{% else %}{% url 'invoices' %}{% endif %}" {% if forfait.locks.invoices %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Factures
+      {% if forfait.locks.invoices %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_quotes %}{% endblock %}" href="{% url 'quotes' %}">
+    <a class="side-link {% block nav_quotes %}{% endblock %}{% if forfait.locks.quotes %} is-locked{% endif %}" href="{% if forfait.locks.quotes %}{% url 'plan_upgrade' %}{% else %}{% url 'quotes' %}{% endif %}" {% if forfait.locks.quotes %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Devis
+      {% if forfait.locks.quotes %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_clients %}{% endblock %}" href="{% url 'clients' %}">
+    <a class="side-link {% block nav_clients %}{% endblock %}{% if forfait.locks.clients %} is-locked{% endif %}" href="{% if forfait.locks.clients %}{% url 'plan_upgrade' %}{% else %}{% url 'clients' %}{% endif %}" {% if forfait.locks.clients %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Clients
+      {% if forfait.locks.clients %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_products %}{% endblock %}" href="{% url 'products' %}">
+    <a class="side-link {% block nav_products %}{% endblock %}{% if forfait.locks.products %} is-locked{% endif %}" href="{% if forfait.locks.products %}{% url 'plan_upgrade' %}{% else %}{% url 'products' %}{% endif %}" {% if forfait.locks.products %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> Catalogue
+      {% if forfait.locks.products %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_projects %}{% endblock %}" href="{% url 'projects' %}">
+    <a class="side-link {% block nav_projects %}{% endblock %}{% if forfait.locks.projects %} is-locked{% endif %}" href="{% if forfait.locks.projects %}{% url 'plan_upgrade' %}{% else %}{% url 'projects' %}{% endif %}" {% if forfait.locks.projects %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="folder" %}</span> Projets
+      {% if forfait.locks.projects %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_credit_notes %}{% endblock %}" href="{% url 'credit_notes' %}">
+    <a class="side-link {% block nav_credit_notes %}{% endblock %}{% if forfait.locks.credit_notes %} is-locked{% endif %}" href="{% if forfait.locks.credit_notes %}{% url 'plan_upgrade' %}{% else %}{% url 'credit_notes' %}{% endif %}" {% if forfait.locks.credit_notes %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="arrow" %}</span> Avoirs
+      {% if forfait.locks.credit_notes %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_payments %}{% endblock %}" href="{% url 'payments' %}">
+    <a class="side-link {% block nav_payments %}{% endblock %}{% if forfait.locks.payments %} is-locked{% endif %}" href="{% if forfait.locks.payments %}{% url 'plan_upgrade' %}{% else %}{% url 'payments' %}{% endif %}" {% if forfait.locks.payments %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="check" %}</span> Paiements
+      {% if forfait.locks.payments %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_tickets %}{% endblock %}" href="{% url 'tickets' %}">
+    <a class="side-link {% block nav_tickets %}{% endblock %}{% if forfait.locks.tickets %} is-locked{% endif %}" href="{% if forfait.locks.tickets %}{% url 'plan_upgrade' %}{% else %}{% url 'tickets' %}{% endif %}" {% if forfait.locks.tickets %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Tickets de caisse
+      {% if forfait.locks.tickets %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
-    <a class="side-link {% block nav_ai_drafts %}{% endblock %}" href="{% url 'ai_drafts' %}">
+    <a class="side-link {% block nav_ai_drafts %}{% endblock %}{% if forfait.locks.ai_drafts %} is-locked{% endif %}" href="{% if forfait.locks.ai_drafts %}{% url 'plan_upgrade' %}{% else %}{% url 'ai_drafts' %}{% endif %}" {% if forfait.locks.ai_drafts %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
+      {% if forfait.locks.ai_drafts %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
     </div>{# /.sidebar-nav-scroll #}
 
@@ -144,6 +157,9 @@
       </a>
       {% endif %}
       {% if request.user.is_authenticated %}
+      <a class="side-link" href="{% url 'plan_upgrade' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Mon forfait
+      </a>
       <a class="side-link" href="{% url 'profile' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Mon profil
       </a>
@@ -205,7 +221,7 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.12.1" defer></script>
-  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.1" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.12.2" defer></script>
+  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

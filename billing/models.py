@@ -26,6 +26,12 @@ class Plan(models.Model):
         help_text="Vide = illimité.",
     )
     features = models.JSONField(default=list, blank=True, verbose_name="Fonctions incluses")
+    entitlements = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Matrice de fonctions",
+        help_text="Matrice éditable : fonctions et modèles de facture.",
+    )
     is_active = models.BooleanField(default=True, verbose_name="Proposé aux clients")
     ai_prompt = models.TextField(
         blank=True,
@@ -54,6 +60,7 @@ class Subscription(models.Model):
     )
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT)
     stripe_subscription_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    stripe_customer_id = models.CharField(max_length=50, blank=True, default="")
     status = models.CharField(max_length=12, choices=STATUSES, default="trialing")
     current_period_end = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

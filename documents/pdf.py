@@ -1,4 +1,8 @@
-"""PDF facture / devis / avoir, multi-pages, thèmes société."""
+"""PDF facture / devis / avoir, multi-pages, thèmes société.
+
+La mise en page reprend les marges, le tableau et le pied des feuilles HTML :
+en-tête, client, lignes alignées, totaux, mentions légales, numéro de page.
+"""
 from __future__ import annotations
 
 from decimal import Decimal
@@ -26,9 +30,14 @@ KIND_TITLES = {
     "credit_note": "AVOIR",
 }
 
+INK = (28, 32, 38)
+MUTED = (90, 98, 110)
+LINE = (226, 230, 236)
+ZEBRA = (246, 248, 251)
+
 
 def euros(value) -> str:
-    value = Decimal(str(value)).quantize(Decimal("0.01"))
+    value = Decimal(str(value or 0)).quantize(Decimal("0.01"))
     whole, cents = f"{value:.2f}".split(".")
     grouped = f"{int(whole):,}".replace(",", " ")
     return f"{grouped},{cents} €"
@@ -42,56 +51,94 @@ def _qty(value) -> str:
     return text or "0"
 
 
+def _siret(company) -> str:
+    data = company.source_data if isinstance(getattr(company, "source_data", None), dict) else {}
+    digits = "".join(ch for ch in str(data.get("siret") or "") if ch.isdigit())
+    return digits if len(digits) == 14 else ""
+
+
+def _wrap(pdf: FPDF, text: str, width: float) -> list[str]:
+    words = (text or "").replace("\n", " ").split()
+    if not words:
+        return [""]
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        trial = word if not current else f"{current} {word}"
+        if pdf.get_string_width(trial) <= width:
+            current = trial
+            continue
+        if current:
+            lines.append(current)
+        current = word
+    if current:
+        lines.append(current)
+    return lines[:8]
+
+
 class DocumentPDF(FPDF):
-    def __init__(self, theme: str, accent: tuple[int, int, int], kind_title: str):
+    def __init__(self, accent, kind_title, left, columns):
         super().__init__(format="A4", unit="mm")
-        self.theme = theme
         self.accent = accent
         self.kind_title = kind_title
-        self.set_auto_page_break(auto=True, margin=22)
+        self.left = left
+        self.columns = columns
+        self.set_auto_page_break(auto=True, margin=18)
 
     def header(self):
-        # En-tête de continuation après saut de page (lignes uniquement).
         if self.page_no() <= 1:
             return
-        self.set_font("DejaVu", size=9)
+        self.set_font("DejaVu", size=8)
         self.set_text_color(*self.accent)
-        self.set_xy(16, 12)
-        self.cell(0, 5, f"{self.kind_title} (suite)")
-        self.set_draw_color(*self.accent)
-        self.set_line_width(0.3)
-        self.line(16, 18, 194, 18)
-        self.set_xy(16, 22)
-        self._draw_table_header(y=22)
+        self.set_xy(self.left, 10)
+        self.cell(0, 5, f"{self.kind_title} — suite")
+        self._table_header(16)
 
     def footer(self):
-        self.set_y(-14)
+        self.set_y(-12)
+        self.set_draw_color(*LINE)
+        self.set_line_width(0.2)
+        self.line(self.left, self.get_y(), 210 - 14, self.get_y())
+        self.set_y(-10)
         self.set_font("DejaVu", size=8)
-        self.set_text_color(110, 116, 128)
+        self.set_text_color(*MUTED)
         self.cell(0, 4, f"Page {self.page_no()}/{{nb}}", align="C")
 
-    def _draw_table_header(self, y: float):
+    def _table_header(self, y: float):
         self.set_fill_color(*self.accent)
         self.set_text_color(255, 255, 255)
         self.set_font("DejaVu", size=8)
-        self.set_xy(16, y)
-        self.cell(70, 7, "  Désignation", fill=True)
-        self.cell(18, 7, "Qté", align="R", fill=True)
-        self.cell(28, 7, "PU HT", align="R", fill=True)
-        self.cell(18, 7, "TVA", align="R", fill=True)
-        self.cell(28, 7, "HT", align="R", fill=True)
-        self.cell(26, 7, "TTC  ", align="R", fill=True)
-        self.set_text_color(28, 32, 38)
-        self.set_y(y + 8)
+        x = self.left
+        for width, label, align in self.columns:
+            self.set_xy(x, y)
+            pad = "  " if align == "L" else ""
+            self.cell(width, 7, pad + label, align=align, fill=True)
+            x += width
+        self.set_text_color(*INK)
+        self.set_y(y + 7)
 
 
-def _draw_chrome(pdf: DocumentPDF, company, theme: str, accent):
+def _columns(width: float):
+    parts = (
+        (0.40, "Désignation", "L"),
+        (0.10, "Qté", "R"),
+        (0.14, "PU HT", "R"),
+        (0.10, "TVA", "R"),
+        (0.13, "HT", "R"),
+        (0.13, "TTC", "R"),
+    )
+    raw = [round(width * share, 2) for share, _label, _align in parts]
+    raw[-1] = round(width - sum(raw[:-1]), 2)
+    return [(raw[i], parts[i][1], parts[i][2]) for i in range(len(parts))]
+
+
+def _draw_chrome(pdf: DocumentPDF, theme: str, accent):
     if theme == "azur":
         pdf.set_fill_color(*accent)
-        pdf.rect(0, 0, 210, 46, "F")
+        pdf.rect(0, 0, 210, 48, "F")
     elif theme == "carmin":
         pdf.set_fill_color(*accent)
-        pdf.rect(0, 0, 7, 297, "F")
+        pdf.rect(0, 0, 8, 297, "F")
     elif theme == "sauge":
         pdf.set_fill_color(244, 250, 246)
         pdf.rect(0, 0, 210, 297, "F")
@@ -99,36 +146,33 @@ def _draw_chrome(pdf: DocumentPDF, company, theme: str, accent):
         pdf.set_fill_color(28, 32, 38)
         pdf.rect(0, 0, 210, 50, "F")
         pdf.set_fill_color(*accent)
-        pdf.rect(0, 50, 210, 2, "F")
+        pdf.rect(0, 50, 210, 1.6, "F")
     elif theme == "indigo":
-        pdf.set_draw_color(*accent)
-        pdf.set_line_width(1.2)
-        pdf.line(16, 14, 16, 42)
-        pdf.set_line_width(0.4)
-        pdf.line(16, 48, 194, 48)
+        pdf.set_fill_color(*accent)
+        pdf.rect(0, 0, 210, 4, "F")
     elif theme == "terra":
-        pdf.set_fill_color(245, 236, 226)
-        pdf.rect(0, 0, 28, 297, "F")
+        pdf.set_fill_color(246, 235, 227)
+        pdf.rect(0, 0, 22, 297, "F")
         pdf.set_fill_color(*accent)
         pdf.rect(0, 0, 6, 297, "F")
-    else:  # encre
+    else:
         pdf.set_draw_color(*accent)
         pdf.set_line_width(0.6)
-        pdf.line(16, 44, 194, 44)
+        pdf.line(pdf.left, 46, 196, 46)
 
 
-def _header_ink(theme: str) -> tuple[int, int, int]:
+def _header_ink(theme: str):
     if theme in ("azur", "graphite"):
         return (255, 255, 255)
-    return (28, 32, 38)
+    return INK
 
 
-def _meta_muted(theme: str) -> tuple[int, int, int]:
+def _meta_muted(theme: str):
     if theme == "azur":
         return (214, 228, 255)
     if theme == "graphite":
-        return (180, 188, 200)
-    return (40, 44, 52)
+        return (186, 194, 204)
+    return MUTED
 
 
 def _line_items(document):
@@ -175,161 +219,179 @@ def _client_fields(document):
     return name or "Client", siren
 
 
+def _vat_lines(rows):
+    buckets: dict[Decimal, Decimal] = {}
+    for row in rows:
+        rate = Decimal(str(row["vat_rate"])).quantize(Decimal("0.01"))
+        vat = (Decimal(str(row["amount_ttc"])) - Decimal(str(row["amount_ht"]))).quantize(Decimal("0.01"))
+        buckets[rate] = buckets.get(rate, Decimal("0.00")) + vat
+    return sorted(buckets.items(), key=lambda item: item[0])
+
+
 def render_document_pdf(document, company, kind: str = "invoice") -> bytes:
     theme = company.invoice_theme if company.invoice_theme in ACCENTS else "azur"
     accent = ACCENTS[theme]
     kind_title = KIND_TITLES.get(kind, "FACTURE")
     client_name, client_siren = _client_fields(document)
     rows = _line_items(document)
+    left = 32 if theme == "terra" else 16
+    right = 14
+    content_w = 210 - left - right
+    columns = _columns(content_w)
 
-    pdf = DocumentPDF(theme, accent, kind_title)
+    pdf = DocumentPDF(accent, kind_title, left, columns)
     pdf.alias_nb_pages()
     pdf.add_font("DejaVu", "", str(FONT))
-    pdf.set_font("DejaVu", size=11)
+    pdf.set_font("DejaVu", size=10)
     pdf.add_page()
+    _draw_chrome(pdf, theme, accent)
 
-    _draw_chrome(pdf, company, theme, accent)
-
-    left = 18 if theme in ("carmin", "terra") else 16
-    if theme == "terra":
-        left = 34
     ink = _header_ink(theme)
-
     x = left
     if company.logo:
         try:
-            pdf.image(BytesIO(bytes(company.logo)), x=x, y=12, h=16)
-            x += 22
+            pdf.image(BytesIO(bytes(company.logo)), x=x, y=12, h=14)
+            x += 18
         except Exception:
-            pass
+            x = left
 
     pdf.set_text_color(*ink)
     pdf.set_xy(x, 12)
-    pdf.set_font_size(15)
-    pdf.cell(95, 7, (company.denomination or "")[:48])
-    pdf.set_font_size(9)
+    pdf.set_font_size(14)
+    name_w = 92 if x == left else 76
+    pdf.multi_cell(name_w, 6, (company.denomination or "")[:80])
+    pdf.set_font_size(8.5)
     info = []
     if company.address:
-        info.append(company.address)
-    info.append(f"{company.forme} · SIREN {company.siren}")
+        info.append(company.address[:110])
+    identity = f"{company.forme} · SIREN {company.siren}"
+    siret = _siret(company)
+    if siret:
+        identity += f" · SIRET {siret}"
+    info.append(identity)
     if company.phone:
         info.append(company.phone)
     if company.email:
         info.append(company.email)
-    pdf.set_xy(x, 20)
-    pdf.multi_cell(95, 4.2, "\n".join(info))
+    pdf.set_xy(x, 26)
+    pdf.multi_cell(name_w, 4, "\n".join(info))
 
-    meta_x = 120
+    meta_w = 62
+    meta_x = 210 - right - meta_w
     pdf.set_text_color(*(accent if theme not in ("azur", "graphite") else ink))
     pdf.set_xy(meta_x, 12)
     pdf.set_font_size(16)
-    pdf.cell(74, 8, kind_title, align="R")
+    pdf.cell(meta_w, 8, kind_title, align="R")
     pdf.set_text_color(*_meta_muted(theme))
     pdf.set_font_size(10)
     pdf.set_xy(meta_x, 22)
-    pdf.cell(74, 5, document.number, align="R")
+    pdf.cell(meta_w, 5, str(document.number or ""), align="R")
     when = timezone.localtime(document.created_at).strftime("%d/%m/%Y")
     pdf.set_xy(meta_x, 28)
-    pdf.cell(74, 5, when, align="R")
+    pdf.cell(meta_w, 5, when, align="R")
     status = document.get_status_display() if hasattr(document, "get_status_display") else ""
-    pdf.set_xy(meta_x, 34)
-    pdf.cell(74, 5, status, align="R")
+    if status:
+        pdf.set_xy(meta_x, 34)
+        pdf.cell(meta_w, 5, status, align="R")
 
-    # Client
-    y_client = 58 if theme != "graphite" else 60
+    y_client = 56
     pdf.set_text_color(*accent)
     pdf.set_xy(left, y_client)
     pdf.set_font_size(8)
     label = "FACTURÉ À" if kind == "invoice" else ("DESTINATAIRE" if kind == "quote" else "CLIENT")
-    pdf.cell(0, 4, label)
-    pdf.set_text_color(28, 32, 38)
+    pdf.cell(content_w, 4, label)
+    pdf.set_text_color(*INK)
     pdf.set_xy(left, y_client + 6)
-    pdf.set_font_size(13)
-    pdf.cell(0, 6, client_name[:80])
+    pdf.set_font_size(12)
+    pdf.cell(content_w, 6, (client_name or "Client")[:90])
     pdf.set_font_size(9)
+    pdf.set_text_color(*MUTED)
     pdf.set_xy(left, y_client + 13)
-    pdf.cell(0, 5, f"SIREN {client_siren}" if client_siren else "Client")
+    client_line = f"SIREN {client_siren}" if client_siren else "Client"
+    pdf.cell(content_w, 5, client_line)
 
-    # Table header
-    table_y = y_client + 26
-    pdf._draw_table_header(y=table_y)
+    table_y = y_client + 22
+    pdf._table_header(table_y)
+    pdf.set_font("DejaVu", size=9)
 
-    # Rows
+    desc_w = columns[0][0]
     fill = False
     for row in rows:
-        desc = (row["description"] or "").strip()
-        # Découpe en 1–3 lignes de ~36 car. pour la colonne désignation.
-        chunks = []
-        rest = desc
-        while rest and len(chunks) < 3:
-            if len(rest) <= 36:
-                chunks.append(rest)
-                rest = ""
-            else:
-                cut = rest[:36]
-                sp = cut.rfind(" ")
-                if sp >= 18:
-                    chunks.append(rest[:sp])
-                    rest = rest[sp + 1 :]
-                else:
-                    chunks.append(cut)
-                    rest = rest[36:]
-        if rest:
-            chunks[-1] = chunks[-1][:33] + "…"
-        row_h = max(9, 5 + 4.2 * len(chunks))
-        if pdf.get_y() + row_h > 265:
+        chunks = _wrap(pdf, row["description"] or "", desc_w - 4)
+        row_h = max(8, 4.3 * len(chunks) + 2.4)
+        if pdf.get_y() + row_h > 262:
             pdf.add_page()
-        if fill:
-            pdf.set_fill_color(248, 249, 251)
-        else:
-            pdf.set_fill_color(255, 255, 255)
         y = pdf.get_y()
-        pdf.set_xy(16, y)
-        pdf.set_font("DejaVu", size=9)
-        pdf.set_text_color(28, 32, 38)
-        # Fond de ligne
-        pdf.rect(16, y, 188, row_h, style="F")
-        pdf.set_xy(18, y + 2)
-        for i, chunk in enumerate(chunks):
-            pdf.set_xy(18, y + 2 + i * 4.2)
-            pdf.cell(66, 4.2, chunk)
-        pdf.set_xy(86, y)
-        pdf.cell(18, row_h, _qty(row["quantity"]), align="R")
-        pdf.cell(28, row_h, euros(row["unit_price"]), align="R")
-        pdf.cell(18, row_h, f"{Decimal(row['vat_rate']):.2f} %", align="R")
-        pdf.cell(28, row_h, euros(row["amount_ht"]), align="R")
-        pdf.cell(26, row_h, euros(row["amount_ttc"]) + "  ", align="R")
+        pdf.set_fill_color(*(ZEBRA if fill else (255, 255, 255)))
+        pdf.rect(left, y, content_w, row_h, style="F")
+        pdf.set_draw_color(*LINE)
+        pdf.set_line_width(0.15)
+        pdf.line(left, y + row_h, left + content_w, y + row_h)
+        pdf.set_text_color(*INK)
+        for index, chunk in enumerate(chunks):
+            pdf.set_xy(left + 2, y + 1.2 + index * 4.3)
+            pdf.cell(desc_w - 4, 4.3, chunk)
+        cursor = left + desc_w
+        values = (
+            _qty(row["quantity"]),
+            euros(row["unit_price"]),
+            f"{Decimal(str(row['vat_rate'])):.2f} %",
+            euros(row["amount_ht"]),
+            euros(row["amount_ttc"]),
+        )
+        for (width, _label, align), value in zip(columns[1:], values):
+            pdf.set_xy(cursor, y)
+            pdf.cell(width - 1.5, row_h, value, align=align)
+            cursor += width
         pdf.set_y(y + row_h)
         fill = not fill
 
-    # Totals
-    if pdf.get_y() > 250:
+    if pdf.get_y() > 230:
         pdf.add_page()
-    pdf.set_text_color(*accent)
-    pdf.set_xy(110, pdf.get_y() + 6)
-    pdf.set_font_size(11)
-    pdf.cell(40, 7, "Total HT")
-    pdf.set_font_size(12)
-    pdf.cell(44, 7, euros(document.amount_ht), align="R")
-    pdf.set_xy(110, pdf.get_y() + 7)
-    pdf.set_font_size(11)
-    pdf.cell(40, 7, f"TVA {document.vat_rate:.2f} %")
-    pdf.cell(44, 7, euros(document.vat_amount), align="R")
-    pdf.set_xy(110, pdf.get_y() + 8)
-    pdf.set_font_size(12)
-    pdf.cell(40, 8, "Total TTC")
-    pdf.set_font_size(16)
-    pdf.cell(44, 8, euros(document.amount_ttc), align="R")
 
-    pdf.set_text_color(110, 116, 128)
+    box_w = min(86, content_w)
+    box_x = left + content_w - box_w
+    y = pdf.get_y() + 6
+    pdf.set_text_color(*INK)
+    pdf.set_font_size(10)
+    pdf.set_xy(box_x, y)
+    pdf.cell(box_w * 0.52, 6, "Total HT")
+    pdf.cell(box_w * 0.48, 6, euros(document.amount_ht), align="R")
+    y += 6
+    for rate, amount in _vat_lines(rows):
+        pdf.set_xy(box_x, y)
+        pdf.cell(box_w * 0.52, 6, f"TVA {rate:.2f} %")
+        pdf.cell(box_w * 0.48, 6, euros(amount), align="R")
+        y += 6
+    pdf.set_fill_color(*accent)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_xy(box_x, y + 1)
+    pdf.set_font_size(11)
+    pdf.cell(box_w * 0.52, 8, "  Total TTC", fill=True)
+    pdf.set_font_size(12)
+    pdf.cell(box_w * 0.48, 8, euros(document.amount_ttc) + "  ", align="R", fill=True)
+
+    notes = {
+        "invoice": "Payable à réception.",
+        "quote": "Devis valable selon les conditions convenues.",
+        "credit_note": "Avoir à déduire de la facture d'origine.",
+    }
+    legal = [
+        f"{company.forme} — SIREN {company.siren}" + (f" — SIRET {siret}" if siret else ""),
+        f"Date : {when}.",
+        notes.get(kind, ""),
+    ]
+    if getattr(company, "tva", "") == "franchise" and Decimal(str(document.vat_amount or 0)) == 0:
+        legal.append("TVA non applicable, article 293 B du CGI.")
+    if kind == "invoice":
+        legal.append(
+            "En cas de retard de paiement : pénalités de trois fois le taux d'intérêt légal "
+            "et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du code de commerce)."
+        )
+    pdf.set_text_color(*MUTED)
     pdf.set_font_size(8)
-    pdf.set_xy(left, 285)
-    note = {
-        "invoice": "Payable à réception",
-        "quote": "Devis valable selon conditions",
-        "credit_note": "Avoir à déduire",
-    }.get(kind, "")
-    pdf.cell(0, 4, f"{note} · TVA {document.vat_rate:.2f} % · {company.denomination}")
+    pdf.set_xy(left, y + 14)
+    pdf.multi_cell(content_w, 3.8, "\n".join(part for part in legal if part))
 
     return bytes(pdf.output())
 

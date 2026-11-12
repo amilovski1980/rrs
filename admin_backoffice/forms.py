@@ -3,12 +3,21 @@ import re
 from django import forms
 
 from accounts.models import User
+from billing.catalog import BOOL_FEATURES
 from billing.models import Plan, Subscription
-from companies.models import Company
+from companies.models import INVOICE_THEMES, Company
 
 from .models import SiteConfiguration, SmsTemplate
 
-SECRET_FIELDS = ("smtp_password", "stripe_secret_key", "llm_api_key", "insee_api_key")
+SECRET_FIELDS = (
+    "smtp_password",
+    "stripe_secret_key",
+    "stripe_publishable_key",
+    "stripe_webhook_secret",
+    "llm_api_key",
+    "xai_api_key",
+    "insee_api_key",
+)
 
 
 def _feature_lines(raw) -> list[str]:
@@ -52,7 +61,16 @@ class SiteConfigurationForm(forms.ModelForm):
             "smtp_password",
             "email_from",
             "stripe_secret_key",
+            "stripe_publishable_key",
+            "stripe_webhook_secret",
+            "llm_base_url",
+            "llm_model",
             "llm_api_key",
+            "xai_api_key",
+            "xai_text_model",
+            "xai_voice_model",
+            "xai_voice",
+            "ai_text_provider",
             "insee_api_key",
         ]
         widgets = {
@@ -123,7 +141,7 @@ class PlanAdminForm(forms.ModelForm):
         label="Fonctions incluses",
         required=False,
         widget=forms.Textarea(attrs={"rows": 5}),
-        help_text="Une fonction par ligne. Exemple : Export FEC.",
+        help_text="Une fonction par ligne, affichée sur la page forfait. Exemple : Export des factures PDF.",
     )
 
     class Meta:
@@ -159,12 +177,37 @@ class PlanAdminForm(forms.ModelForm):
         self.fields["ai_prompt"].help_text = (
             "Vide = consigne par défaut selon le code (Micro limité, Pro complet)."
         )
+        from billing.access import _plan_matrix
+
+        matrix = _plan_matrix(self.instance) if self.instance and self.instance.pk else {}
+        for key, label in BOOL_FEATURES:
+            field_name = f"feat_{key}"
+            self.fields[field_name] = forms.BooleanField(
+                label=label,
+                required=False,
+                initial=bool(matrix.get(key)),
+            )
+        selected = set(matrix.get("themes") or [])
+        for code, label in INVOICE_THEMES:
+            field_name = f"theme_{code}"
+            self.fields[field_name] = forms.BooleanField(
+                label=f"Modèle de facture {label}",
+                required=False,
+                initial=code in selected,
+            )
         _style_fields(self)
 
     def save(self, commit=True):
         plan = super().save(commit=False)
         text = self.cleaned_data.get("features_text") or ""
         plan.features = [line.strip() for line in text.splitlines() if line.strip()]
+        entitlements = {"custom": True}
+        for key, _label in BOOL_FEATURES:
+            entitlements[key] = bool(self.cleaned_data.get(f"feat_{key}"))
+        entitlements["themes"] = [
+            code for code, _label in INVOICE_THEMES if self.cleaned_data.get(f"theme_{code}")
+        ]
+        plan.entitlements = entitlements
         if commit:
             plan.save()
         return plan

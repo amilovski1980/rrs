@@ -18,13 +18,33 @@
   {% if selected %}
   <div class="page-actions">
     <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="building" %} Configuration</a>
+    {% if forfait.can_invoice %}
     <a class="btn btn-ghost" href="{% url 'invoice_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
+    {% else %}
+    <a class="btn btn-ghost is-locked" href="{% url 'plan_upgrade' %}" title="Mettre à jour le forfait">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
+    {% endif %}
     <a class="btn btn-primary" href="{% url 'entry_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="pencil" %} Écriture</a>
   </div>
   {% else %}
   <a class="btn btn-primary page-actions" href="{% url 'onboarding' %}">{% include "partials/icon.html" with name="plus" %} Ajouter une société</a>
   {% endif %}
 </div>
+
+{% if not forfait.open %}
+<div class="plan-banner">
+  <div>
+    <b>Forfait {{ forfait.name }}</b>
+    <p class="sub" style="margin:4px 0 0">Les fonctions hors forfait restent visibles. Mettez à jour le forfait pour les débloquer.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'plan_upgrade' %}">Mettre à jour le forfait</a>
+</div>
+{% endif %}
+{% if forfait.past_due %}
+<div class="plan-banner plan-banner-warn" role="status">
+  <p>Le dernier paiement a échoué. Mettez à jour le forfait pour régulariser la carte.</p>
+  <a class="btn btn-primary" href="{% url 'plan_upgrade' %}">Mettre à jour le forfait</a>
+</div>
+{% endif %}
 
 {% if selected and figures %}
 <div class="grid g3" style="margin-bottom:22px">
@@ -46,17 +66,17 @@
 </div>
 
 <div class="grid g3" style="margin-bottom:22px">
-  <a class="company" href="{% url 'ledger' %}?societe={{ selected.id }}">
+  <a class="company{% if forfait.locks.ledger %} is-locked{% endif %}" href="{% if forfait.locks.ledger %}{% url 'plan_upgrade' %}{% else %}{% url 'ledger' %}?societe={{ selected.id }}{% endif %}">
     <h3>Grand livre</h3>
-    <div class="s">Écritures validées{% if figures.drafts %} · {{ figures.drafts }} brouillon{{ figures.drafts|pluralize }}{% endif %}</div>
+    <div class="s">{% if forfait.locks.ledger %}Mettre à jour le forfait{% else %}Écritures validées{% if figures.drafts %} · {{ figures.drafts }} brouillon{{ figures.drafts|pluralize }}{% endif %}{% endif %}</div>
   </a>
-  <a class="company" href="{% url 'balance' %}?societe={{ selected.id }}">
+  <a class="company{% if forfait.locks.balance %} is-locked{% endif %}" href="{% if forfait.locks.balance %}{% url 'plan_upgrade' %}{% else %}{% url 'balance' %}?societe={{ selected.id }}{% endif %}">
     <h3>Balance</h3>
-    <div class="s">Soldes par compte du plan comptable</div>
+    <div class="s">{% if forfait.locks.balance %}Mettre à jour le forfait{% else %}Soldes par compte du plan comptable{% endif %}</div>
   </a>
-  <a class="company" href="{% url 'invoices' %}?societe={{ selected.id }}">
+  <a class="company{% if forfait.locks.invoices %} is-locked{% endif %}" href="{% if forfait.locks.invoices %}{% url 'plan_upgrade' %}{% else %}{% url 'invoices' %}?societe={{ selected.id }}{% endif %}">
     <h3>Facturation</h3>
-    <div class="s">{{ open_invoices|length }} pièce{{ open_invoices|length|pluralize }} en cours</div>
+    <div class="s">{% if forfait.locks.invoices %}Mettre à jour le forfait{% else %}{{ open_invoices|length }} pièce{{ open_invoices|length|pluralize }} en cours{% endif %}</div>
   </a>
 </div>
 

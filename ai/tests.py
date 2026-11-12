@@ -286,8 +286,8 @@ class AminiaChooserMarkupTests(TestCase):
         self.assertContains(r, 'data-agent-pick="chat"')
         self.assertContains(r, 'data-agent-chat')
         self.assertContains(r, 'data-agent-chat-form')
-        self.assertContains(r, "app.css?v=2026.11.12.1")  # cache-bust static
-        self.assertContains(r, "app.js?v=2026.11.12.1")
+        self.assertContains(r, "app.css?v=2026.11.12.2")  # cache-bust static
+        self.assertContains(r, "app.js?v=2026.11.12.2")
 
     def test_chat_endpoint_still_reachable(self):
         self.client.force_login(self.user)
@@ -382,12 +382,16 @@ class PlanPromptRuntimeTests(TestCase):
         from unittest import mock
 
         self.client.force_login(self.user)
+        locked = self.client.post("/agent/session/", data="{}", content_type="application/json")
+        self.assertEqual(locked.status_code, 403)
+        self.assertIn("forfait", locked.json()["message"].lower())
+
+        self.subscription.plan = self.pro
+        self.subscription.save(update_fields=["plan"])
         with mock.patch("ai.views._mint_secret", return_value=({"token": "ephemeral", "expires_at": None}, None)):
             response = self.client.post("/agent/session/", data="{}", content_type="application/json")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
-        self.assertIn("Forfait d'entrée", payload["instructions"])
-        self.assertIn("Cadre du forfait", payload["instructions"])
+        self.assertIn("l'ensemble des fonctions du produit", payload["instructions"])
         names = [tool["name"] for tool in payload["tools"]]
-        self.assertNotIn("draft_invoice", names)
-        self.assertNotIn("draft_client", names)
+        self.assertIn("draft_invoice", names)

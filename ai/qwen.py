@@ -5,16 +5,16 @@ from django.conf import settings
 
 
 class QwenClient:
-    """Client du LLM self-hosté AminiAvLLM (API OpenAI-compatible).
+    """Client OpenAI-compatible (Qwen auto-hébergé ou xAI / Grok).
 
     - Assistant : chat uni-turn sur RAG des guides compta.
     - Agent     : tool-callings sur API interne (create_entry_draft, suggest_account).
     """
 
-    def __init__(self):
-        self.base = settings.LLM_BASE_URL.rstrip("/")
-        self.model = settings.LLM_MODEL
-        self.api_key = settings.LLM_API_KEY
+    def __init__(self, base=None, model=None, api_key=None):
+        self.base = (base if base is not None else settings.LLM_BASE_URL).rstrip("/")
+        self.model = settings.LLM_MODEL if model is None else model
+        self.api_key = settings.LLM_API_KEY if api_key is None else api_key
 
     def chat(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
         payload = {"model": self.model, "messages": messages, "temperature": 0.2}
