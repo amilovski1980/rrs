@@ -5,6 +5,7 @@ cockpit de démonstration à chaque démarrage à froid, et pour exposer la
 configuration SIP (poste appelé, WebRTC) au widget Aminia.
 """
 import decimal
+import os
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -22,10 +23,30 @@ from documents.models import Invoice, InvoiceSeries
 
 DEMO_EMAIL = "demo@roadrunner-solutions.fr"
 DEMO_SIREN = "812345678"
+# Compte d'administration (staff) : surchargeable via la variable d'environnement
+# ADMIN_EMAIL (Vercel). La connexion se fait sur /compte/ en saisissant cet email.
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@roadrunner-solutions.fr")
+
+
+def seed_admin():
+    """Crée ou fiabilise le compte d'administration (is_staff) du back-office."""
+    admin, created = User.objects.get_or_create(
+        email=ADMIN_EMAIL,
+        defaults={"is_staff": True, "is_superuser": True},
+    )
+    if created:
+        admin.set_unusable_password()
+        admin.save(update_fields=["password"])
+    if not (admin.is_staff and admin.is_superuser):
+        admin.is_staff = True
+        admin.is_superuser = True
+        admin.save(update_fields=["is_staff", "is_superuser"])
+    return admin
 
 
 def seed_demo():
     """Idempotent : crée l'utilisateur, la société de démo et son portail comptable."""
+    seed_admin()
     user, _ = User.objects.get_or_create(email=DEMO_EMAIL)
     company, created = Company.objects.get_or_create(
         siren=DEMO_SIREN,

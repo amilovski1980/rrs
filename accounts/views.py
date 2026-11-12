@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
-from core.demo import DEMO_EMAIL, seed_demo
+from core.demo import ADMIN_EMAIL, DEMO_EMAIL, seed_admin, seed_demo
 
 from .models import MagicLink, User
 
@@ -19,6 +19,10 @@ def open_account(email):
     if email == DEMO_EMAIL:
         user, _company = seed_demo()
         return user
+    if email == ADMIN_EMAIL:
+        # Garantit le rôle staff du compte d'administration même si le seed
+        # n'a pas encore tourné sur cette instance.
+        seed_admin()
     user = User.objects.filter(email=email).first()
     if user is None:
         user = User.objects.create_user(email)
