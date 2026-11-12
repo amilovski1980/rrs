@@ -267,6 +267,35 @@ h1 .underlined::after {
 .siren-result .siren-error { color: var(--red); background: var(--red-soft); border: 1px solid #f5c2c7; }
 .siren-result .siren-loading { color: var(--muted); background: var(--blue-pale); }
 .siren-box button[disabled] { opacity: .65; cursor: wait; }
+.hero-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 0; font-size: 14px; font-weight: 700; }
+.hero-links a { color: var(--blue); }
+.hero-links span { color: var(--muted); font-weight: 500; }
+
+.search-page {
+  padding: 36px 0 72px;
+  background: linear-gradient(180deg, var(--blue-pale), #fff 280px);
+}
+.search-page h1 { font-size: 36px; margin-top: 8px; }
+.search-list { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.search-hit {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center;
+  background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--blue);
+  border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm);
+  color: inherit; text-decoration: none;
+  transition: border-color .2s, transform .2s var(--ease);
+}
+.search-hit:hover { border-color: var(--blue-2); text-decoration: none; color: inherit; transform: translateY(-1px); }
+.search-hit:focus-visible { outline: 2px solid var(--blue-2); outline-offset: 2px; }
+.search-hit strong { display: block; font-family: var(--font-head); font-size: 18px; line-height: 1.25; }
+.search-meta { display: block; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.search-alert { margin-top: 16px; background: var(--amber-soft); border-color: #ffd0b8; }
+.search-alert p { margin: 0; }
+.signup-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.signup-activities ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.signup-activities li label { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-weight: 500; }
+.signup-activities input { width: auto; }
+.form-actions { display: flex; gap: 10px; margin-top: 18px; }
+.form-actions .btn-primary { flex: 1; }
 
 .micro { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 
@@ -2139,6 +2168,9 @@ label.ticket-camera-btn.btn-primary:hover {
   .hero-cta .btn { width: 100%; justify-content: center; }
   .hero-siren .siren-box { flex-direction: column; }
   .hero-siren .siren-box .btn { width: 100%; justify-content: center; }
+  .search-hit { grid-template-columns: 1fr; }
+  .form-actions { flex-direction: column; }
+  .form-actions .btn { width: 100%; justify-content: center; }
   .demo-toolbar { align-items: stretch; }
   .demo-select { justify-content: space-between; width: 100%; }
   .demo-select select { flex: 1; }

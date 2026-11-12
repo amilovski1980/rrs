@@ -9,8 +9,14 @@ bleu profond, accent rose, typographie Roboto Condensed, micro-animations.
 
 ## Fonctionnalités
 
-- Onboarding en 2 étapes : SIREN → données légales INSEE → validation → cockpit.
-- Auth sans mot de passe (lien magique SHA-256, 30 min, usage unique).
+- Entrée : recherche par nom, SIREN ou SIRET (annuaire public
+  recherche-entreprises.api.gouv.fr), confirmation de la fiche, email et téléphone,
+  puis cockpit vide de cette société. La vérification email/SMS est une étape,
+  contournée tant que `SIGNUP_VERIFICATION_ENABLED` n'est pas activé.
+- Retour : `/compte/` pour un email déjà connu. Démo séparée : `/compte/demo/`.
+- Ajout d'une autre société (compte déjà ouvert) : `/ajouter/`.
+- Auth sans mot de passe (lien magique SHA-256, 30 min, usage unique) lorsque
+  `SIGNUP_VERIFICATION_ENABLED=1`.
 - Portail comptable par société : comptes PCG, journaux ACH / VEN / BQ / CA / OD.
 - Écritures en `Decimal`, rejet si débit ≠ crédit ou ligne débit + crédit.
 - Grand livre et balance consolidés, isolation stricte par société.
@@ -37,8 +43,15 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-En développement, l'email est écrit dans `email_outbox/` et le lien de connexion
-s'affiche directement sur la page de connexion.
+En développement, avec `SIGNUP_VERIFICATION_ENABLED=1`, l'email part dans
+`email_outbox/` (si `DJANGO_DEBUG=1`) et le lien s'affiche sur la page de
+vérification. Avec la valeur par défaut `0`, aucun email n'est envoyé : le
+cockpit s'ouvre tout de suite.
+
+```bash
+# .env — laisser à 0 pour le parcours direct, passer à 1 pour exiger le lien email
+SIGNUP_VERIFICATION_ENABLED=0
+```
 
 ## API Sirene INSEE
 
@@ -88,8 +101,8 @@ Render : GitHub Pages et Vercel ne servent que la page publique.
 
 ## Structure
 
-- `accounts/` : utilisateur sans mot de passe, lien magique.
-- `companies/` : société, onboarding INSEE, cockpit.
+- `accounts/` : utilisateur sans mot de passe, lien magique, crochet SMS.
+- `companies/` : société, recherche annuaire, inscription, onboarding, cockpit.
 - `accounting/` : plan comptable, journaux, écritures, grand livre, balance.
 - `documents/` : factures et numérotation.
 - `integrations/` : INSEE Sirene, INPI.

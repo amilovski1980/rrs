@@ -11,8 +11,8 @@
         <small>Solutions</small>
       </span>
     </div>
-    <h1>Ouvrir mon espace</h1>
-    <p class="sub">Indiquez votre email. Le cockpit de cette adresse s'ouvre tout de suite, sans mot de passe.</p>
+    <h1>Retrouver mon cockpit</h1>
+    <p class="sub">Indiquez l'email utilisé à l'inscription. Pour une première société, la recherche se fait depuis l'accueil.</p>
 
     <form method="post">
       {% csrf_token %}
@@ -21,7 +21,10 @@
       {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
       <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">Entrer</button>
     </form>
-    <p class="micro" style="text-align:center;margin-top:16px">Démonstration · un espace par adresse email</p>
+    <p class="micro" style="text-align:center;margin-top:16px">
+      <a href="{% url 'landing' %}#recherche">Rechercher ma société</a>
+      · <a href="{% url 'demo_login' %}">Essayer la démo</a>
+    </p>
   </div>
 </div>
 {% endblock %}

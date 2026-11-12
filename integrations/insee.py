@@ -4,11 +4,23 @@ Auth : cle d'API INSEE_API_KEY (header X-INSEE-Api-Key-Integration),\r
 ou OAuth2 client_credentials (INSEE_CLIENT_ID / INSEE_CLIENT_SECRET),\r
 ou jeton direct via INSEE_TOKEN (dev / tests).
 Fallback : si non configuré, l'app propose la saisie manuelle.
+
+La recherche publique (nom, SIREN, SIRET) passe par l'annuaire
+recherche-entreprises.api.gouv.fr, sans clé.
 """
 from __future__ import annotations
+
+import hashlib
+import logging
+import socket
+import threading
+from contextlib import contextmanager
+
 import httpx
 from django.conf import settings
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 TOKEN_CACHE_KEY = "insee_sirene_token"
 TOKEN_URL = "https://api.insee.fr/token"
 
@@ -183,37 +195,215 @@ class InseeClient:
             "raw": raw,
         }
 
+ANNUAIRE_HOST = "recherche-entreprises.api.gouv.fr"
+ANNUAIRE_SEARCH_URL = f"https://{ANNUAIRE_HOST}/search"
+ANNUAIRE_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "RoadRunnerSolutions/1.0 (contact@roadrunner-solutions.fr)",
+}
+_SEARCH_CACHE_SECONDS = 90
+_DNS_LOCK = threading.Lock()
+
+
+@contextmanager
+def _use_ipv4(host: str, ip: str):
+    """Force une adresse : certains A records de l'annuaire coupent le TLS."""
+    with _DNS_LOCK:
+        original = socket.getaddrinfo
+
+        def pinned(query, port, *args, **kwargs):
+            if query == host:
+                return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port))]
+            return original(query, port, *args, **kwargs)
+
+        socket.getaddrinfo = pinned
+        try:
+            yield
+        finally:
+            socket.getaddrinfo = original
+
+
+def _annuaire_get(params: dict) -> httpx.Response:
+    """GET annuaire. En cas de coupure TLS, essaie les autres adresses IPv4."""
+    try:
+        return httpx.get(
+            ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
+        )
+    except httpx.HTTPError as first_error:
+        ips: list[str] = []
+        try:
+            for info in socket.getaddrinfo(ANNUAIRE_HOST, 443, socket.AF_INET, socket.SOCK_STREAM):
+                ip = info[4][0]
+                if ip not in ips:
+                    ips.append(ip)
+        except socket.gaierror:
+            ips = []
+        last_error = first_error
+        for ip in ips:
+            try:
+                with _use_ipv4(ANNUAIRE_HOST, ip):
+                    return httpx.get(
+                        ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
+                    )
+            except httpx.HTTPError as exc:
+                last_error = exc
+                logger.warning("Annuaire entreprises injoignable via %s", ip)
+        raise last_error
+
+
+def parse_company_query(raw: str) -> tuple[str, str]:
+    """Classe une saisie : nom, SIREN (9 chiffres) ou SIRET (14 chiffres)."""
+    text = " ".join((raw or "").replace("\u00a0", " ").split())
+    if not text or len(text) > 80:
+        return "invalid", text[:80]
+    if all(char.isdigit() or char in " .-/" for char in text):
+        digits = "".join(char for char in text if char.isdigit())
+        if len(digits) == 9:
+            return "siren", digits
+        if len(digits) == 14:
+            return "siret", digits
+        return "invalid", digits or text
+    if len(text) < 2:
+        return "invalid", text
+    return "name", text
+
+
+def _adresse_from_etablissement(etab: dict | None) -> str:
+    if not etab:
+        return ""
+    adresse = etab.get("geo_adresse") or etab.get("adresse") or ""
+    return str(adresse).strip()[:255]
+
+
+def _etablissement_for(hit: dict, siret: str) -> dict:
+    siege = hit.get("siege") or {}
+    if not siret:
+        return siege
+    if str(siege.get("siret") or "") == siret:
+        return siege
+    for etab in hit.get("matching_etablissements") or []:
+        if str(etab.get("siret") or "") == siret:
+            return etab
+    return siege
+
+
+def slim_annuaire_hit(hit: dict, *, siret: str = "") -> dict:
+    """Fiche courte, sérialisable dans le cookie de session.
+
+    N'embarque pas la réponse brute (dirigeants, finances, etc.).
+    """
+    etab = _etablissement_for(hit, siret)
+    nature = str(hit.get("nature_juridique") or "")
+    naf = (
+        (etab.get("activite_principale") if etab else None)
+        or hit.get("activite_principale")
+        or ""
+    )
+    etat = str(hit.get("etat_administratif") or "")
+    return {
+        "siren": str(hit.get("siren") or "")[:9],
+        "siret": str((etab or {}).get("siret") or siret or "")[:14],
+        "denomination": str(
+            hit.get("nom_raison_sociale") or hit.get("nom_complet") or ""
+        )[:255],
+        "forme": LEGAL_FORMS.get(nature, "SARL"),
+        "categorie_juridique": nature[:10],
+        "adresse": _adresse_from_etablissement(etab),
+        "code_naf": str(naf).replace(".", "")[:10],
+        "naf": str(naf)[:12],
+        "activite_suggeree": activity_from_naf(str(naf)),
+        "date_creation": str(hit.get("date_creation") or "")[:10],
+        "etat": {"A": "Active", "C": "Cessée"}.get(etat, etat)[:20],
+        "tranche_effectifs": str(hit.get("tranche_effectif_salarie") or "")[:8],
+    }
+
+
+def _siren_cache_key(siren: str) -> str:
+    return f"annuaire-siren:{siren}"
+
+
+def search_entreprises(query: str, *, per_page: int = 10) -> tuple[list[dict], str | None]:
+    """Recherche nom / SIREN / SIRET sur l'annuaire public.
+
+    Retourne (fiches courtes, code d'erreur). Ne lève pas.
+    Codes : None, ``invalid``, ``rate_limit``, ``error``.
+    """
+    kind, normalized = parse_company_query(query)
+    if kind == "invalid":
+        return [], "invalid"
+    digest = hashlib.sha256(f"{kind}:{normalized.casefold()}".encode()).hexdigest()
+    cache_key = f"annuaire-search-{digest}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return list(cached), None
+    try:
+        response = _annuaire_get({
+            "q": normalized,
+            "per_page": max(1, min(per_page, 25)),
+            "page": 1,
+        })
+    except httpx.HTTPError:
+        logger.warning("Annuaire entreprises injoignable pour %s", kind)
+        return [], "error"
+    if response.status_code == 429:
+        logger.warning("Annuaire entreprises : limite de débit (429)")
+        return [], "rate_limit"
+    if response.status_code >= 400:
+        if response is not None:
+            logger.warning("Annuaire entreprises : HTTP %s", response.status_code)
+        return [], "error"
+    try:
+        payload = response.json()
+    except ValueError:
+        return [], "error"
+    slim: list[dict] = []
+    seen: set[str] = set()
+    for hit in payload.get("results") or []:
+        if not isinstance(hit, dict):
+            continue
+        card = slim_annuaire_hit(hit, siret=normalized if kind == "siret" else "")
+        if not card["siren"] or not card["denomination"]:
+            continue
+        if kind == "siren" and card["siren"] != normalized:
+            continue
+        if kind == "siret" and card["siren"] != normalized[:9]:
+            continue
+        if card["siren"] in seen:
+            continue
+        seen.add(card["siren"])
+        slim.append(card)
+        cache.set(_siren_cache_key(card["siren"]), card, _SEARCH_CACHE_SECONDS)
+        if len(slim) >= per_page:
+            break
+    cache.set(cache_key, slim, _SEARCH_CACHE_SECONDS)
+    return slim, None
+
+
+def official_card(siren: str) -> tuple[dict | None, str | None]:
+    """Fiche officielle d'un SIREN, sans JSON brut. Ne lève pas."""
+    digits = "".join(char for char in (siren or "") if char.isdigit())
+    if len(digits) != 9:
+        return None, "invalid"
+    cached = cache.get(_siren_cache_key(digits))
+    if isinstance(cached, dict) and cached.get("siren") == digits and "denomination" in cached:
+        return cached, None
+    results, error = search_entreprises(digits)
+    if error:
+        return None, error
+    hit = next((item for item in results if item.get("siren") == digits), None)
+    if hit is None:
+        return None, "empty"
+    return hit, None
+
+
 def lookup_annuaire(siren: str) -> dict | None:
     """Annuaire public des entreprises, sans clé. Secours quand l'INSEE n'est pas joignable."""
-    response = httpx.get(
-        "https://recherche-entreprises.api.gouv.fr/search",
-        params={"q": siren, "per_page": 5, "page": 1},
-        headers={"Accept": "application/json"},
-        timeout=15,
-    )
-    if response.status_code >= 400:
-        raise InseeError(f"Annuaire entreprises indisponible ({response.status_code}).")
-    results = response.json().get("results") or []
-    hit = next((item for item in results if str(item.get("siren")) == siren), None)
-    if hit is None:
-        return None
-    siege = hit.get("siege") or {}
-    nature = str(hit.get("nature_juridique") or "")
-    naf = hit.get("activite_principale") or ""
-    adresse = siege.get("geo_adresse") or siege.get("adresse") or ""
-    etat = hit.get("etat_administratif") or ""
-    return {
-        "siren": siren,
-        "denomination": hit.get("nom_raison_sociale") or hit.get("nom_complet") or "",
-        "forme": LEGAL_FORMS.get(nature, "SARL"),
-        "categorie_juridique": nature,
-        "adresse": adresse,
-        "code_naf": str(naf).replace(".", ""),
-        "activite_suggeree": activity_from_naf(naf),
-        "date_creation": hit.get("date_creation") or "",
-        "etat": "Active" if etat == "A" else (etat or ""),
-        "tranche_effectifs": hit.get("tranche_effectif_salarie") or "",
-    }
+    card, error = official_card(siren)
+    if error == "rate_limit":
+        raise InseeError("Annuaire entreprises saturé (429).")
+    if error == "error":
+        raise InseeError("Annuaire entreprises indisponible.")
+    return card
 
 
 def lookup_siren(siren: str) -> tuple[dict | None, str | None]:

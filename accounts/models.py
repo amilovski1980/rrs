@@ -77,3 +77,55 @@ class MagicLink(models.Model):
         link.used_at = timezone.now()
         link.save(update_fields=["used_at"])
         return link.user
+
+
+class PendingSignup(models.Model):
+    """Inscription en attente de lien email (et, plus tard, de code SMS).
+
+    ``payload`` ne contient que la fiche courte et les choix comptables,
+    jamais la réponse brute de l'API.
+    """
+
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    siren = models.CharField(max_length=9)
+    payload = models.JSONField(default=dict)
+    token_hash = models.CharField(max_length=64, unique=True)
+    phone_code_hash = models.CharField(max_length=64, blank=True)
+    phone_verified = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @classmethod
+    def issue(cls, *, email, phone, siren, payload, minutes=60):
+        raw = secrets.token_urlsafe(32)
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        pending = cls.objects.create(
+            email=email,
+            phone=phone,
+            siren=siren,
+            payload=payload,
+            token_hash=hashlib.sha256(raw.encode()).hexdigest(),
+            phone_code_hash=hashlib.sha256(code.encode()).hexdigest(),
+            expires_at=timezone.now() + timezone.timedelta(minutes=minutes),
+        )
+        return raw, code, pending
+
+    @classmethod
+    def lookup(cls, raw_token):
+        if not raw_token:
+            return None
+        pending = cls.objects.filter(
+            token_hash=hashlib.sha256(raw_token.encode()).hexdigest(),
+            consumed_at__isnull=True,
+        ).first()
+        if pending is None or pending.expires_at < timezone.now():
+            return None
+        return pending
+
+    def check_phone_code(self, code: str) -> bool:
+        if not code or not self.phone_code_hash:
+            return False
+        digest = hashlib.sha256(code.strip().encode()).hexdigest()
+        return secrets.compare_digest(digest, self.phone_code_hash)

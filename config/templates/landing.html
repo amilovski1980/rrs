@@ -8,22 +8,25 @@
       <span class="pill"><span class="dot"></span> Conforme facturation électronique 2026</span>
       <h1>La comptabilité de vos sociétés,<br><span class="accent">enfin sans friction.</span></h1>
       <p class="lead">
-        Saisissez votre SIREN, chargez votre extrait KBIS : Road Runner Solutions génère un portail
-        comptable adapté à votre métier et à votre régime. Grand livre, balance, TVA, factures —
-        tout au même endroit.
+        Recherchez votre société par son nom, son SIREN ou son SIRET. Road Runner Solutions
+        récupère la fiche officielle et ouvre un cockpit à votre nom — grand livre, balance,
+        TVA et factures, sans écriture fictive.
       </p>
-      <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="{% url 'magic_link_request' %}">Créer mon cockpit</a>
-        <a class="btn btn-ghost btn-lg" href="{% url 'landing' %}#features">Voir comment ça marche</a>
-      </div>
-      <div class="hero-siren">
-        <p class="hero-siren-label">Ou vérifiez votre SIREN pour préparer votre cockpit</p>
-        <form class="siren-box" id="siren" action="{% url 'magic_link_request' %}" method="get">
-          <input name="siren" inputmode="numeric" maxlength="9" placeholder="Votre SIREN (9 chiffres)" aria-label="SIREN">
+      <div class="hero-siren" id="recherche">
+        <p class="hero-siren-label">Trouver ma société</p>
+        <form class="siren-box" action="{% url 'company_search' %}" method="get" role="search">
+          <label class="sr-only" for="company-query">Nom, SIREN ou SIRET</label>
+          <input id="company-query" name="q" maxlength="80" placeholder="Nom, SIREN (9 chiffres) ou SIRET (14 chiffres)" aria-label="Nom de société, SIREN ou SIRET" autocomplete="organization" autofocus>
           <button class="btn btn-primary" type="submit">Rechercher</button>
         </form>
+        <p class="siren-help">Annuaire public des entreprises. Rien n'est enregistré tant que vous n'avez pas confirmé la fiche.</p>
+        <p class="hero-links">
+          <a href="{% url 'demo_login' %}">Essayer la démo</a>
+          <span aria-hidden="true">·</span>
+          <a href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
+        </p>
       </div>
-      <p class="micro">Sans inscription · aucune carte bancaire · essai 14 jours</p>
+      <p class="micro">Sans carte bancaire · essai 14 jours</p>
     </div>
 
     <div class="demo-wrap">
@@ -83,19 +86,19 @@
 <div class="quick">
   <div class="container">
     <div class="quick-grid">
-      <a class="quick-card" href="{% url 'onboarding' %}">
+      <a class="quick-card" href="#recherche">
         <span class="q-icon">{% include "partials/icon.html" with name="building" %}</span>
         <span>
-          <b>Vérifier un SIREN</b>
-          <span class="q-text">Récupérez la fiche légale officielle puis validez votre activité.</span>
+          <b>Trouver ma société</b>
+          <span class="q-text">Nom, SIREN ou SIRET : la fiche officielle, puis votre cockpit.</span>
         </span>
         <span class="q-arrow">{% include "partials/icon.html" with name="arrow" %}</span>
       </a>
-      <a class="quick-card pink" href="{% url 'cockpit' %}">
+      <a class="quick-card pink" href="{% url 'magic_link_request' %}">
         <span class="q-icon">{% include "partials/icon.html" with name="grid" %}</span>
         <span>
-          <b>Ouvrir mon cockpit</b>
-          <span class="q-text">Un lien sécurisé suffit : aucun mot de passe à mémoriser.</span>
+          <b>J'ai déjà un compte</b>
+          <span class="q-text">Retrouvez votre cockpit avec l'adresse email utilisée à l'inscription.</span>
         </span>
         <span class="q-arrow">{% include "partials/icon.html" with name="arrow" %}</span>
       </a>
@@ -126,7 +129,7 @@
         <li><span class="vp-ico">{% include "partials/icon.html" with name="shield" %}</span> Rien n'est enregistré sans votre validation.</li>
       </ul>
       <div class="voice-cta">
-        <a class="btn btn-accent btn-lg" href="#siren">Rechercher mon SIREN</a>
+        <a class="btn btn-accent btn-lg" href="#recherche">Trouver ma société</a>
         <button class="btn btn-ghost btn-lg" type="button" data-voice-replay>Rejouer la démo</button>
       </div>
       <p class="voice-note">Démo publicitaire — l'agent vocal sera intégré prochainement. <a href="{% static 'presentation-aminia.html' %}">Voir la présentation Aminia</a></p>
@@ -194,7 +197,7 @@
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="bolt" %}</div>
         <h3>Portail généré en 30 secondes</h3>
-        <p>Un SIREN suffit. Les données Sirene pré-remplissent votre fiche, votre questionnaire active le plan comptable, les journaux et les obligations de votre métier.</p>
+        <p>Un nom, un SIREN ou un SIRET suffit. La fiche officielle pré-remplit votre société, votre régime active le plan comptable, les journaux et les obligations de votre métier.</p>
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="chart" %}</div>
@@ -243,7 +246,7 @@
           <li><span class="check">✓</span> Export FEC pour votre comptable</li>
           <li><span class="check">✓</span> Assistant comptable IA</li>
         </ul>
-        <a class="btn btn-ghost" href="{% url 'magic_link_request' %}">Commencer</a>
+        <a class="btn btn-ghost" href="#recherche">Commencer</a>
       </div>
       <div class="plan hot">
         <span class="tag-top">Le plus choisi</span>
@@ -256,7 +259,7 @@
           <li><span class="check">✓</span> Factures et devis conformes</li>
           <li><span class="check">✓</span> Échéancier des obligations</li>
         </ul>
-        <a class="btn btn-primary" href="{% url 'magic_link_request' %}">Commencer l'essai</a>
+        <a class="btn btn-primary" href="#recherche">Commencer l'essai</a>
       </div>
       <div class="plan">
         <h3>Pro</h3>
@@ -268,7 +271,7 @@
           <li><span class="check">✓</span> OCR tickets et pré-comptabilité IA</li>
           <li><span class="check">✓</span> Rôles et invitations comptable</li>
         </ul>
-        <a class="btn btn-ghost" href="{% url 'magic_link_request' %}">Commencer</a>
+        <a class="btn btn-ghost" href="#recherche">Commencer</a>
       </div>
     </div>
   </div>
@@ -279,7 +282,7 @@
     <div class="cta-band">
       <h2>Vos données restent vos données</h2>
       <p>Hébergement en France, cloisonnement strict par activité, aucune revente. L'IA fonctionne sur nos modèles Aminia auto-hébergés.</p>
-      <a class="btn btn-primary btn-lg" href="{% url 'cockpit' %}">Ouvrir mon cockpit</a>
+      <a class="btn btn-primary btn-lg" href="#recherche">Trouver ma société</a>
     </div>
   </div>
 </section>
