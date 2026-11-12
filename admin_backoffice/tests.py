@@ -103,6 +103,68 @@ class BackofficeAdminTests(TestCase):
         response = self.client.get(reverse('admin_backoffice:dashboard'))
         self.assertEqual(response.status_code, 200)
 
+    def test_dashboard_users_counter_uses_swapped_model(self):
+        """Le compteur utilisateurs doit compter accounts.User, pas auth.User.
+
+        Régression : l'ancien code importait django.contrib.auth.models.User
+        (modèle swappé) — le compteur plantait en silence et affichait « ? ».
+        """
+        User.objects.create_user(email='extra1@rrs.fr')
+        User.objects.create_user(email='extra2@rrs.fr')
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.get(reverse('admin_backoffice:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        attendu = User.objects.count()
+        self.assertEqual(response.context['total_users'], attendu)
+        self.assertEqual(attendu, 4)  # admin + normal (setUp) + 2 extras
+
+    def test_dashboard_real_trends(self):
+        """Tendances réelles : nouveaux 30 j et série quotidienne de 14 jours."""
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.get(reverse('admin_backoffice:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(response.context['users_nouveaux_30j'], 1)
+        serie = response.context['users_series']
+        self.assertEqual(len(serie), 14)
+        self.assertGreaterEqual(serie[-1]['total'], 2)  # admin + normal créés dans setUp
+        maximum = max(point['total'] for point in serie)
+        for point in serie:
+            attendu = round(point['total'] / maximum * 100) if maximum else 0
+            self.assertEqual(point['hauteur'], attendu)
+
+    def test_dashboard_subscription_distribution(self):
+        """Répartition des abonnements par statut et MRR cohérents."""
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.get(reverse('admin_backoffice:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        distribution = {
+            statut['code']: statut['total']
+            for statut in response.context['subs_par_statut']
+        }
+        self.assertEqual(distribution.get('active'), 1)
+        self.assertEqual(distribution.get('past_due'), 0)
+        self.assertContains(response, "Actif")
+
+    def test_dashboard_no_fake_trends(self):
+        """Les tendances codées en dur ont disparu du template."""
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.get(reverse('admin_backoffice:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "▲ Stable")
+        self.assertNotContains(response, "▲ Croissance")
+
+    def test_dashboard_resilient_when_users_table_fails(self):
+        """Une panne de la table utilisateurs n'empêche pas le reste du dashboard."""
+        from unittest import mock
+
+        self.client.login(email='admin@rrs.fr', password='password123')
+        with mock.patch.object(User, 'objects') as faux_manager:
+            faux_manager.filter.side_effect = RuntimeError("table cassée")
+            response = self.client.get(reverse('admin_backoffice:dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['users_indisponible'])
+        self.assertContains(response, "Indisponible")
+
     def test_ai_monitoring_stats(self):
         """Les statistiques de l'IA doivent être correctes."""
         self.client.login(email='admin@rrs.fr', password='password123')

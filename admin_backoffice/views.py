@@ -1,3 +1,5 @@
+import logging
+
 from django.views.generic import TemplateView, ListView, UpdateView, CreateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, Count, Q
@@ -5,12 +7,42 @@ from django.shortcuts import redirect, render
 from django.http import HttpResponse
 from django.contrib import messages
 from django.urls import reverse_lazy
+from django.utils import timezone
 from accounts.models import User
 from companies.models import Company
 from billing.models import Subscription, Plan
 from ai.models import AiDraftEntry
 from .models import SiteConfiguration, SystemLog
 from .forms import SiteConfigurationForm, CompanyAdminForm, PlanAdminForm, SubscriptionAdminForm, UserAdminForm
+
+logger = logging.getLogger(__name__)
+
+
+def _variation_pourcent(actuelle, precedente):
+    """Variation entre deux périodes, en %. None s'il n'y a pas de base de comparaison."""
+    if precedente <= 0:
+        return None
+    return round((actuelle - precedente) / precedente * 100)
+
+
+def _serie_quotidienne(queryset, champ_date, jours, maintenant=None):
+    """Compte journalier d'un queryset sur les N derniers jours (barres CSS sans librairie)."""
+    maintenant = maintenant or timezone.now()
+    serie = []
+    for decalage in range(jours - 1, -1, -1):
+        debut = (maintenant - timezone.timedelta(days=decalage)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        fin = debut + timezone.timedelta(days=1)
+        total = queryset.filter(
+            **{f'{champ_date}__gte': debut, f'{champ_date}__lt': fin}
+        ).count()
+        serie.append({'label': debut.strftime('%d/%m'), 'total': total})
+    maximum = max((point['total'] for point in serie), default=0)
+    for point in serie:
+        point['hauteur'] = round(point['total'] / maximum * 100) if maximum else 0
+    return serie
+
 
 class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin pour restreindre l'accès au personnel administratif."""
@@ -19,58 +51,116 @@ class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 # --- DASHBOARD ---
 class DashboardView(AdminStaffMixin, TemplateView):
+    """Tableau de bord : indicateurs réels, tendances 30 j et graphique 14 j.
+
+    Chaque famille d'indicateurs est isolée : un échec est journalisé et le
+    reste du tableau de bord s'affiche quand même (état « indisponible »
+    explicite, jamais un masquage silencieux).
+    """
     template_name = 'admin_backoffice/dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Valeurs par défaut pour éviter tout crash de template
+        maintenant = timezone.now()
+        limite_30j = maintenant - timezone.timedelta(days=30)
+        limite_60j = maintenant - timezone.timedelta(days=60)
+
         context.update({
-            'total_users': '?',
-            'total_companies': '?',
-            'mrr': '0',
-            'subs_past_due': '?',
-            'ai_validation_rate': '0%',
-            'total_ai_drafts': '?',
+            'total_users': '—',
+            'users_nouveaux_30j': None,
+            'users_variation': None,
+            'users_series': [],
+            'total_companies': '—',
+            'companies_nouveaux_30j': None,
+            'companies_variation': None,
+            'mrr': '—',
+            'mrr_abonnements': None,
+            'subs_past_due': 0,
+            'subs_par_statut': [],
+            'ai_validation_rate': '—',
+            'total_ai_drafts': '—',
+            'ai_pending_drafts': '—',
             'recent_companies': [],
             'recent_logs': [],
         })
 
-        # On récupère chaque donnée indépendamment pour isoler les erreurs
+        # Utilisateurs — modèle swappé du projet : accounts.User.
+        # (L'ancien code importait django.contrib.auth.models.User : avec le
+        # modèle personnalisé ce compteur levait une AttributeError masquée et
+        # affichait « ? » en permanence.)
         try:
-            from django.contrib.auth.models import User
-            context['total_users'] = User.objects.count()
-        except Exception: pass
-            
-        try:
-            from companies.models import Company
-            context['total_companies'] = Company.objects.count()
-            context['recent_companies'] = Company.objects.order_by('-created_at')[:5]
-        except Exception: pass
+            nouveaux_30j = User.objects.filter(created_at__gte=limite_30j).count()
+            nouveaux_precedents = User.objects.filter(
+                created_at__gte=limite_60j, created_at__lt=limite_30j
+            ).count()
+            context.update({
+                'total_users': User.objects.count(),
+                'users_nouveaux_30j': nouveaux_30j,
+                'users_variation': _variation_pourcent(nouveaux_30j, nouveaux_precedents),
+                'users_series': _serie_quotidienne(User.objects, 'created_at', 14, maintenant),
+            })
+        except Exception as exc:
+            logger.error("Dashboard : indicateurs utilisateurs indisponibles : %s", exc)
+            context['users_indisponible'] = True
 
+        # Sociétés
         try:
-            from billing.models import Subscription
-            from django.db.models import Sum
-            active_subs = Subscription.objects.filter(status__in=['active', 'trialing'])
-            mrr_val = active_subs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
-            context['mrr'] = f"{mrr_val:,.2f} €"
-            context['subs_past_due'] = Subscription.objects.filter(status='past_due').count()
-        except Exception: pass
+            societes_30j = Company.objects.filter(created_at__gte=limite_30j).count()
+            societes_precedentes = Company.objects.filter(
+                created_at__gte=limite_60j, created_at__lt=limite_30j
+            ).count()
+            context.update({
+                'total_companies': Company.objects.count(),
+                'recent_companies': Company.objects.order_by('-created_at')[:5],
+                'companies_nouveaux_30j': societes_30j,
+                'companies_variation': _variation_pourcent(societes_30j, societes_precedentes),
+            })
+        except Exception as exc:
+            logger.error("Dashboard : indicateurs sociétés indisponibles : %s", exc)
+            context['companies_indisponible'] = True
 
+        # Facturation : MRR réel + répartition par statut
         try:
-            from ai.models import AiDraftEntry
+            abonnements_actifs = Subscription.objects.filter(status__in=['active', 'trialing'])
+            mrr_val = abonnements_actifs.aggregate(total=Sum('plan__price_eur'))['total'] or 0
+            par_statut = {
+                ligne['status']: ligne['total']
+                for ligne in Subscription.objects.values('status').annotate(total=Count('id'))
+            }
+            context.update({
+                'mrr': f"{mrr_val:,.2f} €",
+                'mrr_abonnements': abonnements_actifs.count(),
+                'subs_past_due': par_statut.get('past_due', 0),
+                'subs_par_statut': [
+                    {'code': code, 'label': label, 'total': par_statut.get(code, 0)}
+                    for code, label in Subscription.STATUSES
+                ],
+            })
+        except Exception as exc:
+            logger.error("Dashboard : indicateurs facturation indisponibles : %s", exc)
+            context['facturation_indisponible'] = True
+
+        # IA
+        try:
             drafts = AiDraftEntry.objects.all()
             total = drafts.count()
-            validated = drafts.filter(status='validated').count()
-            context['ai_validation_rate'] = f"{(validated / total * 100):.1f}%" if total > 0 else "0%"
-            context['total_ai_drafts'] = total
-        except Exception: pass
+            valides = drafts.filter(status='validated').count()
+            context.update({
+                'ai_validation_rate': f"{(valides / total * 100):.1f}%" if total > 0 else "0%",
+                'total_ai_drafts': total,
+                'ai_pending_drafts': drafts.filter(status='pending').count(),
+            })
+        except Exception as exc:
+            logger.error("Dashboard : indicateurs IA indisponibles : %s", exc)
+            context['ia_indisponible'] = True
 
+        # Journal système
         try:
-            from admin_backoffice.models import SystemLog
             context['recent_logs'] = SystemLog.objects.all().order_by('-timestamp')[:10]
-        except Exception: pass
-            
+        except Exception as exc:
+            logger.error("Dashboard : journal système indisponible : %s", exc)
+            context['logs_indisponible'] = True
+
         return context
 
 # --- CONFIGURATION ---

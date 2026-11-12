@@ -4,51 +4,190 @@
 
 {% block content %}
 <h1 class="page-title">Tableau de Bord Administrateur</h1>
+
 <style>
-    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .admin-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 25px;
+    }
+    .admin-nav a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        color: #333;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .admin-nav a:hover {
+        background: #f5f7ff;
+        border-color: #4a6cf7;
+        color: #4a6cf7;
+    }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .stat-card { background: #fff; padding: 18px; border-radius: 12px; border: 1px solid #eee; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .stat-card .label { color: #666; font-size: 0.85rem; font-weight: 500; margin-bottom: 8px; display: block; }
-    .stat-card .value { font-size: 1.8rem; font-weight: 700; color: #111; }
+    .stat-card .value { font-size: 1.7rem; font-weight: 700; color: #111; }
     .stat-card .trend { font-size: 0.75rem; margin-top: 8px; display: block; }
     .stat-card .trend.up { color: #2ecc71; }
     .stat-card .trend.down { color: #e74c3c; }
-    
+    .stat-card .trend.neutral { color: #888; }
+    .stat-card .trend.unavailable { color: #c0392b; font-weight: 600; }
+
+    /* Graphique des inscriptions : barres CSS, aucune librairie externe */
+    .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; padding: 16px 20px 6px; }
+    .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
+    .chart-bar { width: 100%; max-width: 36px; min-height: 3px; background: linear-gradient(180deg, #4a6cf7, #3a5bd9); border-radius: 6px 6px 0 0; }
+    .chart-label { font-size: 0.65rem; color: #999; white-space: nowrap; }
+    .chart-value { font-size: 0.75rem; font-weight: 700; color: #333; }
+
+    /* Répartition des abonnements par statut */
+    .status-distribution { display: flex; flex-wrap: wrap; gap: 18px; padding: 16px 20px; align-items: center; }
+    .status-item { display: flex; align-items: center; gap: 8px; }
+    .status-count { font-size: 1.1rem; font-weight: 700; color: #111; }
+
     .admin-section { background: #fff; border-radius: 12px; border: 1px solid #eee; margin-bottom: 30px; overflow: hidden; }
-    .section-header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; font-weight: 700; }
+    .section-header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+    .section-header a { font-size: 0.8rem; color: #4a6cf7; text-decoration: none; }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th { text-align: left; padding: 12px 20px; background: #f8f9fa; font-size: 0.8rem; color: #666; text-transform: uppercase; }
     .data-table td { padding: 12px 20px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     .data-table tr:last-child td { border-bottom: none; }
     .badge-status { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
     .status-active { background: #e8f5e9; color: #2e7d32; }
+    .status-trialing { background: #fffde7; color: #f57f17; }
+    .status-past_due { background: #ffebee; color: #c62828; }
+    .status-canceled { background: #eceff1; color: #546e7a; }
     .status-pending { background: #fff3e0; color: #ef6c00; }
+    .status-error { background: #ffebee; color: #c62828; }
+    .status-warning { background: #fffde7; color: #f57f17; }
+    .status-info { background: #e3f2fd; color: #1565c0; }
+
+    @media (max-width: 600px) {
+        .admin-grid { grid-template-columns: 1fr; }
+        .data-table th, .data-table td { padding: 10px 12px; font-size: 0.85rem; }
+        .admin-nav a { flex: 1 1 auto; justify-content: center; }
+        .chart-bars { height: 110px; }
+    }
 </style>
+
+<nav class="admin-nav" aria-label="Navigation rapide administration">
+    <a href="{% url 'admin_backoffice:users' %}">👤 Utilisateurs</a>
+    <a href="{% url 'admin_backoffice:companies' %}">🏢 Sociétés</a>
+    <a href="{% url 'admin_backoffice:subscriptions' %}">💳 Abonnements</a>
+    <a href="{% url 'admin_backoffice:plans' %}">📋 Plans</a>
+    <a href="{% url 'admin_backoffice:logs' %}">📜 Logs</a>
+    <a href="{% url 'admin_backoffice:ai_monitoring' %}">🤖 IA</a>
+    <a href="{% url 'admin_backoffice:settings' %}">⚙️ Paramètres</a>
+</nav>
 
 <div class="admin-grid">
     <div class="stat-card">
         <span class="label">Revenu Mensuel (MRR)</span>
         <span class="value">{{ mrr }}</span>
-        <span class="trend up">▲ Stable</span>
+        <span class="trend {% if facturation_indisponible %}unavailable{% else %}neutral{% endif %}">
+            {% if facturation_indisponible %}Indisponible — voir journaux{% else %}{{ mrr_abonnements }} abonnement(s) actif(s){% endif %}
+        </span>
     </div>
     <div class="stat-card">
         <span class="label">Sociétés Actives</span>
         <span class="value">{{ total_companies }}</span>
-        <span class="trend up">▲ Croissance</span>
+        {% if companies_indisponible %}
+        <span class="trend unavailable">Indisponible — voir journaux</span>
+        {% else %}
+        <span class="trend neutral">+{{ companies_nouveaux_30j|default:0 }} en 30 jours</span>
+        {% if companies_variation is not None %}
+        <span class="trend {% if companies_variation > 0 %}up{% elif companies_variation < 0 %}down{% else %}neutral{% endif %}">
+            {% if companies_variation > 0 %}▲ +{{ companies_variation }}{% elif companies_variation < 0 %}▼ {{ companies_variation }}{% else %}◆ 0{% endif %}% vs 30 j précédents
+        </span>
+        {% endif %}
+        {% endif %}
     </div>
     <div class="stat-card">
         <span class="label">Utilisateurs Totaux</span>
         <span class="value">{{ total_users }}</span>
-        <span class="trend">Utilisateurs enregistrés</span>
+        {% if users_indisponible %}
+        <span class="trend unavailable">Indisponible — voir journaux</span>
+        {% else %}
+        <span class="trend neutral">+{{ users_nouveaux_30j|default:0 }} en 30 jours</span>
+        {% if users_variation is not None %}
+        <span class="trend {% if users_variation > 0 %}up{% elif users_variation < 0 %}down{% else %}neutral{% endif %}">
+            {% if users_variation > 0 %}▲ +{{ users_variation }}{% elif users_variation < 0 %}▼ {{ users_variation }}{% else %}◆ 0{% endif %}% vs 30 j précédents
+        </span>
+        {% endif %}
+        {% endif %}
     </div>
     <div class="stat-card">
         <span class="label">Taux Validation IA</span>
         <span class="value">{{ ai_validation_rate }}</span>
-        <span class="trend">Sur {{ total_ai_drafts }} brouillons</span>
+        <span class="trend {% if ia_indisponible %}unavailable{% else %}neutral{% endif %}">
+            {% if ia_indisponible %}Indisponible — voir journaux{% else %}Sur {{ total_ai_drafts }} brouillons{% endif %}
+        </span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Abonnements en Retard</span>
+        <span class="value">{{ subs_past_due }}</span>
+        <span class="trend {% if facturation_indisponible %}unavailable{% elif subs_past_due > 0 %}down{% else %}up{% endif %}">
+            {% if facturation_indisponible %}Indisponible — voir journaux
+            {% elif subs_past_due > 0 %}⚠️ À relancer{% else %}✓ Tous à jour{% endif %}
+        </span>
+    </div>
+    <div class="stat-card">
+        <span class="label">Brouillons IA en Attente</span>
+        <span class="value">{{ ai_pending_drafts }}</span>
+        <span class="trend {% if ia_indisponible %}unavailable{% else %}neutral{% endif %}">
+            {% if ia_indisponible %}Indisponible — voir journaux{% else %}En attente de validation{% endif %}
+        </span>
+    </div>
+</div>
+
+{% if users_series %}
+<div class="admin-section">
+    <div class="section-header">
+        <span>Inscriptions — 14 derniers jours</span>
+        <span style="font-size: 0.8rem; color: #888; font-weight: 500;">{{ users_nouveaux_30j|default:0 }} en 30 jours</span>
+    </div>
+    <div class="chart-bars" role="img" aria-label="Inscriptions des 14 derniers jours">
+        {% for jour in users_series %}
+        <div class="chart-col" title="{{ jour.label }} : {{ jour.total }} inscription(s)">
+            <span class="chart-value">{{ jour.total }}</span>
+            <div class="chart-bar" style="height: {{ jour.hauteur }}%;{% if jour.total == 0 %} background: #e3e6ee;{% endif %}"></div>
+            <span class="chart-label">{{ jour.label }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="admin-section">
+    <div class="section-header">
+        <span>Abonnements par Statut</span>
+        <a href="{% url 'admin_backoffice:subscriptions' %}">Voir tout →</a>
+    </div>
+    <div class="status-distribution">
+        {% for statut in subs_par_statut %}
+        <div class="status-item">
+            <span class="badge-status status-{{ statut.code }}">{{ statut.label }}</span>
+            <span class="status-count">{{ statut.total }}</span>
+        </div>
+        {% empty %}
+        <span style="color: #999;">Aucun abonnement enregistré</span>
+        {% endfor %}
     </div>
 </div>
 
 <div class="admin-section">
-    <div class="section-header">Sociétés Récemment Créées</div>
+    <div class="section-header">
+        <span>Sociétés Récemment Créées</span>
+        <a href="{% url 'admin_backoffice:companies' %}">Voir tout →</a>
+    </div>
     <table class="data-table">
         <thead>
             <tr>
@@ -72,7 +211,10 @@
 </div>
 
 <div class="admin-section">
-    <div class="section-header">Logs Système Récents</div>
+    <div class="section-header">
+        <span>Logs Système Récents</span>
+        <a href="{% url 'admin_backoffice:logs' %}">Voir tout →</a>
+    </div>
     <table class="data-table">
         <thead>
             <tr>
@@ -85,7 +227,16 @@
             {% for log in recent_logs %}
             <tr>
                 <td>{{ log.timestamp|date:"d/m H:i" }}</td>
-                <td><span class="badge-status {% if log.level == 'ERROR' %}status-pending{% else %}status-active{% endif %}">{{ log.level }}</span></td>
+                <td>
+                    <span class="badge-status
+                        {% if log.level == 'ERROR' %}status-error
+                        {% elif log.level == 'WARNING' %}status-warning
+                        {% elif log.level == 'CRITICAL' %}status-error
+                        {% elif log.level == 'INFO' %}status-info
+                        {% else %}status-active{% endif %}">
+                        {{ log.level }}
+                    </span>
+                </td>
                 <td>{{ log.message }}</td>
             </tr>
             {% empty %}
