@@ -150,13 +150,14 @@ class DarkSearchSignupLoginTests(TestCase):
         company = Company.objects.get(siren="123456789")
         self.assertRedirects(
             created,
-            f"/cockpit/?societe={company.id}",
+            f"/dark/cockpit/?societe={company.id}",
             fetch_redirect_response=False,
         )
         self.assertTrue(company.owner.check_password(PASSWORD))
         self.assertEqual(company.journals.count(), 5)
         cockpit = self.client.get(created["Location"])
         self.assertContains(cockpit, "Atelier Martin")
+        self.assertContains(cockpit, "dark-app.css")
         self.assertNotContains(cockpit, "dark.css")
 
         self.client.logout()
@@ -167,7 +168,7 @@ class DarkSearchSignupLoginTests(TestCase):
         self.assertContains(bad, "Email ou mot de passe incorrect")
         self.assertContains(bad, "dark.css")
         ok = self.client.post("/dark/compte/", {"email": "martin@exemple.fr", "password": PASSWORD})
-        self.assertRedirects(ok, "/cockpit/", fetch_redirect_response=False)
+        self.assertRedirects(ok, "/dark/cockpit/", fetch_redirect_response=False)
 
     def test_classic_login_copy_is_unchanged(self):
         page = self.client.get("/compte/")
@@ -181,9 +182,10 @@ class DarkSearchSignupLoginTests(TestCase):
         self.client.force_login(user)
         with _annuaire():
             response = self.client.get("/dark/inscription/choisir/", {"siren": "123456789"})
-        self.assertRedirects(response, "/ajouter/confirmer/", fetch_redirect_response=False)
-        page = self.client.get("/ajouter/confirmer/")
+        self.assertRedirects(response, "/dark/ajouter/confirmer/", fetch_redirect_response=False)
+        page = self.client.get("/dark/ajouter/confirmer/")
         self.assertContains(page, "ATELIER MARTIN")
+        self.assertContains(page, "dark-app.css")
         self.assertNotContains(page, "dark.css")
 
     @override_settings(SIGNUP_VERIFICATION_ENABLED=True)
@@ -204,7 +206,7 @@ class DarkSearchSignupLoginTests(TestCase):
         company = Company.objects.get(siren="123456789")
         self.assertRedirects(
             done,
-            f"/cockpit/?societe={company.id}",
+            f"/dark/cockpit/?societe={company.id}",
             fetch_redirect_response=False,
         )
         self.assertTrue(company.owner.check_password(PASSWORD))

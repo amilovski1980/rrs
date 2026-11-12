@@ -14,7 +14,7 @@
       </p>
       <div class="hero-search" id="recherche">
         <p>Trouver ma boîte</p>
-        <form class="siren-box" action="{% url 'dark:company_search' %}" method="get" role="search">
+        <form class="siren-box" action="{% url 'company_search' %}" method="get" role="search">
           <label class="sr-only" for="company-query">Nom, SIREN ou SIRET</label>
           <input id="company-query" name="q" maxlength="80" placeholder="Nom, SIREN ou SIRET" aria-label="Nom de société, SIREN ou SIRET" autocomplete="organization">
           <button class="btn btn-gradient" type="submit">Rechercher</button>
@@ -23,7 +23,7 @@
         <p class="hero-links">
           <a href="{% url 'demo_login' %}">Voir la démo</a>
           <span aria-hidden="true">·</span>
-          <a href="{% url 'dark:magic_link_request' %}">J'ai déjà un compte</a>
+          <a href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
         </p>
       </div>
       <p class="micro">{{ pricing_trial_line }}</p>
@@ -56,7 +56,7 @@
       <b>Trouver la société</b>
       <span>Nom, SIREN ou SIRET. La fiche officielle, puis votre espace.</span>
     </a>
-    <a class="quick-card" href="{% url 'dark:magic_link_request' %}">
+    <a class="quick-card" href="{% url 'magic_link_request' %}">
       <b>Revenir au cockpit</b>
       <span>Email et mot de passe du compte déjà ouvert.</span>
     </a>

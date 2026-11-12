@@ -18,7 +18,7 @@
     {% if error_message %}
     <div class="alert" role="alert">
       <p><b>{{ error_message }}</b></p>
-      <p><a class="btn btn-white" href="{% url 'dark:magic_link_request' %}">Se connecter</a></p>
+      <p><a class="btn btn-white" href="{% url 'magic_link_request' %}">Se connecter</a></p>
     </div>
     {% endif %}
 
@@ -30,7 +30,7 @@
         {% if siren_taken %}
         <h2>Société déjà ouverte</h2>
         <p class="sub">Utilisez l'email du compte qui détient déjà ce SIREN.</p>
-        <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Choisir une autre société</a>
+        <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Choisir une autre société</a>
         {% else %}
         <h2>Votre cadre comptable</h2>
         <p class="sub">Il détermine les comptes, les journaux et la TVA du cockpit.</p>
@@ -100,7 +100,7 @@
           {% endif %}
 
           <div class="form-actions">
-            <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Changer de société</a>
+            <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Changer de société</a>
             <button class="btn btn-gradient" type="submit">
               {% if verification_enabled %}Continuer{% else %}Créer mon espace{% endif %}
             </button>

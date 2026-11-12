@@ -1,16 +1,23 @@
 {% load static %}<!DOCTYPE html>
-<html lang="fr">
+<html lang="fr"{% if request.dark_ui %} data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
   <title>{% block title %}Administration{% endblock %} — Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  {% if request.dark_ui %}
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
+  {% else %}
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
+  {% endif %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.3">
   <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.12.2">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.12.2">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -20,11 +27,16 @@
       <span class="m-nav-toggle-bars" aria-hidden="true"></span>
     </button>
     <a class="m-header-logo" href="{% url 'admin_backoffice:dashboard' %}" aria-label="Road Runner Solutions — Administration">
+      {% if request.dark_ui %}
+      <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
+      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
+      {% else %}
       <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
       <span class="m-header-brand">
         <b>Road Runner</b>
         <small>Back-office</small>
       </span>
+      {% endif %}
     </a>
   </header>
 
@@ -37,11 +49,16 @@
     </div>
 
     <a class="brand" href="{% url 'admin_backoffice:dashboard' %}">
+      {% if request.dark_ui %}
+      <img class="product-logo product-logo--md" src="{% static 'img/dark/mark.png' %}" alt="" width="40" height="40">
+      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="150" height="32">
+      {% else %}
       <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
       <span class="brand-text">
         <b>Road Runner</b>
         <small>Back-office</small>
       </span>
+      {% endif %}
     </a>
 
     <div class="sidebar-nav-scroll">

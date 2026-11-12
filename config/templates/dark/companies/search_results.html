@@ -8,10 +8,10 @@
         <h1>Laquelle est la vôtre ?</h1>
         <p class="sub">Résultats pour « {{ query }} ». Choisissez la société, on ouvre la suite.</p>
       </div>
-      <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Nouvelle recherche</a>
+      <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Nouvelle recherche</a>
     </div>
 
-    <form class="siren-box" action="{% url 'dark:company_search' %}" method="get" role="search">
+    <form class="siren-box" action="{% url 'company_search' %}" method="get" role="search">
       <label class="sr-only" for="search-again">Nom, SIREN ou SIRET</label>
       <input id="search-again" name="q" value="{{ query }}" maxlength="80" placeholder="Nom, SIREN ou SIRET" aria-label="Nom, SIREN ou SIRET">
       <button class="btn btn-gradient" type="submit">Rechercher</button>
@@ -26,7 +26,7 @@
     {% if results %}
     <div class="search-list">
       {% for row in results %}
-      <a class="search-hit" href="{% url 'dark:signup_start' %}?siren={{ row.siren }}">
+      <a class="search-hit" href="{% url 'signup_start' %}?siren={{ row.siren }}">
         <span>
           <span class="siren-kicker">SIREN {{ row.siren }}{% if row.forme %} · {{ row.forme }}{% endif %}{% if row.etat %} · {{ row.etat }}{% endif %}</span>
           <strong>{{ row.denomination }}</strong>

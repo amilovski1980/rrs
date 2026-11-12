@@ -61,14 +61,16 @@ class PlanGateMiddleware:
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return None
-        feature = _feature_for(request.path or "")
+        from core.dark_mount import app_path
+
+        feature = _feature_for(app_path(request))
         if not feature:
             return None
         from billing.access import UPGRADE_MESSAGE, feature_on
 
         if feature_on(user, feature):
             return None
-        if request.path.startswith(JSON_PREFIXES):
+        if app_path(request).startswith(JSON_PREFIXES):
             return JsonResponse(
                 {
                     "ok": False,

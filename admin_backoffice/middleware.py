@@ -122,7 +122,9 @@ class SchemaRetryMiddleware:
     def process_exception(self, request, exception):
         if not _is_schema_error(exception):
             return None
-        if not (request.path or "").startswith("/admin-backoffice/"):
+        from core.dark_mount import app_path
+
+        if not app_path(request).startswith("/admin-backoffice/"):
             return None
         if getattr(request, "_schema_retried", False):
             return _schema_fallback()
