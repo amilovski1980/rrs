@@ -1,5 +1,11 @@
 {
     "version": 2,
+    "functions": {
+        "api/index.py": {
+            "maxDuration": 60,
+            "includeFiles": "config/**,admin_backoffice/**,companies/**,accounts/**,accounting/**,documents/**,ai/**,integrations/**,billing/**,core/**,static/**,requirements.txt"
+        }
+    },
     "routes": [
         {
             "src": "/static/(.*)",
@@ -7,7 +13,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "config/wsgi.py"
+            "dest": "api/index.py"
         }
     ]
 }

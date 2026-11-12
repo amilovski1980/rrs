@@ -1,3 +1,4 @@
+from django.db.models import Model
 from django.db import models
 
 class SiteConfiguration(models.Model):

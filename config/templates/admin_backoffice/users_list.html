@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-container" style="display: flex; min-height: 100vh; font-family: sans-serif;">
+    <aside style="width: 250px; background: #1a202c; color: white; padding: 20px;">
+        <h2 style="font-size: 1.2rem; margin-bottom: 30px; color: #edf2f7;">RRS Admin</h2>
+        <nav>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:dashboard' %}" style="color: #a0aec0; text-decoration: none;">📊 Dashboard</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:companies' %}" style="color: #a0aec0; text-decoration: none;">🏢 Entreprises</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:subscriptions' %}" style="color: #a0aec0; text-decoration: none;">💳 Abonnements</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:plans' %}" style="color: #a0aec0; text-decoration: none;">📦 Forfaits</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:users' %}" style="color: white; text-decoration: none; font-weight: bold;">🧑 Utilisateurs</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:logs' %}" style="color: #a0aec0; text-decoration: none;">📜 Journaux</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:settings' %}" style="color: #a0aec0; text-decoration: none;">⚙️ Paramètres</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_monitoring' %}" style="color: #a0aec0; text-decoration: none;">🤖 IA Monitoring</a></li>
+                <li style="margin-bottom: 15px;"><a href="{% url 'admin_backoffice:ai_prompt' %}" style="color: #a0aec0; text-decoration: none;">✍️ Prompt IA</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main style="flex: 1; background: #f7fafc; padding: 30px;">
+        <header style="margin-bottom: 30px;">
+            <h1 style="font-size: 1.8rem; color: #2d3748;">Gestion des Utilisateurs</h1>
+            <p style="color: #718096;">Comptes, rôles et accès au back-office</p>
+        </header>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="background: #edf2f7;">
+                    <tr style="color: #4a5568; font-size: 0.9rem;">
+                        <th style="padding: 12px;">Email</th>
+                        <th style="padding: 12px;">Rôle</th>
+                        <th style="padding: 12px;">Inscription</th>
+                        <th style="padding: 12px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr style="border-bottom: 1px solid #edf2f7;">
+                        <td style="padding: 12px; font-weight: 500; color: #2d3748;">{{ u.email }}</td>
+                        <td style="padding: 12px; color: #4a5568;">
+                            {% if u.is_superuser %}<span style="color: #dd6b20; font-weight: 600;">Super-admin</span>
+                            {% elif u.is_staff %}<span style="color: #2f855a; font-weight: 600;">Admin</span>
+                            {% else %}Utilisateur{% endif %}
+                        </td>
+                        <td style="padding: 12px; color: #4a5568;">{{ u.created_at|date:"d/m/Y H:i" }}</td>
+                        <td style="padding: 12px;">
+                            <a href="{% url 'admin_backoffice:user_edit' u.pk %}" style="color: #4299e1; text-decoration: none; font-size: 0.9rem;">Modifier</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="padding: 20px; text-align: center; color: #a0aec0;">Aucun utilisateur enregistré.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if is_paginated %}
+            <div style="padding: 12px; color: #4a5568; font-size: 0.9rem;">
+                Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                {% if page_obj.has_previous %} · <a href="?page={{ page_obj.previous_page_number }}" style="color: #4299e1;">Précédente</a>{% endif %}
+                {% if page_obj.has_next %} · <a href="?page={{ page_obj.next_page_number }}" style="color: #4299e1;">Suivante</a>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

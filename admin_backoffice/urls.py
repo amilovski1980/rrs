@@ -39,8 +39,8 @@ urlpatterns = [
 
     # CRUD Users
     path('users/', views.UserListView.as_view(), name='users'),
-    path('users/<int:pk>/edit/', views.UserUpdateView.as_view(), name='user_edit'),
-    path('users/<int:pk>/delete/', views.UserDeleteView.as_view(), name='user_delete'),
+    path('users/<uuid:pk>/edit/', views.UserUpdateView.as_view(), name='user_edit'),
+    path('users/<uuid:pk>/delete/', views.UserDeleteView.as_view(), name='user_delete'),
 
     # AI Monitoring
     path('ai-monitoring/', views.AiMonitoringView.as_view(), name='ai_monitoring'),
