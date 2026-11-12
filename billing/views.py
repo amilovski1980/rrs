@@ -92,7 +92,7 @@ def upgrade(request):
             "plan": plan,
             "matrix": matrix,
             "themes": ", ".join(labels.get(code, code) for code in matrix.get("themes") or []),
-            "current": state["code"] == plan.code and state["status"] in ("active", "trialing", "past_due"),
+            "current": state["code"] == plan.code and state["status"] in ("active", "trialing", "past_due", "unpaid"),
         })
     return render(request, "billing/upgrade.html", {
         "plans": plans,

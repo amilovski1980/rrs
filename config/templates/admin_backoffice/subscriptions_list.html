@@ -37,11 +37,12 @@
           <td>{{ sub.user.email }}</td>
           <td>{{ sub.plan.name }} <span class="muted">({{ sub.plan.price_eur }} €)</span></td>
           <td>
-            <span class="badge {% if sub.status == 'active' %}badge-green{% elif sub.status == 'past_due' %}badge-red{% elif sub.status == 'trialing' %}badge-amber{% endif %}">{{ sub.get_status_display }}</span>
+            <span class="badge {% if sub.status == 'active' %}badge-green{% elif sub.status == 'past_due' or sub.status == 'unpaid' %}badge-red{% elif sub.status == 'trialing' %}badge-amber{% endif %}">{{ sub.get_status_display }}</span>
           </td>
           <td>{{ sub.current_period_end|date:"d/m/Y H:i"|default:"—" }}</td>
           <td>{{ sub.created_at|date:"d/m/Y" }}</td>
           <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_subscriber' sub.pk %}">Facturation</a>
             <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:subscription_edit' sub.pk %}">Modifier</a>
             <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:subscription_delete' sub.pk %}">Supprimer</a>
           </td>

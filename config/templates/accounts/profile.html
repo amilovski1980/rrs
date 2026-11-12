@@ -17,18 +17,38 @@
         <tr><td class="muted">Email</td><td><b>{{ user.email }}</b></td></tr>
         <tr><td class="muted">Téléphone</td><td><b>{{ user.phone|default:"Non renseigné" }}</b></td></tr>
         <tr><td class="muted">Vérification</td><td>{% if user.phone_verified %}<span class="badge badge-green">Vérifié</span>{% else %}<span class="badge badge-blue">En attente</span>{% endif %}</td></tr>
+        <tr><td class="muted">Mot de passe</td><td>{% if has_password %}<span class="badge badge-green">Défini</span>{% else %}<span class="badge badge-amber">À définir</span>{% endif %}</td></tr>
       </tbody>
     </table>
   </div>
-  <div class="card" style="background:var(--blue-soft);border-color:var(--blue-border)">
+  <div class="card">
     <div style="display:flex;align-items:center;gap:9px;color:var(--blue)">
       {% include "partials/icon.html" with name="shield" %}
-      <b style="font-size:14px">Sécurité</b>
+      <b style="font-size:14px">{% if has_password %}Changer le mot de passe{% else %}Définir un mot de passe{% endif %}</b>
     </div>
     <p style="font-size:13px;line-height:1.65;margin:10px 0 0;color:var(--ink-2)">
-      Aucun mot de passe n'est stocké. Chaque connexion passe par un lien signé à usage unique.
-      Les actions sensibles (facturation, partage) demanderont une vérification OTP par téléphone.
+      {% if has_password %}
+      Le mot de passe est stocké haché. Il n'est jamais réaffiché. Saisissez l'actuel, puis le nouveau.
+      {% else %}
+      Ce compte n'a pas encore de mot de passe. Définissez-en un pour vous connecter par email. Vous pouvez aussi le recevoir par « mot de passe oublié ».
+      {% endif %}
     </p>
+    <form method="post">
+      {% csrf_token %}
+      {% if password_form.non_field_errors %}
+      <ul class="form-errors">{% for e in password_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% for field in password_form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+      {% if field.errors %}<p class="error">{{ field.errors.0 }}</p>{% endif %}
+      {% endfor %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">{% if has_password %}Mettre à jour{% else %}Enregistrer le mot de passe{% endif %}</button>
+        <a class="btn btn-ghost" href="{% url 'cockpit' %}">Continuer vers le cockpit</a>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}

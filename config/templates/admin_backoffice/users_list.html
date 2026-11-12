@@ -68,8 +68,12 @@
             {% elif u.is_staff %}<span class="badge badge-blue">Admin</span>
             {% else %}<span class="badge">Client</span>{% endif %}
           </td>
-          <td>{% if u.is_active %}<span class="badge badge-green">Actif</span>{% else %}<span class="badge badge-red">Inactif</span>{% endif %}</td>
           <td>
+            {% if u.is_active %}<span class="badge badge-green">Actif</span>{% else %}<span class="badge badge-red">Inactif</span>{% endif %}
+            {% if u.has_usable_password %}<span class="badge badge-blue">Mot de passe</span>{% else %}<span class="badge badge-amber">Sans mot de passe</span>{% endif %}
+          </td>
+          <td>
+            <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:user_billing' u.pk %}">Facturation</a>
             <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:user_edit' u.pk %}">Modifier</a>
             {% if u.pk != request.user.pk %}
             <form method="post" action="{% url 'admin_backoffice:user_toggle' u.pk %}" style="display:inline">

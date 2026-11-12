@@ -30,9 +30,14 @@ def main():
 
     def login(c, email):
         User = get_user_model()
-        if not User.objects.filter(email__iexact=email).exists():
-            User.objects.create_user(email.lower())
-        c.post("/compte/", {"email": email})
+        password = "Cockpit-Lyonnais-2026"
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            user = User.objects.create_user(email.lower(), password=password)
+        else:
+            user.set_password(password)
+            user.save(update_fields=["password"])
+        c.post("/compte/", {"email": email, "password": password})
 
     # 1. Normalisation INSEE
     from integrations.insee import InseeClient, activity_from_naf

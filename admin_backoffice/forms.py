@@ -1,6 +1,8 @@
 import re
 
 from django import forms
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from accounts.models import User
 from billing.catalog import BOOL_FEATURES
@@ -240,6 +242,22 @@ class SubscriptionAdminForm(forms.ModelForm):
 
 
 class UserAdminForm(forms.ModelForm):
+    password1 = forms.CharField(
+        label="Nouveau mot de passe",
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
+        help_text="Laisser vide pour ne pas changer le mot de passe. L'actuel n'est jamais affiché.",
+    )
+    password2 = forms.CharField(
+        label="Confirmation du mot de passe",
+        required=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
+    )
+    confirm_password = forms.BooleanField(
+        label="Je confirme l'enregistrement de ce mot de passe",
+        required=False,
+    )
+
     class Meta:
         model = User
         fields = ["email", "phone", "phone_verified", "is_active", "is_staff", "is_superuser"]
@@ -275,13 +293,27 @@ class UserAdminForm(forms.ModelForm):
                 self.add_error("is_staff", "Vous ne pouvez pas retirer votre propre accès administrateur.")
             if "is_superuser" in cleaned and not cleaned.get("is_superuser"):
                 self.add_error("is_superuser", "Vous ne pouvez pas retirer votre propre droit de super-administrateur.")
+        password = (cleaned.get("password1") or "").strip()
+        confirm = (cleaned.get("password2") or "").strip()
+        if password or confirm:
+            if not cleaned.get("confirm_password"):
+                self.add_error("confirm_password", "Cochez la confirmation pour enregistrer le mot de passe.")
+            if password != confirm:
+                self.add_error("password2", "Les deux mots de passe ne correspondent pas.")
+            elif password:
+                try:
+                    validate_password(password, self.instance)
+                except ValidationError as exc:
+                    self.add_error("password1", exc)
         return cleaned
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        if not user.pk:
-            user.set_unusable_password()
-        elif not user.password:
+        password = (self.cleaned_data.get("password1") or "").strip()
+        if password:
+            user.set_password(password)
+        elif user._state.adding:
+            # L'UUID est déjà posé avant l'insert : ne pas se fier à user.pk.
             user.set_unusable_password()
         if commit:
             user.save()

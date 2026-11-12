@@ -1,0 +1,24 @@
+{% extends "admin_backoffice/form_page.html" %}
+{% block after_form %}
+<div class="card admin-form" style="margin-top:16px">
+  <h2 style="margin:0 0 8px;font-size:18px">Accès et facturation</h2>
+  <p class="sub" style="margin-top:0">
+    {% if has_password %}
+    Un mot de passe est défini pour ce compte. Il n'est jamais affiché.
+    {% else %}
+    Aucun mot de passe utilisable. Envoyez un lien pour que la personne en choisisse un, ou saisissez-en un dans le formulaire ci-dessus en cochant la confirmation.
+    {% endif %}
+  </p>
+  <form method="post" action="{% url 'admin_backoffice:user_send_reset' object.pk %}">
+    {% csrf_token %}
+    <div class="check-row">
+      <input id="confirm-reset" type="checkbox" name="confirm">
+      <label for="confirm-reset">Je confirme l'envoi de l'email de réinitialisation à {{ object.email }}</label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Envoyer le lien</button>
+      <a class="btn btn-ghost" href="{% url 'admin_backoffice:user_billing' object.pk %}">Voir la facturation</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

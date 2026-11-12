@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
+from accounts.forms import FrenchPasswordResetForm
 from accounts.models import User
 from ai.models import AiDraftEntry, Conversation, Message
 from billing.models import Plan, Subscription
@@ -202,7 +203,7 @@ class DashboardView(AdminStaffMixin, TemplateView):
             context.update({
                 "mrr": f"{mrr_val:,.2f} €",
                 "mrr_abonnements": abonnements_actifs.count(),
-                "subs_past_due": par_statut.get("past_due", 0),
+                "subs_past_due": par_statut.get("past_due", 0) + par_statut.get("unpaid", 0),
                 "subs_par_statut": [
                     {"code": code, "label": label, "total": par_statut.get(code, 0)}
                     for code, label in Subscription.STATUSES
@@ -516,7 +517,7 @@ class UserCreateView(AdminFormMixin, CreateView):
     admin_section = "users"
     crumbs_label = "Utilisateurs"
     page_title = "Nouvel utilisateur"
-    page_sub = "Connexion par lien magique : aucun mot de passe n'est défini."
+    page_sub = "Le mot de passe est facultatif. Sinon, la personne le définit via « mot de passe oublié »."
     cancel_url_name = "admin_backoffice:users"
     success_message = "Utilisateur créé."
 
@@ -529,12 +530,12 @@ class UserCreateView(AdminFormMixin, CreateView):
 class UserUpdateView(AdminFormMixin, UpdateView):
     model = User
     form_class = UserAdminForm
-    template_name = "admin_backoffice/form_page.html"
+    template_name = "admin_backoffice/user_form.html"
     success_url = reverse_lazy("admin_backoffice:users")
     admin_section = "users"
     crumbs_label = "Utilisateurs"
     page_title = "Modifier l'utilisateur"
-    page_sub = "Rôle, activation et téléphone."
+    page_sub = "Rôle, activation, téléphone et mot de passe. L'actuel n'est jamais affiché."
     cancel_url_name = "admin_backoffice:users"
     success_message = "Utilisateur mis à jour."
 
@@ -548,6 +549,18 @@ class UserUpdateView(AdminFormMixin, UpdateView):
         kwargs = super().get_form_kwargs()
         kwargs["actor"] = self.request.user
         return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["has_password"] = self.object.has_usable_password()
+        return context
+
+    def form_valid(self, form):
+        changed_password = bool((form.cleaned_data.get("password1") or "").strip())
+        response = super().form_valid(form)
+        if changed_password:
+            journaliser(self.request, f"Mot de passe défini — {self.object.email}")
+        return response
 
 
 class UserDeleteView(AdminStaffMixin, DeleteView):
@@ -592,6 +605,39 @@ def user_toggle(request, pk):
     messages.success(request, f"Compte {etat}.")
     journaliser(request, f"Compte {etat} — {user.email}")
     return redirect("admin_backoffice:users")
+
+
+@staff_required
+@require_POST
+def user_send_reset(request, pk):
+    """Envoie le lien de définition de mot de passe. N'affiche jamais un secret."""
+    user = get_object_or_404(User, pk=pk)
+    if user.is_superuser and not request.user.is_superuser:
+        raise PermissionDenied("Seul un super-administrateur peut modifier ce compte.")
+    if request.POST.get("confirm") != "on":
+        messages.error(request, "Cochez la confirmation pour envoyer l'email de mot de passe.")
+        return redirect("admin_backoffice:user_edit", pk=user.pk)
+    if not user.is_active:
+        messages.error(request, "Ce compte est inactif : aucun email n'a été envoyé.")
+        return redirect("admin_backoffice:user_edit", pk=user.pk)
+    form = FrenchPasswordResetForm({"email": user.email})
+    if not form.is_valid() or not list(form.get_users(user.email)):
+        messages.error(request, "Aucun email n'a été envoyé pour ce compte.")
+        return redirect("admin_backoffice:user_edit", pk=user.pk)
+    try:
+        form.save(
+            request=request,
+            use_https=request.is_secure(),
+            email_template_name="accounts/password_reset_email.txt",
+            subject_template_name="accounts/password_reset_subject.txt",
+        )
+    except Exception:
+        logger.exception("Email de mot de passe non envoyé")
+        messages.error(request, "L'email n'a pas pu être envoyé. Réessayez dans un instant.")
+        return redirect("admin_backoffice:user_edit", pk=user.pk)
+    messages.success(request, f"Email de réinitialisation envoyé à {user.email}.")
+    journaliser(request, f"Email de réinitialisation envoyé — {user.email}")
+    return redirect("admin_backoffice:user_edit", pk=user.pk)
 
 
 @staff_required

@@ -74,7 +74,9 @@ def govern(user) -> dict:
     subscription = latest_subscription(user)
     if subscription is None:
         return {"mode": "open", "subscription": None, "plan": None}
-    if subscription.status in ("active", "trialing", "past_due"):
+    # unpaid est l'équivalent historique de past_due : le forfait reste ouvert,
+    # le cockpit signale seulement l'échec de paiement.
+    if subscription.status in ("active", "trialing", "past_due", "unpaid"):
         return {"mode": "plan", "subscription": subscription, "plan": subscription.plan}
     return {"mode": "lapsed", "subscription": subscription, "plan": subscription.plan}
 
@@ -229,7 +231,9 @@ def snapshot(user) -> dict:
         "name": plan.name if plan else "",
         "code": plan.code if plan else "",
         "status": state["subscription"].status if state["subscription"] else "",
-        "past_due": bool(state["subscription"] and state["subscription"].status == "past_due"),
+        "past_due": bool(
+            state["subscription"] and state["subscription"].status in ("past_due", "unpaid")
+        ),
         "locks": locks,
         "locked_themes": locked_themes,
         "can_invoice": invoice_create_block(user) is None,

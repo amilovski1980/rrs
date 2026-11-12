@@ -1,27 +1,31 @@
 {% extends "base_public.html" %}
-{% load static %}
 {% block title %}Connexion{% endblock %}
 {% block content %}
 <div class="auth-wrap">
   <div class="auth-card">
-    <div style="display:flex;align-items:center;gap:11px;margin-bottom:20px">
-      <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="36" height="36">
-      <span class="brand-text">
-        <b>Road Runner</b>
-        <small>Solutions</small>
-      </span>
-    </div>
-    <h1>Retrouver mon cockpit</h1>
-    <p class="sub">Indiquez l'email utilisé à l'inscription. Pour une première société, la recherche se fait depuis l'accueil.</p>
+    {% include "accounts/_brand.html" %}
+    <h1>Connexion</h1>
+    <p class="sub">Email et mot de passe du cockpit. Pour une première société, la recherche se fait depuis l'accueil.</p>
 
     <form method="post">
       {% csrf_token %}
-      <label>{{ form.email.label }}</label>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      {% if form.non_field_errors %}
+      <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
       {{ form.email }}
       {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
-      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">Entrer</button>
+      <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+      {{ form.password }}
+      {% if form.password.errors %}<p class="error">{{ form.password.errors.0 }}</p>{% endif %}
+      <button class="btn btn-primary" style="width:100%;margin-top:20px" type="submit">Se connecter</button>
     </form>
     <p class="micro" style="text-align:center;margin-top:16px">
+      <a href="{% url 'password_reset' %}">Mot de passe oublié</a>
+      · <a href="{% url 'magic_link_email' %}">Recevoir un lien</a>
+    </p>
+    <p class="micro" style="text-align:center;margin-top:8px">
       <a href="{% url 'landing' %}#recherche">Rechercher ma société</a>
       · <a href="{% url 'demo_login' %}">Essayer la démo</a>
     </p>

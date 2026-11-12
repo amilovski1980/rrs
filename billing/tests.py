@@ -18,7 +18,7 @@ from documents.models import Invoice, InvoiceLine
 from documents.pdf import render_invoice_pdf
 
 from .access import company_create_block, feature_on, invoice_create_block
-from .models import Plan, Subscription
+from .models import Plan, Subscription, SubscriptionInvoice
 from .services import record_and_apply
 
 
@@ -193,6 +193,12 @@ class StripeFlowTests(TestCase):
         self.assertEqual(failed.status_code, 200)
         sub.refresh_from_db()
         self.assertEqual(sub.status, "past_due")
+        receipt = SubscriptionInvoice.objects.get(external_id="local-fail-sub_pro_123")
+        self.assertEqual(receipt.status, "failed")
+        self.assertEqual(receipt.user, self.user)
+        again_failed = self._post(self._event("evt_fail", "invoice.payment_failed", {"subscription": "sub_pro_123"}))
+        self.assertEqual(again_failed.status_code, 200)
+        self.assertEqual(SubscriptionInvoice.objects.filter(user=self.user).count(), 1)
         canceled = self._post(self._event("evt_del", "customer.subscription.deleted", {
             "id": "sub_pro_123",
             "status": "canceled",
@@ -202,6 +208,49 @@ class StripeFlowTests(TestCase):
         sub.refresh_from_db()
         self.assertEqual(sub.status, "canceled")
         self.assertFalse(feature_on(self.user, "ai_voice"))
+
+    def test_unpaid_status_stays_on_the_plan(self):
+        from billing.access import govern
+
+        record_and_apply(self._event("evt_unpaid", "customer.subscription.updated", {
+            "id": "sub_unpaid",
+            "status": "unpaid",
+            "customer": "cus_unpaid",
+            "metadata": {"user_id": str(self.user.pk), "plan_code": "pro"},
+        }))
+        sub = self.user.subscriptions.get()
+        self.assertEqual(sub.status, "unpaid")
+        self.assertEqual(govern(self.user)["mode"], "plan")
+        self.assertTrue(feature_on(self.user, "invoices"))
+
+    def test_paid_invoice_is_recorded_once(self):
+        record_and_apply(self._event("evt_sub", "customer.subscription.updated", {
+            "id": "sub_paid",
+            "status": "past_due",
+            "customer": "cus_paid",
+            "metadata": {"user_id": str(self.user.pk), "plan_code": "pro"},
+        }))
+        event = self._event("evt_paid", "invoice.paid", {
+            "id": "in_paid_1",
+            "subscription": "sub_paid",
+            "customer": "cus_paid",
+            "paid": True,
+            "status": "paid",
+            "amount_paid": 7900,
+            "number": "RR-2026-0001",
+            "created": 1_800_000_000,
+        })
+        first = self._post(event)
+        self.assertEqual(first.status_code, 200)
+        receipt = SubscriptionInvoice.objects.get(external_id="in_paid_1")
+        self.assertEqual(receipt.status, "paid")
+        self.assertEqual(receipt.amount_eur, Decimal("79.00"))
+        self.assertEqual(receipt.number, "RR-2026-0001")
+        sub = self.user.subscriptions.get()
+        self.assertEqual(sub.status, "active")
+        second = self._post(event)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(SubscriptionInvoice.objects.filter(external_id="in_paid_1").count(), 1)
 
     def test_bad_signature_and_missing_secret(self):
         body = b'{"id":"evt_x","type":"checkout.session.completed","data":{"object":{}}}'

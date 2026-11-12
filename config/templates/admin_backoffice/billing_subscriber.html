@@ -1,0 +1,107 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Abonné — {{ subscription.user.email }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ subscription.user.email }}</h1>
+    <p class="sub">{{ subscription.plan.name }} — {{ subscription.plan.price_eur }} € / mois. Créé le {{ subscription.created_at|date:"d/m/Y H:i" }}.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing' %}">Retour aux abonnés</a>
+</div>
+
+{% if attention %}
+<div class="flash" style="background:var(--red-soft);border-color:#f5c2c7;color:var(--red)">
+  Paiement en échec ou en retard. Le statut vient des webhooks Stripe lorsqu'ils sont branchés. Rafraîchissez depuis Stripe ou notez le suivi ci-dessous.
+</div>
+{% endif %}
+
+<div class="grid g2" style="align-items:start">
+  <div class="card">
+    <h2 style="margin:0 0 12px;font-size:18px">Abonnement</h2>
+    <table>
+      <tbody>
+        <tr><td class="muted">Forfait</td><td><b>{{ subscription.plan.name }}</b> ({{ subscription.plan.code }})</td></tr>
+        <tr><td class="muted">Montant</td><td class="num"><b>{{ subscription.plan.price_eur }} €</b> / mois</td></tr>
+        <tr>
+          <td class="muted">Statut</td>
+          <td><span class="badge {% if subscription.status == 'active' %}badge-green{% elif subscription.status == 'past_due' or subscription.status == 'unpaid' %}badge-red{% elif subscription.status == 'trialing' %}badge-amber{% endif %}">{{ subscription.get_status_display }}</span></td>
+        </tr>
+        <tr><td class="muted">Fin de période</td><td>{{ subscription.current_period_end|date:"d/m/Y H:i"|default:"—" }}</td></tr>
+        <tr><td class="muted">Suivi</td><td>{{ subscription.get_follow_up_display|default:"Aucun" }}</td></tr>
+        <tr>
+          <td class="muted">Stripe</td>
+          <td>{% if subscription.stripe_subscription_id %}{{ subscription.stripe_subscription_id }}{% else %}<span class="muted">Non lié</span>{% endif %}</td>
+        </tr>
+        <tr>
+          <td class="muted">Mot de passe</td>
+          <td>{% if has_password %}<span class="badge badge-green">Défini</span>{% else %}<span class="badge badge-amber">À définir</span>{% endif %}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="form-actions">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="refresh">
+        <button class="btn btn-primary" type="submit">Rafraîchir depuis Stripe</button>
+      </form>
+      <a class="btn btn-ghost" href="{% url 'admin_backoffice:subscription_edit' subscription.pk %}">Modifier le statut</a>
+      <a class="btn btn-ghost" href="{% url 'admin_backoffice:user_billing' subscription.user.pk %}">Dossier du compte</a>
+    </div>
+    {% if not subscription.stripe_subscription_id %}
+    <p class="helptext">Sans identifiant Stripe, le rafraîchissement laisse le statut local inchangé.</p>
+    {% endif %}
+  </div>
+
+  <div class="card admin-form">
+    <h2 style="margin:0 0 8px;font-size:18px">Note interne</h2>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="note">
+      {% for field in note_form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+      {% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}
+      {% endfor %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Enregistrer la note</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2 style="margin:0 0 12px;font-size:18px">Sociétés</h2>
+  {% for company in companies %}
+  <p style="margin:0 0 8px"><a href="{% url 'admin_backoffice:company_billing' company.pk %}">{{ company.denomination }}</a> <span class="muted">SIREN {{ company.siren }}</span></p>
+  {% empty %}
+  <p class="muted">Aucune société rattachée à ce compte.</p>
+  {% endfor %}
+</div>
+
+<div class="card card-tight" style="margin-top:16px">
+  <div class="card-head">
+    <h3>Factures et encaissements</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Numéro</th><th>Montant</th><th>Statut</th><th>Date</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for invoice in invoices %}
+        <tr>
+          <td>{{ invoice.number|default:invoice.description|default:"Reçu" }}{% if invoice.failure_message %}<div class="muted">{{ invoice.failure_message }}</div>{% endif %}</td>
+          <td class="num">{{ invoice.amount_eur }} €</td>
+          <td><span class="badge {% if invoice.status == 'paid' %}badge-green{% elif invoice.status == 'failed' or invoice.status == 'uncollectible' %}badge-red{% elif invoice.status == 'open' %}badge-amber{% endif %}">{{ invoice.get_status_display }}</span></td>
+          <td>{{ invoice.issued_at|date:"d/m/Y" }}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_invoice' invoice.pk %}">Détail</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucun encaissement enregistré. Les webhooks Stripe et le rafraîchissement alimentent cet historique.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -15,7 +15,7 @@ STRIPE_STATUS = {
     "active": "active",
     "trialing": "trialing",
     "past_due": "past_due",
-    "unpaid": "past_due",
+    "unpaid": "unpaid",
     "canceled": "canceled",
     "incomplete": "past_due",
     "incomplete_expired": "canceled",
@@ -131,21 +131,31 @@ def apply_payment_failed(invoice: dict) -> bool:
     sub_id = _as_id(invoice.get("subscription") if isinstance(invoice, dict) else None)
     if not sub_id:
         return False
-    updated = Subscription.objects.filter(stripe_subscription_id=sub_id).update(status="past_due")
+    updated = Subscription.objects.filter(stripe_subscription_id=sub_id).update(
+        status="past_due",
+        follow_up="to_follow",
+    )
     return bool(updated)
 
 
 def dispatch_event(event: dict) -> None:
+    from .receipts import mark_paid_subscription, record_checkout_receipt, record_invoice_receipt
+
     kind = (event or {}).get("type") or ""
     data = ((event or {}).get("data") or {}).get("object") or {}
     if kind == "checkout.session.completed":
         apply_checkout_session(data)
+        record_checkout_receipt(data)
     elif kind == "customer.subscription.updated":
         apply_subscription_object(data, deleted=False)
     elif kind == "customer.subscription.deleted":
         apply_subscription_object(data, deleted=True)
     elif kind == "invoice.payment_failed":
         apply_payment_failed(data)
+        record_invoice_receipt(data, failed=True)
+    elif kind in ("invoice.paid", "invoice.payment_succeeded"):
+        record_invoice_receipt(data, failed=False)
+        mark_paid_subscription(data)
 
 
 def record_and_apply(event: dict) -> bool:

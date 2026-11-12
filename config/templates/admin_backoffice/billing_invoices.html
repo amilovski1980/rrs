@@ -1,0 +1,60 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Factures d'abonnement{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Factures d'abonnement</h1>
+    <p class="sub">Encaissements enregistrés depuis Stripe. Ce ne sont pas les factures clients du cockpit.</p>
+  </div>
+</div>
+<div class="form-actions" style="margin-top:0">
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing' %}">Abonnés</a>
+  <a class="btn btn-primary" href="{% url 'admin_backoffice:billing_invoices' %}">Factures</a>
+</div>
+<form method="get" class="filters card">
+  <div class="filter-field">
+    <label for="q">Recherche</label>
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Email, société, numéro">
+  </div>
+  <div class="filter-field">
+    <label for="status">Statut</label>
+    <select id="status" name="status">
+      <option value="">Tous</option>
+      {% for code, label in statuses %}
+      <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary" type="submit">Filtrer</button>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing_invoices' %}">Réinitialiser</a>
+</form>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Client</th><th>Société</th><th>Montant</th><th>Statut</th><th>Émise</th><th>Payée</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for invoice in invoices %}
+        <tr>
+          <td><a href="{% url 'admin_backoffice:user_billing' invoice.user.pk %}">{{ invoice.user.email }}</a></td>
+          <td>
+            {% for company in invoice.user.companies.all %}
+            <div>{{ company.denomination }}</div>
+            {% empty %}<span class="muted">—</span>{% endfor %}
+          </td>
+          <td class="num">{{ invoice.amount_eur }} €</td>
+          <td><span class="badge {% if invoice.status == 'paid' %}badge-green{% elif invoice.status == 'failed' or invoice.status == 'uncollectible' %}badge-red{% elif invoice.status == 'open' %}badge-amber{% endif %}">{{ invoice.get_status_display }}</span></td>
+          <td>{{ invoice.issued_at|date:"d/m/Y" }}</td>
+          <td>{{ invoice.paid_at|date:"d/m/Y"|default:"—" }}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:billing_invoice' invoice.pk %}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">Aucune facture d'abonnement.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "admin_backoffice/_pagination.html" %}
+</div>
+{% endblock %}

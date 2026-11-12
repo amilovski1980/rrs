@@ -27,6 +27,8 @@ WIZARD = {
     "exercice_debut": "2026-01-01",
     "email": "martin@exemple.fr",
     "phone": "06 12 34 56 78",
+    "password1": "Cockpit-Lyonnais-2026",
+    "password2": "Cockpit-Lyonnais-2026",
     "siren": "123456789",
 }
 
@@ -90,6 +92,9 @@ class SignupFlowTests(TestCase):
         self.assertEqual(company.denomination, "Atelier Martin")
         self.assertEqual(company.owner.email, "martin@exemple.fr")
         self.assertEqual(company.owner.phone, "0612345678")
+        self.assertTrue(company.owner.check_password("Cockpit-Lyonnais-2026"))
+        self.assertNotIn("password", company.source_data)
+        self.assertNotIn("Cockpit-Lyonnais-2026", str(company.source_data))
         self.assertFalse(company.owner.phone_verified)
         self.assertEqual(company.address, "12 RUE DES ARTISANS 75011 PARIS")
         self.assertEqual(company.code_naf, "4332A")
@@ -175,6 +180,15 @@ class SignupFlowTests(TestCase):
             fetch_redirect_response=False,
         )
 
+    def test_password_mismatch_does_not_create_the_account(self):
+        with self._mock_annuaire():
+            self.client.get("/inscription/choisir/", {"siren": "123456789"})
+        response = self.client.post("/inscription/", dict(WIZARD, password2="Autre-Chose-2026"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ne correspondent pas")
+        self.assertFalse(Company.objects.filter(siren="123456789").exists())
+        self.assertFalse(get_user_model().objects.filter(email="martin@exemple.fr").exists())
+
     def test_invalid_phone_does_not_create_anything(self):
         with self._mock_annuaire():
             self.client.get("/inscription/choisir/", {"siren": "123456789"})
@@ -222,6 +236,8 @@ class SignupVerificationTests(TestCase):
         self.assertContains(cockpit, "Aucune facture ouverte")
         self.assertNotContains(cockpit, "Menuiserie Dupont")
         self.assertEqual(company.journals.count(), 5)
+        self.assertTrue(company.owner.check_password("Cockpit-Lyonnais-2026"))
+        self.assertNotIn("Cockpit-Lyonnais-2026", mail.outbox[0].body)
 
     def test_phone_code_is_checked_when_a_provider_would_send_it(self):
         raw, code, pending = PendingSignup.issue(

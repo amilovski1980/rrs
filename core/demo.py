@@ -23,9 +23,11 @@ from documents.models import Invoice, InvoiceSeries
 
 DEMO_EMAIL = "demo@roadrunner-solutions.fr"
 DEMO_SIREN = "812345678"
-# Compte d'administration (staff) : surchargeable via la variable d'environnement
-# ADMIN_EMAIL (Vercel). La connexion se fait sur /compte/ en saisissant cet email.
+# Compte d'administration (staff) : surchargeable via ADMIN_EMAIL.
+# ADMIN_PASSWORD pose le premier mot de passe s'il n'y en a pas encore.
+# Ensuite la connexion se fait par email + mot de passe, ou par lien de réinitialisation.
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@roadrunner-solutions.fr")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 
 def seed_admin():
@@ -36,6 +38,10 @@ def seed_admin():
     )
     if created:
         admin.set_unusable_password()
+        admin.save(update_fields=["password"])
+    password = (ADMIN_PASSWORD or "").strip()
+    if password and not admin.has_usable_password():
+        admin.set_password(password)
         admin.save(update_fields=["password"])
     if not (admin.is_staff and admin.is_superuser):
         admin.is_staff = True

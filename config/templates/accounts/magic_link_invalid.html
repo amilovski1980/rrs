@@ -5,8 +5,11 @@
   <div class="auth-card" style="text-align:center">
     <div class="f-icon" style="margin:0 auto 14px">{% include "partials/icon.html" with name="alert" %}</div>
     <h1>Lien expiré ou déjà utilisé</h1>
-    <p class="sub">Par sécurité, chaque lien de connexion ne fonctionne qu'une seule fois et pendant 30 minutes.</p>
-    <a class="btn btn-primary" style="width:100%;padding:12px" href="{% url 'magic_link_request' %}">Recevoir un nouveau lien</a>
+    <p class="sub">Par sécurité, chaque lien de connexion ne fonctionne qu'une seule fois et pendant 30 minutes. La connexion habituelle se fait avec l'email et le mot de passe.</p>
+    <a class="btn btn-primary" style="width:100%" href="{% url 'magic_link_request' %}">Se connecter</a>
+    <p class="micro" style="text-align:center;margin-top:16px">
+      <a href="{% url 'magic_link_email' %}">Recevoir un nouveau lien</a>
+    </p>
   </div>
 </div>
 {% endblock %}
