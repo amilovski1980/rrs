@@ -192,6 +192,15 @@ if not DEBUG:
         "root": {"handlers": ["console"], "level": "INFO"},
     }
 
+# Inscription : False (défaut) crée l'utilisateur, la société et ouvre le cockpit
+# dès la validation du formulaire. True exige le lien email ; le SMS reste
+# un crochet (aucun fournisseur) dans accounts/verification.py.
+def _as_bool(value: str) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+SIGNUP_VERIFICATION_ENABLED = _as_bool(env.get("SIGNUP_VERIFICATION_ENABLED", "0"))
+
 # --- API Sirene INSEE (api.insee.fr/api-sirene/3.11) ---
 INSEE_API_KEY = env.get("INSEE_API_KEY", "")
 INSEE_CLIENT_ID = env.get("INSEE_CLIENT_ID", "")

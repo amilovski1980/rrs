@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.13">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.1">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -24,8 +24,8 @@
           <small>Comptabilité des bâtisseurs</small>
         </span>
       </a>
-      <form class="nav-search" action="{% url 'magic_link_request' %}" method="get" role="search">
-        <input name="siren" inputmode="numeric" maxlength="9" placeholder="Rechercher mon SIREN" aria-label="Rechercher mon SIREN">
+      <form class="nav-search" action="{% url 'company_search' %}" method="get" role="search">
+        <input name="q" maxlength="80" placeholder="Société, SIREN ou SIRET" aria-label="Rechercher une société par nom, SIREN ou SIRET">
         <button type="submit" aria-label="Rechercher">
           {% include "partials/icon.html" with name="search" %}
         </button>
@@ -34,6 +34,7 @@
         {% if request.user.is_authenticated %}
           <a class="btn btn-primary" href="{% url 'cockpit' %}">Mon cockpit</a>
         {% else %}
+          <a class="btn btn-ghost" href="{% url 'demo_login' %}">Essayer la démo</a>
           <a class="btn btn-primary" href="{% url 'magic_link_request' %}">Se connecter</a>
         {% endif %}
       </div>
@@ -45,7 +46,7 @@
         <a href="{% url 'landing' %}#features">Fonctionnalités</a>
         <a href="{% url 'landing' %}#pricing">Tarifs</a>
         <a href="{% url 'landing' %}#securite">Sécurité</a>
-        <a class="mainnav-cta" href="{% url 'onboarding' %}">Vérifier un SIREN →</a>
+        <a class="mainnav-cta" href="{% url 'landing' %}#recherche">Trouver ma société →</a>
       </div>
     </div>
   </nav>
@@ -70,7 +71,8 @@
             <li><a href="{% url 'landing' %}#features">Fonctionnalités</a></li>
             <li><a href="{% url 'landing' %}#pricing">Tarifs</a></li>
             <li><a href="{% url 'landing' %}#securite">Sécurité</a></li>
-            <li><a href="{% url 'onboarding' %}">Vérifier un SIREN</a></li>
+            <li><a href="{% url 'landing' %}#recherche">Trouver ma société</a></li>
+            <li><a href="{% url 'demo_login' %}">Essayer la démo</a></li>
           </ul>
         </div>
         <div>
@@ -101,7 +103,7 @@
     </div>
   </footer>
   {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.05.13" defer></script>
-  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.05.13" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.12.1" defer></script>
+  <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.1" defer></script>
 </body>
 </html>

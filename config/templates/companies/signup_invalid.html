@@ -1,0 +1,11 @@
+{% extends "base_public.html" %}
+{% block title %}Lien expiré{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="text-align:center">
+    <h1>Lien d'inscription inutilisable</h1>
+    <p class="sub">Ce lien a expiré, a déjà été utilisé, ou ne correspond à aucune inscription en cours.</p>
+    <a class="btn btn-primary" style="width:100%;padding:12px" href="{% url 'landing' %}#recherche">Rechercher ma société</a>
+  </div>
+</div>
+{% endblock %}

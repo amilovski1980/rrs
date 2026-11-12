@@ -30,12 +30,23 @@ def open_account(email):
 
 
 def magic_link_request(request):
-    """Saisie de l'email : connexion immédiate au compte correspondant."""
+    """Connexion des comptes déjà ouverts. Un email inconnu ne crée plus de cockpit vide."""
     form = EmailForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        user = open_account(form.cleaned_data["email"])
-        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        return redirect("cockpit")
+        email = form.cleaned_data["email"].strip().lower()
+        reserved = {DEMO_EMAIL, (ADMIN_EMAIL or "").strip().lower()}
+        if email in reserved:
+            user = open_account(email)
+        else:
+            user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            form.add_error(
+                "email",
+                "Aucun compte ne correspond à cette adresse.",
+            )
+        else:
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            return redirect("cockpit")
     return render(request, "accounts/magic_link_form.html", {"form": form})
 
 

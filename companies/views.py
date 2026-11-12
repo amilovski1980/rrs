@@ -2,6 +2,7 @@ from datetime import date
 
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -119,6 +120,9 @@ def onboarding(request):
             form.add_error("siren", "Cette société est déjà dans votre cockpit.")
         else:
             data, error = lookup_siren(siren)
+            if isinstance(data, dict):
+                # Le cookie de session est trop petit pour le JSON brut de l'API.
+                data = {key: value for key, value in data.items() if key != "raw"}
             request.session["onboarding_lookup"] = {
                 "siren": siren,
                 "data": data,
@@ -152,35 +156,54 @@ def onboarding_confirm(request):
         if form.is_valid():
             if Company.objects.filter(owner=request.user, siren=siren).exists():
                 form.add_error(None, "Cette société est déjà dans votre cockpit.")
+            elif Company.objects.filter(siren=siren).exists():
+                form.add_error(
+                    None,
+                    "Ce SIREN est déjà rattaché à un autre compte. "
+                    "Connectez-vous avec ce compte, ou choisissez une autre société.",
+                )
             else:
                 cleaned = form.cleaned_data
+                if lookup.get("origin") == "annuaire":
+                    source_name = "annuaire_entreprises"
+                elif data:
+                    source_name = "insee_sirene"
+                else:
+                    source_name = "manuel"
                 source = {
-                    "source": "insee_sirene" if data else "manuel",
+                    "source": source_name,
                     "fetched_at": lookup.get("fetched_at"),
                     "siren": siren,
-                    "raw": data.get("raw") if data else None,
+                    "siret": (data.get("siret") or "") if data else "",
                 }
-                company = Company.objects.create(
-                    owner=request.user,
-                    siren=siren,
-                    denomination=cleaned["denomination"],
-                    forme=cleaned["forme"],
-                    address=data.get("adresse", ""),
-                    phone=cleaned.get("phone", ""),
-                    email=cleaned.get("email", ""),
-                    code_naf=data.get("code_naf", ""),
-                    activites=list(cleaned["activites"]),
-                    regime=cleaned["regime"],
-                    tva=cleaned["tva"],
-                    exercice_debut=cleaned["exercice_debut"],
-                    source_data=source,
-                )
-                from accounting.services import generate_portal
+                try:
+                    with transaction.atomic():
+                        company = Company.objects.create(
+                            owner=request.user,
+                            siren=siren,
+                            denomination=cleaned["denomination"],
+                            forme=cleaned["forme"],
+                            address=data.get("adresse", ""),
+                            phone=cleaned.get("phone", ""),
+                            email=cleaned.get("email", ""),
+                            code_naf=data.get("code_naf", ""),
+                            activites=list(cleaned["activites"]),
+                            regime=cleaned["regime"],
+                            tva=cleaned["tva"],
+                            exercice_debut=cleaned["exercice_debut"],
+                            source_data=source,
+                        )
+                        from accounting.services import generate_portal
 
-                generate_portal(company)
-
-                request.session.pop("onboarding_lookup", None)
-                return redirect(reverse("cockpit") + f"?societe={company.id}")
+                        generate_portal(company)
+                except IntegrityError:
+                    form.add_error(
+                        None,
+                        "Ce SIREN est déjà rattaché à un autre compte.",
+                    )
+                else:
+                    request.session.pop("onboarding_lookup", None)
+                    return redirect(reverse("cockpit") + f"?societe={company.id}")
     else:
         form = CompanyProfileForm(initial=initial)
 

@@ -1,0 +1,98 @@
+{% extends "base_public.html" %}
+{% block title %}Créer mon cockpit{% endblock %}
+{% block content %}
+<div class="search-page">
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <p class="signup-steps">
+          <span class="badge">1. Recherche</span>
+          <span class="badge badge-blue">2. Votre société</span>
+          {% if verification_enabled %}<span class="badge">3. Vérification</span>{% endif %}
+        </p>
+        <h1>Confirmez votre société</h1>
+        <p class="sub">SIREN {{ siren }} — fiche officielle de l'annuaire des entreprises. Le régime fiscal détermine le plan comptable.</p>
+      </div>
+    </div>
+
+    {% if error_message %}
+    <div class="card search-alert" role="alert">
+      <p><b>{{ error_message }}</b></p>
+      <p style="margin:10px 0 0"><a class="btn btn-primary" href="{% url 'magic_link_request' %}">Se connecter</a></p>
+    </div>
+    {% endif %}
+
+    <div class="grid g2" style="align-items:start">
+      <div>
+        {% include "companies/_official_card.html" %}
+      </div>
+      <div class="card" style="border-top:4px solid var(--blue)">
+        {% if siren_taken %}
+        <h2 style="margin:0 0 8px;font-size:20px">Société déjà ouverte</h2>
+        <p class="sub">Utilisez l'adresse email du compte qui détient déjà ce SIREN.</p>
+        <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Choisir une autre société</a>
+        {% else %}
+        <h2 style="margin:0 0 4px;font-size:20px">Votre profil comptable</h2>
+        <p class="sub" style="margin-bottom:4px">Il détermine les comptes, les journaux et la TVA du cockpit.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="siren" value="{{ siren }}">
+          {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+          <label>{{ form.denomination.label }}</label>
+          {{ form.denomination }}
+          {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label>{{ form.forme.label }}</label>
+              {{ form.forme }}
+            </div>
+            <div>
+              <label>{{ form.exercice_debut.label }}</label>
+              {{ form.exercice_debut }}
+              {% if form.exercice_debut.errors %}<p class="error">{{ form.exercice_debut.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <label>{{ form.activites.label }}</label>
+          <div class="signup-activities">{{ form.activites }}</div>
+          {% if form.activites.errors %}<p class="error">{{ form.activites.errors.0 }}</p>{% endif %}
+
+          <div class="form-grid">
+            <div>
+              <label>{{ form.regime.label }}</label>
+              {{ form.regime }}
+            </div>
+            <div>
+              <label>{{ form.tva.label }}</label>
+              {{ form.tva }}
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+              {{ form.email }}
+              {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<p class="error">{{ form.phone.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a class="btn btn-ghost" href="{% url 'landing' %}#recherche">Changer de société</a>
+            <button class="btn btn-primary" type="submit">
+              {% if verification_enabled %}Continuer{% else %}Créer mon cockpit{% endif %}
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
