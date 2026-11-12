@@ -1,0 +1,11 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Lien inutilisable{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Ce lien ne marche plus</h1>
+    <p class="sub">Il a expiré, a déjà servi, ou ne correspond à aucune inscription en cours.</p>
+    <a class="btn btn-white btn-block" href="{% url 'dark:landing' %}#recherche">Rechercher ma société</a>
+  </div>
+</div>
+{% endblock %}

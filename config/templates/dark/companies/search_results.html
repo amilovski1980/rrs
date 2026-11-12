@@ -1,0 +1,46 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Choisir la société{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="container">
+    <div class="page-head">
+      <div>
+        <h1>Laquelle est la vôtre ?</h1>
+        <p class="sub">Résultats pour « {{ query }} ». Choisissez la société, on ouvre la suite.</p>
+      </div>
+      <a class="btn btn-ghost" href="{% url 'dark:landing' %}#recherche">Nouvelle recherche</a>
+    </div>
+
+    <form class="siren-box" action="{% url 'dark:company_search' %}" method="get" role="search">
+      <label class="sr-only" for="search-again">Nom, SIREN ou SIRET</label>
+      <input id="search-again" name="q" value="{{ query }}" maxlength="80" placeholder="Nom, SIREN ou SIRET" aria-label="Nom, SIREN ou SIRET">
+      <button class="btn btn-gradient" type="submit">Rechercher</button>
+    </form>
+
+    {% if error_message %}
+    <div class="alert" role="alert">
+      <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="search-list">
+      {% for row in results %}
+      <a class="search-hit" href="{% url 'dark:signup_start' %}?siren={{ row.siren }}">
+        <span>
+          <span class="siren-kicker">SIREN {{ row.siren }}{% if row.forme %} · {{ row.forme }}{% endif %}{% if row.etat %} · {{ row.etat }}{% endif %}</span>
+          <strong>{{ row.denomination }}</strong>
+          {% if row.adresse %}<span class="search-meta">{{ row.adresse }}</span>{% endif %}
+          <span class="search-meta">
+            {% if row.naf %}NAF {{ row.naf }}{% elif row.code_naf %}NAF {{ row.code_naf }}{% endif %}
+            {% if row.siret %} · SIRET {{ row.siret }}{% endif %}
+          </span>
+        </span>
+        <span class="btn btn-white">Choisir</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

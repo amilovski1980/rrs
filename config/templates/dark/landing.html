@@ -1,0 +1,193 @@
+{% extends "dark/base_public.html" %}
+{% load static %}
+{% block title %}La compta de votre startup{% endblock %}
+{% block content %}
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <img class="hero-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="560" height="121">
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Facturation électronique 2026</p>
+      <h1>La compta de votre startup, <span class="accent">tenue nette.</span></h1>
+      <p class="lead">
+        Vous lancez une société. Road Runner ouvre le cockpit à partir du nom, du SIREN ou du SIRET :
+        la fiche officielle, puis les factures, le grand livre et la TVA. Vous voyez les chiffres, vous validez, vous avancez.
+      </p>
+      <div class="hero-search" id="recherche">
+        <p>Trouver ma boîte</p>
+        <form class="siren-box" action="{% url 'dark:company_search' %}" method="get" role="search">
+          <label class="sr-only" for="company-query">Nom, SIREN ou SIRET</label>
+          <input id="company-query" name="q" maxlength="80" placeholder="Nom, SIREN ou SIRET" aria-label="Nom de société, SIREN ou SIRET" autocomplete="organization">
+          <button class="btn btn-gradient" type="submit">Rechercher</button>
+        </form>
+        <p class="help">Annuaire public des entreprises. Rien n'est enregistré tant que vous n'avez pas confirmé la fiche.</p>
+        <p class="hero-links">
+          <a href="{% url 'demo_login' %}">Voir la démo</a>
+          <span aria-hidden="true">·</span>
+          <a href="{% url 'dark:magic_link_request' %}">J'ai déjà un compte</a>
+        </p>
+      </div>
+      <p class="micro">{{ pricing_trial_line }}</p>
+    </div>
+
+    <div class="preview" aria-label="Aperçu du cockpit">
+      <div class="preview-top">
+        <span>Votre espace</span>
+        <span class="chip">Exercice en cours</span>
+      </div>
+      <div class="preview-body">
+        <div>
+          <strong>Studio Nord — SAS</strong>
+          <div class="micro">Factures, encaissements, TVA. Les montants affichés ici sont un exemple.</div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><span>CA facturé</span><strong>48 250 €</strong></div>
+          <div class="kpi"><span>À encaisser</span><strong>7 320 €</strong></div>
+          <div class="kpi"><span>TVA</span><strong>2 145 €</strong></div>
+        </div>
+        <p class="micro">Numérotation sans trou, mentions de facture, débit et crédit au centime. Aminia prépare, vous validez.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="quick">
+  <div class="container quick-grid">
+    <a class="quick-card" href="#recherche">
+      <b>Trouver la société</b>
+      <span>Nom, SIREN ou SIRET. La fiche officielle, puis votre espace.</span>
+    </a>
+    <a class="quick-card" href="{% url 'dark:magic_link_request' %}">
+      <b>Revenir au cockpit</b>
+      <span>Email et mot de passe du compte déjà ouvert.</span>
+    </a>
+    <a class="quick-card" href="#produit">
+      <b>Factures qui tiennent</b>
+      <span>Mentions, numérotation, TVA ou franchise. Prêt pour 2026.</span>
+    </a>
+  </div>
+</section>
+
+<section class="section" id="aminia">
+  <div class="container voice-grid">
+    <div>
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Aminia</p>
+      <h2>Vous parlez. Elle prépare. Vous validez.</h2>
+      <p class="lead">Aminia connaît l'activité de la société. Vous décrivez une dépense comme à un associé, elle propose le compte et le brouillon. Rien n'est enregistré sans votre oui.</p>
+      <p class="micro">Aperçu : la voix Aminia n'est pas encore branchée sur cet écran. Le dialogue ci-contre n'enregistre rien.</p>
+    </div>
+    <div class="voice-stage" aria-label="Exemple de conversation avec Aminia">
+      <div class="bubble user">
+        <b>Vous</b>
+        <p>J'ai payé Notion, 96 € TTC hier.</p>
+      </div>
+      <div class="bubble agent">
+        <b>Aminia</b>
+        <p>Dépense trouvée : <strong>96 € TTC</strong>. Je la classe en abonnements logiciels et je prépare le brouillon, avec la TVA récupérable. Je vous montre la ligne ?</p>
+      </div>
+      <div class="bubble user">
+        <b>Vous</b>
+        <p>Oui. Où est-ce que je la retrouve ?</p>
+      </div>
+      <div class="bubble agent">
+        <b>Aminia</b>
+        <p>Dans le journal des achats. Le brouillon attend dans le cockpit. Tant que vous n'avez pas validé, rien n'est passé en écriture.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="container">
+    Pour les équipes qui démarrent
+    <div class="trust-row">
+      <span>SaaS</span><span>Studio</span><span>Agence</span><span>Marketplace</span><span>Food</span><span>Hardware</span>
+    </div>
+  </div>
+</div>
+
+<section class="section" id="produit">
+  <div class="container">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Produit</p>
+      <h2 id="features">Ce qu'il faut pour facturer et tenir les comptes.</h2>
+      <p>Pas un deuxième métier. Un espace clair, calé sur votre régime.</p>
+    </div>
+    <div class="features">
+      <article class="feature">
+        <h3>Ouvert en une recherche</h3>
+        <p>Un nom, un SIREN ou un SIRET. La fiche officielle préremplit la société. Le régime active le plan comptable, les journaux et les obligations.</p>
+      </article>
+      <article class="feature">
+        <h3>Des montants justes au centime</h3>
+        <p>Saisie guidée, débit et crédit contrôlés, grand livre et balance à jour. Pas de calcul flottant sur les euros.</p>
+      </article>
+      <article class="feature">
+        <h3>Factures conformes 2026</h3>
+        <p>Numérotation séquentielle sans trou, mentions obligatoires, TVA ou franchise en base. Prêt pour la facturation électronique.</p>
+      </article>
+      <article class="feature">
+        <h3>Les pièces au même endroit</h3>
+        <p>KBIS, extraits, justificatifs et factures rangés par société. Accès cloisonné, partage limité, journal des actions sensibles.</p>
+      </article>
+      <article class="feature">
+        <h3>Aminia, à votre rythme</h3>
+        <p>Elle propose le compte et prépare le brouillon. La voix arrive ensuite. Elle ne décide jamais seule.</p>
+      </article>
+      <article class="feature">
+        <h3>Chaque société dans son coin</h3>
+        <p>Un espace étanche par société. Connexion par email et mot de passe, et la trace de ce qui compte.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pricing" aria-labelledby="pricing-title">
+  <div class="container">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Forfaits</p>
+      <h2 id="pricing-title">Trois offres. Vous testez, vous voyez.</h2>
+      <p>Les prix, les plafonds et les fonctions sont ceux du forfait publié. Vous commencez par trouver la société : l'offre se confirme dans le cockpit.</p>
+    </div>
+    <div class="pricing">
+      {% for card in pricing_cards %}
+      <article class="plan{% if card.recommended %} is-hot{% endif %}" data-plan="{{ card.code }}">
+        {% if card.recommended %}<p class="plan-tag">Le bon palier</p>{% endif %}
+        <h3>{{ card.name }}</h3>
+        <p class="price">{{ card.price_label }}<small> HT / mois</small></p>
+        {% if card.description %}<p class="desc">{{ card.description }}</p>{% endif %}
+        <ul>
+          {% for line in card.limits %}
+          <li>{{ line }}</li>
+          {% endfor %}
+        </ul>
+        {% if card.features %}
+        <p class="plan-kicker">Inclus</p>
+        <ul>
+          {% for line in card.features %}
+          <li><span class="check" aria-hidden="true">✓</span> {{ line }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if card.trial_days %}
+        <p class="micro">Essai {{ card.trial_days }} jour{{ card.trial_days|pluralize }}</p>
+        {% endif %}
+        <a class="btn {% if card.recommended %}btn-green{% else %}btn-ghost{% endif %}" href="{{ card.cta_href }}">{{ card.cta }}</a>
+      </article>
+      {% empty %}
+      <p>Les forfaits seront affichés ici dès qu'ils seront publiés.</p>
+      {% endfor %}
+    </div>
+    <p class="pricing-note">{{ pricing_tax_note }}</p>
+  </div>
+</section>
+
+<section class="section" id="securite">
+  <div class="container">
+    <div class="cta-band">
+      <h2>Vos chiffres restent les vôtres.</h2>
+      <p>Hébergement en France, chaque société est cloisonnée, aucune revente. Aminia propose, vous validez.</p>
+      <a class="btn btn-white" href="#recherche">Trouver ma boîte</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

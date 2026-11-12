@@ -1,0 +1,25 @@
+{% extends "dark/base_public.html" %}
+{% block title %}Lien de connexion{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    {% include "dark/accounts/_brand.html" %}
+    <h1>Un lien, si le mot de passe coince</h1>
+    <p class="sub">Secours seulement. Le lien est valable 30 minutes et ne sert qu'une fois. Ensuite, posez un mot de passe depuis le profil.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+      <button class="btn btn-white btn-block" type="submit">Recevoir le lien</button>
+    </form>
+    <p class="micro">
+      <a href="{% url 'dark:magic_link_request' %}">Connexion par mot de passe</a>
+      · <a href="{% url 'dark:password_reset' %}">Définir un mot de passe</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
