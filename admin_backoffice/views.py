@@ -18,7 +18,7 @@ class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.is_staff
 
 # --- DASHBOARD ---
-class DashboardView(TemplateView):
+class DashboardView(AdminStaffMixin, TemplateView):
     template_name = 'admin_backoffice/dashboard.html'
 
     def get_context_data(self, **kwargs):
@@ -77,20 +77,26 @@ class DashboardView(TemplateView):
 class SiteSettingsView(AdminStaffMixin, TemplateView):
     template_name = 'admin_backoffice/settings.html'
 
-    def get(self, request):
-        config, created = SiteConfiguration.objects.get_or_create(id=1)
-        form = SiteConfigurationForm(instance=config)
-        return self.render_to_response(self.template_name, {'form': form, 'config': config})
+    def get_context_data(self, **kwargs):
+        """Prépare le formulaire et la configuration courante pour le template."""
+        context = super().get_context_data(**kwargs)
+        config, _ = SiteConfiguration.objects.get_or_create(id=1)
+        context['config'] = config
+        context['form'] = SiteConfigurationForm(instance=config)
+        return context
 
-    def post(self, request):
-        config, created = SiteConfiguration.objects.get_or_create(id=1)
+    def post(self, request, *args, **kwargs):
+        """Valide et sauvegarde la configuration du site."""
+        config, _ = SiteConfiguration.objects.get_or_create(id=1)
         form = SiteConfigurationForm(request.POST, instance=config)
         if form.is_valid():
             form.save()
             messages.success(request, "Configuration mise à jour avec succès !")
             return redirect('admin_backoffice:settings')
         messages.error(request, "Erreur lors de la mise à jour de la configuration.")
-        return self.render_to_response(self.template_name, {'form': form, 'config': config})
+        context = self.get_context_data(**kwargs)
+        context['form'] = form
+        return self.render_to_response(context)
 
 # --- CRUD COMPANIES ---
 class CompanyListView(AdminStaffMixin, ListView):
@@ -204,11 +210,19 @@ class AiMonitoringView(AdminStaffMixin, TemplateView):
 class AiPromptView(AdminStaffMixin, TemplateView):
     template_name = 'admin_backoffice/ai_prompt.html'
 
-    def get(self, request):
+    def get_context_data(self, **kwargs):
+        """Injecte le prompt système actuel dans le contexte du template."""
+        context = super().get_context_data(**kwargs)
         from django.conf import settings
-        prompt = getattr(settings, 'AI_SYSTEM_PROMPT', 'You are a professional accountant...')
-        return self.render_to_response(self.template_name, {'current_prompt': prompt})
+        context['current_prompt'] = getattr(
+            settings, 'AI_SYSTEM_PROMPT', 'You are a professional accountant...'
+        )
+        return context
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
+        """Met à jour le prompt système puis redirige vers la page de configuration."""
+        from django.conf import settings
         new_prompt = request.POST.get('prompt')
+        if new_prompt is not None:
+            settings.AI_SYSTEM_PROMPT = new_prompt.strip()
         return redirect('admin_backoffice:ai_prompt')
