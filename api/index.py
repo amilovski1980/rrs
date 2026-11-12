@@ -26,25 +26,7 @@ import django  # noqa: E402
 
 django.setup()
 
-from django.core.management import call_command  # noqa: E402
-
-_etat = {"migrations": False}
-
-
-def assurer_migrations():
-    """Applique les migrations une seule fois par instance, sans jamais bloquer.
-
-    Un échec (réseau, limite de connexions du pooler…) est journalisé et la
-    première requête suivante réessaie automatiquement.
-    """
-    if _etat["migrations"]:
-        return
-    try:
-        call_command("migrate", verbosity=0, interactive=False)
-        _etat["migrations"] = True
-        print("[migrations] base à jour", flush=True)
-    except Exception as exc:  # noqa: BLE001
-        print(f"[migrations] échec (nouvel essai à la prochaine requête) : {exc}", flush=True)
+from core.deploy import assurer_migrations  # noqa: E402
 
 
 def lancer_seed():

@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "admin_backoffice.middleware.DynamicConfigMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "admin_backoffice.middleware.SchemaRetryMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -85,30 +86,10 @@ TEMPLATES = [
 
 DATABASE_URL = env.get("DATABASE_URL", "")
 
-if DATABASE_URL.startswith("postgres"):
-    # Parsing minimal de postgresql://user:pass@host:port/dbname
-    from urllib.parse import urlparse, unquote
+if DATABASE_URL.startswith(("postgres", "sqlite")):
+    from config.dburl import database_from_url
 
-    u = urlparse(DATABASE_URL)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": unquote(u.path.lstrip("/")),
-            "USER": unquote(u.username or ""),
-            "PASSWORD": unquote(u.password or ""),
-            "HOST": u.hostname or "localhost",
-            "PORT": u.port or 5432,
-        }
-    }
-elif DATABASE_URL.startswith("sqlite"):
-    # Serverless / CI : base SQLite temporaire (ex. sqlite:////tmp/demo.sqlite3)
-    path = "/" + DATABASE_URL.replace("sqlite:", "").lstrip("/")
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": path or "/tmp/demo.sqlite3",
-        }
-    }
+    DATABASES = {"default": database_from_url(DATABASE_URL)}
 else:
     # Local sans Postgres : SQLite de secours (migrations OK, RLS non fonctionnelle)
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
