@@ -7,9 +7,62 @@ app_name = "admin_backoffice"
 def health_check(request):
     return HttpResponse("Admin Backoffice is ALIVE")
 
+
+def _diag_tables(request):
+    """Diagnostic temporaire : état de chaque table + rendu du template dashboard."""
+    from django.contrib.auth.models import User as DjangoUser
+    from django.template.loader import render_to_string
+
+    from accounts.models import User
+    from ai.models import AiDraftEntry
+    from billing.models import Plan, Subscription
+    from companies.models import Company
+
+    from .models import SiteConfiguration, SystemLog
+
+    lines = []
+    probes = [
+        ("accounts.User", lambda: User.objects.count()),
+        ("auth.User", lambda: DjangoUser.objects.count()),
+        ("companies.Company", lambda: Company.objects.count()),
+        ("billing.Plan", lambda: Plan.objects.count()),
+        ("billing.Subscription", lambda: Subscription.objects.count()),
+        ("ai.AiDraftEntry", lambda: AiDraftEntry.objects.count()),
+        ("admin_backoffice.SiteConfiguration", lambda: SiteConfiguration.objects.count()),
+        ("admin_backoffice.SystemLog", lambda: SystemLog.objects.count()),
+    ]
+    for label, fn in probes:
+        try:
+            lines.append(f"{label}: OK ({fn()})")
+        except Exception as exc:  # noqa: BLE001
+            lines.append(f"{label}: ERREUR {type(exc).__name__}: {exc}")
+
+    try:
+        html = render_to_string(
+            "admin_backoffice/dashboard.html",
+            {
+                "total_users": "?",
+                "total_companies": "?",
+                "mrr": "0",
+                "subs_past_due": "?",
+                "ai_validation_rate": "0%",
+                "total_ai_drafts": "?",
+                "recent_companies": Company.objects.order_by("-created_at")[:5],
+                "recent_logs": SystemLog.objects.all().order_by("-timestamp")[:10],
+            },
+        )
+        lines.append(f"rendu dashboard: OK ({len(html)} octets)")
+    except Exception as exc:  # noqa: BLE001
+        lines.append(f"rendu dashboard: ERREUR {type(exc).__name__}: {exc}")
+
+    return HttpResponse(" || ".join(lines), content_type="text/plain")
+
+
 urlpatterns = [
     # Health Check
     path('health/', health_check, name='health'),
+    # Diagnostic temporaire (à retirer après vérification)
+    path('diag/', _diag_tables),
     # Dashboard & Config
     path('', views.DashboardView.as_view(), name='dashboard'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard_url'),
