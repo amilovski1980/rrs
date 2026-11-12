@@ -571,6 +571,25 @@ h2 { font-family: var(--font-head); font-size: 36px; letter-spacing: -.5px; marg
 .plan li { display: flex; gap: 9px; align-items: flex-start; }
 .check { color: var(--green); font-weight: 800; flex: 0 0 auto; }
 .plan .btn { margin-top: auto; width: 100%; }
+.pricing-section { background: #fff; border-block: 1px solid var(--line); }
+.pricing-section .pricing { padding-top: 8px; }
+.plan ul.plan-limits {
+  margin: 2px 0 16px; padding: 12px 0; gap: 6px;
+  border-block: 1px solid var(--line);
+  font-weight: 650; color: var(--ink);
+}
+.plan ul.plan-limits li { display: block; }
+.plan ul.plan-features { margin-bottom: 16px; }
+.plan-kicker {
+  margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; color: var(--muted);
+}
+.plan-trial { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+.pricing-note {
+  margin: 22px 0 0; max-width: 760px; color: var(--muted);
+  font-size: 13.5px; line-height: 1.55;
+}
+.pricing-section .price small { white-space: nowrap; }
 
 /* ---------- Bandeau CTA ---------- */
 .cta-band {
@@ -1664,6 +1683,10 @@ label.ticket-camera-btn.btn-primary:hover {
   .mobile-only.ticket-camera-btn { display: inline-flex !important; }
 }
 
+@media (max-width: 980px) {
+  .pricing-section .pricing { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 768px) {
   html {
     -webkit-text-size-adjust: 100%;
@@ -1675,6 +1698,10 @@ label.ticket-camera-btn.btn-primary:hover {
   .g2 { grid-template-columns: 1fr; }
   .hero-grid { grid-template-columns: 1fr; gap: 40px; }
   .features, .pricing, .quick-grid { grid-template-columns: 1fr; }
+  .pricing-section .pricing { gap: 28px; }
+  .pricing-section .plan { padding: 26px 20px 22px; }
+  .pricing-section .plan .btn { min-height: 52px; border-radius: 16px; }
+  .pricing-section .price { font-size: 40px; }
   .nav-search { display: none; }
   .nav-links a:not(.btn) { display: none; }
   h1 { font-size: 42px; }

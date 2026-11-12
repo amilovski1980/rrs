@@ -26,7 +26,7 @@
           <a href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
         </p>
       </div>
-      <p class="micro">Sans carte bancaire · essai 14 jours</p>
+      <p class="micro">{{ pricing_trial_line }}</p>
     </div>
 
     <div class="demo-wrap">
@@ -228,52 +228,43 @@
   </div>
 </section>
 
-<section id="pricing" style="background:#fff;border-block:1px solid var(--line)">
+<section id="pricing" class="pricing-section" aria-labelledby="pricing-title">
   <div class="container">
     <div class="sec-head">
-      <div class="eyebrow">Tarifs</div>
-      <h2>Un prix simple, par bâtisseur</h2>
-      <p>Essai 14 jours, puis abonnement mensuel par carte.</p>
+      <div class="eyebrow">Forfaits</div>
+      <h2 id="pricing-title">Un prix simple, par bâtisseur</h2>
+      <p>Essai gratuit, sans carte bancaire. Vous commencez par rechercher votre société : le forfait se confirme ensuite dans le cockpit.</p>
     </div>
     <div class="pricing">
-      <div class="plan">
-        <h3>Micro</h3>
-        <div class="price">29 €<small> / mois</small></div>
-        <p class="desc">Pour les bâtisseurs en micro-BIC.</p>
-        <ul>
-          <li><span class="check">✓</span> Écritures, grand livre et balance</li>
-          <li><span class="check">✓</span> 20 factures par mois et leurs PDF</li>
-          <li><span class="check">✓</span> Modèles Azur et Carmin</li>
-          <li><span class="check">✓</span> Chat Aminia</li>
+      {% for card in pricing_cards %}
+      <article class="plan{% if card.recommended %} hot{% endif %}" data-plan="{{ card.code }}">
+        {% if card.recommended %}<span class="tag-top">Le plus choisi</span>{% endif %}
+        <h3>{{ card.name }}</h3>
+        <div class="price">{{ card.price_label }}<small> HT / mois</small></div>
+        {% if card.description %}<p class="desc">{{ card.description }}</p>{% endif %}
+        <ul class="plan-limits">
+          {% for line in card.limits %}
+          <li>{{ line }}</li>
+          {% endfor %}
         </ul>
-        <a class="btn btn-ghost" href="#recherche">Commencer</a>
-      </div>
-      <div class="plan hot">
-        <span class="tag-top">Le plus choisi</span>
-        <h3>Réel</h3>
-        <div class="price">49 €<small> / mois</small></div>
-        <p class="desc">Pour les SARL et EURL au réel simplifié.</p>
-        <ul>
-          <li><span class="check">✓</span> Tout le plan Micro</li>
-          <li><span class="check">✓</span> Devis, avoirs et paiements</li>
-          <li><span class="check">✓</span> Catalogue, projets, import PDF</li>
-          <li><span class="check">✓</span> Jusqu'à 3 sociétés</li>
+        {% if card.features %}
+        <p class="plan-kicker">Inclus</p>
+        <ul class="plan-features">
+          {% for line in card.features %}
+          <li><span class="check" aria-hidden="true">✓</span> {{ line }}</li>
+          {% endfor %}
         </ul>
-        <a class="btn btn-primary" href="#recherche">Commencer l'essai</a>
-      </div>
-      <div class="plan">
-        <h3>Pro</h3>
-        <div class="price">79 €<small> / mois</small></div>
-        <p class="desc">Pour les dirigeants multi-activités.</p>
-        <ul>
-          <li><span class="check">✓</span> Tout le plan Réel</li>
-          <li><span class="check">✓</span> Sociétés et factures sans plafond</li>
-          <li><span class="check">✓</span> Tous les modèles de facture</li>
-          <li><span class="check">✓</span> Voix Aminia et tickets de caisse</li>
-        </ul>
-        <a class="btn btn-ghost" href="#recherche">Commencer</a>
-      </div>
+        {% endif %}
+        {% if card.trial_days %}
+        <p class="plan-trial">Essai {{ card.trial_days }} jour{{ card.trial_days|pluralize }}</p>
+        {% endif %}
+        <a class="btn btn-lg {% if card.recommended %}btn-primary{% else %}btn-ghost{% endif %}" href="{{ card.cta_href }}">{{ card.cta }}</a>
+      </article>
+      {% empty %}
+      <p>Les forfaits seront affichés ici dès qu'ils seront publiés.</p>
+      {% endfor %}
     </div>
+    <p class="pricing-note">{{ pricing_tax_note }}</p>
   </div>
 </section>
 
