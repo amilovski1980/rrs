@@ -1,0 +1,60 @@
+/* Back-office — mêmes jetons que l'application, sidebar dédiée. */
+.shell-admin .sidebar { border-top-color: var(--pink); }
+.shell-admin .content { padding-bottom: 48px; }
+
+.admin-form { max-width: 760px; }
+.admin-form .check-row {
+  display: flex; align-items: center; gap: 10px; margin-top: 16px;
+}
+.admin-form .check-row label { margin: 0; }
+.admin-form input[type="checkbox"],
+.admin-form input[type="radio"] { width: auto; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+
+.filters {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  margin-bottom: 16px;
+}
+.filters label { margin: 0 0 4px; }
+.filters .filter-field { min-width: 160px; flex: 1; }
+.filters input, .filters select { margin: 0; }
+
+.pager { display: flex; gap: 12px; align-items: center; padding: 14px 20px; color: var(--muted); font-size: 13px; }
+
+.kpi-row { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 22px; }
+.trend-up { color: var(--green); }
+.trend-down { color: var(--red); }
+.trend-bad { color: var(--red); font-weight: 700; }
+
+.admin-chart {
+  display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 8px 4px 0;
+}
+.admin-chart-col {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; gap: 4px; height: 100%;
+}
+.admin-chart-bar {
+  width: 100%; max-width: 28px; min-height: 3px; border-radius: 4px 4px 0 0;
+  background: var(--blue);
+}
+.admin-chart-bar.is-empty { background: var(--line); }
+.admin-chart-col span { font-size: 11px; color: var(--muted); }
+.admin-chart-col .n { font-weight: 700; color: var(--ink); }
+
+.status-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.status-row strong { font-family: var(--font-head); font-size: 20px; }
+
+.provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.secret-hint { font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
+.stack { display: grid; gap: 16px; }
+
+.impersonation-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; padding: 10px 16px; background: var(--amber-soft); color: var(--ink);
+  border-bottom: 1px solid #e6d48a;
+}
+.impersonation-banner p { margin: 0; font-size: 14px; }
+.impersonation-banner button {
+  border: 1px solid var(--ink); background: #fff; color: var(--ink);
+  border-radius: var(--radius-sm); padding: 8px 12px; font-weight: 700; cursor: pointer;
+}

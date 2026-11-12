@@ -1,0 +1,135 @@
+{% extends "admin_backoffice/base.html" %}
+{% load bo %}
+{% block title %}SMS{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>SMS</h1>
+    <p class="sub">OVH, Brevo et Twilio se configurent ici. L'envoi réel n'est pas branché : le bouton Tester ne contacte pas le fournisseur, et le journal passe par le hook <code>dispatch_sms</code>.</p>
+  </div>
+</div>
+
+<form method="post" class="stack" autocomplete="off">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="config">
+  <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Fournisseur utilisé pour l'envoi</h2>
+    <label for="active_provider">Celui qui sera appelé par le hook quand l'API sera branchée.</label>
+    <select id="active_provider" name="active_provider">
+      <option value="">Aucun</option>
+      {% for provider in providers %}
+      <option value="{{ provider.code }}" {% if active_provider == provider.code %}selected{% endif %}>{{ provider.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="provider-grid">
+    {% for provider in providers %}
+    <article class="card admin-form">
+      <div class="card-head" style="padding:0 0 8px;border:0">
+        <h3>{{ provider.label }}</h3>
+        {% if provider.configured %}<span class="badge badge-green">Configuré</span>{% else %}<span class="badge">Incomplet</span>{% endif %}
+      </div>
+      <div class="check-row">
+        <input type="checkbox" name="enabled__{{ provider.code }}" value="1" id="enabled-{{ provider.code }}" {% if provider.enabled %}checked{% endif %}>
+        <label for="enabled-{{ provider.code }}">Activé</label>
+      </div>
+      <label for="sender-{{ provider.code }}">Nom d'expéditeur</label>
+      <input id="sender-{{ provider.code }}" name="sender__{{ provider.code }}" value="{{ provider.sender_name }}" maxlength="32" autocomplete="off">
+      {% for field in provider.fields %}
+      <label for="{{ provider.code }}-{{ field.key }}">{{ field.label }}</label>
+      {% if field.secret %}
+      <input id="{{ provider.code }}-{{ field.key }}" type="password" name="{{ provider.code }}__{{ field.key }}" value="" autocomplete="new-password" placeholder="{% if field.filled %}Conserver la valeur enregistrée{% else %}À renseigner{% endif %}">
+      <p class="secret-hint">{% if field.filled %}<span class="badge badge-green">Enregistré {{ field.mask }}</span> Laisser vide pour conserver.{% else %}<span class="badge">Non configuré</span>{% endif %}</p>
+      {% else %}
+      <input id="{{ provider.code }}-{{ field.key }}" name="{{ provider.code }}__{{ field.key }}" value="{{ field.value }}" autocomplete="off">
+      {% endif %}
+      {% endfor %}
+    </article>
+    {% endfor %}
+  </div>
+  <div>
+    <button class="btn btn-primary" type="submit">Enregistrer la configuration</button>
+  </div>
+</form>
+
+<div class="provider-grid" style="margin-top:16px">
+  {% for provider in providers %}
+  <form method="post" action="{% url 'admin_backoffice:sms_test' provider.code %}">
+    {% csrf_token %}
+    <button class="btn btn-ghost" type="submit">Tester {{ provider.label }}</button>
+  </form>
+  {% endfor %}
+</div>
+
+<div class="grid g2" style="margin-top:22px">
+  <div class="card">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Modèles</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nom</th><th>Code</th><th></th></tr></thead>
+        <tbody>
+          {% for tpl in templates %}
+          <tr>
+            <td>{{ tpl.name }} {% if not tpl.is_active %}<span class="badge">Inactif</span>{% endif %}</td>
+            <td>{{ tpl.code }}</td>
+            <td>
+              <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:sms_template_edit' tpl.pk %}">Modifier</a>
+              <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:sms_template_delete' tpl.pk %}">Supprimer</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">Aucun modèle.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" class="admin-form" style="margin-top:16px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="template">
+      {% for field in template_form %}
+        {% if field|is_checkbox %}
+        <div class="check-row">{{ field }} <label for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+        {% else %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% endif %}
+        {% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Ajouter le modèle</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Journal d'envoi</h2>
+    <p class="sub">Un envoi depuis cet écran appelle <code>dispatch_sms</code>. Sans API branchée, la ligne reste « Non envoyé ».</p>
+    <form method="post" class="admin-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="send">
+      {% for field in send_form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for err in field.errors %}<p class="error">{{ err }}</p>{% endfor %}
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn-ghost" type="submit">Journaliser un envoi</button></div>
+    </form>
+    <div class="table-wrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Quand</th><th>Destinataire</th><th>Statut</th><th>Détail</th></tr></thead>
+        <tbody>
+          {% for item in messages_log %}
+          <tr>
+            <td>{{ item.created_at|date:"d/m H:i" }}</td>
+            <td>{{ item.recipient }}</td>
+            <td><span class="badge {% if item.status == 'sent' %}badge-green{% elif item.status == 'failed' %}badge-red{% else %}badge-amber{% endif %}">{{ item.get_status_display }}</span></td>
+            <td>{{ item.detail|truncatechars:120 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucun envoi journalisé.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

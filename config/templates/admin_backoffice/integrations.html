@@ -1,0 +1,28 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Intégrations{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Intégrations</h1>
+    <p class="sub">État des connexions. Les secrets ne sont jamais affichés en entier. Le test interroge le service sans recopier la clé à l'écran.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:settings' %}">Saisir une clé</a>
+</div>
+<div class="provider-grid">
+  {% for card in cards %}
+  <article class="card">
+    <div class="card-head" style="padding:0 0 12px;border:0">
+      <h3>{{ card.name }}</h3>
+      {% if card.configured %}<span class="badge badge-green">Configurée</span>{% else %}<span class="badge badge-red">Non configurée</span>{% endif %}
+    </div>
+    <p class="sub">{{ card.description }}</p>
+    <p><b>{{ card.detail }}</b></p>
+    <p class="secret-hint">{{ card.origin }}</p>
+    <form method="post" action="{% url 'admin_backoffice:integrations_test' card.code %}">
+      {% csrf_token %}
+      <button class="btn btn-ghost btn-sm" type="submit">Tester la connexion</button>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

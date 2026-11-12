@@ -6,7 +6,10 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from .assistant import TOOLS, execute_tool, instructions_for, resolve_company
+from admin_backoffice.agent_prompts import tool_allowed
+
+from .assistant import TOOLS, execute_tool, resolve_company
+from .prompts import agent_instructions
 
 SESSION_KEY = "voice_company_id"
 
@@ -82,8 +85,8 @@ def voice_session(request):
         "expires_at": secret["expires_at"],
         "url": f"wss://api.x.ai/v1/realtime?model={settings.XAI_VOICE_MODEL}",
         "voice": settings.XAI_VOICE,
-        "instructions": instructions_for(request.user, company),
-        "tools": TOOLS,
+        "instructions": agent_instructions(request.user, company, channel="voice"),
+        "tools": [tool for tool in TOOLS if tool_allowed(request.user, tool["name"])],
         "company_id": str(company.id) if company else None,
         "company_name": company.denomination if company else "",
     })

@@ -1,0 +1,159 @@
+{% load static %}<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>{% block title %}Administration{% endblock %} — Road Runner Solutions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.05.13">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.12.1">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="shell shell-admin" data-app-shell>
+  <header class="m-header" data-m-header>
+    <button type="button" class="m-nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="app-drawer" aria-label="Ouvrir le menu">
+      <span class="m-nav-toggle-bars" aria-hidden="true"></span>
+    </button>
+    <a class="m-header-logo" href="{% url 'admin_backoffice:dashboard' %}" aria-label="Road Runner Solutions — Administration">
+      <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
+      <span class="m-header-brand">
+        <b>Road Runner</b>
+        <small>Back-office</small>
+      </span>
+    </a>
+  </header>
+
+  <div class="m-backdrop" data-nav-backdrop hidden tabindex="-1" aria-hidden="true"></div>
+
+  <aside class="sidebar" id="app-drawer" data-app-drawer aria-label="Navigation administration">
+    <div class="m-drawer-head">
+      <span class="m-drawer-title">Administration</span>
+      <button type="button" class="m-drawer-close" data-nav-close aria-label="Fermer le menu">×</button>
+    </div>
+
+    <a class="brand" href="{% url 'admin_backoffice:dashboard' %}">
+      <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
+      <span class="brand-text">
+        <b>Road Runner</b>
+        <small>Back-office</small>
+      </span>
+    </a>
+
+    <div class="sidebar-nav-scroll">
+      <div class="nav-sec">Pilotage</div>
+      <a class="side-link {% if admin_section == 'dashboard' %}active{% endif %}" href="{% url 'admin_backoffice:dashboard' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="chart" %}</span> Vue d'ensemble
+      </a>
+
+      <div class="nav-sec">Comptes</div>
+      <a class="side-link {% if admin_section == 'users' %}active{% endif %}" href="{% url 'admin_backoffice:users' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Utilisateurs
+      </a>
+      <a class="side-link {% if admin_section == 'companies' %}active{% endif %}" href="{% url 'admin_backoffice:companies' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Sociétés
+      </a>
+
+      <div class="nav-sec">Offres</div>
+      <a class="side-link {% if admin_section == 'plans' %}active{% endif %}" href="{% url 'admin_backoffice:plans' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Forfaits
+      </a>
+      <a class="side-link {% if admin_section == 'subscriptions' %}active{% endif %}" href="{% url 'admin_backoffice:subscriptions' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Abonnements
+      </a>
+
+      <div class="nav-sec">Connexions</div>
+      <a class="side-link {% if admin_section == 'integrations' %}active{% endif %}" href="{% url 'admin_backoffice:integrations' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="bolt" %}</span> Intégrations
+      </a>
+      <a class="side-link {% if admin_section == 'sms' %}active{% endif %}" href="{% url 'admin_backoffice:sms' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> SMS
+      </a>
+
+      <div class="nav-sec">Intelligence</div>
+      <a class="side-link {% if admin_section == 'ai' %}active{% endif %}" href="{% url 'admin_backoffice:ai_monitoring' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Suivi IA
+      </a>
+      <a class="side-link {% if admin_section == 'prompts' %}active{% endif %}" href="{% url 'admin_backoffice:ai_prompt' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Consignes de l'agent
+      </a>
+
+      <div class="nav-sec">Système</div>
+      <a class="side-link {% if admin_section == 'logs' %}active{% endif %}" href="{% url 'admin_backoffice:logs' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Journal
+      </a>
+      <a class="side-link {% if admin_section == 'settings' %}active{% endif %}" href="{% url 'admin_backoffice:settings' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="lock" %}</span> Paramètres
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="user-chip">
+        <span class="avatar">{{ request.user.email|first|upper }}</span>
+        <span>
+          <b title="{{ request.user.email }}">{{ request.user.email }}</b>
+          <small>Administration</small>
+        </span>
+      </div>
+      <a class="side-link" href="{% url 'cockpit' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit client
+      </a>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="side-link" type="submit">
+          <span class="side-ico">{% include "partials/icon.html" with name="logout" %}</span> Déconnexion
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">{% block crumbs %}Administration{% if crumbs_label %} · {{ crumbs_label }}{% endif %}{% endblock %}</div>
+      <div class="top-actions">
+        <span class="badge top-mail" title="{{ request.user.email }}">{{ request.user.email }}</span>
+        <a class="btn btn-ghost btn-sm" href="{% url 'cockpit' %}">Cockpit</a>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
+        </form>
+      </div>
+    </header>
+    <main class="content">
+      {% if messages %}
+      <div style="margin-bottom:16px">
+        {% for message in messages %}
+        <p class="flash {% if 'success' in message.tags or 'info' in message.tags %}flash-ok{% endif %}">{{ message }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <nav class="m-footer" data-m-footer aria-label="Raccourcis administration">
+    <a class="m-footer-btn" href="{% url 'admin_backoffice:dashboard' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="chart" %}</span>
+      <span>Vue d'ensemble</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'admin_backoffice:users' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
+      <span>Utilisateurs</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'admin_backoffice:companies' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
+      <span>Sociétés</span>
+    </a>
+    <a class="m-footer-btn" href="{% url 'admin_backoffice:settings' %}">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="lock" %}</span>
+      <span>Paramètres</span>
+    </a>
+  </nav>
+</div>
+<script src="{% static 'js/app.js' %}?v=2026.11.05.13" defer></script>
+</body>
+</html>

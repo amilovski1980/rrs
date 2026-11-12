@@ -274,6 +274,10 @@ def _entry_payload(entry):
 
 def execute_tool(user, company, name, args, session_company_setter=None):
     args = args or {}
+    from admin_backoffice.agent_prompts import tool_allowed
+
+    if not tool_allowed(user, name):
+        return {"error": "Cette action n'est pas incluse dans votre forfait."}
     if name == "list_companies":
         return {"companies": [company_card(c) for c in owned_companies(user)]}
 

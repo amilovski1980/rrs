@@ -5,10 +5,37 @@ from django.db import models
 
 
 class Plan(models.Model):
+    """Forfait commercial. Le code (micro, reel, pro, starter, illimite…)
+    sert aussi à choisir la consigne de l'agent et les outils autorisés."""
+
     code = models.CharField(max_length=20, unique=True)  # micro / reel / pro
     name = models.CharField(max_length=50)
     price_eur = models.DecimalField(max_digits=6, decimal_places=2)
     trial_days = models.PositiveIntegerField(default=14)
+    description = models.TextField(blank=True, default="")
+    max_companies = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Sociétés maximum",
+        help_text="Vide = illimité.",
+    )
+    max_invoices_month = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Factures par mois",
+        help_text="Vide = illimité.",
+    )
+    max_ai_requests_month = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="Requêtes IA par mois",
+        help_text="Vide = illimité.",
+    )
+    features = models.JSONField(default=list, blank=True, verbose_name="Fonctions incluses")
+    is_active = models.BooleanField(default=True, verbose_name="Proposé aux clients")
+    ai_prompt = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Consigne de l'agent",
+        help_text="Vide = consigne par défaut selon le code du forfait.",
+    )
+
+    class Meta:
+        ordering = ["price_eur", "name"]
 
     def __str__(self):
         return self.name
