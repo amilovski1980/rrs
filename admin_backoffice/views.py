@@ -10,7 +10,14 @@ from companies.models import Company
 from billing.models import Subscription, Plan
 from ai.models import AiDraftEntry
 from .models import SiteConfiguration, SystemLog
-from .forms import SiteConfigurationForm, CompanyAdminForm, PlanAdminForm, SubscriptionAdminForm, UserAdminForm
+from .forms import (
+    SiteConfigurationForm,
+    CompanyAdminForm,
+    PlanAdminForm,
+    SubscriptionAdminForm,
+    UserAdminForm,
+    UserCreateForm,
+)
 
 class AdminStaffMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Mixin pour restreindre l'accès au personnel administratif."""
@@ -175,6 +182,13 @@ class UserListView(AdminStaffMixin, ListView):
     template_name = 'admin_backoffice/users_list.html'
     context_object_name = 'users'
     paginate_by = 20
+
+class UserCreateView(AdminStaffMixin, CreateView):
+    """Vue de création d'un utilisateur depuis le back-office administratif."""
+    model = User
+    form_class = UserCreateForm
+    template_name = 'admin_backoffice/user_form.html'
+    success_url = reverse_lazy('admin_backoffice:users')
 
 class UserUpdateView(AdminStaffMixin, UpdateView):
     model = User

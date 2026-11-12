@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Modifier l'Utilisateur</h2>
+        <h2>{% if object %}Modifier l'Utilisateur{% else %}Créer un Utilisateur{% endif %}</h2>
         <a href="{% url 'admin_backoffice:users' %}" class="btn btn-secondary">Retour</a>
     </div>
     <div class="card shadow-sm">
@@ -11,7 +11,7 @@
                 {% csrf_token %}
                 {{ form.as_p }}
                 <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    <button type="submit" class="btn btn-primary">{% if object %}Enregistrer{% else %}Créer{% endif %}</button>
                 </div>
             </form>
         </div>

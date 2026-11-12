@@ -146,3 +146,29 @@ class BackofficeAdminTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Test Corp")
+
+    def test_user_create_view_access(self):
+        """L'admin doit pouvoir accéder au formulaire de création d'utilisateur."""
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.get(reverse('admin_backoffice:user_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Créer un Utilisateur")
+
+    def test_user_create_post(self):
+        """L'admin doit pouvoir créer un nouvel utilisateur via le back-office."""
+        self.client.login(email='admin@rrs.fr', password='password123')
+        response = self.client.post(
+            reverse('admin_backoffice:user_create'),
+            {
+                'email': 'newuser@rrs.fr',
+                'is_staff': 'on',
+                'is_active': 'on',
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        new_user = User.objects.filter(email='newuser@rrs.fr').first()
+        self.assertIsNotNone(new_user)
+        self.assertTrue(new_user.is_staff)
+        self.assertTrue(new_user.is_active)
+        self.assertRedirects(response, reverse('admin_backoffice:users'))

@@ -59,3 +59,17 @@ class UserAdminForm(forms.ModelForm):
             'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class UserCreateForm(forms.ModelForm):
+    """Formulaire de création d'un utilisateur administratif (magic link, pas de mot de passe)."""
+
+    class Meta:
+        model = User
+        fields = ['email', 'is_staff', 'is_superuser', 'is_active']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'is_staff': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_superuser': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
