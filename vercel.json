@@ -7,7 +7,7 @@
         },
         {
             "src": "/(.*)",
-            "dest": "config/wsgi.py"
+            "dest": "api/index.py"
         }
     ]
 }
