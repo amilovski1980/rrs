@@ -11,7 +11,7 @@
   {% csrf_token %}
   <div class="card admin-form">
     <h2 style="margin-top:0;font-family:var(--font-head)">Agent administrateur / développeur</h2>
-    <p class="sub">Réservé au personnel. Cette consigne pilote les tâches d'administration : corriger le site, vérifier les routes claires et <code>/dark</code>, configurer les intégrations et l'assistant admin développeur. Elle n'est jamais envoyée aux clients.</p>
+    <p class="sub">Réservé au personnel. Cette consigne pilote les tâches d'administration : corriger le site, vérifier les routes claires et <code>/dark</code>, configurer les intégrations et l'assistant admin développeur. Elle n'est jamais envoyée aux clients. Quand un membre du personnel utilise Aminia dans le cockpit, elle remplace le cadre du forfait ; la société affichée sert de contexte de test, pas de rôle d'assistante comptable.</p>
     <label for="admin_prompt">Consigne de l'agent administrateur</label>
     <textarea id="admin_prompt" name="admin_prompt" rows="14">{{ admin_prompt }}</textarea>
   </div>

@@ -350,6 +350,8 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertEqual(fake.messages[0]["role"], "system")
         self.assertIn("CONSIGNE-GLOBALE-TEST", system)
         self.assertIn("CONSIGNE-MICRO-TEST", system)
+        self.assertIn("Tu gères la comptabilité de la société", system)
+        self.assertNotIn("Contexte administrateur", system)
         self.assertTrue(system.rindex("CONSIGNE-MICRO-TEST") > system.index("CONSIGNE-GLOBALE-TEST"))
         names = [tool["function"]["name"] for tool in fake.tools]
         self.assertNotIn("draft_invoice", names)
@@ -380,8 +382,22 @@ class PlanPromptRuntimeTests(TestCase):
         system = fake.messages[0]["content"]
         self.assertIn("CONSIGNE-ADMIN-TEST", system)
         self.assertIn("Cadre administrateur", system)
+        self.assertIn("Contexte administrateur", system)
+        self.assertIn("société de test", system)
+        self.assertNotIn("Tu gères la comptabilité de la société", system)
         names = [tool["function"]["name"] for tool in fake.tools]
         self.assertIn("draft_invoice", names)
+
+    def test_staff_without_company_keeps_admin_context(self):
+        from ai.prompts import agent_instructions
+
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        text = agent_instructions(self.user, None, channel="voice")
+        self.assertIn("Contexte administrateur", text)
+        self.assertIn("aucune société n'est sélectionnée", text)
+        self.assertNotIn("ajouter un SIREN", text)
+        self.assertNotIn("Tu gères la comptabilité", text)
 
     def test_micro_plan_blocks_invoice_tool(self):
         result = execute_tool(self.user, self.company, "draft_invoice", {
