@@ -887,3 +887,91 @@ class TicketDeCaisseFormUxTests(TestCase):
         self.assertEqual(ticket.statut, "brouillon")
         self.assertEqual(ticket.categorie, "restauration")
         self.assertTrue(ticket.ocr_text)
+
+
+class DocumentPdfExportTests(TestCase):
+    """Export PDF : accès connecté, droit du forfait et URL sombre."""
+
+    def setUp(self):
+        from billing.catalog import BOOL_FEATURES
+        from billing.models import Plan
+
+        self.user = get_user_model().objects.create_user("pdf@example.com")
+        self.company = _company(self.user, siren="912345678", name="Atelier PDF")
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC/2026 001",
+            client_name="Client PDF",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        self.quote = Quote.objects.create(
+            company=self.company,
+            number="DEV-2026-001",
+            client_name="Client PDF",
+            amount_ht=Decimal("80.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        self.credit_note = CreditNote.objects.create(
+            company=self.company,
+            invoice=self.invoice,
+            number="AV-2026-001",
+            amount_ht=Decimal("20.00"),
+            vat_rate=Decimal("20.00"),
+        )
+        self.plan = Plan.objects.create(
+            code="micro-pdf",
+            name="Micro PDF",
+            price_eur=19,
+            entitlements={
+                **{key: True for key, _label in BOOL_FEATURES},
+                "custom": True,
+                "invoice_pdf": False,
+                "themes": ["azur"],
+            },
+        )
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.get(f"/factures/{self.invoice.id}/pdf/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/compte/", response["Location"])
+
+    def test_forfait_without_pdf_entitlement_gets_403(self):
+        from billing.models import Subscription
+
+        Subscription.objects.create(user=self.user, plan=self.plan, status="active")
+        self.client.force_login(self.user)
+        for url in (
+            f"/factures/{self.invoice.id}/pdf/",
+            f"/factures/devis/{self.quote.id}/pdf/",
+            f"/factures/avoirs/{self.credit_note.id}/pdf/",
+        ):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 403, f"{url} -> {response.get('Location')}")
+
+    def test_pdf_success_and_safe_filename(self):
+        self.client.force_login(self.user)
+        response = self.client.get(f"/factures/{self.invoice.id}/pdf/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertIn("FAC2026_001.pdf", response["Content-Disposition"])
+
+    def test_quote_and_credit_note_pdfs(self):
+        self.client.force_login(self.user)
+        for url, filename in (
+            (f"/factures/devis/{self.quote.id}/pdf/", "DEV-2026-001.pdf"),
+            (f"/factures/avoirs/{self.credit_note.id}/pdf/", "AV-2026-001.pdf"),
+        ):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200, url)
+            self.assertTrue(response.content.startswith(b"%PDF"), url)
+            self.assertIn(filename, response["Content-Disposition"])
+
+    def test_dark_prefixed_pdf_url(self):
+        self.client.force_login(self.user)
+        response = self.client.get(f"/dark/factures/{self.invoice.id}/pdf/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content.startswith(b"%PDF"))
+        self.assertIn("FAC2026_001.pdf", response["Content-Disposition"])

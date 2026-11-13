@@ -15,9 +15,9 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.3">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.13.1">
   <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.12.2">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.12.2">{% endif %}
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.13.1">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -93,6 +93,9 @@
       <a class="side-link {% if admin_section == 'sms' %}active{% endif %}" href="{% url 'admin_backoffice:sms' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> SMS
       </a>
+      <a class="side-link {% if admin_section == 'emails' %}active{% endif %}" href="{% url 'admin_backoffice:email_templates' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="mail" %}</span> Emails automatiques
+      </a>
 
       <div class="nav-sec">Intelligence</div>
       <a class="side-link {% if admin_section == 'ai' %}active{% endif %}" href="{% url 'admin_backoffice:ai_monitoring' %}">
@@ -156,24 +159,24 @@
   </div>
 
   <nav class="m-footer" data-m-footer aria-label="Raccourcis administration">
-    <a class="m-footer-btn" href="{% url 'admin_backoffice:dashboard' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'dashboard_url' %}active{% endif %}" href="{% url 'admin_backoffice:dashboard' %}">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="chart" %}</span>
       <span>Vue d'ensemble</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'admin_backoffice:users' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'users' or request.resolver_match.url_name == 'user_create' or request.resolver_match.url_name == 'user_edit' %}active{% endif %}" href="{% url 'admin_backoffice:users' %}">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
       <span>Utilisateurs</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'admin_backoffice:companies' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'companies' or request.resolver_match.url_name == 'companies_list' or request.resolver_match.url_name == 'company_create' or request.resolver_match.url_name == 'company_edit' %}active{% endif %}" href="{% url 'admin_backoffice:companies' %}">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
       <span>Sociétés</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'admin_backoffice:settings' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'settings' %}active{% endif %}" href="{% url 'admin_backoffice:settings' %}">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="lock" %}</span>
       <span>Paramètres</span>
     </a>
   </nav>
 </div>
-<script src="{% static 'js/app.js' %}?v=2026.11.05.13" defer></script>
+<script src="{% static 'js/app.js' %}?v=2026.11.13.1" defer></script>
 </body>
 </html>

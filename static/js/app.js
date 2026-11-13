@@ -1102,6 +1102,28 @@
   }
 
 
+  function initPageActionMenus() {
+    var menus = document.querySelectorAll("details.page-actions");
+    if (!menus.length) return;
+    var mq = window.matchMedia ? window.matchMedia("(min-width: 769px)") : null;
+
+    function sync() {
+      // Sur desktop le résumé « Actions » est masqué : le détail doit rester
+      // ouvert pour que la liste des boutons soit visible. Sur mobile, le
+      // panneau reste fermé par défaut et s'ouvre au clic.
+      var desktop = !mq || mq.matches;
+      menus.forEach(function (menu) {
+        menu.open = desktop;
+      });
+    }
+
+    sync();
+    if (mq) {
+      if (mq.addEventListener) mq.addEventListener("change", sync);
+      else if (mq.addListener) mq.addListener(sync);
+    }
+  }
+
   function initMobileNav() {
     var shell = document.querySelector("[data-app-shell]");
     if (!shell) return;
@@ -1261,6 +1283,7 @@
     initAgentChat();
     initTicketCamera();
     initMobileNav();
+    initPageActionMenus();
     initTicketFormUx();
     initPhone();
 

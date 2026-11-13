@@ -150,10 +150,67 @@ html[data-theme="dark"] .content h1,
 html[data-theme="dark"] .topbar,
 html[data-theme="dark"] .crumbs { color: var(--ink); }
 
-html[data-theme="dark"] .m-header,
-html[data-theme="dark"] .m-footer {
+html[data-theme="dark"] .m-header {
   background: rgba(7, 7, 8, 0.94);
   border-color: var(--line);
+}
+html[data-theme="dark"] .m-footer {
+  background: rgba(9, 9, 11, 0.66);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 22px 50px -20px rgba(0, 0, 0, 0.9);
+}
+html[data-theme="dark"] .m-footer-btn { color: rgba(255, 255, 255, 0.62); }
+html[data-theme="dark"] .m-footer-btn:hover { color: #fff; background: transparent; }
+html[data-theme="dark"] .m-footer-ico {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+html[data-theme="dark"] .m-footer-btn.active { color: #fff; }
+html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
+  color: #fff;
+  background: linear-gradient(135deg, #ff9a1a 0%, #ff4d6a 52%, #7a3cff 100%);
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 8px 24px -6px rgba(255, 77, 106, 0.55);
+}
+html[data-theme="dark"] .m-footer-btn:focus-visible .m-footer-ico {
+  box-shadow: 0 0 0 3px rgba(255, 154, 26, 0.4), 0 8px 24px -8px rgba(255, 77, 106, 0.6);
+}
+
+/* Cartes société : noir pur uniquement en thème sombre */
+html[data-theme="dark"] .company {
+  background: #000000;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 42px -30px #000000;
+}
+html[data-theme="dark"] .company:hover,
+html[data-theme="dark"] .company:focus-visible {
+  background: #000000;
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 22px 50px -28px #000000;
+}
+html[data-theme="dark"] .company.sel {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 20px 46px -26px rgba(122, 60, 255, 0.55);
+}
+html[data-theme="dark"] .company .s { color: rgba(255, 255, 255, 0.62); }
+html[data-theme="dark"] .company::before {
+  background: linear-gradient(180deg, #ffd24a 0%, #ff9a1a 22%, #ff4d6a 58%, #7a3cff 100%);
+  opacity: 1;
 }
 html[data-theme="dark"] .m-nav-toggle-bars,
 html[data-theme="dark"] .m-nav-toggle-bars::before,

@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import logging
 
-from django.conf import settings
-from django.core.mail import send_mail
+from admin_backoffice.email_templates import display_name, send_template_email
 from core.public_theme import themed_reverse
 
 logger = logging.getLogger(__name__)
@@ -61,17 +60,14 @@ def send_phone_verification(phone: str, code: str) -> bool:
 def send_signup_link(request, email: str, token: str) -> str:
     """Envoie le lien magique d'ouverture de cockpit. Retourne l'URL absolue."""
     url = request.build_absolute_uri(themed_reverse(request, "signup_verify", token=token))
-    send_mail(
-        subject="Confirmez votre cockpit Road Runner Solutions",
-        message=(
-            "Bonjour,\n\n"
-            "Pour confirmer votre adresse email et ouvrir votre cockpit, "
-            "utilisez ce lien (valable 60 minutes, une seule fois) :\n"
-            f"{url}\n\n"
-            "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[email],
-        fail_silently=False,
+    send_template_email(
+        "signup_confirmation",
+        email,
+        {
+            "name": display_name(email),
+            "email": email,
+            "signup_url": url,
+        },
+        request=request,
     )
     return url

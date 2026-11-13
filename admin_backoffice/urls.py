@@ -55,4 +55,7 @@ urlpatterns = [
     path("sms/test/<slug:code>/", views.sms_test, name="sms_test"),
     path("sms/modeles/<int:pk>/modifier/", views.SmsTemplateUpdateView.as_view(), name="sms_template_edit"),
     path("sms/modeles/<int:pk>/supprimer/", views.SmsTemplateDeleteView.as_view(), name="sms_template_delete"),
+
+    path("emails/", views.EmailTemplateListView.as_view(), name="email_templates"),
+    path("emails/<slug:code>/", views.EmailTemplateUpdateView.as_view(), name="email_template_edit"),
 ]

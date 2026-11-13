@@ -9,7 +9,7 @@ from billing.catalog import BOOL_FEATURES
 from billing.models import Plan, Subscription
 from companies.models import INVOICE_THEMES, Company
 
-from .models import SiteConfiguration, SmsTemplate
+from .models import EmailTemplate, SiteConfiguration, SmsTemplate
 
 SECRET_FIELDS = (
     "smtp_password",
@@ -57,6 +57,9 @@ class SiteConfigurationForm(forms.ModelForm):
         fields = [
             "site_name",
             "maintenance_mode",
+            "contact_address",
+            "contact_phone",
+            "contact_email",
             "smtp_host",
             "smtp_port",
             "smtp_user",
@@ -84,6 +87,7 @@ class SiteConfigurationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         for name in SECRET_FIELDS:
+            self.fields[name].required = False
             self.fields[name].widget.attrs["class"] = "form-control"
             self.fields[name].help_text = (
                 "Laisser vide pour conserver la valeur déjà enregistrée. Elle n'est jamais réaffichée."
@@ -318,6 +322,36 @@ class UserAdminForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class EmailTemplateForm(forms.ModelForm):
+    """Objet et corps d'un email automatique, placeholders compris."""
+
+    class Meta:
+        model = EmailTemplate
+        fields = ["subject", "body"]
+        widgets = {
+            "subject": forms.TextInput(attrs={"maxlength": 255}),
+            "body": forms.Textarea(attrs={"rows": 16}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)
+        self.fields["subject"].help_text = "Une seule ligne. Les placeholders sont remplacés à l'envoi."
+        self.fields["body"].help_text = "Texte brut. Les placeholders inconnus restent affichés tels quels."
+
+    def clean_subject(self):
+        subject = " ".join((self.cleaned_data.get("subject") or "").split())
+        if not subject:
+            raise forms.ValidationError("L'objet est obligatoire.")
+        return subject
+
+    def clean_body(self):
+        body = (self.cleaned_data.get("body") or "").strip()
+        if not body:
+            raise forms.ValidationError("Le corps est obligatoire.")
+        return body
 
 
 class SmsTemplateForm(forms.ModelForm):

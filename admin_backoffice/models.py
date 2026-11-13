@@ -61,12 +61,64 @@ class SiteConfiguration(models.Model):
         help_text="Appliquée à tous les forfaits. Vide = texte par défaut.",
     )
 
+    # --- Coordonnées de contact (emails automatiques, mentions légales) ---
+    contact_address = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Adresse postale",
+        help_text="Visible dans les emails automatiques et les mentions légales si renseignée.",
+    )
+    contact_phone = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        verbose_name="Téléphone",
+    )
+    contact_email = models.EmailField(
+        blank=True,
+        default="",
+        verbose_name="Email de contact",
+        help_text="Vide = email d'expédition configuré ci-dessus.",
+    )
+
     class Meta:
         verbose_name = "Configuration du Site"
         verbose_name_plural = "Configuration du Site"
 
     def __str__(self):
         return f"Configuration globale - {self.site_name}"
+
+
+class EmailTemplate(models.Model):
+    """Texte personnalisable d'un email automatique.
+
+    Aucune ligne n'est créée tant que le personnel n'enregistre pas de
+    personnalisation : l'application retombe alors sur les textes par défaut
+    documentés dans ``admin_backoffice.email_templates``.
+    """
+
+    code = models.SlugField(max_length=40, unique=True, verbose_name="Code")
+    subject = models.CharField(max_length=255, verbose_name="Objet")
+    body = models.TextField(verbose_name="Corps")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Mis à jour le")
+    updated_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_templates_updated",
+        verbose_name="Mis à jour par",
+    )
+
+    class Meta:
+        ordering = ["code"]
+        verbose_name = "Modèle d'email"
+        verbose_name_plural = "Modèles d'email"
+
+    def __str__(self):
+        return self.code
+
 
 class SystemLog(models.Model):
     """

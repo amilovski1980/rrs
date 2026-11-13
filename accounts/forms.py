@@ -6,10 +6,16 @@ import unicodedata
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
+from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 
+from admin_backoffice.email_templates import display_name, send_template_email
 from core.demo import DEMO_EMAIL
+from core.public_theme import themed_reverse
 
 
 User = get_user_model()
@@ -109,6 +115,56 @@ class FrenchPasswordResetForm(PasswordResetForm):
         for user in active:
             if _same_email(email, getattr(user, email_field)):
                 yield user
+
+    def save(
+        self,
+        domain_override=None,
+        subject_template_name=None,
+        email_template_name=None,
+        use_https=False,
+        token_generator=None,
+        from_email=None,
+        request=None,
+        html_email_template_name=None,
+        extra_email_context=None,
+    ):
+        """Envoie le lien avec le modèle géré dans le back-office.
+
+        Les arguments de gabarits historiques restent acceptés pour ne pas
+        casser les appels existants (vue publique, administration), mais le
+        texte vient de ``EmailTemplate`` ou de son défaut documenté.
+        """
+        del domain_override, subject_template_name, email_template_name
+        del use_https, from_email, html_email_template_name
+        generator = token_generator or default_token_generator
+        protocol = "https" if request is not None and request.is_secure() else "http"
+        domain = request.get_host() if request is not None else "localhost"
+        for user in self.get_users(self.cleaned_data["email"]):
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = generator.make_token(user)
+            path = (
+                themed_reverse(request, "password_reset_confirm", uidb64=uid, token=token)
+                if request is not None
+                else reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})
+            )
+            reset_url = f"{protocol}://{domain}{path}"
+            context = {
+                "name": display_name(user),
+                "email": user.email,
+                "uid": uid,
+                "token": token,
+                "protocol": protocol,
+                "domain": domain,
+                "reset_url": reset_url,
+            }
+            if extra_email_context:
+                context.update(extra_email_context)
+            send_template_email(
+                "password_reset",
+                user.email,
+                context,
+                request=request,
+            )
 
 
 class FrenchSetPasswordForm(SetPasswordForm):

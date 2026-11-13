@@ -17,9 +17,9 @@
     <li>Forme juridique / capital : <em>[À compléter]</em></li>
     <li>SIREN / SIRET : <em>[À compléter]</em></li>
     <li>RCS / ville d’immatriculation : <em>[À compléter]</em></li>
-    <li>Siège social : <em>[À compléter]</em></li>
+    <li>Siège social : {% if contact.address %}{{ contact.address }}{% else %}<em>[À compléter]</em>{% endif %}</li>
     <li>Directeur de la publication : <em>[À compléter]</em></li>
-    <li>Contact : <em>[À compléter — email / téléphone]</em></li>
+    <li>Contact : {% if contact.email or contact.phone %}{% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}{% if contact.email and contact.phone %} · {% endif %}{% if contact.phone %}{{ contact.phone }}{% endif %}{% else %}<em>[À compléter — email / téléphone]</em>{% endif %}</li>
   </ul>
 
   <h2 style="font-size:18px">Hébergement</h2>

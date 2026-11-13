@@ -22,6 +22,25 @@
   </div>
 
   <div class="card admin-form">
+    <h2 style="margin-top:0;font-family:var(--font-head)">Coordonnées de contact</h2>
+    <p class="sub">Utilisées dans les emails automatiques et, si renseignées, dans les mentions légales.</p>
+    <label for="{{ form.contact_address.id_for_label }}">{{ form.contact_address.label }}</label>
+    {{ form.contact_address }}
+    <p class="secret-hint">{{ form.contact_address.help_text }}</p>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
+        {{ form.contact_phone }}
+      </div>
+      <div>
+        <label for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
+        {{ form.contact_email }}
+        <p class="secret-hint">{{ form.contact_email.help_text }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card admin-form">
     <h2 style="margin-top:0;font-family:var(--font-head)">Email (SMTP)</h2>
     <p class="sub">Appliqué seulement si un utilisateur ou un mot de passe est renseigné.</p>
     <div class="form-grid">

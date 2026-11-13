@@ -2,13 +2,16 @@ import uuid
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
+from billing.access import UPGRADE_MESSAGE, feature_on
 from companies.models import INVOICE_THEMES
 from core.context import resolve_company
 
@@ -57,6 +60,16 @@ def _company_or_redirect(request):
 
 def _scoped(model, company, pk):
     return get_object_or_404(model, pk=pk, company=company)
+
+
+def _pdf_response(request, number, payload):
+    """Réponse PDF commune : forfait vérifié et nom de fichier assaini."""
+    if not feature_on(request.user, "invoice_pdf"):
+        raise PermissionDenied(UPGRADE_MESSAGE)
+    filename = get_valid_filename(f"{number or 'document'}.pdf") or "document.pdf"
+    response = HttpResponse(payload, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 def _qs(company):
@@ -210,9 +223,7 @@ def invoice_pdf(request, pk):
         return bounce
     invoice = _scoped(Invoice, company, pk)
     payload = render_invoice_pdf(invoice, company)
-    response = HttpResponse(payload, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{invoice.number}.pdf"'
-    return response
+    return _pdf_response(request, invoice.number, payload)
 
 
 @login_required
@@ -222,9 +233,7 @@ def quote_pdf(request, pk):
         return bounce
     quote = _scoped(Quote, company, pk)
     payload = render_quote_pdf(quote, company)
-    response = HttpResponse(payload, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{quote.number}.pdf"'
-    return response
+    return _pdf_response(request, quote.number, payload)
 
 
 @login_required
@@ -234,9 +243,7 @@ def credit_note_pdf(request, pk):
         return bounce
     note = _scoped(CreditNote, company, pk)
     payload = render_credit_note_pdf(note, company)
-    response = HttpResponse(payload, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{note.number}.pdf"'
-    return response
+    return _pdf_response(request, note.number, payload)
 
 
 @login_required
