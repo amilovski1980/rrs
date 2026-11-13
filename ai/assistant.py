@@ -114,6 +114,30 @@ def instructions_for(user, company):
     )
 
 
+def admin_context_for(user, company, *, channel: str = "voice") -> str:
+    """Contexte du personnel : pas de rôle d'assistante comptable client.
+
+    Le personnel garde les outils du cockpit pour vérifier une société, mais
+    la consigne administrateur ne doit pas être noyée par un contexte métier.
+    """
+    mode = "chat texte" if channel == "chat" else "voix"
+    if company is None:
+        return (
+            "Contexte administrateur : aucune société n'est sélectionnée. "
+            f"Tu es connecté en mode {mode} pour le personnel. "
+            "Tu peux expliquer une procédure, inspecter la configuration accessible "
+            "et proposer une correction. N'invente aucun chiffre et ne présente "
+            "aucune donnée client."
+        )
+    return (
+        "Contexte administrateur : tu es connecté au cockpit en mode "
+        f"{mode}, avec la société de test {company.denomination} "
+        f"(SIREN {company.siren}). Cette société sert à vérifier les écrans et les outils. "
+        "Tu n'es pas son assistante comptable et tu ne te présentes pas comme telle. "
+        "N'utilise ses données que si la tâche le demande explicitement."
+    )
+
+
 TOOLS = [
     {
         "type": "function",
