@@ -13,9 +13,17 @@ from django.views.generic import TemplateView
 from admin_backoffice.email_templates import display_name, send_template_email
 from core.demo import ADMIN_EMAIL, DEMO_EMAIL, seed_admin, seed_demo
 
+from core.context import resolve_company
 from core.public_theme import is_dark, themed_redirect, themed_reverse, themed_template
 
-from .forms import EmailOnlyForm, FrenchPasswordResetForm, FrenchSetPasswordForm, LoginForm, OwnPasswordForm
+from .forms import (
+    EmailOnlyForm,
+    FrenchPasswordResetForm,
+    FrenchSetPasswordForm,
+    LoginForm,
+    OwnPasswordForm,
+    ProfileForm,
+)
 from .models import MagicLink, User
 
 logger = logging.getLogger(__name__)
@@ -132,17 +140,32 @@ def logout_view(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def profile(request):
-    form = OwnPasswordForm(request.user, request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        request.user.set_password(form.cleaned_data["new_password1"])
-        request.user.save(update_fields=["password"])
-        update_session_auth_hash(request, request.user)
-        messages.success(request, "Mot de passe mis à jour.")
-        return redirect("profile")
+    action = (request.POST.get("action") or "password").strip()
+    password_form = OwnPasswordForm(request.user)
+    profile_form = ProfileForm(instance=request.user)
+    if request.method == "POST":
+        if action == "profile":
+            profile_form = ProfileForm(request.POST, instance=request.user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Profil et signature mis à jour.")
+                return redirect("profile")
+        else:
+            password_form = OwnPasswordForm(request.user, request.POST)
+            if password_form.is_valid():
+                request.user.set_password(password_form.cleaned_data["new_password1"])
+                request.user.save(update_fields=["password"])
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "Mot de passe mis à jour.")
+                return redirect("profile")
+    company = resolve_company(request)
     return render(request, "accounts/profile.html", {
         "user": request.user,
-        "password_form": form,
+        "profile_form": profile_form,
+        "password_form": password_form,
         "has_password": request.user.has_usable_password(),
+        "company": company,
+        "signature_preview": request.user.signature_text(company),
     })
 
 

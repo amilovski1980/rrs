@@ -113,11 +113,14 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Email</th><th>Rôle</th><th>Date</th></tr></thead>
+        <thead><tr><th>Gérant</th><th>Rôle</th><th>Date</th></tr></thead>
         <tbody>
           {% for u in recent_users %}
           <tr>
-            <td><a href="{% url 'admin_backoffice:user_edit' u.pk %}">{{ u.email }}</a></td>
+            <td>
+              <a href="{% url 'admin_backoffice:user_edit' u.pk %}">{{ u.get_full_name|default:u.email }}</a>
+              {% if u.get_full_name %}<div class="muted">{{ u.email }}</div>{% endif %}
+            </td>
             <td>{% if u.is_superuser %}Super-admin{% elif u.is_staff %}Admin{% else %}Client{% endif %}</td>
             <td>{{ u.created_at|date:"d/m/Y H:i" }}</td>
           </tr>

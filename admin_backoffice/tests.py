@@ -285,6 +285,32 @@ class BackofficeAccessAndSectionsTests(TestCase):
         created_user.refresh_from_db()
         self.assertFalse(created_user.is_active)
 
+    def test_gerant_names_are_edited_listed_and_searchable(self):
+        self.client.login(email="boss@rrs.fr", password="password123")
+        saved = self.client.post(reverse("admin_backoffice:user_edit", kwargs={"pk": self.client_user.pk}), {
+            "first_name": "Camille",
+            "last_name": "Durand",
+            "job_title": "Gérante",
+            "email": "client@rrs.fr",
+            "phone": "0600000000",
+            "is_active": "on",
+        })
+        self.assertEqual(saved.status_code, 302)
+        self.client_user.refresh_from_db()
+        self.assertEqual(self.client_user.get_full_name(), "Camille Durand")
+        self.assertEqual(self.client_user.job_title, "Gérante")
+        listed = self.client.get(reverse("admin_backoffice:users"), {"q": "Durand"})
+        self.assertContains(listed, "Camille Durand")
+        self.assertContains(listed, "client@rrs.fr")
+        self.assertContains(listed, "Atelier Client")
+        companies = self.client.get(reverse("admin_backoffice:companies"), {"q": "Camille"})
+        self.assertContains(companies, "Camille Durand")
+        self.assertContains(companies, "Atelier Client")
+        dashboard = self.client.get(reverse("admin_backoffice:dashboard"))
+        self.assertContains(dashboard, "Camille Durand")
+        other = self.client.get(reverse("admin_backoffice:companies"), {"q": "Inconnu"})
+        self.assertNotContains(other, "Atelier Client")
+
     def test_impersonation_is_limited_to_active_clients(self):
         self.client.login(email="boss@rrs.fr", password="password123")
         other_admin = User.objects.create_user(email="autre-admin@rrs.fr", is_staff=True)
@@ -424,22 +450,31 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.client.login(email="boss@rrs.fr", password="password123")
         page = self.client.get(reverse("admin_backoffice:ai_prompt"))
         self.assertContains(page, "Personnalisation de l'IA")
+        self.assertContains(page, "Agent administrateur")
         self.assertContains(page, "volontairement limité")
         self.assertContains(page, "le plus complet")
         custom_global = "Consigne générale de test unique."
         custom_micro = "Micro test : ne parle que du grand livre."
+        custom_admin = "Agent admin test : corrige le site et vérifie /dark."
         posted = self.client.post(reverse("admin_backoffice:ai_prompt"), {
+            "admin_prompt": custom_admin,
             "prompt": custom_global,
             f"plan_prompt_{self.micro.pk}": custom_micro,
             f"plan_prompt_{self.pro.pk}": "",
         }, follow=True)
         self.assertContains(posted, custom_global)
         self.assertContains(posted, custom_micro)
+        self.assertContains(posted, custom_admin)
         layers = layers_for_user(self.client_user)
         self.assertEqual(layers[0], custom_global)
         self.assertEqual(layers[1], custom_micro)
+        admin_layers = layers_for_user(self.admin)
+        self.assertEqual(admin_layers[0], custom_admin)
+        self.assertEqual(admin_layers[1], custom_global)
         self.micro.refresh_from_db()
         self.assertEqual(self.micro.ai_prompt, custom_micro)
+        from admin_backoffice.models import SiteConfiguration
+        self.assertEqual(SiteConfiguration.objects.get(pk=1).admin_ai_prompt, custom_admin)
 
 
 def _staff(email):

@@ -5,14 +5,57 @@
 <div class="page-head">
   <div>
     <h1>Mon profil</h1>
-    <p class="sub">Vos informations d'identification et de sécurité.</p>
+    <p class="sub">Vos informations d'identification, votre signature email et votre sécurité.</p>
   </div>
 </div>
 
 <div class="grid g2" style="align-items:start">
   <div class="card">
-    <h2 style="margin:0 0 14px;font-size:18px">Identité</h2>
-    <table>
+    <h2 style="margin:0 0 6px;font-size:18px">Identité et signature</h2>
+    <p class="sub" style="margin:0 0 16px">Le nom et la signature sont ajoutés aux emails envoyés depuis le cockpit.</p>
+    <form class="form-stack" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+      {% if profile_form.non_field_errors %}
+      <ul class="form-errors">{% for e in profile_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      <div class="form-grid">
+        <div>
+          <label for="{{ profile_form.first_name.id_for_label }}">{{ profile_form.first_name.label }}</label>
+          {{ profile_form.first_name }}
+          {% if profile_form.first_name.errors %}<p class="error">{{ profile_form.first_name.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ profile_form.last_name.id_for_label }}">{{ profile_form.last_name.label }}</label>
+          {{ profile_form.last_name }}
+          {% if profile_form.last_name.errors %}<p class="error">{{ profile_form.last_name.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div>
+        <label for="{{ profile_form.job_title.id_for_label }}">{{ profile_form.job_title.label }}</label>
+        {{ profile_form.job_title }}
+        {% if profile_form.job_title.errors %}<p class="error">{{ profile_form.job_title.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ profile_form.email_signature.id_for_label }}">{{ profile_form.email_signature.label }}</label>
+        {{ profile_form.email_signature }}
+        <p class="helptext">{{ profile_form.email_signature.help_text }}</p>
+        {% if profile_form.email_signature.errors %}<p class="error">{{ profile_form.email_signature.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <p class="micro" style="margin:0 0 6px">
+          Aperçu de la signature
+          {% if user.email_signature %}<span class="badge badge-blue">Personnalisée</span>{% else %}<span class="badge badge-green">Automatique</span>{% endif %}
+        </p>
+        <div class="signature-preview">{% if signature_preview %}{{ signature_preview }}{% else %}Renseignez votre nom ou une signature pour voir l'aperçu.{% endif %}</div>
+      </div>
+      <div class="form-actions-bar">
+        <button class="btn btn-primary" type="submit">Enregistrer le profil</button>
+        <a class="btn btn-ghost" href="{% url 'cockpit' %}">Continuer vers le cockpit</a>
+      </div>
+    </form>
+
+    <table style="margin-top:18px">
       <tbody>
         <tr><td class="muted">Email</td><td><b>{{ user.email }}</b></td></tr>
         <tr><td class="muted">Téléphone</td><td><b>{{ user.phone|default:"Non renseigné" }}</b></td></tr>
@@ -21,6 +64,7 @@
       </tbody>
     </table>
   </div>
+
   <div class="card">
     <div style="display:flex;align-items:center;gap:9px;color:var(--blue)">
       {% include "partials/icon.html" with name="shield" %}
@@ -35,6 +79,7 @@
     </p>
     <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="action" value="password">
       {% if password_form.non_field_errors %}
       <ul class="form-errors">{% for e in password_form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}

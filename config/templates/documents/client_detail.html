@@ -26,6 +26,33 @@
     <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
   </form>
 </div>
+<div class="card card-tight" style="margin-bottom:16px">
+  <div class="page-head" style="margin-bottom:12px">
+    <div>
+      <h2 style="font-size:18px;margin:0">Contacts</h2>
+      <p class="sub" style="margin:4px 0 0">Les personnes à joindre pour ce client.</p>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="{% url 'contact_create' %}?societe={{ company.id }}&client={{ client.id }}">Ajouter un contact</a>
+  </div>
+  {% if client.contacts.all %}
+  <table>
+    <thead><tr><th>Nom</th><th>Département</th><th>E-mail</th><th>Téléphone</th><th></th></tr></thead>
+    <tbody>
+      {% for contact in client.contacts.all %}
+      <tr>
+        <td><a href="{% url 'contact_detail' contact.id %}?societe={{ company.id }}"><b>{{ contact.full_name }}</b></a>{% if contact.is_primary %} <span class="badge badge-green">Principal</span>{% endif %}</td>
+        <td>{{ contact.get_department_display }}</td>
+        <td>{{ contact.email|default:"—" }}</td>
+        <td>{{ contact.phone|default:"—" }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'contact_edit' contact.id %}?societe={{ company.id }}">Modifier</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Aucun contact pour ce client. Ajoutez le contact principal.</p>
+  {% endif %}
+</div>
 <div class="card card-tight">
   <h2 style="font-size:18px;margin:0 0 12px">Factures récentes</h2>
   <table>

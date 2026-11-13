@@ -269,6 +269,92 @@ h1 .underlined::after {
 .siren-result .siren-loading { color: var(--muted); background: var(--blue-pale); }
 .siren-box button[disabled] { opacity: .65; cursor: wait; }
 .hero-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 0; font-size: 14px; font-weight: 700; }
+
+/* Recherche SIREN / nom dans la fiche client */
+.client-lookup {
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.client-lookup-head h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-head);
+  font-size: 18px;
+}
+.client-lookup-head .sub { margin: 0 0 12px; }
+.client-lookup-row { display: flex; gap: 8px; align-items: stretch; }
+.client-lookup-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.client-lookup-row input:focus {
+  outline: 2px solid var(--blue-2);
+  outline-offset: 1px;
+}
+.client-lookup-row .btn { white-space: nowrap; }
+.client-lookup-status {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.client-lookup-status.is-error { color: var(--red); }
+.client-lookup-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.client-lookup-results[hidden] { display: none; }
+.client-lookup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.client-lookup-card:hover,
+.client-lookup-card:focus-within {
+  border-color: var(--blue-2);
+  box-shadow: var(--shadow-sm);
+}
+.client-lookup-card > div { min-width: 0; }
+.client-lookup-kicker {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.client-lookup-card strong {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 16px;
+  line-height: 1.3;
+}
+.client-lookup-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.client-lookup-card .btn { flex: 0 0 auto; }
+
+@media (max-width: 560px) {
+  .client-lookup-row { flex-direction: column; }
+  .client-lookup-row .btn { width: 100%; }
+  .client-lookup-card { align-items: flex-start; flex-direction: column; }
+}
 .hero-links a { color: var(--blue); }
 .hero-links span { color: var(--muted); font-weight: 500; }
 
@@ -2472,4 +2558,23 @@ label.ticket-camera-btn.btn-primary:hover {
   font-size: 11px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
+}
+
+/* ---------- Contacts et signature email ---------- */
+.signature-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px dashed var(--line-2);
+  border-radius: 12px;
+  background: var(--blue-pale);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.actions-list form { margin: 0; }
+@media (max-width: 860px) {
+  .actions-list form { width: 100%; }
+  .actions-list form .btn { width: 100%; }
 }

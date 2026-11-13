@@ -3,7 +3,8 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>{{ subscription.user.email }}</h1>
+    <h1>{{ subscription.user.get_full_name|default:subscription.user.email }}</h1>
+    {% if subscription.user.get_full_name %}<p class="sub">{{ subscription.user.email }}</p>{% endif %}
     <p class="sub">{{ subscription.plan.name }} — {{ subscription.plan.price_eur }} € / mois. Créé le {{ subscription.created_at|date:"d/m/Y H:i" }}.</p>
   </div>
   <a class="btn btn-ghost" href="{% url 'admin_backoffice:billing' %}">Retour aux abonnés</a>

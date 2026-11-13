@@ -355,6 +355,34 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertNotIn("draft_invoice", names)
         self.assertIn("get_balance", names)
 
+    def test_staff_chat_uses_admin_prompt_and_all_tools(self):
+        from django.test import override_settings
+
+        from admin_backoffice.models import SiteConfiguration
+
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        SiteConfiguration.objects.create(admin_ai_prompt="CONSIGNE-ADMIN-TEST corrige le site")
+
+        class Fake:
+            def chat(self, messages, tools=None):
+                self.messages = messages
+                self.tools = tools
+                return {"choices": [{"message": {"content": "Bien reçu.", "tool_calls": []}}]}
+
+        fake = Fake()
+        from ai.chat import get_or_create_conversation, run_chat_turn
+
+        conversation = get_or_create_conversation(self.user, self.company)
+        with override_settings(LLM_BASE_URL="http://llm.test/v1"):
+            result = run_chat_turn(self.user, self.company, conversation, "Corrige le site", client=fake)
+        self.assertTrue(result["ok"])
+        system = fake.messages[0]["content"]
+        self.assertIn("CONSIGNE-ADMIN-TEST", system)
+        self.assertIn("Cadre administrateur", system)
+        names = [tool["function"]["name"] for tool in fake.tools]
+        self.assertIn("draft_invoice", names)
+
     def test_micro_plan_blocks_invoice_tool(self):
         result = execute_tool(self.user, self.company, "draft_invoice", {
             "client_name": "Atelier",

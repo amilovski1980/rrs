@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ contact.full_name }}{% endblock %}
+{% block crumbs %}Facturation / Contacts / {{ contact.full_name }}{% endblock %}
+{% block nav_contacts %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ contact.full_name }}</h1>
+    <p class="sub">{{ contact.get_department_display }}{% if contact.job_title %} · {{ contact.job_title }}{% endif %}</p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-primary" href="{% url 'contact_edit' contact.id %}?societe={{ company.id }}">Modifier</a>
+      <a class="btn btn-ghost" href="{% url 'contacts' %}?societe={{ company.id }}">Retour</a>
+    </div>
+  </details>
+</div>
+
+<div class="card" style="margin-bottom:16px">
+  {% if contact.is_primary %}<p><span class="badge badge-green">Contact principal</span></p>{% endif %}
+  <p><b>Société / organisation</b> — {% if contact.organization %}{{ contact.organization }}{% elif contact.client %}{{ contact.client.name }}{% else %}—{% endif %}</p>
+  <p><b>Département</b> — {{ contact.get_department_display }}</p>
+  <p><b>Fonction</b> — {{ contact.job_title|default:"—" }}</p>
+  <p><b>E-mail</b> — {% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% else %}—{% endif %}</p>
+  <p><b>Téléphone</b> — {{ contact.phone|default:"—" }}</p>
+  {% if contact.client %}
+  <p><b>Fiche client</b> — <a href="{% url 'client_detail' contact.client.id %}?societe={{ company.id }}">{{ contact.client.name }}</a></p>
+  {% endif %}
+  {% if contact.notes %}<p><b>Notes</b> — {{ contact.notes }}</p>{% endif %}
+  <form method="post" action="{% url 'contact_delete' contact.id %}?societe={{ company.id }}" style="margin-top:16px" onsubmit="return confirm('Supprimer ce contact ?');">
+    {% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+  </form>
+</div>
+{% endblock %}

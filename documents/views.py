@@ -1,3 +1,4 @@
+import logging
 import uuid
 from decimal import Decimal
 
@@ -15,6 +16,7 @@ from billing.access import UPGRADE_MESSAGE, feature_on
 from companies.models import INVOICE_THEMES
 from core.context import resolve_company
 
+from .emailing import send_document_email
 from .forms import (
     ClientForm,
     CreditNoteForm,
@@ -49,6 +51,8 @@ from .services import (
     register_payment,
     sync_sale,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _company_or_redirect(request):
@@ -244,6 +248,59 @@ def credit_note_pdf(request, pk):
     note = _scoped(CreditNote, company, pk)
     payload = render_credit_note_pdf(note, company)
     return _pdf_response(request, note.number, payload)
+
+
+def _email_document(request, company, document, kind: str, detail_name: str):
+    """Envoi commun facture / devis / avoir, avec message de retour explicite."""
+    if not feature_on(request.user, "invoice_pdf"):
+        raise PermissionDenied(UPGRADE_MESSAGE)
+    labels = {"invoice": "Facture", "quote": "Devis", "credit_note": "Avoir"}
+    try:
+        recipient = send_document_email(document, company, request.user, kind, request=request)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    except Exception:
+        logger.exception("Envoi email impossible pour %s", document.number)
+        messages.error(
+            request,
+            "L'email n'a pas pu être envoyé. Vérifiez la configuration email puis réessayez.",
+        )
+    else:
+        messages.success(
+            request,
+            f"{labels.get(kind, 'Document')} {document.number} envoyé à {recipient}.",
+        )
+    return redirect(reverse(detail_name, args=[document.id]) + _qs(company))
+
+
+@login_required
+@require_POST
+def invoice_email(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    return _email_document(request, company, invoice, "invoice", "invoice_detail")
+
+
+@login_required
+@require_POST
+def quote_email(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    quote = _scoped(Quote, company, pk)
+    return _email_document(request, company, quote, "quote", "quote_detail")
+
+
+@login_required
+@require_POST
+def credit_note_email(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    note = _scoped(CreditNote, company, pk)
+    return _email_document(request, company, note, "credit_note", "credit_note_detail")
 
 
 @login_required

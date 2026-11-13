@@ -99,6 +99,33 @@ class OwnPasswordForm(forms.Form):
         return cleaned
 
 
+class ProfileForm(forms.ModelForm):
+    """Identité et signature utilisées dans les emails envoyés depuis le cockpit."""
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "job_title", "email_signature")
+        widgets = {
+            "email_signature": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "placeholder": "Laissez vide pour utiliser la signature automatique "
+                    "(nom, fonction, société, email et téléphone).",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["first_name"].label = "Prénom"
+        self.fields["last_name"].label = "Nom"
+        self.fields["job_title"].label = "Fonction"
+        self.fields["email_signature"].label = "Signature email"
+        self.fields["first_name"].widget.attrs.update({"autocomplete": "given-name"})
+        self.fields["last_name"].widget.attrs.update({"autocomplete": "family-name"})
+        self.fields["job_title"].widget.attrs.update({"autocomplete": "organization-title"})
+
+
 class FrenchPasswordResetForm(PasswordResetForm):
     """Inclut les comptes sans mot de passe utilisable : ils doivent pouvoir en définir un."""
 

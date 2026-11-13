@@ -3,11 +3,13 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase
 
 from accounting.models import JournalEntry
 from accounting.services import generate_portal
 from companies.models import Company
+from contacts.models import Contact
 from fpdf import FPDF
 
 from .models import Client, CreditNote, Invoice, InvoiceLine, Payment, Product, Project, Quote
@@ -118,6 +120,44 @@ class TenantIsolationTests(TestCase):
     def test_cannot_open_other_company_client(self):
         response = self.http.get(f"/factures/clients/{self.client_b.id}/")
         self.assertEqual(response.status_code, 404)
+
+
+class ClientLookupFormTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("clients@example.com")
+        self.company = _company(user, siren="777777777", name="Clients Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_create_form_exposes_automatic_siren_or_name_lookup(self):
+        response = self.http.get("/factures/clients/nouveau/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-client-lookup")
+        self.assertContains(response, "data-client-lookup-input")
+        self.assertContains(response, "data-client-lookup-submit")
+        self.assertContains(response, "Rechercher une entreprise")
+        self.assertContains(response, 'id="id_siren"')
+
+    def test_dark_create_form_has_the_same_lookup(self):
+        response = self.http.get("/dark/factures/clients/nouveau/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-client-lookup")
+        self.assertContains(response, "data-client-lookup-input")
+        self.assertContains(response, "Rechercher une entreprise")
+        self.assertContains(response, 'id="id_siren"')
+        self.assertContains(response, "dark-app.css")
+
+    def test_manual_client_creation_still_works(self):
+        response = self.http.post("/factures/clients/nouveau/", {
+            "name": "Client Manuel",
+            "siren": "123456789",
+            "address": "1 rue de la Paix, 75002 Paris",
+            "email": "",
+            "phone": "",
+            "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Client.objects.filter(company=self.company, name="Client Manuel").exists())
 
 
 class QuoteConversionTests(TestCase):
@@ -975,3 +1015,135 @@ class DocumentPdfExportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn("FAC2026_001.pdf", response["Content-Disposition"])
+
+class DocumentEmailTests(TestCase):
+    """Envoi des documents : contact principal, signature et PDF joint."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            "camille@example.com", password="password123"
+        )
+        self.user.first_name = "Camille"
+        self.user.last_name = "Martin"
+        self.user.job_title = "Dirigeante"
+        self.user.save(update_fields=["first_name", "last_name", "job_title"])
+        self.company = _company(self.user, siren="812345678", name="Atelier Email")
+        self.company.phone = "01 23 45 67 89"
+        self.company.save(update_fields=["phone"])
+        self.customer = Client.objects.create(
+            company=self.company,
+            name="Cadres Industries",
+            siren="552100554",
+            email="fiche@example.fr",
+        )
+        self.contact = Contact.objects.create(
+            company=self.company,
+            client=self.customer,
+            first_name="Alice",
+            last_name="Durand",
+            department="facturation",
+            email="alice@example.fr",
+            is_primary=True,
+        )
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC-2026-00042",
+            client=self.customer,
+            client_name="Cadres Industries",
+            client_siren="552100554",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        self.quote = Quote.objects.create(
+            company=self.company,
+            number="DEV-2026-001",
+            client=self.customer,
+            client_name="Cadres Industries",
+            client_siren="552100554",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="sent",
+        )
+        self.credit_note = CreditNote.objects.create(
+            company=self.company,
+            invoice=self.invoice,
+            number="AV-2026-001",
+            amount_ht=Decimal("20.00"),
+            vat_rate="20.00",
+        )
+        self.http = self.client
+        self.http.force_login(self.user)
+
+    def test_invoice_email_uses_primary_contact_and_signature(self):
+        response = self.http.post(f"/factures/{self.invoice.id}/envoyer/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, ["alice@example.fr"])
+        self.assertIn("Votre facture FAC-2026-00042", message.subject)
+        self.assertIn("Alice Durand", message.body)
+        self.assertIn("Camille Martin", message.body)
+        self.assertIn("Dirigeante", message.body)
+        self.assertIn("Atelier Email", message.body)
+        self.assertIn("120,00 € TTC", message.body)
+        attachments = message.attachments
+        self.assertEqual(len(attachments), 1)
+        filename, payload, mimetype = attachments[0]
+        self.assertEqual(filename, "FAC-2026-00042.pdf")
+        self.assertEqual(mimetype, "application/pdf")
+        self.assertTrue(payload.startswith(b"%PDF"))
+
+    def test_quote_and_credit_note_are_emailed_with_pdf(self):
+        quote_response = self.http.post(f"/factures/devis/{self.quote.id}/envoyer/")
+        self.assertEqual(quote_response.status_code, 302)
+        note_response = self.http.post(f"/factures/avoirs/{self.credit_note.id}/envoyer/")
+        self.assertEqual(note_response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn("Votre devis DEV-2026-001", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].attachments[0][0], "DEV-2026-001.pdf")
+        self.assertIn("Votre avoir AV-2026-001", mail.outbox[1].subject)
+        self.assertEqual(mail.outbox[1].attachments[0][0], "AV-2026-001.pdf")
+
+    def test_dark_email_url_stays_in_dark_space(self):
+        response = self.http.post(f"/dark/factures/{self.invoice.id}/envoyer/")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith("/dark/factures/"))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_missing_client_email_is_reported_without_sending(self):
+        client = Client.objects.create(
+            company=self.company, name="Sans Email", siren="552100556"
+        )
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC-2026-00043",
+            client=client,
+            client_name="Sans Email",
+            amount_ht=Decimal("50.00"),
+            vat_rate="20.00",
+            status="issued",
+        )
+        response = self.http.post(f"/factures/{invoice.id}/envoyer/", follow=True)
+        self.assertContains(response, "Aucune adresse email")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_email_respects_pdf_entitlement(self):
+        from billing.catalog import BOOL_FEATURES
+        from billing.models import Plan, Subscription
+
+        plan = Plan.objects.create(
+            code="micro-email",
+            name="Micro Email",
+            price_eur=19,
+            entitlements={
+                **{key: True for key, _label in BOOL_FEATURES},
+                "custom": True,
+                "invoice_pdf": False,
+                "themes": ["azur"],
+            },
+        )
+        Subscription.objects.create(user=self.user, plan=plan, status="active")
+        response = self.http.post(f"/factures/{self.invoice.id}/envoyer/")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(len(mail.outbox), 0)

@@ -12,6 +12,10 @@
     <summary class="btn btn-primary actions-summary">Actions</summary>
     <div class="actions-list">
       <a class="btn btn-primary" href="{% url 'invoice_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      <form method="post" action="{% url 'invoice_email' invoice.id %}?societe={{ company.id }}">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Envoyer par email</button>
+      </form>
       <a class="btn btn-ghost" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">
         {% include "partials/icon.html" with name="pencil" %} Modifier
       </a>

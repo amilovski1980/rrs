@@ -37,7 +37,10 @@
       <tbody>
         {% for invoice in invoices %}
         <tr>
-          <td><a href="{% url 'admin_backoffice:user_billing' invoice.user.pk %}">{{ invoice.user.email }}</a></td>
+          <td>
+            <a href="{% url 'admin_backoffice:user_billing' invoice.user.pk %}">{{ invoice.user.get_full_name|default:invoice.user.email }}</a>
+            {% if invoice.user.get_full_name %}<div class="muted">{{ invoice.user.email }}</div>{% endif %}
+          </td>
           <td>
             {% for company in invoice.user.companies.all %}
             <div>{{ company.denomination }}</div>

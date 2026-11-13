@@ -5,6 +5,7 @@ html[data-theme="dark"] {
   --ink-2: #d4d4d8;
   --muted: #a4a4ab;
   --bg: #070708;
+  --bg-2: #1b1b1f;
   --surface: #121214;
   --card: #141416;
   --blue: #f4f4f5;
@@ -226,6 +227,38 @@ html[data-theme="dark"] .agent-dialog {
 html[data-theme="dark"] .agent-fab-orb {
   background: linear-gradient(135deg, #083d22, #18c26a 50%, #d8ff86);
 }
+html[data-theme="dark"] .agent-chat-bubble--assistant {
+  background: var(--bg-2);
+  color: var(--ink);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .agent-chat-error { color: #ff8aa0; }
+
+/* Forfaits : cartes sombres lisibles, sans fond blanc hérité du site clair */
+html[data-theme="dark"] .plan {
+  background: #121214;
+  color: var(--ink);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .plan:hover { border-color: var(--blue-2); }
+html[data-theme="dark"] .plan.hot { border-color: rgba(255, 255, 255, 0.55); }
+html[data-theme="dark"] .plan h3 { color: var(--ink); }
+html[data-theme="dark"] .plan .desc { color: var(--muted); }
+html[data-theme="dark"] .plan ul { color: var(--ink-2); }
+html[data-theme="dark"] .plan .price small { color: var(--muted); }
+
+/* Recherche SIREN / nom dans la fiche client */
+html[data-theme="dark"] .client-lookup-card {
+  background: #121214;
+  color: var(--ink);
+  border-color: var(--line);
+  border-left-color: #3ddc6a;
+}
+html[data-theme="dark"] .client-lookup-card:hover,
+html[data-theme="dark"] .client-lookup-card:focus-within { border-color: rgba(255, 255, 255, 0.36); }
+html[data-theme="dark"] .client-lookup-kicker { color: #c6ffb1; }
+html[data-theme="dark"] .client-lookup-status.is-error { color: #ff8aa0; }
+html[data-theme="dark"] .client-lookup-row input { background: #0c0c0e; color: var(--ink); }
 
 html[data-theme="dark"] .sheet {
   background: #fff;
@@ -245,3 +278,13 @@ html[data-theme="dark"] .impersonation-banner { background: #3a2a08; color: #ffe
 html[data-theme="dark"] .impersonation-banner button { background: transparent; color: #ffe7b0; border-color: #ffe7b0; }
 
 html[data-theme="dark"] ::selection { background: rgba(61, 220, 106, 0.35); color: #fff; }
+
+/* Contacts, signature et actions d'envoi sous /dark */
+html[data-theme="dark"] .signature-preview {
+  background: #0c0c0e;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ink-2);
+}
+html[data-theme="dark"] .actions-list form .btn {
+  color: var(--ink);
+}

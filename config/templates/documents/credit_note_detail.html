@@ -12,6 +12,10 @@
     <summary class="btn btn-primary actions-summary">Actions</summary>
     <div class="actions-list">
       <a class="btn btn-primary" href="{% url 'credit_note_pdf' credit_note.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      <form method="post" action="{% url 'credit_note_email' credit_note.id %}?societe={{ company.id }}">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Envoyer par email</button>
+      </form>
       {% if credit_note.status == "draft" %}
       <a class="btn btn-ghost" href="{% url 'credit_note_edit' credit_note.id %}?societe={{ company.id }}">Modifier</a>
       {% endif %}

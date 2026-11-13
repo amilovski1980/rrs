@@ -21,8 +21,10 @@ from companies.models import Company
 
 from .access import staff_required, user_is_admin
 from .agent_prompts import (
+    DEFAULT_ADMIN_PROMPT,
     DEFAULT_GLOBAL_PROMPT,
     TIER_LABELS,
+    admin_prompt_text,
     default_prompt_for_plan,
     effective_plan_prompt,
     global_prompt_text,
@@ -292,7 +294,11 @@ class CompanyListView(AdminStaffMixin, ListView):
         q = (self.request.GET.get("q") or "").strip()
         if q:
             qs = qs.filter(
-                Q(denomination__icontains=q) | Q(siren__icontains=q) | Q(owner__email__icontains=q)
+                Q(denomination__icontains=q)
+                | Q(siren__icontains=q)
+                | Q(owner__email__icontains=q)
+                | Q(owner__first_name__icontains=q)
+                | Q(owner__last_name__icontains=q)
             )
         self.q = q
         return qs
@@ -420,7 +426,12 @@ class SubscriptionListView(AdminStaffMixin, ListView):
         self.q = (self.request.GET.get("q") or "").strip()
         self.status = (self.request.GET.get("status") or "").strip()
         if self.q:
-            qs = qs.filter(Q(user__email__icontains=self.q) | Q(plan__name__icontains=self.q))
+            qs = qs.filter(
+                Q(user__email__icontains=self.q)
+                | Q(user__first_name__icontains=self.q)
+                | Q(user__last_name__icontains=self.q)
+                | Q(plan__name__icontains=self.q)
+            )
         if self.status:
             qs = qs.filter(status=self.status)
         return qs
@@ -486,13 +497,18 @@ class UserListView(AdminStaffMixin, ListView):
     crumbs_label = "Utilisateurs"
 
     def get_queryset(self):
-        qs = User.objects.all().order_by("-created_at")
+        qs = User.objects.all().prefetch_related("companies").order_by("-created_at")
         self.q = (self.request.GET.get("q") or "").strip()
         self.role = (self.request.GET.get("role") or "").strip()
         self.active = (self.request.GET.get("active") or "").strip()
         self.phone = (self.request.GET.get("phone") or "").strip()
         if self.q:
-            qs = qs.filter(Q(email__icontains=self.q) | Q(phone__icontains=self.q))
+            qs = qs.filter(
+                Q(email__icontains=self.q)
+                | Q(phone__icontains=self.q)
+                | Q(first_name__icontains=self.q)
+                | Q(last_name__icontains=self.q)
+            )
         if self.role == "superuser":
             qs = qs.filter(is_superuser=True)
         elif self.role == "staff":
@@ -749,12 +765,14 @@ class AiPromptView(AdminStaffMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["current_prompt"] = global_prompt_text()
+        context["admin_prompt"] = admin_prompt_text()
         context["plans"] = self._plans()
         return context
 
     def post(self, request, *args, **kwargs):
         from django.conf import settings
 
+        config = None
         new_prompt = request.POST.get("prompt")
         if new_prompt is not None:
             config, _ = SiteConfiguration.objects.get_or_create(id=1)
@@ -762,6 +780,14 @@ class AiPromptView(AdminStaffMixin, TemplateView):
             config.ai_system_prompt = "" if text == DEFAULT_GLOBAL_PROMPT.strip() else text
             config.save(update_fields=["ai_system_prompt"])
             settings.AI_SYSTEM_PROMPT = text or DEFAULT_GLOBAL_PROMPT
+
+        new_admin_prompt = request.POST.get("admin_prompt")
+        if new_admin_prompt is not None:
+            if config is None:
+                config, _ = SiteConfiguration.objects.get_or_create(id=1)
+            admin_text = new_admin_prompt.strip()
+            config.admin_ai_prompt = "" if admin_text == DEFAULT_ADMIN_PROMPT.strip() else admin_text
+            config.save(update_fields=["admin_ai_prompt"])
         peers = list(Plan.objects.all())
         for plan in peers:
             key = f"plan_prompt_{plan.pk}"
@@ -945,6 +971,11 @@ class EmailTemplateUpdateView(AdminFormMixin, UpdateView):
             "signup_url": "https://exemple.fr/inscription/verifier/…",
             "magic_url": "https://exemple.fr/connexion/lien/…",
             "reset_url": "https://exemple.fr/compte/mot-de-passe/…",
+            "document_label": "facture",
+            "document_number": "FAC-2026-00042",
+            "document_amount": "2 880,00 €",
+            "document_note": "Le règlement est attendu selon les conditions convenues.",
+            "signature": "Camille Martin\nDirigeante\nAtelier Camille\ncamille@example.fr · 01 23 45 67 89",
         }
         preview_subject, preview_body = render_email(definition.code, context=sample)
         context.update({

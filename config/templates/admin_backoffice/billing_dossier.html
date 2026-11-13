@@ -12,7 +12,7 @@
 {% if company %}
 <div class="card" style="margin-bottom:16px">
   <p style="margin:0"><b>{{ company.denomination }}</b> — SIREN {{ company.siren }}</p>
-  <p class="muted" style="margin:6px 0 0">Compte propriétaire : <a href="{% url 'admin_backoffice:user_billing' account.pk %}">{{ account.email }}</a></p>
+  <p class="muted" style="margin:6px 0 0">Gérant / propriétaire : <a href="{% url 'admin_backoffice:user_billing' account.pk %}">{{ account.get_full_name|default:account.email }}</a>{% if account.get_full_name %} — {{ account.email }}{% endif %}</p>
 </div>
 {% endif %}
 

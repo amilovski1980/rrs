@@ -282,6 +282,159 @@
     }
   }
 
+  function initClientLookup() {
+    var root = document.querySelector("[data-client-lookup]");
+    if (!root) return;
+
+    var input = root.querySelector("[data-client-lookup-input]");
+    var button = root.querySelector("[data-client-lookup-submit]");
+    var status = root.querySelector("[data-client-lookup-status]");
+    var results = root.querySelector("[data-client-lookup-results]");
+    if (!input || !button || !status || !results) return;
+
+    var nameField = document.getElementById("id_name");
+    var sirenField = document.getElementById("id_siren");
+    var addressField = document.getElementById("id_address");
+    var controller = null;
+    var requestId = 0;
+
+    var formatSiren = function (siren) {
+      return String(siren || "").replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
+    };
+
+    var displayName = function (item) {
+      return item.nom_complet || item.nom_raison_sociale || ("SIREN " + formatSiren(item.siren));
+    };
+
+    var displayAddress = function (item) {
+      var siege = item.siege || {};
+      if (siege.adresse) return siege.adresse;
+      return [siege.code_postal, siege.libelle_commune].filter(Boolean).join(" ");
+    };
+
+    var setStatus = function (message, isError) {
+      status.textContent = message || "";
+      status.hidden = !message;
+      status.classList.toggle("is-error", !!isError);
+    };
+
+    var clearResults = function () {
+      results.replaceChildren();
+      results.hidden = true;
+    };
+
+    var notify = function (field) {
+      if (!field) return;
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    var apply = function (item) {
+      var siren = String(item.siren || "").replace(/\D/g, "").slice(0, 9);
+      if (nameField) {
+        nameField.value = displayName(item);
+        notify(nameField);
+      }
+      if (sirenField && siren) {
+        sirenField.value = siren;
+        notify(sirenField);
+      }
+      var address = displayAddress(item);
+      if (addressField && address) {
+        addressField.value = address;
+        notify(addressField);
+      }
+      clearResults();
+      setStatus("Fiche remplie : " + displayName(item) + ". Vérifiez les champs avant d'enregistrer.");
+      input.value = "";
+    };
+
+    var render = function (items) {
+      results.replaceChildren();
+      items.slice(0, 5).forEach(function (item) {
+        var card = document.createElement("div");
+        card.className = "client-lookup-card";
+
+        var info = document.createElement("div");
+        var kicker = document.createElement("span");
+        kicker.className = "client-lookup-kicker";
+        kicker.textContent = "SIREN " + formatSiren(item.siren);
+        var name = document.createElement("strong");
+        name.textContent = displayName(item);
+        var meta = document.createElement("span");
+        meta.className = "client-lookup-meta";
+        var address = displayAddress(item);
+        meta.textContent = [address, item.activite_principale ? "Activité " + item.activite_principale : ""].filter(Boolean).join(" · ");
+        info.append(kicker, name, meta);
+
+        var use = document.createElement("button");
+        use.type = "button";
+        use.className = "btn btn-ghost btn-sm";
+        use.textContent = "Utiliser cette fiche";
+        use.addEventListener("click", function () { apply(item); });
+
+        card.append(info, use);
+        results.appendChild(card);
+      });
+      results.hidden = !items.length;
+    };
+
+    var search = function () {
+      var query = (input.value || "").trim();
+      var digits = query.replace(/\D/g, "");
+      if (query.length < 2) {
+        setStatus("Saisissez un SIREN, un SIRET ou au moins deux caractères du nom.", true);
+        input.focus();
+        return;
+      }
+
+      if (controller) controller.abort();
+      controller = new AbortController();
+      var currentId = ++requestId;
+      button.disabled = true;
+      clearResults();
+      setStatus("Recherche dans la base Sirene…", false);
+
+      fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(query) + "&page=1&per_page=5", {
+        signal: controller.signal,
+        headers: { Accept: "application/json" }
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          var items = data.results || [];
+          if (digits.length === 9) {
+            items = items.filter(function (item) { return item.siren === digits; });
+          } else if (digits.length === 14) {
+            items = items.filter(function (item) { return item.siren === digits.slice(0, 9); });
+          }
+          if (!items.length) {
+            setStatus("Aucune entreprise trouvée. Vérifiez la saisie ou remplissez la fiche manuellement.", true);
+            return;
+          }
+          setStatus(items.length + " résultat" + (items.length > 1 ? "s" : "") + " — choisissez la bonne fiche.");
+          render(items);
+        })
+        .catch(function (error) {
+          if (error.name === "AbortError") return;
+          setStatus("Recherche indisponible pour le moment. Remplissez la fiche manuellement.", true);
+        })
+        .finally(function () {
+          if (currentId === requestId) button.disabled = false;
+        });
+    };
+
+    button.addEventListener("click", search);
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        search();
+      }
+    });
+  }
+
   function initActivityDemo() {
     var select = document.querySelector("[data-activity-select]");
     if (!select) return;
@@ -1278,6 +1431,7 @@
 
     initVoiceDemo(reduceMotion);
     initSirenSearch();
+    initClientLookup();
     initActivityDemo();
     initAgent();
     initAgentChat();

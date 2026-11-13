@@ -60,6 +60,15 @@ class SiteConfiguration(models.Model):
         verbose_name="Consigne générale de l'agent",
         help_text="Appliquée à tous les forfaits. Vide = texte par défaut.",
     )
+    admin_ai_prompt = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Consigne de l'agent administrateur",
+        help_text=(
+            "Réservée au personnel : corrections du site, configuration et "
+            "assistant admin développeur. Vide = texte par défaut."
+        ),
+    )
 
     # --- Coordonnées de contact (emails automatiques, mentions légales) ---
     contact_address = models.CharField(

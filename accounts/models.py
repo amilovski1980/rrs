@@ -27,6 +27,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=80, blank=True, verbose_name="Prénom")
+    last_name = models.CharField(max_length=80, blank=True, verbose_name="Nom")
+    job_title = models.CharField(max_length=120, blank=True, verbose_name="Fonction")
+    email_signature = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Signature email",
+        help_text="Ajoutée aux emails envoyés depuis le cockpit. Vide = signature automatique avec nom, fonction et coordonnées.",
+    )
     phone = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
@@ -42,6 +51,42 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def get_full_name(self):
+        return " ".join(
+            part
+            for part in (
+                (self.first_name or "").strip(),
+                (self.last_name or "").strip(),
+            )
+            if part
+        )
+
+    def get_short_name(self):
+        return (self.first_name or "").strip() or self.get_full_name()
+
+    def signature_text(self, company=None):
+        """Signature réellement ajoutée aux emails envoyés par cet utilisateur."""
+        custom = (self.email_signature or "").strip()
+        if custom:
+            return custom
+        name = self.get_full_name()
+        if not name:
+            local = (self.email or "").split("@", 1)[0]
+            name = local.replace(".", " ").replace("_", " ").title() if local else ""
+        lines = [name] if name else []
+        if (self.job_title or "").strip():
+            lines.append(self.job_title.strip())
+        if company is not None and (company.denomination or "").strip():
+            lines.append(company.denomination.strip())
+        contact = []
+        if (self.email or "").strip():
+            contact.append(self.email.strip())
+        if company is not None and (company.phone or "").strip():
+            contact.append(company.phone.strip())
+        if contact:
+            lines.append(" · ".join(contact))
+        return "\n".join(lines)
 
 
 class MagicLink(models.Model):
