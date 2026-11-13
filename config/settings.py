@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "companies",
     "accounting",
     "documents",
+    "contacts",
     "ai",
     "integrations",
     "billing",

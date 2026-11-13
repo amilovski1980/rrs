@@ -89,6 +89,27 @@ class AdminBillingTests(TestCase):
         self.assertContains(invoices, "client-factu@rrs.fr")
         self.assertNotContains(invoices, "sk_test")
 
+    def test_gerant_name_is_visible_and_searchable_in_billing(self):
+        self.client_user.first_name = "Camille"
+        self.client_user.last_name = "Durand"
+        self.client_user.job_title = "Gérante"
+        self.client_user.save()
+        self.client.login(email="staff-factu@rrs.fr", password=PASSWORD)
+        listed = self.client.get(reverse("admin_backoffice:billing"), {"q": "Durand"})
+        self.assertContains(listed, "Camille Durand")
+        self.assertContains(listed, "Atelier Facture")
+        self.assertNotContains(listed, "autre-factu@rrs.fr")
+        detail = self.client.get(reverse("admin_backoffice:billing_subscriber", kwargs={"pk": self.subscription.pk}))
+        self.assertContains(detail, "Camille Durand")
+        invoices = self.client.get(reverse("admin_backoffice:billing_invoices"), {"q": "Camille"})
+        self.assertContains(invoices, "Camille Durand")
+        self.assertContains(invoices, "Atelier Facture")
+        self.assertNotContains(invoices, "autre-factu@rrs.fr")
+        invoice_page = self.client.get(reverse("admin_backoffice:billing_invoice", kwargs={"pk": self.invoice.pk}))
+        self.assertContains(invoice_page, "Camille Durand")
+        user_page = self.client.get(reverse("admin_backoffice:user_billing", kwargs={"pk": self.client_user.pk}))
+        self.assertContains(user_page, "Camille Durand")
+
     def test_staff_note_and_stripe_refresh_do_not_leak_the_secret(self):
         self.client.login(email="staff-factu@rrs.fr", password=PASSWORD)
         noted = self.client.post(

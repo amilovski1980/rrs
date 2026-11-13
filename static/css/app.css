@@ -2559,3 +2559,22 @@ label.ticket-camera-btn.btn-primary:hover {
   font-weight: 600 !important;
   text-transform: uppercase !important;
 }
+
+/* ---------- Contacts et signature email ---------- */
+.signature-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px dashed var(--line-2);
+  border-radius: 12px;
+  background: var(--blue-pale);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.actions-list form { margin: 0; }
+@media (max-width: 860px) {
+  .actions-list form { width: 100%; }
+  .actions-list form .btn { width: 100%; }
+}

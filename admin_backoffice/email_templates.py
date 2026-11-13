@@ -88,6 +88,15 @@ Si vous n'êtes pas à l'origine de cette demande, ignorez ce message. Votre mot
 
 {contact_block}"""
 
+DOCUMENT_SEND_BODY = """Bonjour {name},
+
+Veuillez trouver ci-joint votre {document_label} {document_number} d'un montant de {document_amount} TTC.
+
+{document_note}
+
+Cordialement,
+{signature}"""
+
 
 EMAIL_DEFINITIONS = (
     EmailDefinition(
@@ -137,6 +146,23 @@ EMAIL_DEFINITIONS = (
             ("name", "Nom ou prénom du destinataire."),
             ("email", "Adresse email du destinataire."),
             ("reset_url", "Lien de définition / réinitialisation du mot de passe."),
+        ),
+    ),
+    EmailDefinition(
+        code="document_send",
+        name="Envoi d'un document",
+        description="Facture, devis ou avoir envoyé depuis le cockpit, avec le PDF en pièce jointe.",
+        subject="Votre {document_label} {document_number} — {company_name}",
+        body=DOCUMENT_SEND_BODY,
+        placeholders=(
+            ("name", "Nom du destinataire."),
+            ("email", "Adresse email du destinataire."),
+            ("company_name", "Société qui envoie le document."),
+            ("document_label", "Type de document : facture, devis ou avoir."),
+            ("document_number", "Numéro du document."),
+            ("document_amount", "Montant TTC du document."),
+            ("document_note", "Phrase de contexte adaptée au type de document."),
+            ("signature", "Signature de l'utilisateur connecté."),
         ),
     ),
 )
@@ -205,7 +231,17 @@ def display_name(user) -> str:
         email = user.strip()
         user = None
     else:
-        for field in ("first_name", "name"):
+        full = " ".join(
+            part
+            for part in (
+                (getattr(user, "first_name", "") or "").strip(),
+                (getattr(user, "last_name", "") or "").strip(),
+            )
+            if part
+        )
+        if full:
+            return full
+        for field in ("name",):
             value = (getattr(user, field, "") or "").strip()
             if value:
                 return value

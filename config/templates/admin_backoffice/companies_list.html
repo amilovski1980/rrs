@@ -20,14 +20,17 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Dénomination</th><th>SIREN</th><th>Propriétaire</th><th>Régime</th><th>Créée</th><th></th></tr>
+        <tr><th>Dénomination</th><th>SIREN</th><th>Gérant / propriétaire</th><th>Régime</th><th>Créée</th><th></th></tr>
       </thead>
       <tbody>
         {% for company in companies %}
         <tr>
           <td><b>{{ company.denomination }}</b></td>
           <td>{{ company.siren }}</td>
-          <td>{{ company.owner.email }}</td>
+          <td>
+            <b>{{ company.owner.get_full_name|default:company.owner.email }}</b>
+            {% if company.owner.get_full_name %}<div class="muted">{{ company.owner.email }}</div>{% endif %}
+          </td>
           <td>{{ company.get_regime_display|default:"—" }}</td>
           <td>{{ company.created_at|date:"d/m/Y" }}</td>
           <td>

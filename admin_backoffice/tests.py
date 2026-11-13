@@ -285,6 +285,32 @@ class BackofficeAccessAndSectionsTests(TestCase):
         created_user.refresh_from_db()
         self.assertFalse(created_user.is_active)
 
+    def test_gerant_names_are_edited_listed_and_searchable(self):
+        self.client.login(email="boss@rrs.fr", password="password123")
+        saved = self.client.post(reverse("admin_backoffice:user_edit", kwargs={"pk": self.client_user.pk}), {
+            "first_name": "Camille",
+            "last_name": "Durand",
+            "job_title": "Gérante",
+            "email": "client@rrs.fr",
+            "phone": "0600000000",
+            "is_active": "on",
+        })
+        self.assertEqual(saved.status_code, 302)
+        self.client_user.refresh_from_db()
+        self.assertEqual(self.client_user.get_full_name(), "Camille Durand")
+        self.assertEqual(self.client_user.job_title, "Gérante")
+        listed = self.client.get(reverse("admin_backoffice:users"), {"q": "Durand"})
+        self.assertContains(listed, "Camille Durand")
+        self.assertContains(listed, "client@rrs.fr")
+        self.assertContains(listed, "Atelier Client")
+        companies = self.client.get(reverse("admin_backoffice:companies"), {"q": "Camille"})
+        self.assertContains(companies, "Camille Durand")
+        self.assertContains(companies, "Atelier Client")
+        dashboard = self.client.get(reverse("admin_backoffice:dashboard"))
+        self.assertContains(dashboard, "Camille Durand")
+        other = self.client.get(reverse("admin_backoffice:companies"), {"q": "Inconnu"})
+        self.assertNotContains(other, "Atelier Client")
+
     def test_impersonation_is_limited_to_active_clients(self):
         self.client.login(email="boss@rrs.fr", password="password123")
         other_admin = User.objects.create_user(email="autre-admin@rrs.fr", is_staff=True)

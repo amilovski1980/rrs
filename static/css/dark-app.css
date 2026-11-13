@@ -278,3 +278,13 @@ html[data-theme="dark"] .impersonation-banner { background: #3a2a08; color: #ffe
 html[data-theme="dark"] .impersonation-banner button { background: transparent; color: #ffe7b0; border-color: #ffe7b0; }
 
 html[data-theme="dark"] ::selection { background: rgba(61, 220, 106, 0.35); color: #fff; }
+
+/* Contacts, signature et actions d'envoi sous /dark */
+html[data-theme="dark"] .signature-preview {
+  background: #0c0c0e;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ink-2);
+}
+html[data-theme="dark"] .actions-list form .btn {
+  color: var(--ink);
+}

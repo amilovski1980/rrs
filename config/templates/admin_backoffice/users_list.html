@@ -12,7 +12,7 @@
 <form method="get" class="filters card">
   <div class="filter-field">
     <label for="q">Recherche</label>
-    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Email ou téléphone">
+    <input id="q" type="search" name="q" value="{{ q }}" placeholder="Nom du gérant, email ou téléphone">
   </div>
   <div class="filter-field">
     <label for="role">Rôle</label>
@@ -48,7 +48,8 @@
     <table>
       <thead>
         <tr>
-          <th>Email</th>
+          <th>Gérant</th>
+          <th>Sociétés</th>
           <th>Téléphone</th>
           <th>Rôle</th>
           <th>État</th>
@@ -58,7 +59,16 @@
       <tbody>
         {% for u in users %}
         <tr>
-          <td><b>{{ u.email }}</b><div class="muted">{{ u.created_at|date:"d/m/Y H:i" }}</div></td>
+          <td>
+            <b>{{ u.get_full_name|default:u.email }}</b>
+            <div class="muted">{{ u.email }}</div>
+            <div class="muted">{{ u.created_at|date:"d/m/Y H:i" }}</div>
+          </td>
+          <td>
+            {% for c in u.companies.all %}
+            {{ c.denomination }}{% if not forloop.last %}<br>{% endif %}
+            {% empty %}—{% endfor %}
+          </td>
           <td>
             {{ u.phone|default:"—" }}
             {% if u.phone_verified %}<span class="badge badge-green">Vérifié</span>{% elif u.phone %}<span class="badge badge-amber">Non vérifié</span>{% endif %}
@@ -90,7 +100,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="empty">Aucun utilisateur.</td></tr>
+        <tr><td colspan="6" class="empty">Aucun utilisateur.</td></tr>
         {% endfor %}
       </tbody>
     </table>

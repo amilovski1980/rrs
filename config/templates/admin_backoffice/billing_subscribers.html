@@ -72,7 +72,8 @@
             {% endfor %}
           </td>
           <td>
-            <a href="{% url 'admin_backoffice:user_billing' sub.user.pk %}">{{ sub.user.email }}</a>
+            <a href="{% url 'admin_backoffice:user_billing' sub.user.pk %}">{{ sub.user.get_full_name|default:sub.user.email }}</a>
+            {% if sub.user.get_full_name %}<div class="muted">{{ sub.user.email }}</div>{% endif %}
           </td>
           <td>{{ sub.plan.name }}</td>
           <td class="num">{{ sub.plan.price_eur }} €</td>

@@ -25,8 +25,10 @@ logger = logging.getLogger(__name__)
 # quand le schéma qu'elles décrivent est réellement là (migrate ou rattrapage).
 KNOWN_MIGRATIONS = (
     ("accounts", "0002_pendingsignup"),
+    ("accounts", "0003_user_email_signature_user_first_name_user_job_title_and_more"),
     ("admin_backoffice", "0002_backoffice_extensions"),
     ("billing", "0002_backoffice_extensions"),
+    ("contacts", "0001_initial"),
 )
 
 # (table, colonne ou None si seule la table doit exister)
@@ -45,6 +47,11 @@ REQUIRED_SCHEMA = (
     ("admin_backoffice_smstemplate", None),
     ("admin_backoffice_smsmessage", None),
     ("accounts_pendingsignup", None),
+    ("accounts_user", "first_name"),
+    ("accounts_user", "last_name"),
+    ("accounts_user", "job_title"),
+    ("accounts_user", "email_signature"),
+    ("contacts_contact", None),
 )
 
 # Ordre : les clés étrangères de SmsMessage exigent le modèle SMS et User.
@@ -56,6 +63,7 @@ HEAL_LABELS = (
     "admin_backoffice.SmsTemplate",
     "admin_backoffice.SmsMessage",
     "billing.Plan",
+    "contacts.Contact",
 )
 
 _state = {"ok": False}

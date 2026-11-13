@@ -294,7 +294,11 @@ class CompanyListView(AdminStaffMixin, ListView):
         q = (self.request.GET.get("q") or "").strip()
         if q:
             qs = qs.filter(
-                Q(denomination__icontains=q) | Q(siren__icontains=q) | Q(owner__email__icontains=q)
+                Q(denomination__icontains=q)
+                | Q(siren__icontains=q)
+                | Q(owner__email__icontains=q)
+                | Q(owner__first_name__icontains=q)
+                | Q(owner__last_name__icontains=q)
             )
         self.q = q
         return qs
@@ -422,7 +426,12 @@ class SubscriptionListView(AdminStaffMixin, ListView):
         self.q = (self.request.GET.get("q") or "").strip()
         self.status = (self.request.GET.get("status") or "").strip()
         if self.q:
-            qs = qs.filter(Q(user__email__icontains=self.q) | Q(plan__name__icontains=self.q))
+            qs = qs.filter(
+                Q(user__email__icontains=self.q)
+                | Q(user__first_name__icontains=self.q)
+                | Q(user__last_name__icontains=self.q)
+                | Q(plan__name__icontains=self.q)
+            )
         if self.status:
             qs = qs.filter(status=self.status)
         return qs
@@ -488,13 +497,18 @@ class UserListView(AdminStaffMixin, ListView):
     crumbs_label = "Utilisateurs"
 
     def get_queryset(self):
-        qs = User.objects.all().order_by("-created_at")
+        qs = User.objects.all().prefetch_related("companies").order_by("-created_at")
         self.q = (self.request.GET.get("q") or "").strip()
         self.role = (self.request.GET.get("role") or "").strip()
         self.active = (self.request.GET.get("active") or "").strip()
         self.phone = (self.request.GET.get("phone") or "").strip()
         if self.q:
-            qs = qs.filter(Q(email__icontains=self.q) | Q(phone__icontains=self.q))
+            qs = qs.filter(
+                Q(email__icontains=self.q)
+                | Q(phone__icontains=self.q)
+                | Q(first_name__icontains=self.q)
+                | Q(last_name__icontains=self.q)
+            )
         if self.role == "superuser":
             qs = qs.filter(is_superuser=True)
         elif self.role == "staff":
@@ -957,6 +971,11 @@ class EmailTemplateUpdateView(AdminFormMixin, UpdateView):
             "signup_url": "https://exemple.fr/inscription/verifier/…",
             "magic_url": "https://exemple.fr/connexion/lien/…",
             "reset_url": "https://exemple.fr/compte/mot-de-passe/…",
+            "document_label": "facture",
+            "document_number": "FAC-2026-00042",
+            "document_amount": "2 880,00 €",
+            "document_note": "Le règlement est attendu selon les conditions convenues.",
+            "signature": "Camille Martin\nDirigeante\nAtelier Camille\ncamille@example.fr · 01 23 45 67 89",
         }
         preview_subject, preview_body = render_email(definition.code, context=sample)
         context.update({

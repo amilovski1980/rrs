@@ -264,8 +264,21 @@ class UserAdminForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["email", "phone", "phone_verified", "is_active", "is_staff", "is_superuser"]
+        fields = [
+            "first_name",
+            "last_name",
+            "job_title",
+            "email",
+            "phone",
+            "phone_verified",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+        ]
         labels = {
+            "first_name": "Prénom du gérant",
+            "last_name": "Nom du gérant",
+            "job_title": "Fonction",
             "email": "Email",
             "phone": "Téléphone",
             "phone_verified": "Téléphone vérifié",

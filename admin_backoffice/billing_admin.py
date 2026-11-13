@@ -111,6 +111,8 @@ class SubscriberListView(AdminStaffMixin, ListView):
         if self.q:
             qs = qs.filter(
                 Q(user__email__icontains=self.q)
+                | Q(user__first_name__icontains=self.q)
+                | Q(user__last_name__icontains=self.q)
                 | Q(plan__name__icontains=self.q)
                 | Q(plan__code__icontains=self.q)
                 | Q(user__companies__denomination__icontains=self.q)
@@ -232,6 +234,8 @@ class BillingInvoiceListView(AdminStaffMixin, ListView):
         if self.q:
             qs = qs.filter(
                 Q(user__email__icontains=self.q)
+                | Q(user__first_name__icontains=self.q)
+                | Q(user__last_name__icontains=self.q)
                 | Q(number__icontains=self.q)
                 | Q(description__icontains=self.q)
                 | Q(user__companies__denomination__icontains=self.q)
@@ -295,8 +299,13 @@ class UserBillingView(AdminStaffMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = get_object_or_404(User, pk=self.kwargs["pk"])
         context.update(_dossier(user))
-        context["heading"] = user.email
-        context["intro"] = "Abonnement, encaissements et factures de ce compte."
+        full_name = user.get_full_name()
+        context["heading"] = full_name or user.email
+        context["intro"] = (
+            f"{user.email} — abonnement, encaissements et factures de ce compte."
+            if full_name
+            else "Abonnement, encaissements et factures de ce compte."
+        )
         return context
 
 

@@ -34,7 +34,10 @@
       <tbody>
         {% for sub in subscriptions %}
         <tr>
-          <td>{{ sub.user.email }}</td>
+          <td>
+            <b>{{ sub.user.get_full_name|default:sub.user.email }}</b>
+            {% if sub.user.get_full_name %}<div class="muted">{{ sub.user.email }}</div>{% endif %}
+          </td>
           <td>{{ sub.plan.name }} <span class="muted">({{ sub.plan.price_eur }} €)</span></td>
           <td>
             <span class="badge {% if sub.status == 'active' %}badge-green{% elif sub.status == 'past_due' or sub.status == 'unpaid' %}badge-red{% elif sub.status == 'trialing' %}badge-amber{% endif %}">{{ sub.get_status_display }}</span>

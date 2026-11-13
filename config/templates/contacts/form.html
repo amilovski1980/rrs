@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{% if contact %}Modifier contact{% else %}Nouveau contact{% endif %}{% endblock %}
+{% block crumbs %}Facturation / Contacts{% endblock %}
+{% block nav_contacts %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if contact %}Modifier {{ contact.full_name }}{% else %}Nouveau contact{% endif %}</h1>
+    <p class="sub">{{ company.denomination }} — nom, prénom, département et coordonnées.</p>
+  </div>
+</div>
+
+<div class="card">
+  <form class="form-stack" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<p class="error">{{ form.first_name.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<p class="error">{{ form.last_name.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.organization.id_for_label }}">{{ form.organization.label }}</label>
+        {{ form.organization }}
+        <p class="helptext">{{ form.organization.help_text }}</p>
+      </div>
+      <div>
+        <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
+        {{ form.client }}
+        {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+        {{ form.department }}
+      </div>
+      <div>
+        <label for="{{ form.job_title.id_for_label }}">{{ form.job_title.label }}</label>
+        {{ form.job_title }}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+        {{ form.phone }}
+      </div>
+    </div>
+    <label class="micro" style="display:flex;align-items:center;gap:8px">
+      {{ form.is_primary }} {{ form.is_primary.label }}
+    </label>
+    <div>
+      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+      {{ form.notes }}
+    </div>
+    <div class="form-actions-bar">
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+      <a class="btn btn-ghost" href="{% url 'contacts' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
