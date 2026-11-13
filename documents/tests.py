@@ -120,6 +120,35 @@ class TenantIsolationTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class ClientLookupFormTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("clients@example.com")
+        self.company = _company(user, siren="777777777", name="Clients Co")
+        self.http = self.client
+        self.http.force_login(user)
+
+    def test_create_form_exposes_automatic_siren_or_name_lookup(self):
+        response = self.http.get("/factures/clients/nouveau/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-client-lookup")
+        self.assertContains(response, "data-client-lookup-input")
+        self.assertContains(response, "data-client-lookup-submit")
+        self.assertContains(response, "Rechercher une entreprise")
+        self.assertContains(response, 'id="id_siren"')
+
+    def test_manual_client_creation_still_works(self):
+        response = self.http.post("/factures/clients/nouveau/", {
+            "name": "Client Manuel",
+            "siren": "123456789",
+            "address": "1 rue de la Paix, 75002 Paris",
+            "email": "",
+            "phone": "",
+            "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Client.objects.filter(company=self.company, name="Client Manuel").exists())
+
+
 class QuoteConversionTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("devis@example.com")

@@ -85,3 +85,21 @@ class VercelConfigTests(SimpleTestCase):
         self.assertNotRegex(text, r"(^|\n)bash\b")
         # Shebang POSIX
         self.assertTrue(text.startswith("#!/bin/sh") or text.startswith("#!/usr/bin/sh"))
+
+
+class DarkCssReadabilityTests(SimpleTestCase):
+    """Les composants clairs réutilisés sous /dark ne doivent pas rester illisibles."""
+
+    def setUp(self):
+        self.css = (ROOT / "static" / "css" / "dark-app.css").read_text(encoding="utf-8")
+
+    def test_chat_assistant_bubble_has_a_dark_background(self):
+        self.assertIn('html[data-theme="dark"] .agent-chat-bubble--assistant', self.css)
+        self.assertIn("background: var(--bg-2)", self.css)
+
+    def test_pricing_cards_do_not_keep_the_white_light_theme_background(self):
+        self.assertIn('html[data-theme="dark"] .plan {', self.css)
+        self.assertIn("background: #121214", self.css)
+
+    def test_client_lookup_results_have_dark_styles(self):
+        self.assertIn('html[data-theme="dark"] .client-lookup-card', self.css)

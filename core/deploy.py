@@ -32,6 +32,7 @@ KNOWN_MIGRATIONS = (
 # (table, colonne ou None si seule la table doit exister)
 REQUIRED_SCHEMA = (
     ("admin_backoffice_siteconfiguration", "ai_system_prompt"),
+    ("admin_backoffice_siteconfiguration", "admin_ai_prompt"),
     ("billing_plan", "ai_prompt"),
     ("billing_plan", "description"),
     ("billing_plan", "features"),

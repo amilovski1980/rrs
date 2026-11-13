@@ -21,8 +21,10 @@ from companies.models import Company
 
 from .access import staff_required, user_is_admin
 from .agent_prompts import (
+    DEFAULT_ADMIN_PROMPT,
     DEFAULT_GLOBAL_PROMPT,
     TIER_LABELS,
+    admin_prompt_text,
     default_prompt_for_plan,
     effective_plan_prompt,
     global_prompt_text,
@@ -749,12 +751,14 @@ class AiPromptView(AdminStaffMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["current_prompt"] = global_prompt_text()
+        context["admin_prompt"] = admin_prompt_text()
         context["plans"] = self._plans()
         return context
 
     def post(self, request, *args, **kwargs):
         from django.conf import settings
 
+        config = None
         new_prompt = request.POST.get("prompt")
         if new_prompt is not None:
             config, _ = SiteConfiguration.objects.get_or_create(id=1)
@@ -762,6 +766,14 @@ class AiPromptView(AdminStaffMixin, TemplateView):
             config.ai_system_prompt = "" if text == DEFAULT_GLOBAL_PROMPT.strip() else text
             config.save(update_fields=["ai_system_prompt"])
             settings.AI_SYSTEM_PROMPT = text or DEFAULT_GLOBAL_PROMPT
+
+        new_admin_prompt = request.POST.get("admin_prompt")
+        if new_admin_prompt is not None:
+            if config is None:
+                config, _ = SiteConfiguration.objects.get_or_create(id=1)
+            admin_text = new_admin_prompt.strip()
+            config.admin_ai_prompt = "" if admin_text == DEFAULT_ADMIN_PROMPT.strip() else admin_text
+            config.save(update_fields=["admin_ai_prompt"])
         peers = list(Plan.objects.all())
         for plan in peers:
             key = f"plan_prompt_{plan.pk}"

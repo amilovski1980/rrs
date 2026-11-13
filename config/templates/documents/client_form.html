@@ -10,6 +10,19 @@
   </div>
 </div>
 <div class="card">
+  <div class="client-lookup" data-client-lookup>
+    <div class="client-lookup-head">
+      <h2>Rechercher une entreprise</h2>
+      <p class="sub">SIREN, SIRET ou nom. La fiche se remplit automatiquement ; vous pouvez aussi tout saisir manuellement.</p>
+    </div>
+    <div class="client-lookup-row">
+      <label class="sr-only" for="client-lookup-input">Rechercher une entreprise par SIREN, SIRET ou nom</label>
+      <input id="client-lookup-input" data-client-lookup-input type="search" placeholder="Ex. 552100554 ou Boulangerie Martin" autocomplete="off">
+      <button class="btn btn-ghost" type="button" data-client-lookup-submit>Rechercher</button>
+    </div>
+    <p class="client-lookup-status" data-client-lookup-status hidden role="status"></p>
+    <div class="client-lookup-results" data-client-lookup-results hidden></div>
+  </div>
   <form class="form-stack" method="post">
     {% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}

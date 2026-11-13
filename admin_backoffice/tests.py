@@ -424,22 +424,31 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.client.login(email="boss@rrs.fr", password="password123")
         page = self.client.get(reverse("admin_backoffice:ai_prompt"))
         self.assertContains(page, "Personnalisation de l'IA")
+        self.assertContains(page, "Agent administrateur")
         self.assertContains(page, "volontairement limité")
         self.assertContains(page, "le plus complet")
         custom_global = "Consigne générale de test unique."
         custom_micro = "Micro test : ne parle que du grand livre."
+        custom_admin = "Agent admin test : corrige le site et vérifie /dark."
         posted = self.client.post(reverse("admin_backoffice:ai_prompt"), {
+            "admin_prompt": custom_admin,
             "prompt": custom_global,
             f"plan_prompt_{self.micro.pk}": custom_micro,
             f"plan_prompt_{self.pro.pk}": "",
         }, follow=True)
         self.assertContains(posted, custom_global)
         self.assertContains(posted, custom_micro)
+        self.assertContains(posted, custom_admin)
         layers = layers_for_user(self.client_user)
         self.assertEqual(layers[0], custom_global)
         self.assertEqual(layers[1], custom_micro)
+        admin_layers = layers_for_user(self.admin)
+        self.assertEqual(admin_layers[0], custom_admin)
+        self.assertEqual(admin_layers[1], custom_global)
         self.micro.refresh_from_db()
         self.assertEqual(self.micro.ai_prompt, custom_micro)
+        from admin_backoffice.models import SiteConfiguration
+        self.assertEqual(SiteConfiguration.objects.get(pk=1).admin_ai_prompt, custom_admin)
 
 
 def _staff(email):
