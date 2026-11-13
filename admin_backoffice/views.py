@@ -6,7 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -29,8 +29,15 @@ from .agent_prompts import (
     tier_for_plan,
 )
 from .audit import journaliser
+from .email_templates import (
+    EMAIL_DEFINITIONS,
+    get_definition,
+    render_email,
+    template_values,
+)
 from .forms import (
     CompanyAdminForm,
+    EmailTemplateForm,
     PlanAdminForm,
     SiteConfigurationForm,
     SmsSendForm,
@@ -39,7 +46,7 @@ from .forms import (
     UserAdminForm,
 )
 from .integrations import integration_cards, probe
-from .models import SiteConfiguration, SmsMessage, SmsTemplate, SystemLog
+from .models import EmailTemplate, SiteConfiguration, SmsMessage, SmsTemplate, SystemLog
 from .sms import (
     dispatch_sms,
     ensure_providers,
@@ -880,6 +887,90 @@ class SmsTemplateDeleteView(AdminStaffMixin, DeleteView):
         messages.success(self.request, "Modèle SMS supprimé.")
         journaliser(self.request, f"Modèle SMS supprimé — {self.object}")
         return super().form_valid(form)
+
+
+class EmailTemplateListView(AdminStaffMixin, TemplateView):
+    template_name = "admin_backoffice/email_templates.html"
+    admin_section = "emails"
+    crumbs_label = "Emails automatiques"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        rows = {row.code: row for row in EmailTemplate.objects.all()}
+        context["templates"] = [
+            {
+                "definition": definition,
+                "row": rows.get(definition.code),
+                "custom": definition.code in rows,
+            }
+            for definition in EMAIL_DEFINITIONS
+        ]
+        return context
+
+
+class EmailTemplateUpdateView(AdminFormMixin, UpdateView):
+    model = EmailTemplate
+    form_class = EmailTemplateForm
+    template_name = "admin_backoffice/email_template_form.html"
+    success_url = reverse_lazy("admin_backoffice:email_templates")
+    admin_section = "emails"
+    crumbs_label = "Emails automatiques"
+    page_title = "Modifier un email automatique"
+    page_sub = "Objet et corps réellement utilisés à l'envoi. Les placeholders sont documentés ci-dessous."
+    cancel_url_name = "admin_backoffice:email_templates"
+    success_message = "Modèle d'email enregistré."
+
+    def get_definition(self):
+        definition = get_definition(self.kwargs.get("code") or "")
+        if definition is None:
+            raise Http404("Modèle d'email inconnu.")
+        return definition
+
+    def get_object(self, queryset=None):
+        definition = self.get_definition()
+        return EmailTemplate.objects.filter(code=definition.code).first() or EmailTemplate(
+            code=definition.code,
+            subject=definition.subject,
+            body=definition.body,
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        definition = self.get_definition()
+        sample = {
+            "name": "Camille",
+            "email": "camille@example.fr",
+            "company_name": "Atelier Camille",
+            "login_url": "https://exemple.fr/connexion/",
+            "signup_url": "https://exemple.fr/inscription/verifier/…",
+            "magic_url": "https://exemple.fr/connexion/lien/…",
+            "reset_url": "https://exemple.fr/compte/mot-de-passe/…",
+        }
+        preview_subject, preview_body = render_email(definition.code, context=sample)
+        context.update({
+            "definition": definition,
+            "placeholders": definition.all_placeholders,
+            "default_subject": definition.subject,
+            "default_body": definition.body,
+            "customized": template_values(definition.code)[2],
+            "preview_subject": preview_subject,
+            "preview_body": preview_body,
+        })
+        return context
+
+    def form_valid(self, form):
+        form.instance.code = self.get_definition().code
+        form.instance.updated_by = self.request.user
+        return super().form_valid(form)
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get("action") == "reset":
+            definition = self.get_definition()
+            EmailTemplate.objects.filter(code=definition.code).delete()
+            messages.success(request, f"« {definition.name} » utilise de nouveau le texte par défaut.")
+            journaliser(request, f"Modèle d'email réinitialisé — {definition.code}")
+            return redirect("admin_backoffice:email_template_edit", code=definition.code)
+        return super().post(request, *args, **kwargs)
 
 
 @staff_required

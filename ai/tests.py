@@ -286,8 +286,8 @@ class AminiaChooserMarkupTests(TestCase):
         self.assertContains(r, 'data-agent-pick="chat"')
         self.assertContains(r, 'data-agent-chat')
         self.assertContains(r, 'data-agent-chat-form')
-        self.assertContains(r, "app.css?v=2026.11.12.3")  # cache-bust static
-        self.assertContains(r, "app.js?v=2026.11.12.2")
+        self.assertRegex(r.content.decode(), r"app\.css\?v=\d{4}\.\d{2}\.\d{2}\.\d+")  # cache-bust static
+        self.assertRegex(r.content.decode(), r"app\.js\?v=\d{4}\.\d{2}\.\d{2}\.\d+")
 
     def test_chat_endpoint_still_reachable(self):
         self.client.force_login(self.user)

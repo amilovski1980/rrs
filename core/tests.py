@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from django.conf import settings
@@ -67,10 +68,13 @@ class VercelConfigTests(SimpleTestCase):
 
     def test_vercel_build_script_exists_and_is_executable(self):
         self.assertTrue(BUILD_SCRIPT.is_file())
-        self.assertTrue(
-            BUILD_SCRIPT.stat().st_mode & 0o111,
-            msg="scripts/vercel_build.sh doit être exécutable",
-        )
+        # Windows ne représente pas le bit exécutable POSIX ; le mode 100755 est
+        # conservé dans l'index Git et vérifié sur les runners Unix.
+        if os.name != "nt":
+            self.assertTrue(
+                BUILD_SCRIPT.stat().st_mode & 0o111,
+                msg="scripts/vercel_build.sh doit être exécutable",
+            )
         text = BUILD_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("set -eu", text)
         self.assertIn("docs/assets", text)

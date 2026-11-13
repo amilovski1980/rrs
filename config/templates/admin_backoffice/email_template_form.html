@@ -1,0 +1,60 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block crumbs %}Administration · Emails automatiques · {{ definition.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ definition.name }}</h1>
+    <p class="sub">{{ definition.description }} Code : <code>{{ definition.code }}</code>.</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'admin_backoffice:email_templates' %}">Retour à la liste</a>
+</div>
+
+<form method="post" class="card admin-form">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
+  {{ form.subject }}
+  <p class="helptext">{{ form.subject.help_text }}</p>
+  {% for err in form.subject.errors %}<p class="error">{{ err }}</p>{% endfor %}
+
+  <label for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+  {{ form.body }}
+  <p class="helptext">{{ form.body.help_text }}</p>
+  {% for err in form.body.errors %}<p class="error">{{ err }}</p>{% endfor %}
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+    <a class="btn btn-ghost" href="{% url 'admin_backoffice:email_templates' %}">Annuler</a>
+    {% if customized %}
+    <button class="btn btn-ghost" type="submit" name="action" value="reset" formnovalidate>Rétablir le texte par défaut</button>
+    {% endif %}
+  </div>
+</form>
+
+<div class="card">
+  <h2 style="margin-top:0;font-family:var(--font-head)">Aperçu</h2>
+  <p class="sub">Objet : <b>{{ preview_subject }}</b></p>
+  <pre style="white-space:pre-wrap;font-family:var(--font);font-size:13.5px;margin:0">{{ preview_body }}</pre>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;font-family:var(--font-head)">Placeholders disponibles</h2>
+  <p class="sub">Syntaxe <code>{nom}</code>. Un placeholder inconnu est laissé tel quel et ne bloque jamais l'envoi.</p>
+  <table>
+    <thead><tr><th>Placeholder</th><th>Valeur</th></tr></thead>
+    <tbody>
+      {% for name, description in placeholders %}
+      <tr><td><code>{% templatetag openbrace %}{{ name }}{% templatetag closebrace %}</code></td><td>{{ description }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;font-family:var(--font-head)">Texte par défaut</h2>
+  <p class="sub">Utilisé tant qu'aucune personnalisation n'est enregistrée.</p>
+  <p><b>Objet :</b> {{ default_subject }}</p>
+  <pre style="white-space:pre-wrap;font-family:var(--font);font-size:13.5px;margin:0">{{ default_body }}</pre>
+</div>
+{% endblock %}

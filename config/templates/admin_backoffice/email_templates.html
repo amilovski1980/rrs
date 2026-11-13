@@ -1,0 +1,50 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Emails automatiques{% endblock %}
+{% block crumbs %}Administration · Emails automatiques{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Emails automatiques</h1>
+    <p class="sub">Bienvenue, confirmation d'inscription, lien de connexion et mot de passe. Les textes enregistrés ici sont réellement utilisés à l'envoi.</p>
+  </div>
+</div>
+
+<div class="card card-tight">
+  <table>
+    <thead>
+      <tr><th>Email</th><th>Code</th><th>État</th><th>Mis à jour</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for item in templates %}
+      <tr>
+        <td>
+          <b>{{ item.definition.name }}</b>
+          <div class="sub" style="margin:2px 0 0">{{ item.definition.description }}</div>
+        </td>
+        <td><code>{{ item.definition.code }}</code></td>
+        <td>
+          {% if item.custom %}
+          <span class="badge badge-green">Personnalisé</span>
+          {% else %}
+          <span class="badge">Texte par défaut</span>
+          {% endif %}
+        </td>
+        <td>{% if item.row %}{{ item.row.updated_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+        <td>
+          <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:email_template_edit' item.definition.code %}">Modifier</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0;font-family:var(--font-head)">Coordonnées utilisées</h2>
+  <p class="sub" style="margin-bottom:0">
+    Le bloc <code>{contact_block}</code> reprend le nom du site, l'email, le téléphone et l'adresse saisis dans
+    <a href="{% url 'admin_backoffice:settings' %}">Paramètres</a>. Si aucune personnalisation n'est enregistrée,
+    les textes par défaut documentés restent appliqués.
+  </p>
+</div>
+{% endblock %}

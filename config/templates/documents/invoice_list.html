@@ -46,6 +46,7 @@
         </td>
         <td>
           <a class="btn btn-ghost btn-sm" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">Voir</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'invoice_pdf' inv.id %}?societe={{ company.id }}">PDF</a>
           <a class="btn btn-ghost btn-sm" href="{% url 'invoice_edit' inv.id %}?societe={{ company.id }}">Modifier</a>
         </td>
       </tr>

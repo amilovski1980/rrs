@@ -105,3 +105,11 @@ class DarkApplicationTests(TestCase):
         self.assertContains(dark, 'href="/dark/admin-backoffice/facturation/"')
         self.assertContains(dark, "Vue d'ensemble")
         self.assertNotContains(dark, "img/logo-96.png")
+
+        emails = self.client.get("/dark/admin-backoffice/emails/")
+        self.assertEqual(emails.status_code, 200)
+        self.assertContains(emails, "Emails automatiques")
+        self.assertContains(emails, "dark-app.css")
+        settings_page = self.client.get("/dark/admin-backoffice/settings/")
+        self.assertEqual(settings_page.status_code, 200)
+        self.assertContains(settings_page, "Coordonnées de contact")

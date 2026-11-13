@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.12.3">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.12.2">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.13.1">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.13.1">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -218,19 +218,19 @@
 
   {# —— Footer mobile (≤768px) —— #}
   <nav class="m-footer" data-m-footer aria-label="Raccourcis">
-    <a class="m-footer-btn" href="{% url 'profile' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}"{% if request.resolver_match.url_name == 'profile' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
       <span>Mon compte</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'company_settings' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'company_settings' %}active{% endif %}" href="{% url 'company_settings' %}"{% if request.resolver_match.url_name == 'company_settings' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
       <span>Paramètres</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'help' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'help' %}active{% endif %}" href="{% url 'help' %}"{% if request.resolver_match.url_name == 'help' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
       <span>Aide</span>
     </a>
-    <a class="m-footer-btn" href="{% url 'legal_notice' %}">
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'legal_notice' %}active{% endif %}" href="{% url 'legal_notice' %}"{% if request.resolver_match.url_name == 'legal_notice' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="scales" %}</span>
       <span>Mentions</span>
     </a>
@@ -238,7 +238,7 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.12.4" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.13.1" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

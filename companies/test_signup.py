@@ -106,7 +106,10 @@ class SignupFlowTests(TestCase):
         self.assertNotIn("raw", company.source_data)
         self.assertEqual(JournalEntry.objects.filter(company=company).count(), 0)
         self.assertEqual(Invoice.objects.filter(company=company).count(), 0)
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Bienvenue", mail.outbox[0].subject)
+        self.assertIn("martin@exemple.fr", mail.outbox[0].to)
+        self.assertIn("Atelier Martin", mail.outbox[0].body)
         self.assertEqual(PendingSignup.objects.count(), 0)
 
         cockpit = self.client.get(created["Location"])

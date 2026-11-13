@@ -19,7 +19,8 @@ from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from core.public_theme import themed_redirect, themed_template
+from admin_backoffice.email_templates import display_name, send_template_email
+from core.public_theme import themed_redirect, themed_reverse, themed_template
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -327,6 +328,25 @@ def complete_signup(*, email, phone, payload, phone_verified=False, owner=None, 
     return (user, company), None
 
 
+def _send_welcome(request, user, company):
+    """Email de bienvenue : jamais bloquant pour l'ouverture du cockpit."""
+    try:
+        login_url = request.build_absolute_uri(themed_reverse(request, "magic_link_request"))
+        send_template_email(
+            "welcome",
+            user.email,
+            {
+                "name": display_name(user),
+                "email": user.email,
+                "company_name": company.denomination,
+                "login_url": login_url,
+            },
+            request=request,
+        )
+    except Exception:
+        logger.exception("Email de bienvenue non envoyé")
+
+
 def _open_cockpit(request, user, company):
     if not request.user.is_authenticated or request.user.pk != user.pk:
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
@@ -388,6 +408,8 @@ def signup_wizard(request):
                     )
                     return _render_wizard(request, form, lookup, siren_taken=False)
                 user, company = result
+                if not request.user.is_authenticated:
+                    _send_welcome(request, user, company)
                 return _open_cockpit(request, user, company)
             return _begin_verification(request, form, lookup, payload, cleaned)
     else:
@@ -509,4 +531,5 @@ def signup_verify(request, token):
     if result is None:
         return render(request, themed_template(request, "companies/signup_invalid.html"), status=410)
     user, company = result
+    _send_welcome(request, user, company)
     return _open_cockpit(request, user, company)

@@ -231,6 +231,7 @@ class BackofficeAccessAndSectionsTests(TestCase):
             "dashboard", "users", "companies", "plans", "subscriptions",
             "billing", "billing_invoices",
             "settings", "logs", "ai_monitoring", "ai_prompt", "integrations", "sms", "health",
+            "email_templates",
         ]
         for name in names:
             response = self.client.get(reverse(f"admin_backoffice:{name}"))
@@ -583,6 +584,8 @@ class EveryAdminPageTests(TestCase):
             "sms": {},
             "sms_template_edit": {"pk": self.sms_template.pk},
             "sms_template_delete": {"pk": self.sms_template.pk},
+            "email_templates": {},
+            "email_template_edit": {"code": "welcome"},
         }
 
     def _post_pages(self):
@@ -609,7 +612,7 @@ class AdminPagesWithoutBusinessDataTests(TestCase):
             "plans", "subscriptions", "billing", "billing_invoices",
             "users", "ai_monitoring", "ai_prompt",
             "integrations", "sms", "health", "company_create", "plan_create",
-            "subscription_create", "user_create",
+            "subscription_create", "user_create", "email_templates",
         ]
         for name in names:
             response = self.client.get(reverse(f"admin_backoffice:{name}"))
@@ -703,3 +706,115 @@ class SchemaRepairTests(TransactionTestCase):
         settings_page = self.client.get(reverse("admin_backoffice:settings"))
         self.assertEqual(settings_page.status_code, 200)
         self.assertContains(settings_page, "Paramètres")
+
+
+class EmailTemplateAdminTests(TestCase):
+    """Les modèles d'email sont éditables et réellement utilisés."""
+
+    def setUp(self):
+        self.staff = _staff("emails-admin@rrs.fr")
+        self.client_user = User.objects.create_user(email="emails-client@rrs.fr")
+        self.client.login(email="emails-admin@rrs.fr", password="password123")
+
+    def test_staff_can_list_and_open_defaults(self):
+        listing = self.client.get(reverse("admin_backoffice:email_templates"))
+        self.assertEqual(listing.status_code, 200)
+        self.assertContains(listing, "Bienvenue")
+        self.assertContains(listing, "Confirmation d")
+        self.assertContains(listing, "Mot de passe oublié")
+        edit = self.client.get(
+            reverse("admin_backoffice:email_template_edit", kwargs={"code": "welcome"})
+        )
+        self.assertEqual(edit.status_code, 200)
+        self.assertContains(edit, "Bienvenue sur")
+        self.assertContains(edit, "Texte par défaut")
+
+    def test_saved_customization_is_used_for_real_sends(self):
+        from django.core import mail
+
+        from admin_backoffice.email_templates import render_email, send_template_email
+        from admin_backoffice.models import EmailTemplate
+
+        response = self.client.post(
+            reverse("admin_backoffice:email_template_edit", kwargs={"code": "welcome"}),
+            {
+                "subject": "Bienvenue chez {app_name}",
+                "body": "Bonjour {name}, votre société {company_name} est prête.\n\n{contact_block}",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        saved = EmailTemplate.objects.get(code="welcome")
+        self.assertEqual(saved.updated_by, self.staff)
+        subject, body = render_email("welcome", {
+            "name": "Camille",
+            "company_name": "Atelier Camille",
+        })
+        self.assertEqual(subject, "Bienvenue chez Road Runner Solutions")
+        self.assertIn("Atelier Camille", body)
+        send_template_email("welcome", "camille@example.fr", {
+            "name": "Camille",
+            "company_name": "Atelier Camille",
+        })
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Atelier Camille", mail.outbox[0].body)
+
+    def test_reset_restores_the_default_text(self):
+        from admin_backoffice.email_templates import render_email, template_values
+        from admin_backoffice.models import EmailTemplate
+
+        EmailTemplate.objects.create(code="welcome", subject="Perso", body="Corps perso")
+        response = self.client.post(
+            reverse("admin_backoffice:email_template_edit", kwargs={"code": "welcome"}),
+            {"action": "reset"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(EmailTemplate.objects.filter(code="welcome").exists())
+        self.assertFalse(template_values("welcome")[2])
+        subject, body = render_email("welcome", {"name": "Camille"})
+        self.assertIn("Road Runner Solutions", subject)
+        self.assertNotEqual(body, "Corps perso")
+
+    def test_client_is_rejected_on_light_and_dark_routes(self):
+        self.client.logout()
+        self.client.force_login(self.client_user)
+        for url in (
+            "/admin-backoffice/emails/",
+            "/dark/admin-backoffice/emails/",
+            "/admin-backoffice/emails/welcome/",
+            "/dark/admin-backoffice/emails/welcome/",
+        ):
+            self.assertEqual(self.client.get(url).status_code, 403, url)
+
+    def test_contact_settings_are_saved_and_used_on_legal_notice(self):
+        from admin_backoffice.models import SiteConfiguration
+
+        payload = {
+            "site_name": "Road Runner Solutions",
+            "contact_address": "12 rue des Artisans, 69000 Lyon",
+            "contact_phone": "04 72 00 00 00",
+            "contact_email": "bonjour@roadrunner.fr",
+            "smtp_host": "smtp.gmail.com",
+            "smtp_port": "587",
+            "smtp_user": "mailer@roadrunner.fr",
+            "smtp_password": "",
+            "email_from": "no-reply@roadrunner.fr",
+            "stripe_secret_key": "",
+            "stripe_publishable_key": "",
+            "stripe_webhook_secret": "",
+            "llm_base_url": "",
+            "llm_model": "",
+            "llm_api_key": "",
+            "xai_api_key": "",
+            "xai_text_model": "",
+            "xai_voice_model": "",
+            "xai_voice": "",
+            "ai_text_provider": "qwen",
+            "insee_api_key": "",
+        }
+        response = self.client.post(reverse("admin_backoffice:settings"), payload)
+        self.assertEqual(response.status_code, 302)
+        config = SiteConfiguration.objects.get(pk=1)
+        self.assertEqual(config.contact_phone, "04 72 00 00 00")
+        page = self.client.get(reverse("legal_notice"))
+        self.assertContains(page, "12 rue des Artisans")
+        self.assertContains(page, "bonjour@roadrunner.fr")

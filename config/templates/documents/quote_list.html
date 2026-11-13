@@ -17,7 +17,10 @@
         <td>{{ q.client_name }}</td>
         <td class="num">{{ q.amount_ht|floatformat:2 }} €</td>
         <td>{{ q.get_status_display }}</td>
-        <td><a class="btn btn-ghost btn-sm" href="{% url 'quote_detail' q.id %}?societe={{ company.id }}">Voir</a></td>
+        <td>
+          <a class="btn btn-ghost btn-sm" href="{% url 'quote_detail' q.id %}?societe={{ company.id }}">Voir</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'quote_pdf' q.id %}?societe={{ company.id }}">PDF</a>
+        </td>
       </tr>
       {% empty %}<tr><td colspan="5" class="empty">Aucun devis.</td></tr>{% endfor %}
     </tbody>

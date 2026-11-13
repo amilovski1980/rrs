@@ -342,6 +342,19 @@ def help_page(request):
 
 
 def legal_notice(request):
-    """Mentions légales — placeholders à compléter par le propriétaire."""
-    return render(request, "companies/legal_notice.html")
+    """Mentions légales — placeholders complétés par les coordonnées du back-office."""
+    contact = {"address": "", "phone": "", "email": ""}
+    try:
+        from admin_backoffice.models import SiteConfiguration
+
+        config = SiteConfiguration.objects.filter(pk=1).first()
+        if config is not None:
+            contact = {
+                "address": (config.contact_address or "").strip(),
+                "phone": (config.contact_phone or "").strip(),
+                "email": (config.contact_email or "").strip(),
+            }
+    except Exception:
+        pass
+    return render(request, "companies/legal_notice.html", {"contact": contact})
 

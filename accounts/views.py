@@ -1,17 +1,16 @@
 import logging
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetView
-from django.core.mail import send_mail
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods, require_POST
 from django.views.generic import TemplateView
 
+from admin_backoffice.email_templates import display_name, send_template_email
 from core.demo import ADMIN_EMAIL, DEMO_EMAIL, seed_admin, seed_demo
 
 from core.public_theme import is_dark, themed_redirect, themed_reverse, themed_template
@@ -89,18 +88,15 @@ def magic_link_email(request):
             try:
                 raw, _link = MagicLink.issue(user, minutes=30, ip=_client_ip(request))
                 url = request.build_absolute_uri(themed_reverse(request, "magic_link_verify", token=raw))
-                send_mail(
-                    subject="Votre lien de connexion Road Runner Solutions",
-                    message=(
-                        "Bonjour,\n\n"
-                        "Pour ouvrir votre cockpit, utilisez ce lien (valable 30 minutes, une seule fois) :\n"
-                        f"{url}\n\n"
-                        "Vous pourrez ensuite définir un mot de passe depuis votre profil.\n"
-                        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n"
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
+                send_template_email(
+                    "magic_link",
+                    user.email,
+                    {
+                        "name": display_name(user),
+                        "email": user.email,
+                        "magic_url": url,
+                    },
+                    request=request,
                 )
             except Exception:
                 logger.exception("Lien de connexion non envoyé")
