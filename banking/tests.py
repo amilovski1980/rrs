@@ -190,3 +190,11 @@ class BankTestCase(TestCase):
         for name in ("banking:transaction_detail", "banking:transaction_entry"):
             response = self.client.get(reverse(name, args=[transaction.pk]))
             self.assertEqual(response.status_code, 200, name)
+
+        entry_page = self.client.get(
+            reverse("banking:transaction_entry", args=[transaction.pk])
+        )
+        self.assertContains(entry_page, "data-banking-entry")
+        self.assertContains(entry_page, "counterpart-accounts")
+        self.assertContains(entry_page, "data-preview-status")
+        self.assertContains(entry_page, "banking-entry.js")

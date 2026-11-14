@@ -280,6 +280,16 @@ def transaction_create_entry(request, pk):
         else:
             messages.success(request, "Écriture créée et opération rapprochée.")
             return redirect("banking:transaction_detail", pk=bank_transaction.pk)
+
+    accounts = company.accounts.order_by("code")
+    bank_ledger = bank_transaction.account.ledger
+    reference_suggestions = list(
+        BankTransaction.objects.filter(company=company)
+        .exclude(reference="")
+        .order_by("-date")
+        .values_list("reference", flat=True)
+        .distinct()[:15]
+    )
     return render(
         request,
         "banking/transaction_entry.html",
@@ -288,6 +298,11 @@ def transaction_create_entry(request, pk):
             "transaction": bank_transaction,
             "form": form,
             "rule": rule,
+            "accounts": accounts,
+            "vat_accounts": accounts.filter(code__startswith="4456"),
+            "reference_suggestions": reference_suggestions,
+            "bank_code": bank_ledger.code if bank_ledger else "512",
+            "bank_label": bank_transaction.account.label,
         },
     )
 

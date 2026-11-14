@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Créer l'écriture bancaire{% endblock %}
 {% block crumbs %}Banque / Nouvelle écriture{% endblock %}
 {% block nav_banking %}active{% endblock %}
@@ -14,7 +15,10 @@
   <a class="btn btn-ghost page-actions" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Retour</a>
 </div>
 
-<form method="post" class="card form-stack">
+<form method="post" class="card form-stack" data-banking-entry
+      data-amount="{{ transaction.amount }}"
+      data-bank-label="{{ bank_label }}"
+      data-bank-code="{{ bank_code }}">
   {% csrf_token %}
   {% if form.non_field_errors %}
   <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
@@ -27,6 +31,12 @@
     <div>
       <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
       {{ form.reference }}
+      {% if transaction.reference %}
+      <button type="button" class="btn btn-ghost btn-sm" data-use-reference="{{ transaction.reference }}">
+        Utiliser la référence du relevé
+      </button>
+      {% endif %}
+      <p class="micro" data-reference-hint>Référence facultative.</p>
     </div>
   </div>
   <div>
@@ -38,7 +48,7 @@
     <div>
       <label for="{{ form.counterpart_code.id_for_label }}">{{ form.counterpart_code.label }}</label>
       {{ form.counterpart_code }}
-      <p class="micro">{{ form.counterpart_code.help_text }}</p>
+      <p class="micro" data-counterpart-hint>Choisissez un compte du plan comptable.</p>
       {% if form.counterpart_code.errors %}<p class="error">{{ form.counterpart_code.errors.0 }}</p>{% endif %}
     </div>
     <div>
@@ -55,8 +65,41 @@
   {% if rule %}
   <p class="micro">Règle appliquée : {{ rule.name }}{% if rule.counterpart_account %} → {{ rule.counterpart_account.code }} {{ rule.counterpart_account.label }}{% endif %}.</p>
   {% endif %}
+
+  <section class="card entry-preview" data-entry-preview>
+    <h3>Aperçu de l'écriture</h3>
+    <div class="entry-preview-lines">
+      <div class="entry-preview-line" data-preview-debit>
+        <span><span class="badge">Débit</span> <b data-preview-debit-label>Compte de contrepartie</b></span>
+        <b data-preview-debit-amount>0,00 €</b>
+      </div>
+      <div class="entry-preview-line" data-preview-vat>
+        <span><span class="badge">Débit TVA</span> <b data-preview-vat-label>TVA déductible</b></span>
+        <b data-preview-vat-amount>0,00 €</b>
+      </div>
+      <div class="entry-preview-line" data-preview-credit>
+        <span><span class="badge badge-blue">Crédit</span> <b data-preview-credit-label>Banque</b></span>
+        <b data-preview-credit-amount>0,00 €</b>
+      </div>
+    </div>
+    <p class="micro entry-preview-status" data-preview-status>Renseignez le compte de contrepartie.</p>
+  </section>
+
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">Créer et rapprocher</button>
   </div>
+
+  <datalist id="counterpart-accounts">
+    {% for account in accounts %}<option value="{{ account.code }}">{{ account.code }} — {{ account.label }}</option>{% endfor %}
+  </datalist>
+  <datalist id="vat-accounts">
+    {% for account in vat_accounts %}<option value="{{ account.code }}">{{ account.code }} — {{ account.label }}</option>{% endfor %}
+  </datalist>
+  <datalist id="reference-suggestions">
+    {% for reference in reference_suggestions %}<option value="{{ reference }}"></option>{% endfor %}
+  </datalist>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/banking-entry.js' %}?v=2026.11.14.1" defer></script>
 {% endblock %}

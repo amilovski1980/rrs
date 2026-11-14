@@ -92,6 +92,28 @@ class TransactionEntryForm(forms.Form):
     def __init__(self, *args, bank_transaction: BankTransaction, rule=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.bank_transaction = bank_transaction
+        self.fields["counterpart_code"].widget.attrs.update(
+            {
+                "list": "counterpart-accounts",
+                "autocomplete": "off",
+                "placeholder": "Ex. 627000",
+                "data-counterpart-input": "1",
+            }
+        )
+        self.fields["vat_account_code"].widget.attrs.update(
+            {
+                "list": "vat-accounts",
+                "autocomplete": "off",
+                "placeholder": "Ex. 445660",
+            }
+        )
+        self.fields["reference"].widget.attrs.update(
+            {
+                "list": "reference-suggestions",
+                "autocomplete": "off",
+                "data-reference-input": "1",
+            }
+        )
         if not self.is_bound:
             self.fields["date"].initial = bank_transaction.date
             self.fields["label"].initial = (

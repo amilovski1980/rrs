@@ -3472,3 +3472,47 @@ label.ticket-camera-btn.btn-primary:hover {
   }
   .card-tight.mobile-cards tbody td:not([data-label])::before { display: none; }
 }
+
+/* Aperçu live de l'écriture bancaire */
+.entry-preview {
+  margin-top: 4px;
+  background: #fbfcff;
+}
+.entry-preview h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+.entry-preview-lines {
+  display: grid;
+  gap: 8px;
+}
+.entry-preview-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13.5px;
+}
+.entry-preview-line span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+.entry-preview-line b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.entry-preview-line[hidden] { display: none; }
+.entry-preview-status { margin: 10px 0 0; }
+.entry-preview-status.is-warn { color: #b45309; }
+
+@media (max-width: 480px) {
+  .entry-preview-line { align-items: flex-start; }
+}
