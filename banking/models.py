@@ -100,6 +100,15 @@ class BankStatement(models.Model):
         max_digits=12, decimal_places=2, null=True, blank=True
     )
     file = models.FileField(upload_to="banking/releves/", null=True, blank=True)
+    # Repli base de données : Vercel monte le code en lecture seule (/var/task),
+    # donc le stockage fichier local ne peut pas recevoir le relevé.
+    file_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Fichier en base",
+    )
+    file_type = models.CharField(max_length=80, blank=True, verbose_name="Type MIME")
     original_filename = models.CharField(max_length=255, blank=True)
     source_format = models.CharField(max_length=8, choices=SOURCE_FORMATS, default="csv")
     row_count = models.PositiveIntegerField(default=0)

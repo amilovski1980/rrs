@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import mimetypes
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -100,9 +101,15 @@ def import_statement(account: BankAccount, data: bytes, filename: str = "") -> I
         source_format=source_format,
         row_count=len(rows),
         content_hash=hashlib.sha256(data).hexdigest(),
+        file_data=data,
+        file_type=(mimetypes.guess_type(filename or "")[0] or "application/octet-stream"),
     )
     if filename:
-        statement.file.save(filename, ContentFile(data), save=False)
+        try:
+            statement.file.save(filename, ContentFile(data), save=False)
+        except OSError:
+            # Le système de fichiers serverless est en lecture seule.
+            statement.file = None
     statement.save()
 
     created = duplicates = matched = 0

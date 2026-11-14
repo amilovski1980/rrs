@@ -98,6 +98,19 @@ class BankTestCase(TestCase):
         self.assertEqual(second.duplicates, 2)
         self.assertEqual(BankTransaction.objects.count(), 2)
 
+    def test_statement_file_is_kept_in_database_and_downloadable(self):
+        result = import_statement(self.account, CSV_SAMPLE, "releve.csv")
+        statement = result.statement
+        statement.refresh_from_db()
+        self.assertEqual(bytes(statement.file_data), CSV_SAMPLE)
+        self.assertEqual(statement.file_type, "text/csv")
+        response = self.client.get(
+            reverse("banking:statement_file", args=[statement.id])
+            + f"?societe={self.company.id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, CSV_SAMPLE)
+
     def test_auto_match_existing_entry(self):
         entry = self._entry("VIR FOURNISSEUR", Decimal("100.00"), credit=False)
         result = import_statement(self.account, CSV_SAMPLE, "releve.csv")

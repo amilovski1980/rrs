@@ -2,9 +2,10 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
 from core.context import resolve_company
@@ -388,6 +389,14 @@ def statement_file(request, pk):
     if bounce:
         return bounce
     statement = _scoped(BankStatement, company, pk)
+    filename = get_valid_filename(statement.original_filename or "releve") or "releve"
+    if statement.file_data:
+        response = HttpResponse(
+            bytes(statement.file_data),
+            content_type=statement.file_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
     if not statement.file:
         raise Http404("Aucun fichier de relevé.")
     try:
@@ -397,5 +406,5 @@ def statement_file(request, pk):
     return FileResponse(
         handle,
         as_attachment=True,
-        filename=statement.original_filename or "releve",
+        filename=filename,
     )
