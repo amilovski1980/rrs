@@ -54,6 +54,7 @@ from .models import (
 )
 from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
 from .pdf_import import PdfImportError, import_invoice_pdf
+from .suggestions import product_suggestions
 from .services import (
     convert_quote_to_invoice,
     delete_payment,
@@ -606,7 +607,11 @@ def product_create(request):
         product.save()
         messages.success(request, "Produit / service créé.")
         return redirect(reverse("product_detail", args=[product.id]) + _qs(company))
-    return render(request, "documents/product_form.html", {"company": company, "form": form})
+    return render(request, "documents/product_form.html", {
+        "company": company,
+        "form": form,
+        "product_suggestions": product_suggestions(company),
+    })
 
 
 @login_required
@@ -621,7 +626,10 @@ def product_edit(request, pk):
         messages.success(request, "Produit / service mis à jour.")
         return redirect(reverse("product_detail", args=[product.id]) + _qs(company))
     return render(request, "documents/product_form.html", {
-        "company": company, "form": form, "product": product,
+        "company": company,
+        "form": form,
+        "product": product,
+        "product_suggestions": product_suggestions(company),
     })
 
 

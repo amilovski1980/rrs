@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{% if product %}Modifier{% else %}Nouveau produit{% endif %}{% endblock %}
 {% block crumbs %}Facturation / Catalogue{% endblock %}
 {% block nav_products %}active{% endblock %}
@@ -8,7 +9,13 @@
   <form class="form-stack" method="post">
     {% csrf_token %}
     <div class="form-grid">
-      <div><label>Libellé</label>{{ form.label }}{% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}</div>
+      <div class="product-autocomplete" data-product-autocomplete>
+        <label for="{{ form.label.id_for_label }}">Libellé</label>
+        {{ form.label }}
+        <p class="micro">Commencez à taper : les produits et services de votre métier apparaissent.</p>
+        <div class="product-suggestions" data-product-suggestions role="listbox" hidden></div>
+        {% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}
+      </div>
       <div><label>Unité</label>{{ form.unit }}</div>
     </div>
     <div class="form-grid">
@@ -22,4 +29,8 @@
     </div>
   </form>
 </div>
+{{ product_suggestions|json_script:"product-suggestions" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/product-suggestions.js' %}?v=2026.11.14.1" defer></script>
 {% endblock %}

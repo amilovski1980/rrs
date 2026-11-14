@@ -389,3 +389,11 @@ html[data-theme="dark"] .ticket-category {
 html[data-theme="dark"] .ticket-image-preview { background: #fff; border-color: var(--line); }
 html[data-theme="dark"] .inv-mobile-card { background: #121214; }
 html[data-theme="dark"] .inv-mobile-card:hover { border-color: #3ddc6a; }
+html[data-theme="dark"] .product-suggestions {
+  background: #141416;
+  border-color: var(--line);
+}
+html[data-theme="dark"] .product-suggestion:hover,
+html[data-theme="dark"] .product-suggestion[aria-selected="true"] {
+  background: rgba(61, 220, 106, .12);
+}
