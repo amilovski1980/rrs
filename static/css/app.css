@@ -3060,6 +3060,15 @@ label.ticket-camera-btn.btn-primary:hover {
 .ledger-drafts-head h2 { margin: 0 0 4px; font-size: 19px; }
 
 /* ---------- Facturation : synthèse mobile ---------- */
+.bank-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bank-row-actions form { margin: 0; }
+
 .inv-mobile-list { display: none; }
 .inv-mobile-card {
   display: block;

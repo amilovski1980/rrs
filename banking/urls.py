@@ -17,6 +17,7 @@ urlpatterns = [
     path("transactions/<uuid:pk>/creer-ecriture/", views.transaction_create_entry, name="transaction_entry"),
     path("transactions/<uuid:pk>/de-rapprocher/", views.transaction_unmatch, name="transaction_unmatch"),
     path("transactions/<uuid:pk>/ignorer/", views.transaction_ignore, name="transaction_ignore"),
+    path("transactions/<uuid:pk>/supprimer/", views.transaction_delete, name="transaction_delete"),
     path("regles/", views.rule_list, name="rules"),
     path("regles/nouvelle/", views.rule_create, name="rule_create"),
     path("regles/<uuid:pk>/modifier/", views.rule_edit, name="rule_edit"),

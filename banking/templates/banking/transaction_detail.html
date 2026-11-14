@@ -19,6 +19,11 @@
     {% if transaction.status != "matched" %}
     <a class="btn btn-primary" href="{% url 'banking:transaction_entry' transaction.pk %}?societe={{ company.id }}">Créer l'écriture</a>
     {% endif %}
+    <form method="post" action="{% url 'banking:transaction_delete' transaction.pk %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer cette opération importée ? L\'écriture comptable liée, si elle existe, sera conservée.');">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'banking:transactions' %}?societe={{ company.id }}">
+      <button class="btn btn-ghost" type="submit">Supprimer</button>
+    </form>
   </div>
 </div>
 

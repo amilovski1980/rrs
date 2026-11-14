@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
@@ -301,6 +302,23 @@ def transaction_unmatch(request, pk):
     unmatch_transaction(bank_transaction)
     messages.info(request, "Rapprochement annulé.")
     return redirect("banking:transaction_detail", pk=bank_transaction.pk)
+
+
+@require_POST
+@login_required
+def transaction_delete(request, pk):
+    """Supprime une ligne importée, sans toucher à l'écriture comptable liée."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    bank_transaction = _scoped(BankTransaction, company, pk)
+    label = bank_transaction.label
+    bank_transaction.delete()
+    messages.success(request, f"Opération « {label[:80]} » supprimée.")
+    nxt = (request.POST.get("next") or "").strip()
+    if not nxt.startswith("/") or nxt.startswith("//"):
+        nxt = reverse("banking:transactions") + f"?societe={company.id}"
+    return redirect(nxt)
 
 
 @require_POST

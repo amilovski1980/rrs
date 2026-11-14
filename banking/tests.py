@@ -98,6 +98,19 @@ class BankTestCase(TestCase):
         self.assertEqual(second.duplicates, 2)
         self.assertEqual(BankTransaction.objects.count(), 2)
 
+    def test_imported_transaction_can_be_deleted(self):
+        import_statement(self.account, CSV_SAMPLE, "releve.csv")
+        transaction = BankTransaction.objects.get(label="VIR FOURNISSEUR")
+        response = self.client.post(
+            reverse("banking:transaction_delete", args=[transaction.id])
+            + f"?societe={self.company.id}",
+            {"next": reverse("banking:transactions") + f"?societe={self.company.id}"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            BankTransaction.objects.filter(pk=transaction.pk).exists()
+        )
+
     def test_statement_file_is_kept_in_database_and_downloadable(self):
         result = import_statement(self.account, CSV_SAMPLE, "releve.csv")
         statement = result.statement

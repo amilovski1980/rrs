@@ -97,7 +97,16 @@
             {% elif transaction.status == "ignored" %}<span class="badge">Ignoré</span>
             {% else %}<span class="badge badge-blue">À rapprocher</span>{% endif %}
           </td>
-          <td><a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+          <td>
+            <div class="bank-row-actions">
+              <a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a>
+              <form method="post" action="{% url 'banking:transaction_delete' transaction.pk %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer cette opération importée ? L\'écriture comptable liée, si elle existe, sera conservée.');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
+              </form>
+            </div>
+          </td>
         </tr>
         {% empty %}
         <tr><td colspan="6" class="empty">Aucune opération importée.</td></tr>
