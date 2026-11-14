@@ -3083,6 +3083,22 @@ label.ticket-camera-btn.btn-primary:hover {
 }
 .inv-mobile-bottom b { color: var(--ink); font-size: 15px; }
 
+/* Bandeau mode démo lecture seule */
+.demo-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid #efd58a;
+  border-radius: 10px;
+  background: #fff8e6;
+  color: #6b4e00;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.demo-readonly-banner b { color: #4d3800; }
+
 @media (max-width: 768px) {
   .ticket-upload-head { align-items: flex-start; }
   .ticket-upload-form { padding: 18px 16px; border-radius: 14px; }

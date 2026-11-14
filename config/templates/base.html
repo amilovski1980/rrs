@@ -251,6 +251,11 @@
       </div>
     </header>
     <main class="content">
+      {% if request.session.demo_mode %}
+      <div class="demo-readonly-banner" role="status">
+        <b>Mode démo</b> — lecture seule. Aucune modification n'est enregistrée.
+      </div>
+      {% endif %}
       {% if messages %}
       <div style="margin-bottom:16px">
         {% for message in messages %}

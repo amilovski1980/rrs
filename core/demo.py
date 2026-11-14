@@ -6,14 +6,10 @@ configuration SIP (poste appelé, WebRTC) au widget Aminia.
 """
 import decimal
 import os
-import secrets
-import uuid
-from datetime import timedelta
+from datetime import date
 
 from django.conf import settings
-from django.db import transaction
 from django.http import JsonResponse
-from django.utils import timezone
 
 from accounting.models import (
     ChartAccount,
@@ -28,11 +24,9 @@ from documents.models import Client, Invoice, InvoiceSeries, Product
 
 DEMO_EMAIL = "demo@roadrunner-solutions.fr"
 DEMO_SIREN = "812345678"
-# Comptes de démonstration jetables : un par visiteur, supprimés après 12 h.
+# Anciens bacs à sable jetables demo+...@demo.invalid : purgés au déploiement.
 DEMO_SANDBOX_PREFIX = "demo+"
 DEMO_SANDBOX_DOMAIN = "@demo.invalid"
-DEMO_SANDBOX_HOURS = 12
-DEMO_SANDBOX_MAX = 120
 # Compte d'administration (staff) : surchargeable via ADMIN_EMAIL.
 # ADMIN_PASSWORD pose le premier mot de passe s'il n'y en a pas encore.
 # Ensuite la connexion se fait par email + mot de passe, ou par lien de réinitialisation.
@@ -193,6 +187,123 @@ def _populate_demo_company(company):
     martin = Invoice.objects.get(company=company, number="FAC-2026-00043")
     if martin.status != "paid":
         pay_invoice(martin)
+
+    # --- Achats fournisseurs -------------------------------------------------
+    from mailsync.models import MailboxConfig, Supplier
+    from purchases.models import PurchaseInvoice
+    from purchases.services import PurchaseError, post_purchase
+
+    supplier, _ = Supplier.objects.get_or_create(
+        company=company,
+        name="Quincaillerie Rhône",
+        defaults={
+            "email": "contact@quincaillerie-rhone.example",
+            "email_domain": "quincaillerie-rhone.example",
+            "siret": "73282932000074",
+            "tva_intra": "FR44732829320",
+            "payment_terms_days": 30,
+            "default_charge_code": "6063",
+            "address": "45 rue de la Villette, 69003 Lyon",
+        },
+    )
+    purchase, _ = PurchaseInvoice.objects.get_or_create(
+        company=company,
+        supplier=supplier,
+        number="ACH-2026-0007",
+        defaults={
+            "supplier_name": supplier.name,
+            "invoice_date": date(2026, 10, 20),
+            "due_date": date(2026, 11, 20),
+            "amount_ht": decimal.Decimal("1240.00"),
+            "amount_vat": decimal.Decimal("248.00"),
+            "amount_ttc": decimal.Decimal("1488.00"),
+            "charge_account_code": "6063",
+            "vat_account_code": "44566",
+            "supplier_account_root": "401",
+            "description": "Outillage et quincaillerie",
+            "status": "draft",
+        },
+    )
+    if purchase.status == "draft":
+        try:
+            post_purchase(purchase)
+        except PurchaseError:
+            pass
+
+    # --- Banque --------------------------------------------------------------
+    from banking.models import BankAccount, BankStatement, BankTransaction
+
+    bank, _ = BankAccount.objects.get_or_create(
+        company=company,
+        label="Compte principal",
+        defaults={
+            "bank_name": "Crédit Lyonnais",
+            "iban": "FR7610278060410002063428704",
+            "bic": "CMCIFR2A",
+            "journal": jb,
+            "ledger_account": a512,
+        },
+    )
+    if not bank.ledger_account_id:
+        bank.ledger_account = a512
+        bank.save(update_fields=["ledger_account"])
+
+    statement, _ = BankStatement.objects.get_or_create(
+        company=company,
+        account=bank,
+        original_filename="demo-releve.csv",
+        defaults={
+            "date_start": date(2026, 10, 1),
+            "date_end": date(2026, 10, 31),
+            "source_format": "csv",
+            "row_count": 2,
+        },
+    )
+    matched_entry = JournalEntry.objects.filter(
+        company=company, journal__code="BQ", reference="FAC-2026-00042"
+    ).first()
+    BankTransaction.objects.get_or_create(
+        company=company,
+        account=bank,
+        fingerprint="demo-bank-001",
+        defaults={
+            "statement": statement,
+            "date": date(2026, 10, 25),
+            "label": "VIR CLIENT CADRES INDUSTRIES",
+            "counterparty": "Cadres Industries",
+            "reference": "FAC-2026-00042",
+            "amount": decimal.Decimal("2880.00"),
+            "status": "matched" if matched_entry else "unmatched",
+            "matched_entry": matched_entry,
+            "match_type": "auto" if matched_entry else "",
+            "match_score": 90 if matched_entry else 0,
+        },
+    )
+    BankTransaction.objects.get_or_create(
+        company=company,
+        account=bank,
+        fingerprint="demo-bank-002",
+        defaults={
+            "statement": statement,
+            "date": date(2026, 10, 28),
+            "label": "FRAIS BANCAIRES",
+            "amount": decimal.Decimal("-12.50"),
+            "status": "unmatched",
+        },
+    )
+
+    # --- Connecteur e-mail (configuration visible, non connectée) -----------
+    MailboxConfig.objects.get_or_create(
+        company=company,
+        defaults={
+            "provider": "gmail",
+            "is_active": False,
+            "folder_label": "Factures fournisseurs",
+            "charge_account_code": "6063",
+            "vat_account_code": "44566",
+            "supplier_account_root": "401",
+        },
+    )
     return company
 
 
@@ -208,11 +319,6 @@ def seed_demo():
     return user, company
 
 
-def _is_sandbox_user(user) -> bool:
-    email = (getattr(user, "email", "") or "").lower()
-    return email.startswith(DEMO_SANDBOX_PREFIX) and email.endswith(DEMO_SANDBOX_DOMAIN)
-
-
 def _delete_sandbox_users(user_ids):
     """Supprime des comptes de démo sans buter sur JournalEntry.journal PROTECT."""
     if not user_ids:
@@ -223,84 +329,76 @@ def _delete_sandbox_users(user_ids):
     User.objects.filter(pk__in=user_ids).delete()
 
 
-def _cleanup_sandboxes():
-    """Supprime les bacs à sable expirés et limite le stock total."""
-    cutoff = timezone.now() - timedelta(hours=DEMO_SANDBOX_HOURS)
-    sandboxes = User.objects.filter(
-        email__istartswith=DEMO_SANDBOX_PREFIX,
-        email__iendswith=DEMO_SANDBOX_DOMAIN,
+def purge_demo_sandboxes() -> int:
+    """Supprime tous les anciens comptes demo+...@demo.invalid.
+
+    Appelé au déploiement et à l'ouverture de la démo pour nettoyer les
+    comptes créés par l'ancien système de bac à sable par visiteur.
+    """
+    user_ids = list(
+        User.objects.filter(
+            email__istartswith=DEMO_SANDBOX_PREFIX,
+            email__iendswith=DEMO_SANDBOX_DOMAIN,
+        ).values_list("pk", flat=True)
     )
-    stale = list(
-        sandboxes.filter(created_at__lt=cutoff).values_list("pk", flat=True)
+    _delete_sandbox_users(user_ids)
+    return len(user_ids)
+
+
+def purge_extra_demo_companies() -> int:
+    """Ne garde qu'une société pour le compte démo fixe.
+
+    Les anciennes visites pouvaient créer d'autres sociétés dans le compte
+    partagé. On supprime tout ce qui n'est pas la société de démonstration
+    officielle (SIREN DEMO_SIREN).
+    """
+    user = User.objects.filter(email=DEMO_EMAIL).first()
+    if user is None:
+        return 0
+    extras = list(user.companies.exclude(siren=DEMO_SIREN))
+    for company in extras:
+        JournalEntry.objects.filter(company=company).delete()
+        company.delete()
+    return len(extras)
+
+
+def exclude_demo_users(queryset):
+    """Retire le compte démo et les anciens bacs à sable des listes admin."""
+    return queryset.exclude(email__iendswith=DEMO_SANDBOX_DOMAIN).exclude(
+        email__iexact=DEMO_EMAIL
     )
-    _delete_sandbox_users(stale)
-    remaining = list(sandboxes.order_by("-created_at").values_list("pk", flat=True))
-    if len(remaining) > DEMO_SANDBOX_MAX:
-        _delete_sandbox_users(remaining[DEMO_SANDBOX_MAX:])
-
-
-def _sandbox_siren() -> str:
-    for _attempt in range(30):
-        candidate = f"9{secrets.randbelow(100_000_000):08d}"
-        if not Company.objects.filter(siren=candidate).exists():
-            return candidate
-    raise RuntimeError("Impossible de créer un SIREN de démonstration.")
-
-
-def _create_sandbox():
-    _cleanup_sandboxes()
-    with transaction.atomic():
-        user = User(
-            email=f"{DEMO_SANDBOX_PREFIX}{uuid.uuid4().hex[:12]}{DEMO_SANDBOX_DOMAIN}",
-            first_name="Visiteur",
-            last_name="Démo",
-        )
-        user.set_unusable_password()
-        user.save()
-        company = Company.objects.create(
-            owner=user,
-            siren=_sandbox_siren(),
-            **_demo_company_values(),
-        )
-        _populate_demo_company(company)
-    return user, company
-
-
-def _sandbox_for_session(request):
-    user_id = request.session.get("demo_sandbox_id")
-    if user_id:
-        user = User.objects.filter(pk=user_id).first()
-        if user and _is_sandbox_user(user):
-            company = user.companies.order_by("created_at").first()
-            if company is not None:
-                return user, company
-    user, company = _create_sandbox()
-    request.session["demo_sandbox_id"] = str(user.id)
-    return user, company
 
 
 def demo_login(request):
-    """Ouvre une démo isolée par visiteur, sans partager le compte de démo.
+    """Ouvre la démo publique en lecture seule.
 
-    Chaque session reçoit sa propre société fictive. Les visiteurs peuvent
-    créer, modifier et émettre des factures sans toucher aux données des autres.
+    Un seul compte et une seule société de démonstration sont utilisés :
+    aucune donnée n'est créée par visiteur, et les écritures sont bloquées
+    par DemoModeMiddleware. Les anciens bacs à sable sont purgés ici.
     """
     from django.contrib import messages
     from django.contrib.auth import login, logout
     from django.shortcuts import redirect
     from django.urls import reverse
 
-    if request.user.is_authenticated and not _is_sandbox_user(request.user):
+    if request.user.is_authenticated and request.user.email != DEMO_EMAIL:
         logout(request)
 
-    user, company = _sandbox_for_session(request)
+    if User.objects.filter(
+        email__istartswith=DEMO_SANDBOX_PREFIX,
+        email__iendswith=DEMO_SANDBOX_DOMAIN,
+    ).exists():
+        purge_demo_sandboxes()
+    purge_extra_demo_companies()
+
+    user, company = seed_demo()
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     request.session["societe_id"] = str(company.id)
     request.session["demo_mode"] = True
     messages.info(
         request,
-        "Mode démo : cette société, ses clients et ses factures sont propres à "
-        "votre session. Ils seront supprimés automatiquement.",
+        "Mode démo en lecture seule : la navigation et les écrans sont "
+        "accessibles, mais aucune modification n'est enregistrée.",
     )
 
     nxt = request.GET.get("next") or reverse("cockpit")

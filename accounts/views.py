@@ -64,6 +64,7 @@ def login_view(request):
         if email == DEMO_EMAIL:
             user = open_account(email)
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            request.session["demo_mode"] = True
             return redirect(_safe_next(request, request.POST.get("next") or "") or "cockpit")
         if email == (ADMIN_EMAIL or "").strip().lower():
             # Un ADMIN_PASSWORD d'environnement pose le premier mot de passe staff,
@@ -79,6 +80,7 @@ def login_view(request):
             form.add_error(None, "Email ou mot de passe incorrect.")
         else:
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            request.session.pop("demo_mode", None)
             return redirect(_safe_next(request, request.POST.get("next") or "") or "cockpit")
     return render(request, themed_template(request, "accounts/magic_link_form.html"), {
         "form": form,

@@ -69,6 +69,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "admin_backoffice.middleware.DynamicConfigMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "core.middleware.DemoModeMiddleware",
     "billing.middleware.PlanGateMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "admin_backoffice.middleware.SchemaRetryMiddleware",
