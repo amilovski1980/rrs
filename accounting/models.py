@@ -50,6 +50,9 @@ class Journal(models.Model):
             )
         ]
 
+    def __str__(self):
+        return f"{self.code} — {self.name}" if self.name else self.code
+
 
 class JournalEntry(models.Model):
     """Écriture équilibrée, saisie transactionnelle."""

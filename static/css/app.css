@@ -3127,6 +3127,52 @@ label.ticket-camera-btn.btn-primary:hover {
   line-height: 1.35;
 }
 
+/* ---------- Écriture comptable : confort mobile ---------- */
+.entry-lines-title { margin: 26px 0 4px; font-size: 18px; }
+.entry-lines-hint { margin: 0 0 12px; }
+.entry-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .entry-form-card { padding: 16px; border-radius: 14px; }
+  .entry-form-card .form-grid { grid-template-columns: 1fr; gap: 10px; }
+  .entry-form-card .table-wrap { overflow: visible; }
+  .entry-lines-table { display: block; min-width: 0; }
+  .entry-lines-table thead { display: none; }
+  .entry-lines-table tbody { display: grid; gap: 12px; }
+  .entry-lines-table tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .entry-lines-table td { display: block; padding: 0; border: 0; }
+  .entry-lines-table td:first-child { grid-column: 1 / -1; }
+  .entry-lines-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .entry-lines-table select,
+  .entry-lines-table input { width: 100%; }
+  .entry-lines-table .num { text-align: left; }
+  .entry-form-actions { flex-direction: column-reverse; }
+  .entry-form-actions .btn { width: 100%; }
+}
+
 @media (max-width: 640px) {
   .supplier-lookup-card { flex-direction: column; align-items: stretch; }
   .supplier-lookup-row { flex-direction: column; align-items: stretch; }
