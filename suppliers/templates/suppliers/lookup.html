@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Rechercher un fournisseur{% endblock %}
+{% block crumbs %}Fournisseurs / Recherche{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Rechercher un fournisseur</h1>
+    <p class="sub">{{ company.denomination }} — retrouvez une société par son nom, son SIREN ou son SIRET, puis préremplissez sa fiche.</p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'suppliers:list' %}?societe={{ company.id }}">Liste</a>
+    <a class="btn btn-primary" href="{% url 'suppliers:create' %}?societe={{ company.id }}">Saisie manuelle</a>
+  </div>
+</div>
+
+<form method="get" action="{% url 'suppliers:lookup' %}" class="card supplier-lookup-search" role="search">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <label class="sr-only" for="supplier-q">Nom de la société, SIREN ou SIRET</label>
+  <div class="supplier-lookup-row">
+    <input id="supplier-q" name="q" value="{{ query }}" maxlength="80" placeholder="Nom de la société, SIREN ou SIRET" autofocus>
+    <button class="btn btn-primary" type="submit">Rechercher</button>
+  </div>
+  <p class="micro">Exemple : « Menuiserie Dupont », « 812345678 » ou « 81234567800012 ».</p>
+</form>
+
+{% if search_message %}
+<div class="card search-alert" role="alert">
+  <p>{{ search_message }}</p>
+</div>
+{% endif %}
+
+{% if results %}
+<div class="supplier-lookup-results">
+  <p class="sub">{{ results|length }} société{{ results|length|pluralize }} trouvée{{ results|length|pluralize }} pour « {{ query }} ».</p>
+  {% for row in results %}
+  <div class="search-hit supplier-lookup-hit">
+    <div>
+      <span class="siren-kicker">SIREN {{ row.siren }}{% if row.forme %} · {{ row.forme }}{% endif %}{% if row.etat %} · {{ row.etat }}{% endif %}</span>
+      <strong>{{ row.denomination }}</strong>
+      {% if row.adresse %}<span class="search-meta">{{ row.adresse }}</span>{% endif %}
+      <span class="search-meta">
+        {% if row.naf %}NAF {{ row.naf }}{% endif %}
+        {% if row.siret %} · SIRET {{ row.siret }}{% endif %}
+      </span>
+    </div>
+    <a class="btn btn-primary btn-sm" href="{% url 'suppliers:create' %}?societe={{ company.id }}&amp;name={{ row.denomination|urlencode }}&amp;siret={{ row.siret }}&amp;tva={{ row.tva }}&amp;address={{ row.adresse|urlencode }}&amp;notes={{ row.notes|urlencode }}">Utiliser cette société</a>
+  </div>
+  {% endfor %}
+</div>
+{% elif query and not search_message %}
+<div class="card empty">Aucune société trouvée. Essayez un autre nom ou le SIREN.</div>
+{% endif %}
+{% endblock %}
