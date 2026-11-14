@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ invoice.number }}{% endblock %}
 {% block crumbs %}Facturation / {{ invoice.number }}{% endblock %}
 {% block nav_invoices %}active{% endblock %}
@@ -6,7 +7,7 @@
 <div class="page-head">
   <div>
     <h1>{{ invoice.number }}</h1>
-    <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
+    <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}{% if invoice.source == "historical_import" %} · <span class="badge">Import d'historique</span>{% endif %}</p>
   </div>
   <details class="page-actions">
     <summary class="btn btn-primary actions-summary">Actions</summary>
@@ -91,6 +92,7 @@
   </form>
   {% endfor %}
 </div>
+<p class="micro" data-style-status role="status" aria-live="polite"></p>
 
 <section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
@@ -196,4 +198,7 @@
   <p class="empty">Aucune ligne détaillée sur cette facture. Ajoutez un produit catalogue ou une ligne libre pour que le PDF affiche le détail des prestations.</p>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/invoice-style-picker.js' %}?v=2026.11.15.1" defer></script>
 {% endblock %}

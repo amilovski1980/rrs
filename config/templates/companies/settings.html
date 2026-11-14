@@ -270,6 +270,7 @@
       </form>
       {% endfor %}
     </div>
+      <p class="micro" data-style-status role="status" aria-live="polite"></p>
       </div>
     </details>
   </div>
@@ -301,6 +302,7 @@
 {{ smtp_presets|json_script:"smtp-presets" }}
 {% endblock %}
 {% block scripts %}
+<script src="{% static 'js/invoice-style-picker.js' %}?v=2026.11.15.1" defer></script>
 <script src="{% static 'js/smtp-settings.js' %}?v=2026.11.14.7" defer></script>
 <script>
   (function () {

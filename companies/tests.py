@@ -78,6 +78,18 @@ class CompanySettingsTests(TestCase):
         for label in ("Graphite", "Indigo", "Terra"):
             self.assertContains(page, label)
 
+    def test_invoice_layout_ajax_switch_returns_json(self):
+        response = self.client.post(
+            "/societe/",
+            {"layout": "sapphire"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(response.json()["layout"], "sapphire")
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_layout, "sapphire")
+
     def test_invoice_layout_switch(self):
         response = self.client.post("/societe/", {
             "layout": "emerald",

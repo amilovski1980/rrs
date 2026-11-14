@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -577,11 +577,18 @@ def company_settings(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
     if request.method == "POST" and "layout" in request.POST and "denomination" not in request.POST:
         layout = request.POST.get("layout") or ""
         if layout == "" or layout in dict(INVOICE_LAYOUTS):
             company.invoice_layout = layout
             company.save(update_fields=["invoice_layout"])
+        if is_ajax:
+            return JsonResponse({
+                "ok": True,
+                "theme": company.invoice_theme,
+                "layout": company.invoice_layout,
+            })
         nxt = request.POST.get("next") or ""
         if not nxt.startswith("/") or nxt.startswith("//"):
             nxt = reverse("company_settings") + f"?societe={company.id}"
@@ -591,11 +598,21 @@ def company_settings(request):
         from billing.access import UPGRADE_MESSAGE, theme_allowed
 
         if theme in dict(INVOICE_THEMES) and not theme_allowed(request.user, theme):
+            if is_ajax:
+                return JsonResponse(
+                    {"ok": False, "error": UPGRADE_MESSAGE}, status=403
+                )
             messages.info(request, UPGRADE_MESSAGE)
             return redirect("plan_upgrade")
         if theme in dict(INVOICE_THEMES):
             company.invoice_theme = theme
             company.save(update_fields=["invoice_theme"])
+        if is_ajax:
+            return JsonResponse({
+                "ok": True,
+                "theme": company.invoice_theme,
+                "layout": company.invoice_layout,
+            })
         nxt = request.POST.get("next") or ""
         if not nxt.startswith("/") or nxt.startswith("//"):
             nxt = reverse("company_settings") + f"?societe={company.id}"
