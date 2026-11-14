@@ -371,3 +371,21 @@ html[data-theme="dark"] .mail-google-box {
   background: rgba(61, 220, 106, .08);
   border-color: rgba(61, 220, 106, .28);
 }
+html[data-theme="dark"] .ticket-upload-hero,
+html[data-theme="dark"] .ticket-mini-stats > div,
+html[data-theme="dark"] .ticket-dropzone {
+  background: #0f0f11;
+  border-color: var(--line);
+}
+html[data-theme="dark"] .ticket-upload-icon,
+html[data-theme="dark"] .ticket-dropzone input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #14b86a, #62d99a);
+  color: #07140c;
+}
+html[data-theme="dark"] .ticket-category {
+  background: rgba(61, 220, 106, .14);
+  color: #c6ffb1;
+}
+html[data-theme="dark"] .ticket-image-preview { background: #fff; border-color: var(--line); }
+html[data-theme="dark"] .inv-mobile-card { background: #121214; }
+html[data-theme="dark"] .inv-mobile-card:hover { border-color: #3ddc6a; }

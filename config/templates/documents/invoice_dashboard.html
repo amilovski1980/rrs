@@ -69,7 +69,7 @@
   </a>
 </div>
 
-<div class="card card-tight">
+<div class="card card-tight inv-dash-table">
   <div class="card-head">
     <h3>Dernières factures</h3>
     <a class="btn btn-ghost btn-sm" href="{% url 'invoice_list' %}?societe={{ company.id }}">Tout voir</a>
@@ -97,5 +97,25 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+
+<div class="inv-mobile-list" aria-label="Dernières factures">
+  {% for inv in recent_invoices %}
+  <a class="inv-mobile-card" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">
+    <div class="inv-mobile-top">
+      <b>{{ inv.number }}</b>
+      <span class="badge {% if inv.is_late %}badge-red{% elif inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}">
+        {% if inv.is_late %}Dépassé{% else %}{{ inv.get_status_display }}{% endif %}
+      </span>
+    </div>
+    <div class="inv-mobile-client">{{ inv.client_name }}</div>
+    <div class="inv-mobile-bottom">
+      <span>{{ inv.created_at|date:"d/m/Y" }}</span>
+      <b>{{ inv.amount_ttc|floatformat:2 }} €</b>
+    </div>
+  </a>
+  {% empty %}
+  <p class="empty">Aucune facture. Créez la première.</p>
+  {% endfor %}
 </div>
 {% endblock %}

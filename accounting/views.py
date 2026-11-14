@@ -1,9 +1,18 @@
+from datetime import date
+
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from core.context import resolve_company
 
+from .fec import build_fec
 from .forms import EntryForm, EntryLineFormSet, set_line_choices
 from .models import JournalEntry
 from .reports import balance_rows
@@ -77,6 +86,33 @@ def ledger(request):
 
 
 @login_required
+@require_POST
+def entry_validate(request, pk):
+    """Valide un brouillon d'écriture après contrôle de l'équilibre."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    entry = get_object_or_404(
+        JournalEntry, pk=pk, company=company, validated=False
+    )
+    totals = entry.lines.aggregate(debit=Sum("debit"), credit=Sum("credit"))
+    debit = totals["debit"] or 0
+    credit = totals["credit"] or 0
+    if not entry.lines.exists():
+        messages.error(request, "Cette écriture ne contient aucune ligne.")
+    elif debit != credit:
+        messages.error(
+            request,
+            "Impossible de valider : le débit et le crédit ne sont pas équilibrés.",
+        )
+    else:
+        entry.validated = True
+        entry.save(update_fields=["validated"])
+        messages.success(request, f"Écriture « {entry.label} » validée.")
+    return redirect(reverse("ledger") + f"?societe={company.id}")
+
+
+@login_required
 def balance(request):
     """Balance par compte : soldes débit/crédit des écritures validées."""
     company, bounce = _company_or_redirect(request)
@@ -89,4 +125,27 @@ def balance(request):
         "tot_d": total_debit,
         "tot_c": total_credit,
         "ok": total_debit == total_credit,
+        "fec_start": date(timezone.localdate().year, 1, 1),
+        "fec_end": timezone.localdate(),
     })
+
+
+@login_required
+def export_fec(request):
+    """Export FEC tabulé de l'exercice (paramètres ``debut`` / ``fin``)."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    today = timezone.localdate()
+    start = parse_date(request.GET.get("debut") or "") or date(today.year, 1, 1)
+    end = parse_date(request.GET.get("fin") or "") or today
+    if start > end:
+        start, end = end, start
+    payload = build_fec(company, start, end)
+    response = HttpResponse(
+        payload, content_type="text/tab-separated-values; charset=utf-8"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="FEC_{company.siren}_{start:%Y%m%d}_{end:%Y%m%d}.txt"'
+    )
+    return response

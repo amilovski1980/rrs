@@ -3,7 +3,7 @@
 {% block crumbs %}Facturation · Tickets{% endblock %}
 {% block nav_tickets %}active{% endblock %}
 {% block content %}
-<div class="page-head">
+<div class="page-head ticket-upload-head">
   <div>
     <h1>Importer un ticket de caisse</h1>
     <p class="sub">Photo ou scan (JPG, PNG, WEBP) — PDF texte accepté. Rien n'est comptabilisé tant que vous n'avez pas validé.</p>
@@ -11,8 +11,16 @@
   <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Retour</a>
 </div>
 
-<form class="card card-tight form-stack ticket-upload-form" method="post" enctype="multipart/form-data" data-ticket-upload-form>
+<form class="card ticket-upload-form" method="post" enctype="multipart/form-data" data-ticket-upload-form>
   {% csrf_token %}
+
+  <div class="ticket-upload-hero">
+    <span class="ticket-upload-icon" aria-hidden="true">{% include "partials/icon.html" with name="receipt" %}</span>
+    <div>
+      <h2>Un ticket, une dépense, c'est réglé.</h2>
+      <p>Déposez votre justificatif ou photographiez-le. L'OCR prépare un brouillon : vous gardez la main avant validation.</p>
+    </div>
+  </div>
 
   <div class="field mobile-only ticket-camera-block">
     <p class="ticket-camera-hint">Sur téléphone, photographiez directement le ticket :</p>
@@ -28,7 +36,7 @@
     <p class="sub">La photo est envoyée au même OCR que l'import classique (brouillon à valider).</p>
   </div>
 
-  <div class="field">
+  <div class="ticket-dropzone">
     <label for="{{ form.fichier.id_for_label }}">{{ form.fichier.label }}</label>
     {{ form.fichier }}
     {% if form.fichier.help_text %}<p class="sub">{{ form.fichier.help_text }}</p>{% endif %}
@@ -38,9 +46,11 @@
   <div class="field">
     <label for="{{ form.categorie.id_for_label }}">{{ form.categorie.label }}</label>
     {{ form.categorie }}
+    <p class="sub">Facultatif : aide Aminia à classer la dépense.</p>
     {% for err in form.categorie.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
   </div>
 
-  <button class="btn btn-primary form-submit" type="submit" data-ticket-ocr-submit>Lancer l'OCR</button>
+  <button class="btn btn-primary form-submit ticket-upload-submit" type="submit" data-ticket-ocr-submit>Lancer l'OCR</button>
+  <p class="ticket-upload-safe">Aucune écriture comptable avant votre validation.</p>
 </form>
 {% endblock %}

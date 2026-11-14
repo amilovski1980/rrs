@@ -66,11 +66,18 @@ class EntryForm(forms.ModelForm):
     class Meta:
         model = JournalEntry
         fields = ("journal", "date", "label", "reference")
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+        }
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
         if company:
             self.fields["journal"].queryset = Journal.objects.filter(company=company)
+        if not self.is_bound and not self.initial.get("date"):
+            from django.utils import timezone
+
+            self.initial["date"] = timezone.localdate()
 
 
 def set_line_choices(formset, company):

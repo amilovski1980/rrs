@@ -23,6 +23,12 @@
         <button class="btn btn-primary" type="submit">Valider</button>
       </form>
       {% endif %}
+      {% if ticket.journal_entry and not ticket.journal_entry.validated %}
+      <form method="post" action="{% url 'ticket_post_entry' ticket.id %}?societe={{ company.id }}" style="display:inline">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Valider l'écriture au grand livre</button>
+      </form>
+      {% endif %}
       <form method="post" action="{% url 'ticket_delete' ticket.id %}?societe={{ company.id }}" style="display:inline" onsubmit="return confirm('Supprimer ce ticket ?');">
         {% csrf_token %}
         <button class="btn btn-ghost" type="submit">Supprimer</button>
@@ -31,35 +37,71 @@
   </details>
 </div>
 
-<div class="grid g2" style="margin-bottom:18px">
-  <div class="card card-tight">
-    <h3>Montants</h3>
-    <p><b>TTC</b> {{ ticket.montant_ttc|floatformat:2 }} € · <b>TVA</b> {{ ticket.montant_tva|floatformat:2 }} € ({{ ticket.taux_tva }} %) · <b>HT</b> {{ ticket.montant_ht|floatformat:2 }} €</p>
-    <p>Catégorie : {{ ticket.get_categorie_display }}{% if ticket.moyen_paiement %} · Paiement : {{ ticket.moyen_paiement }}{% endif %}</p>
-    {% if ticket.notes %}<p class="sub">{{ ticket.notes }}</p>{% endif %}
-    {% if ticket.journal_entry %}
-    <p class="sub">Écriture proposée : {{ ticket.journal_entry.label }}
-      ({% if ticket.journal_entry.validated %}validée{% else %}brouillon{% endif %})</p>
-    {% endif %}
+<div class="ticket-detail-grid">
+  <div class="card card-tight ticket-amount-card">
+    <div class="ticket-card-head">
+      <div>
+        <p class="sheet-kicker">Montant TTC</p>
+        <p class="ticket-amount">{{ ticket.montant_ttc|floatformat:2 }} €</p>
+      </div>
+      <span class="ticket-category">{{ ticket.get_categorie_display }}</span>
+    </div>
+    <div class="ticket-mini-stats">
+      <div><span>HT</span><b>{{ ticket.montant_ht|floatformat:2 }} €</b></div>
+      <div><span>TVA</span><b>{{ ticket.montant_tva|floatformat:2 }} €</b><small>{{ ticket.taux_tva }} %</small></div>
+    </div>
+    <dl class="ticket-meta">
+      {% if ticket.moyen_paiement %}<div><dt>Paiement</dt><dd>{{ ticket.moyen_paiement }}</dd></div>{% endif %}
+      {% if ticket.journal_entry %}
+      <div><dt>Écriture proposée</dt><dd>{{ ticket.journal_entry.label }} · {% if ticket.journal_entry.validated %}<span class="badge badge-green">validée</span>{% else %}<span class="badge badge-amber">brouillon</span>{% endif %}</dd></div>
+      {% endif %}
+      {% if ticket.notes %}<div><dt>Notes</dt><dd>{{ ticket.notes }}</dd></div>{% endif %}
+    </dl>
   </div>
-  <div class="card card-tight">
-    <h3>Image</h3>
+
+  <div class="card card-tight ticket-image-card">
+    <div class="ticket-card-head">
+      <h3>Justificatif</h3>
+      {% if ticket.image_data or ticket.image %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">Ouvrir</a>
+      {% endif %}
+    </div>
     {% if ticket.image_data or ticket.image %}
-    <p><a href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">Voir le fichier</a></p>
+      {% if "image" in ticket.image_type|default:"image" %}
+      <a class="ticket-image-preview" href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">
+        <img src="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" alt="Aperçu du ticket {{ ticket.magasin|default:'' }}" loading="lazy">
+      </a>
+      {% else %}
+      <a class="ticket-file-link" href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">
+        {% include "partials/icon.html" with name="file" %}
+        <span>Voir le fichier PDF</span>
+      </a>
+      {% endif %}
     {% else %}
-    <p class="sub">Aucune image jointe.</p>
+    <p class="empty">Aucune image jointe à ce ticket.</p>
     {% endif %}
   </div>
 </div>
 
 {% if ticket.line_items %}
 <div class="card card-tight" style="margin-bottom:18px">
-  <h3>Lignes détectées</h3>
-  <ul>
-    {% for line in ticket.line_items %}
-    <li>{{ line.description }} — {{ line.montant }} €</li>
-    {% endfor %}
-  </ul>
+  <div class="card-head">
+    <h3>Lignes détectées</h3>
+    <span class="badge">{{ ticket.line_items|length }} ligne{{ ticket.line_items|length|pluralize }}</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Désignation</th><th class="num">Montant</th></tr></thead>
+      <tbody>
+        {% for line in ticket.line_items %}
+        <tr>
+          <td>{{ line.description }}</td>
+          <td class="num">{{ line.montant }} €</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endif %}
 

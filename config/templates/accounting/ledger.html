@@ -68,20 +68,34 @@
 {% endif %}
 
 {% if drafts %}
-<h2 style="margin:28px 0 12px">Brouillons non validés</h2>
+<div class="ledger-drafts-head">
+  <div>
+    <h2>Écritures à valider</h2>
+    <p class="sub">Vérifiez les brouillons proposés par Aminia ou importés, puis validez-les pour les passer au grand livre.</p>
+  </div>
+  <span class="badge badge-amber">{{ drafts|length }} à valider</span>
+</div>
 <div class="card card-tight">
-  <table>
-    <thead><tr><th>Date</th><th>Journal</th><th>Libellé</th></tr></thead>
-    <tbody>
-      {% for e in drafts %}
-      <tr>
-        <td>{{ e.date|date:"d/m/Y" }}</td>
-        <td><span class="tag">{{ e.journal.code }}</span></td>
-        <td>{{ e.label }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Journal</th><th>Libellé</th><th><span class="sr-only">Action</span></th></tr></thead>
+      <tbody>
+        {% for e in drafts %}
+        <tr>
+          <td>{{ e.date|date:"d/m/Y" }}</td>
+          <td><span class="tag">{{ e.journal.code }}</span></td>
+          <td>{{ e.label }}</td>
+          <td class="num">
+            <form method="post" action="{% url 'entry_validate' e.id %}?societe={{ company.id }}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Valider</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endif %}
 {% endblock %}
