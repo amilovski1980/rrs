@@ -63,12 +63,22 @@ def connect(request, provider_id):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
+    nxt = request.GET.get("next") or ""
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        request.session["mailsync_oauth_next"] = nxt
+    else:
+        request.session.pop("mailsync_oauth_next", None)
     try:
         location = oauth.begin(request, provider_id)
     except (ProviderError, ProviderNotConfigured) as exc:
         messages.error(request, f"Connexion impossible : {exc}")
-        return redirect("mailsync:settings")
+        return redirect(_oauth_next(request))
     return redirect(location)
+
+
+def _oauth_next(request):
+    nxt = request.session.pop("mailsync_oauth_next", "")
+    return nxt if nxt.startswith("/") and not nxt.startswith("//") else "mailsync:settings"
 
 
 @login_required
@@ -82,7 +92,7 @@ def oauth_callback(request, provider_id):
             request,
             "Connexion annulée ou refusée par Google. Aucun accès n'a été accordé.",
         )
-        return redirect("mailsync:settings")
+        return redirect(_oauth_next(request))
 
     config, _ = MailboxConfig.objects.get_or_create(company=company)
     try:
@@ -101,10 +111,10 @@ def oauth_callback(request, provider_id):
     else:
         messages.success(
             request,
-            f"Boîte {config.email_address or ''} connectée. Lancez une première "
-            "vérification pour importer les factures récentes.",
+            f"Boîte {config.email_address or ''} connectée. L'envoi des factures "
+            "et devis peut utiliser Gmail.",
         )
-    return redirect("mailsync:settings")
+    return redirect(_oauth_next(request))
 
 
 @require_POST

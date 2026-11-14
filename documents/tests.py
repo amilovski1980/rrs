@@ -1,7 +1,8 @@
+import base64
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
@@ -1559,6 +1560,57 @@ class DocumentEmailTests(TestCase):
         self.assertEqual(mail.outbox[0].attachments[0][0], "DEV-2026-001.pdf")
         self.assertIn("Votre avoir AV-2026-001", mail.outbox[1].subject)
         self.assertEqual(mail.outbox[1].attachments[0][0], "AV-2026-001.pdf")
+
+    def test_gmail_oauth_sends_without_smtp(self):
+        from mailsync.crypto import encrypt_text
+        from mailsync.models import MailboxConfig
+
+        MailboxConfig.objects.create(
+            company=self.company,
+            email_address="boite@gmail.com",
+            refresh_token_enc=encrypt_text("refresh-token"),
+            granted_scopes=(
+                "https://www.googleapis.com/auth/gmail.readonly "
+                "https://www.googleapis.com/auth/gmail.send"
+            ),
+        )
+        self.company.smtp_provider = "gmail"
+        self.company.smtp_from_email = "boite@gmail.com"
+        self.company.save(update_fields=["smtp_provider", "smtp_from_email"])
+        response = Mock(status_code=200)
+        response.json.return_value = {"id": "gmail-message-id"}
+        with patch("mailsync.tokens.ensure_access_token", return_value="access-token"), patch(
+            "httpx.post", return_value=response
+        ) as post:
+            sent = self.http.post(f"/factures/{self.invoice.id}/envoyer/")
+        self.assertEqual(sent.status_code, 302)
+        self.assertTrue(post.called)
+        request = post.call_args
+        self.assertIn("messages/send", request.args[0])
+        self.assertEqual(request.kwargs["headers"]["Authorization"], "Bearer access-token")
+        raw = request.kwargs["json"]["raw"]
+        decoded = base64.urlsafe_b64decode(raw)
+        self.assertIn(b"application/pdf", decoded)
+        self.assertIn(b"boite@gmail.com", decoded)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_gmail_without_send_scope_asks_to_reconnect(self):
+        from mailsync.crypto import encrypt_text
+        from mailsync.models import MailboxConfig
+
+        MailboxConfig.objects.create(
+            company=self.company,
+            email_address="boite@gmail.com",
+            refresh_token_enc=encrypt_text("refresh-token"),
+            granted_scopes="https://www.googleapis.com/auth/gmail.readonly",
+        )
+        self.company.smtp_provider = "gmail"
+        self.company.save(update_fields=["smtp_provider"])
+        response = self.http.post(f"/factures/{self.invoice.id}/envoyer/")
+        self.assertEqual(response.status_code, 302)
+        page = self.http.get(response["Location"])
+        self.assertContains(page, "Gmail est lié")
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_dark_email_url_stays_in_dark_space(self):
         response = self.http.post(f"/dark/factures/{self.invoice.id}/envoyer/")

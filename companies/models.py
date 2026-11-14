@@ -23,6 +23,14 @@ TVA_MODES = [
     ("reel", "TVA (CA3/CA12)"),
 ]
 
+SMTP_PROVIDERS = [
+    ("gmail", "Gmail / Google Workspace"),
+    ("outlook", "Outlook / Hotmail"),
+    ("yahoo", "Yahoo Mail"),
+    ("icloud", "iCloud Mail"),
+    ("custom", "Nom de domaine personnel / autre SMTP"),
+]
+
 INVOICE_THEMES = [
     ("azur", "Azur"),
     ("carmin", "Carmin"),
@@ -51,6 +59,12 @@ class Company(models.Model):
     email = models.EmailField(blank=True)
     # SMTP propre à la société : si renseigné, les factures/devis partent avec
     # ce serveur au lieu du SMTP global de la plateforme.
+    smtp_provider = models.CharField(
+        max_length=20,
+        choices=SMTP_PROVIDERS,
+        default="custom",
+        verbose_name="Fournisseur e-mail",
+    )
     smtp_host = models.CharField(max_length=255, blank=True, verbose_name="Serveur SMTP")
     smtp_port = models.PositiveIntegerField(default=587, verbose_name="Port SMTP")
     smtp_username = models.CharField(max_length=255, blank=True, verbose_name="Utilisateur SMTP")

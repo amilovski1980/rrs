@@ -18,8 +18,49 @@ from core.context import resolve_company
 
 from django.http import HttpResponse
 
-from .models import INVOICE_THEMES, Company
+from .models import INVOICE_THEMES, SMTP_PROVIDERS, Company
 from .rib_scan import RibScanError, scan_rib_upload
+
+SMTP_PRESETS = {
+    "gmail": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@gmail.com",
+        "password_hint": (
+            "Mot de passe d'application Google (16 caractères), ou connexion "
+            "Google ci-dessus."
+        ),
+    },
+    "outlook": {
+        "host": "smtp-mail.outlook.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@outlook.fr ou @hotmail.fr",
+        "password_hint": "Mot de passe du compte Microsoft (ou mot de passe d'application).",
+    },
+    "yahoo": {
+        "host": "smtp.mail.yahoo.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@yahoo.fr",
+        "password_hint": "Mot de passe d'application Yahoo généré dans la sécurité du compte.",
+    },
+    "icloud": {
+        "host": "smtp.mail.me.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@icloud.com",
+        "password_hint": "Mot de passe d'application Apple (sécurité du compte Apple).",
+    },
+    "custom": {
+        "host": "",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@votre-domaine.fr",
+        "password_hint": "Mot de passe fourni par votre hébergeur ou votre domaine.",
+    },
+}
 
 ACTIVITIES_CHOICES = [
     ("btp", "BTP"),
@@ -316,6 +357,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_name",
             "bank_iban",
             "bank_bic",
+            "smtp_provider",
             "smtp_host",
             "smtp_port",
             "smtp_username",
@@ -338,6 +380,7 @@ class CompanySettingsForm(forms.ModelForm):
             "bank_name": "Banque",
             "bank_iban": "IBAN",
             "bank_bic": "BIC",
+            "smtp_provider": "Fournisseur e-mail",
             "smtp_host": "Serveur SMTP",
             "smtp_port": "Port SMTP",
             "smtp_username": "Utilisateur SMTP",
@@ -365,6 +408,10 @@ class CompanySettingsForm(forms.ModelForm):
             {"autocomplete": "email", "inputmode": "email"}
         )
         self.fields["smtp_from_email"].widget.input_type = "email"
+        self.fields["smtp_provider"].required = False
+        self.fields["smtp_provider"].widget.attrs.update(
+            {"data-smtp-provider": "1"}
+        )
         # Les anciens formulaires ne postaient pas ce champ : on retombe sur
         # le port déjà enregistré (ou 587) au lieu de bloquer l'enregistrement.
         self.fields["smtp_port"].required = False
@@ -423,6 +470,27 @@ class CompanySettingsForm(forms.ModelForm):
             return self.instance.smtp_password
         return value
 
+    def clean(self):
+        cleaned = super().clean()
+        provider = (
+            cleaned.get("smtp_provider")
+            or getattr(self.instance, "smtp_provider", "")
+            or "custom"
+        )
+        cleaned["smtp_provider"] = provider
+        preset = SMTP_PRESETS.get(provider)
+        if preset and provider != "custom":
+            previous = getattr(self.instance, "smtp_provider", "")
+            if provider != previous or not (cleaned.get("smtp_host") or "").strip():
+                cleaned["smtp_host"] = preset["host"]
+                cleaned["smtp_port"] = preset["port"]
+                cleaned["smtp_use_tls"] = preset["use_tls"]
+        if not cleaned.get("smtp_from_email"):
+            username = (cleaned.get("smtp_username") or "").strip()
+            if "@" in username:
+                cleaned["smtp_from_email"] = username
+        return cleaned
+
     def clean_logo(self):
         upload = self.cleaned_data.get("logo")
         if not upload:
@@ -450,6 +518,18 @@ def _company_or_redirect(request):
     if company is None:
         return None, redirect("onboarding")
     return company, None
+
+
+def _settings_extra_context(company):
+    mailbox = getattr(company, "mailbox_config", None)
+    scopes = (getattr(mailbox, "granted_scopes", "") or "") if mailbox else ""
+    linked = bool(mailbox and mailbox.has_tokens)
+    return {
+        "smtp_presets": SMTP_PRESETS,
+        "google_mail_linked": linked,
+        "google_mail_connected": linked and "gmail.send" in scopes,
+        "google_mail_email": getattr(mailbox, "email_address", "") if mailbox else "",
+    }
 
 
 @login_required
@@ -495,6 +575,7 @@ def company_settings(request):
             "company": company,
             "form": form,
             "themes": INVOICE_THEMES,
+            **_settings_extra_context(company),
         })
 
     form = CompanySettingsForm(request.POST or None, request.FILES or None, instance=company)
@@ -520,6 +601,7 @@ def company_settings(request):
         "company": company,
         "form": form,
         "themes": INVOICE_THEMES,
+        **_settings_extra_context(company),
     })
 
 

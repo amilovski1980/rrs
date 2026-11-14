@@ -71,6 +71,24 @@ class BankSettingsTests(TestCase):
         self.assertContains(page, "Scanner le RIB")
         self.assertContains(page, 'name="rib_scan"')
 
+    def test_gmail_provider_fills_smtp_defaults(self):
+        response = self.client.post("/societe/", {
+            "denomination": "Atelier Banque",
+            "forme": "SARL",
+            "invoice_theme": "azur",
+            "regime": "reel_simple",
+            "tva": "reel",
+            "smtp_provider": "gmail",
+            "smtp_username": "atelier@gmail.com",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.smtp_provider, "gmail")
+        self.assertEqual(self.company.smtp_host, "smtp.gmail.com")
+        self.assertEqual(self.company.smtp_port, 587)
+        self.assertTrue(self.company.smtp_use_tls)
+        self.assertEqual(self.company.smtp_from_email, "atelier@gmail.com")
+
     def test_scan_rib_prefills_fields_without_saving(self):
         pdf = FPDF()
         pdf.add_page()

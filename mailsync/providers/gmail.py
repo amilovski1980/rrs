@@ -44,7 +44,13 @@ class GmailAdapter(EmailProviderInterface):
 
     provider_id = "gmail"
     display_name = "Gmail"
-    scopes = ("https://www.googleapis.com/auth/gmail.readonly",)
+    # Lecture pour l'import des factures fournisseurs, envoi pour les
+    # factures/devis de la société. Google redemande le consentement aux
+    # comptes déjà liés avec le seul scope de lecture.
+    scopes = (
+        "https://www.googleapis.com/auth/gmail.readonly",
+        "https://www.googleapis.com/auth/gmail.send",
+    )
     max_messages_per_run = 100
 
     # ------------------------------------------------------------------

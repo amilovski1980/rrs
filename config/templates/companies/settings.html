@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Configuration{% endblock %}
 {% block crumbs %}Société / Configuration{% endblock %}
 {% block nav_settings %}active{% endblock %}
@@ -107,9 +108,34 @@
         </div>
       </div>
 
-      <div class="card card-tight" style="margin-top:16px">
+      <div class="card card-tight" style="margin-top:16px" data-smtp-card>
         <h2 style="margin:0 0 6px;font-size:17px">Envoi des factures par email</h2>
-        <p class="micro" style="margin-top:0">Chaque société peut utiliser son propre serveur SMTP. Si les champs sont vides, l'envoi utilise le SMTP global de la plateforme.</p>
+        <p class="micro" style="margin-top:0">Choisissez votre fournisseur : Gmail, Outlook/Hotmail, Yahoo, iCloud ou le SMTP de votre nom de domaine. Les factures partent depuis la boîte de cette société.</p>
+
+        <div>
+          <label>{{ form.smtp_provider.label }}</label>
+          {{ form.smtp_provider }}
+          <p class="micro">Le serveur, le port et le chiffrement se remplissent automatiquement. Choisissez « Nom de domaine personnel » pour OVH, Ionos, Gandi, etc.</p>
+          {% if form.smtp_provider.errors %}<p class="error">{{ form.smtp_provider.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="mail-google-box" data-google-mail-box {% if company.smtp_provider != "gmail" %}hidden{% endif %}>
+          <div>
+            <b>Connexion Google</b>
+            {% if google_mail_connected %}
+            <p>Gmail est connecté{% if google_mail_email %} ({{ google_mail_email }}){% endif %}. Les factures partent directement depuis Gmail, sans mot de passe SMTP.</p>
+            <a class="btn btn-ghost btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Reconnecter Gmail</a>
+            {% elif google_mail_linked %}
+            <p>Un compte Google est déjà lié pour la lecture des factures. Autorisez l'envoi pour utiliser Gmail comme expéditeur.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Autoriser l'envoi Gmail</a>
+            {% else %}
+            <p>Connectez Gmail en un clic, sans saisir de serveur ni de mot de passe.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Se connecter avec Google</a>
+            {% endif %}
+            <p class="micro" style="margin:8px 0 0">Si GOOGLE_CLIENT_ID n'est pas configuré, utilisez un mot de passe d'application Google ci-dessous.</p>
+          </div>
+        </div>
+
         <div class="form-grid">
           <div>
             <label>{{ form.smtp_host.label }}</label>
@@ -199,4 +225,8 @@
     </form>
   </details>
 </section>
+{{ smtp_presets|json_script:"smtp-presets" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/smtp-settings.js' %}?v=2026.11.14.7" defer></script>
 {% endblock %}

@@ -367,3 +367,7 @@ html[data-theme="dark"] .tag-late {
   color: #ff8aa0;
   border-color: rgba(255, 61, 120, .35);
 }
+html[data-theme="dark"] .mail-google-box {
+  background: rgba(61, 220, 106, .08);
+  border-color: rgba(61, 220, 106, .28);
+}

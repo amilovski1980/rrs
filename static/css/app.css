@@ -2895,6 +2895,16 @@ label.ticket-camera-btn.btn-primary:hover {
 .tag-late { background: var(--red-soft); color: var(--red); border: 1px solid rgba(255, 61, 120, .28); }
 .sheet-bank { overflow-wrap: anywhere; }
 
+.mail-google-box {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--blue-pale);
+}
+.mail-google-box[hidden] { display: none; }
+.mail-google-box p { margin: 5px 0 10px; font-size: 13px; line-height: 1.45; }
+
 /* Logos plus généreux sur les modèles qui ont de la place. */
 .sheet-azur .sheet-logo { width: 96px; height: 96px; }
 .sheet-graphite .sheet-logo { width: 92px; height: 92px; }

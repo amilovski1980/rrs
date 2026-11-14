@@ -87,6 +87,10 @@ MAILSYNC_ENCRYPTION_KEY=...
 - Dans **Configuration → Connecteur e-mail**, cliquer « Connecter mon compte Gmail »,
   régler la fréquence (15/30/60 min), le libellé Gmail optionnel et les comptes
   par défaut (`606000`, `445660`, racine `401`).
+- La même autorisation Google couvre l'envoi des factures et devis : dans
+  **Configuration → Envoi des factures par email**, choisir Gmail puis
+  « Se connecter avec Google ». Le scope demandé est `gmail.send` en plus de
+  `gmail.readonly`.
 - Worker : `python manage.py mail_sync` toutes les 5 à 15 minutes (Render Cron Job
   ou cron système). Chaque société garde sa propre fréquence ; `--force` ignore
   la fréquence, `--societe <UUID|SIREN>` cible une société.
