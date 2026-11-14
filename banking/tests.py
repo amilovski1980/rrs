@@ -127,6 +127,20 @@ class BankTestCase(TestCase):
         self.assertEqual(form.initial.get("reference"), "5509493075")
         self.assertEqual(form.initial.get("counterpart_code"), "6063")
 
+    def test_bank_fees_fall_back_to_an_expense_account(self):
+        ChartAccount.objects.get_or_create(
+            company=self.company, code="6063", defaults={"label": "Achats"}
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 9, 9),
+            label="FRAIS BANCAIRES",
+            amount=Decimal("-12.00"),
+        )
+        form = TransactionEntryForm(bank_transaction=transaction)
+        self.assertEqual(form.initial.get("counterpart_code"), "6063")
+
     def test_incoming_entry_prefers_client_account(self):
         transaction = BankTransaction.objects.create(
             company=self.company,

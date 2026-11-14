@@ -67,5 +67,8 @@ def guess_counterpart_code(transaction) -> str:
     )
     for words, roots in rules:
         if any(word in text for word in words):
-            return first_account(roots)
-    return first_account(("6063", "606", "625", "606"))
+            code = first_account(roots)
+            if code:
+                return code
+            break
+    return first_account(("6063", "626", "606", "625"))
