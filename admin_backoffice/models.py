@@ -51,6 +51,51 @@ class SiteConfiguration(models.Model):
     )
     insee_api_key = models.CharField(max_length=255, default="", verbose_name="Clé API INSEE")
 
+    # --- Facturation électronique (Factur-X / plateforme agréée) ---
+    einvoicing_enabled = models.BooleanField(
+        default=False, verbose_name="Activer la facturation électronique"
+    )
+    einvoicing_provider = models.CharField(
+        max_length=20,
+        choices=[
+            ("generic", "Plateforme agréée / API générique"),
+            ("chorus", "Chorus Pro"),
+            ("ppf", "Portail public de facturation"),
+            ("manual", "Dépôt manuel (XML/PDF)"),
+        ],
+        default="generic",
+        verbose_name="Plateforme de dépôt",
+    )
+    einvoicing_api_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name="URL de l'API de dépôt",
+        help_text="Endpoint qui reçoit le fichier Factur-X (multipart/form-data).",
+    )
+    einvoicing_api_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Clé API de la plateforme",
+    )
+    einvoicing_sender_siret = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        verbose_name="SIRET émetteur",
+        help_text="SIRET à 14 chiffres utilisé comme identifiant d'émission.",
+    )
+    einvoicing_default_profile = models.CharField(
+        max_length=12,
+        choices=[
+            ("BASIC", "Factur-X BASIC"),
+            ("EN16931", "Factur-X EN 16931"),
+            ("EXTENDED", "Factur-X EXTENDED"),
+        ],
+        default="EN16931",
+        verbose_name="Profil Factur-X par défaut",
+    )
+
     # --- Paramètres Site ---
     site_name = models.CharField(max_length=255, default="Road Runner Solutions", verbose_name="Nom du Site")
     maintenance_mode = models.BooleanField(default=False, verbose_name="Mode Maintenance")

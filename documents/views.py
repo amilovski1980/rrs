@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import get_valid_filename
@@ -29,9 +29,17 @@ from .forms import (
     TicketDeCaisseForm,
     TicketUploadForm,
 )
+from .einvoicing import (
+    DEFAULT_PROFILE,
+    EInvoicingError,
+    build_facturx_pdf,
+    generate_submission,
+    submit_submission,
+)
 from .models import (
     Client,
     CreditNote,
+    EInvoicingSubmission,
     Invoice,
     Payment,
     Product,
@@ -228,6 +236,101 @@ def invoice_pdf(request, pk):
     invoice = _scoped(Invoice, company, pk)
     payload = render_invoice_pdf(invoice, company)
     return _pdf_response(request, invoice.number, payload)
+
+
+@login_required
+def invoice_einvoicing(request, pk):
+    """Espace Factur-X : dernier dépôt, génération, transmission et téléchargements."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    submission = invoice.einvoicing_submissions.first()
+    from admin_backoffice.models import SiteConfiguration
+
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    return render(request, "documents/einvoicing.html", {
+        "company": company,
+        "invoice": invoice,
+        "submission": submission,
+        "profiles": EInvoicingSubmission.PROFILES,
+        "default_profile": getattr(config, "einvoicing_default_profile", DEFAULT_PROFILE),
+        "enabled": bool(getattr(config, "einvoicing_enabled", False)),
+        "provider": getattr(config, "einvoicing_provider", ""),
+        "api_configured": bool((getattr(config, "einvoicing_api_url", "") or "").strip()),
+    })
+
+
+@login_required
+@require_POST
+def invoice_einvoicing_generate(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    profile = request.POST.get("profile") or DEFAULT_PROFILE
+    try:
+        submission = generate_submission(invoice, profile=profile)
+    except EInvoicingError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"Factur-X généré ({submission.profile}) : {submission.reference}.")
+    return redirect(reverse("invoice_einvoicing", args=[invoice.id]) + _qs(company))
+
+
+@login_required
+@require_POST
+def invoice_einvoicing_submit(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    submission = invoice.einvoicing_submissions.first()
+    if submission is None:
+        try:
+            submission = generate_submission(invoice)
+        except EInvoicingError as exc:
+            messages.error(request, str(exc))
+            return redirect(reverse("invoice_einvoicing", args=[invoice.id]) + _qs(company))
+    try:
+        submit_submission(submission)
+    except EInvoicingError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Facture transmise à la plateforme électronique.")
+    return redirect(reverse("invoice_einvoicing", args=[invoice.id]) + _qs(company))
+
+
+@login_required
+def invoice_einvoicing_xml(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    submission = invoice.einvoicing_submissions.first()
+    if submission is None:
+        raise Http404("Aucune version Factur-X générée.")
+    filename = get_valid_filename(f"{invoice.number}-factur-x.xml") or "factur-x.xml"
+    response = HttpResponse(submission.xml_payload, content_type="application/xml; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def invoice_einvoicing_pdf(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    submission = invoice.einvoicing_submissions.first()
+    profile = submission.profile if submission else DEFAULT_PROFILE
+    if not feature_on(request.user, "invoice_pdf"):
+        raise PermissionDenied(UPGRADE_MESSAGE)
+    payload = build_facturx_pdf(invoice, company, profile=profile)
+    filename = get_valid_filename(f"{invoice.number}-factur-x.pdf") or "factur-x.pdf"
+    response = HttpResponse(payload, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required
@@ -946,6 +1049,20 @@ def ticket_list(request):
     })
 
 
+def _find_duplicate_ticket(company, parsed, amount):
+    """Retourne un ticket proche (même date, montant et magasin) s'il existe."""
+    if amount is None or amount <= 0:
+        return None
+    qs = TicketDeCaisse.objects.filter(company=company, montant_ttc=amount)
+    day = parsed.get("date")
+    if day:
+        qs = qs.filter(date=day)
+    store = (parsed.get("magasin") or "").strip()
+    if store:
+        qs = qs.filter(magasin__iexact=store)
+    return qs.order_by("-created_at").first()
+
+
 @login_required
 def ticket_upload(request):
     company, bounce = _company_or_redirect(request)
@@ -973,6 +1090,7 @@ def ticket_upload(request):
         cat = form.cleaned_data.get("categorie") or parsed.get("categorie") or "autre"
         ttc = parsed.get("montant_ttc") or Decimal("0.00")
         tva = parsed.get("montant_tva") or Decimal("0.00")
+        duplicate = _find_duplicate_ticket(company, parsed, ttc)
         ticket = TicketDeCaisse(
             company=company,
             date=parsed.get("date") or timezone.localdate(),
@@ -993,6 +1111,13 @@ def ticket_upload(request):
             propose_ticket_entry(ticket)
         except ValueError as exc:
             messages.warning(request, f"Ticket créé, mais écriture non proposée : {exc}")
+        if duplicate is not None:
+            messages.warning(
+                request,
+                f"Doublon possible : un ticket de {duplicate.montant_ttc} € du "
+                f"{duplicate.date:%d/%m/%Y} chez {duplicate.magasin or 'ce magasin'} "
+                "existe déjà. Vérifiez avant de valider.",
+            )
         messages.success(
             request,
             "Ticket importé par OCR. Vérifiez les montants puis validez.",

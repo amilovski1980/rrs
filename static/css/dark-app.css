@@ -227,12 +227,22 @@ html[data-theme="dark"] .agent-dialog {
 html[data-theme="dark"] .agent-fab-orb {
   background: linear-gradient(135deg, #083d22, #18c26a 50%, #d8ff86);
 }
+html[data-theme="dark"] .agent-chat-bubble--user {
+  background: var(--blue-2);
+  color: #08100a;
+}
 html[data-theme="dark"] .agent-chat-bubble--assistant {
   background: var(--bg-2);
   color: var(--ink);
   border-color: var(--line);
 }
 html[data-theme="dark"] .agent-chat-error { color: #ff8aa0; }
+/* Le FAB Aminia reste visible sur le cockpit, quel que soit l'onglet actif. */
+html[data-theme="dark"] body:not(.agent-open):not(.nav-open) .agent-fab {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* Forfaits : cartes sombres lisibles, sans fond blanc hérité du site clair */
 html[data-theme="dark"] .plan {

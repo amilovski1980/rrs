@@ -31,7 +31,14 @@
       <div><label>SIREN</label>{{ form.siren }}{% if form.siren.errors %}<p class="error">{{ form.siren.errors.0 }}</p>{% endif %}</div>
     </div>
     <div class="form-grid">
+      <div><label>TVA intracommunautaire</label>{{ form.tva_intra }}{% if form.tva_intra.errors %}<p class="error">{{ form.tva_intra.errors.0 }}</p>{% endif %}<p class="micro">{{ form.tva_intra.help_text }}</p></div>
+      <div><label>Forme juridique</label>{{ form.legal_form }}</div>
+    </div>
+    <div class="form-grid">
+      <div><label>RCS</label>{{ form.rcs }}</div>
       <div><label>E-mail</label>{{ form.email }}{% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}</div>
+    </div>
+    <div class="form-grid">
       <div><label>Téléphone</label>{{ form.phone }}</div>
     </div>
     <div><label>Adresse</label>{{ form.address }}</div>

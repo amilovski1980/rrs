@@ -28,8 +28,9 @@ MONEY_RE = re.compile(
     r"(?<!\d)(\d{1,3}(?:[ \u00a0]\d{3})*|\d+)([.,]\d{2})\s*€?",
 )
 TOTAL_TTC_RE = re.compile(
-    r"(?:total\s*ttc|montant\s*ttc|net\s*[àa]\s*payer|total\s*[àa]\s*payer|"
-    r"total\s*g[eé]n[eé]ral|total\b(?!\s*ht)|ttc)\s*[:\s]*"
+    r"(?<!sous[- ])(?:total\s*ttc|montant\s*ttc|net\s*[àa]\s*payer|"
+    r"total\s*[àa]\s*payer|montant\s*d[uû]|total\s*g[eé]n[eé]ral|"
+    r"total\s*(?:carte|esp[eè]ces|pay[eé])|total\b(?!\s*ht)|ttc)\s*[:\s]*"
     r"(\d{1,3}(?:[ \u00a0]\d{3})*|\d+)([.,]\d{2})",
     re.IGNORECASE,
 )
@@ -45,6 +46,12 @@ TVA_AMOUNT_RE = re.compile(
 )
 VAT_RATE_RE = re.compile(
     r"(?:TVA|VAT)\s*(?:à\s*)?(\d{1,2}(?:[.,]\d{1,2})?)\s*%",
+    re.IGNORECASE,
+)
+VAT_LINE_RE = re.compile(
+    r"(?:TVA|VAT)\s*(?:à\s*)?(\d{1,2}(?:[.,]\d{1,2})?)\s*%"
+    r"[^\d\n]{0,24}"
+    r"(\d{1,3}(?:[ \u00a0]\d{3})*|\d+)([.,]\d{2})",
     re.IGNORECASE,
 )
 DATE_RE = re.compile(
@@ -232,8 +239,43 @@ def ocr_image_bytes(data: bytes, filename: str = "") -> str:
     return text
 
 
+def _pdf_page_images(reader) -> list[tuple[str, bytes]]:
+    """Images incorporées dans un PDF (souvent une page scannée = une image)."""
+    images: list[tuple[str, bytes]] = []
+    for page in reader.pages:
+        try:
+            page_images = list(page.images)
+        except Exception:
+            continue
+        for image in page_images[:4]:
+            data = getattr(image, "data", b"") or b""
+            if data:
+                images.append((getattr(image, "name", "") or "page.jpg", data))
+        if len(images) >= 8:
+            break
+    return images
+
+
+def _ocr_pdf_images(reader) -> str:
+    chunks = []
+    last_error: ReceiptOcrError | None = None
+    for name, data in _pdf_page_images(reader):
+        try:
+            text = ocr_image_bytes(data, filename=name)
+        except ReceiptOcrError as exc:
+            last_error = exc
+            continue
+        if text:
+            chunks.append(text)
+    if chunks:
+        return "\n".join(chunks).strip()
+    if last_error is not None:
+        raise last_error
+    return ""
+
+
 def extract_pdf_text_or_ocr(data: bytes) -> str:
-    """PDF : texte natif d'abord ; sinon message orientant vers une image."""
+    """PDF : texte natif, puis OCR des images incorporées pour les scans."""
     try:
         from pypdf import PdfReader
     except ImportError as exc:  # pragma: no cover
@@ -251,8 +293,22 @@ def extract_pdf_text_or_ocr(data: bytes) -> str:
         except Exception:
             continue
     text = "\n".join(chunks).strip()
-    if text:
+    # Un PDF scanné peut contenir quelques caractères d'en-tête sans le corps.
+    if len(text) >= 40:
         return text
+    ocr_error: ReceiptOcrError | None = None
+    try:
+        ocr_text = _ocr_pdf_images(reader)
+    except ReceiptOcrError as exc:
+        ocr_text = ""
+        ocr_error = exc
+    combined = "\n".join(part for part in (text, ocr_text) if part).strip()
+    if combined:
+        return combined
+    if ocr_error is not None:
+        raise ReceiptOcrError(
+            "Ce PDF est un scan sans texte sélectionnable. " + str(ocr_error)
+        )
     raise ReceiptOcrError(
         "Ce PDF ne contient pas de texte sélectionnable (probablement un scan). "
         "Exportez-le en JPG ou PNG, puis réimportez-le pour l'OCR."
@@ -296,6 +352,7 @@ def parse_receipt_text(text: str) -> dict[str, Any]:
         "taux_tva": Decimal("20.00"),
         "moyen_paiement": "",
         "categorie": "autre",
+        "vat_breakdown": [],
         "line_items": [],
         "raw_excerpt": (text or "")[:3000],
     }
@@ -335,20 +392,46 @@ def parse_receipt_text(text: str) -> dict[str, Any]:
         if amounts:
             data["montant_ttc"] = max(amounts)
 
-    vat_m = VAT_RATE_RE.search(text)
-    if vat_m:
+    vat_lines = []
+    for vat_m in VAT_LINE_RE.finditer(text):
         try:
-            data["taux_tva"] = _parse_decimal(vat_m.group(1))
-        except InvalidOperation:
-            pass
-
-    tva_m = TVA_AMOUNT_RE.search(text)
-    if tva_m:
-        try:
-            data["montant_tva"] = _money(tva_m.group(1), tva_m.group(2))
+            rate = _parse_decimal(vat_m.group(1))
+            amount = _money(vat_m.group(2), vat_m.group(3))
         except (InvalidOperation, ValueError):
-            pass
+            continue
+        if rate > 30 or amount > Decimal("10000.00"):
+            continue
+        vat_lines.append({"taux": rate, "montant": amount})
+    if vat_lines:
+        data["vat_breakdown"] = [
+            {"taux": str(item["taux"]), "montant": str(item["montant"])}
+            for item in vat_lines
+        ]
+        data["montant_tva"] = sum(
+            (item["montant"] for item in vat_lines), Decimal("0.00")
+        ).quantize(Decimal("0.01"))
+        # Le taux principal est celui qui porte le plus de TVA.
+        data["taux_tva"] = max(vat_lines, key=lambda item: item["montant"])["taux"]
+    else:
+        vat_m = VAT_RATE_RE.search(text)
+        if vat_m:
+            try:
+                data["taux_tva"] = _parse_decimal(vat_m.group(1))
+            except InvalidOperation:
+                pass
+        vat_amounts = []
+        for tva_m in TVA_AMOUNT_RE.finditer(text):
+            try:
+                vat_amounts.append(_money(tva_m.group(1), tva_m.group(2)))
+            except (InvalidOperation, ValueError):
+                continue
+        if vat_amounts:
+            data["montant_tva"] = sum(vat_amounts, Decimal("0.00")).quantize(Decimal("0.01"))
 
+    if data["montant_ttc"] is not None and data["montant_tva"] is not None:
+        # Une TVA supérieure au TTC signale une lecture aberrante.
+        if data["montant_tva"] > data["montant_ttc"]:
+            data["montant_tva"] = None
     if data["montant_tva"] is None and data["montant_ttc"] is not None and data["taux_tva"] is not None:
         rate = data["taux_tva"]
         if rate > 0:

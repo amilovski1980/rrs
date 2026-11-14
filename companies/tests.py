@@ -39,6 +39,25 @@ class CompanySettingsTests(TestCase):
         self.assertEqual(self.company.invoice_theme, "carmin")
         self.assertIn("Artisans", self.company.address)
 
+    def test_settings_save_slogan(self):
+        response = self.client.post("/societe/", {
+            "denomination": "Atelier Test",
+            "forme": "SARL",
+            "address": "1 rue du Bois 75011 Paris",
+            "phone": "",
+            "email": "",
+            "slogan": "L'artisan qui avance.",
+            "invoice_theme": "azur",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.slogan, "L'artisan qui avance.")
+
+    def test_settings_expose_delete_action(self):
+        page = self.client.get("/societe/")
+        self.assertContains(page, "Supprimer cette société")
+        self.assertContains(page, "/societe/supprimer/")
+
     def test_theme_switch_from_invoice_page(self):
         response = self.client.post("/societe/", {
             "theme": "encre",
@@ -64,6 +83,61 @@ class CompanySettingsTests(TestCase):
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_theme, "graphite")
 
+
+
+class CompanyDeleteTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("supprimer@exemple.fr")
+        self.user = user
+        self.company = Company.objects.create(
+            owner=user,
+            siren="833333333",
+            denomination="À supprimer",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        self.client.force_login(user)
+
+    def test_delete_requires_post(self):
+        response = self.client.get(f"/societe/supprimer/?societe={self.company.id}")
+        self.assertEqual(response.status_code, 405)
+
+    def test_delete_requires_confirmation(self):
+        response = self.client.post(f"/societe/supprimer/?societe={self.company.id}")
+        self.assertRedirects(
+            response,
+            f"/societe/?societe={self.company.id}",
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(Company.objects.filter(pk=self.company.pk).exists())
+
+    def test_delete_removes_company(self):
+        response = self.client.post(
+            f"/societe/supprimer/?societe={self.company.id}",
+            {"confirm": "supprimer"},
+        )
+        self.assertRedirects(response, "/cockpit/", fetch_redirect_response=False)
+        self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
+
+    def test_cannot_delete_another_users_company(self):
+        other_user = get_user_model().objects.create_user("autre-suppr@exemple.fr")
+        other = Company.objects.create(
+            owner=other_user,
+            siren="844444444",
+            denomination="Autre société",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        response = self.client.post(
+            f"/societe/supprimer/?societe={other.id}",
+            {"confirm": "supprimer"},
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Company.objects.filter(pk=other.pk).exists())
 
 
 class LandingPageTests(TestCase):
@@ -241,14 +315,33 @@ class MobileNavChromeTests(TestCase):
         self.assertContains(ok, "Aide")
         self.assertContains(ok, "Tickets de caisse")
 
-    def test_legal_notice_public_placeholders(self):
+    def test_legal_pages_are_public_and_carry_the_publisher_identity(self):
         anon = self.client
         anon.logout()
-        page = anon.get("/mentions-legales/")
-        self.assertEqual(page.status_code, 200)
-        self.assertContains(page, "Mentions légales")
-        self.assertContains(page, "À compléter")
-        self.assertContains(page, "placeholders")
+        notice = anon.get("/mentions-legales/")
+        self.assertEqual(notice.status_code, 200)
+        self.assertContains(notice, "Mentions légales")
+        self.assertContains(notice, "ROAD RUNNER ONE")
+        self.assertContains(notice, "951 386 127")
+        self.assertNotContains(notice, "À compléter")
+
+        cgu = anon.get("/conditions-generales/")
+        self.assertEqual(cgu.status_code, 200)
+        self.assertContains(cgu, "Conditions générales d'utilisation")
+        self.assertContains(cgu, "1 000,00 €")
+        self.assertContains(cgu, "page d'offres")
+
+        privacy = anon.get("/confidentialite/")
+        self.assertEqual(privacy.status_code, 200)
+        self.assertContains(privacy, "Politique de confidentialité")
+        self.assertContains(privacy, "RGPD")
+        self.assertContains(privacy, "admin@road-runner-solutions.com")
+
+    def test_legal_pages_cross_link_each_other(self):
+        page = self.client.get("/mentions-legales/")
+        self.assertContains(page, "/conditions-generales/")
+        self.assertContains(page, "/confidentialite/")
+        self.assertContains(page, 'aria-current="page"')
 
     def test_invoices_page_keeps_mobile_chrome(self):
         page = self.client.get(f"/factures/?societe={self.company.id}")

@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Ajouter une société</h1>
-    <p class="sub">Saisissez le SIREN : nous récupérons les informations légales officielles auprès de l'API Sirene de l'INSEE.</p>
+    <p class="sub">Saisissez le nom de la société ou son SIREN : nous récupérons les informations légales officielles (INSEE / annuaire des entreprises).</p>
   </div>
 </div>
 {% if not forfait.can_company %}
@@ -20,21 +20,50 @@
   <div class="card" style="border-top:4px solid var(--blue)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <span class="badge badge-blue">Étape 1 / 2</span>
-      <span class="badge">API Sirene INSEE</span>
+      <span class="badge">INSEE + annuaire</span>
     </div>
     <h2 style="margin:0 0 6px;font-size:20px">Identifiez votre société</h2>
     <p class="sub" style="margin-bottom:4px">Dénomination, forme juridique, adresse et code NAF seront préremplis automatiquement.</p>
 
     <form method="post">
       {% csrf_token %}
-      <label>{{ form.siren.label }}</label>
+      <label for="{{ form.siren.id_for_label }}">{{ form.siren.label }}</label>
       {{ form.siren }}
       {% if form.siren.errors %}<p class="error">{{ form.siren.errors.0 }}</p>{% endif %}
-      <p class="helptext">9 chiffres — figure sur votre extrait KBIS ou RNE.</p>
+      <p class="helptext">Nom de la société, SIREN (9 chiffres) ou SIRET (14 chiffres).</p>
       <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px">
-        Récupérer ma société
+        Rechercher ma société
       </button>
     </form>
+
+    {% if search_message %}
+    <div class="card search-alert" role="alert" style="margin-top:18px">
+      <p>{{ search_message }}</p>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="onboarding-search-results">
+      <h2 style="margin:22px 0 4px;font-size:17px">Sociétés trouvées</h2>
+      <p class="sub" style="margin-bottom:0">Résultats pour « {{ query }} ». Choisissez votre société pour continuer.</p>
+      <div class="search-list">
+        {% for row in results %}
+        <a class="search-hit" href="{% url 'signup_start' %}?siren={{ row.siren }}">
+          <span>
+            <span class="siren-kicker">SIREN {{ row.siren }}{% if row.forme %} · {{ row.forme }}{% endif %}{% if row.etat %} · {{ row.etat }}{% endif %}</span>
+            <strong>{{ row.denomination }}</strong>
+            {% if row.adresse %}<span class="search-meta">{{ row.adresse }}</span>{% endif %}
+            <span class="search-meta">
+              {% if row.naf %}NAF {{ row.naf }}{% elif row.code_naf %}NAF {{ row.code_naf }}{% endif %}
+              {% if row.siret %} · SIRET {{ row.siret }}{% endif %}
+            </span>
+          </span>
+          <span class="btn btn-primary">Choisir</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     <p class="muted" style="font-size:12px;margin-top:16px;line-height:1.6">
       Source officielle : api.insee.fr / api-sirene 3.11. Aucune donnée n'est partagée avec des tiers.
@@ -72,7 +101,7 @@
     <div class="card" style="background:var(--blue-soft);border-color:var(--blue-border)">
       <div style="display:flex;align-items:center;gap:9px;color:var(--blue)">
         {% include "partials/icon.html" with name="search" %}
-        <b style="font-size:14px">Un SIREN, pas un formulaire</b>
+        <b style="font-size:14px">Un nom ou un SIREN</b>
       </div>
       <p style="font-size:13px;margin:8px 0 0;line-height:1.6;color:var(--ink-2)">
         Vous validez les informations récupérées avant que le cockpit soit créé.

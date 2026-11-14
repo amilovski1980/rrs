@@ -1,18 +1,25 @@
 """Fournisseurs SMS (OVH, Brevo, Twilio).
 
-Configuration seulement : les appels HTTP ne sont pas branchés.
-`dispatch_sms` est le point d'extension unique. Chaque classe `send`
-porte un TODO à l'endroit où l'appel réel devra être ajouté.
+`dispatch_sms` est le point d'entrée unique : il résout le fournisseur
+actif, journalise chaque tentative et appelle l'API réelle. Les secrets ne
+sont jamais renvoyés en clair ni écrits dans le journal.
 """
 from __future__ import annotations
+
+import hashlib
+import json
+import time
+
+import httpx
 
 from .models import SmsMessage, SmsProviderConfig, SmsSettings, SmsTemplate
 
 PROVIDERS = ("ovh", "brevo", "twilio")
+DEFAULT_SENDER = "RoadRunner"
 
 
-class SmsNotImplemented(Exception):
-    """L'appel HTTP du fournisseur n'est pas encore branché."""
+class SmsSendError(Exception):
+    """Échec d'envoi lisible, sans secret ni détail technique brut."""
 
 
 class CredentialField:
@@ -36,10 +43,12 @@ class SmsBackend:
         return absent
 
     def send(self, *, recipient: str, body: str, sender: str, credentials: dict) -> None:
-        raise SmsNotImplemented(
-            f"TODO : brancher l'appel API {self.label}. "
-            "Le message est journalisé, aucun SMS n'est envoyé."
-        )
+        raise SmsSendError(f"{self.label} : envoi non disponible.")
+
+
+def _ensure_success(response: httpx.Response, label: str) -> None:
+    if response.status_code >= 400:
+        raise SmsSendError(f"{label} : réponse HTTP {response.status_code}.")
 
 
 class OvhSmsBackend(SmsBackend):
@@ -53,11 +62,34 @@ class OvhSmsBackend(SmsBackend):
     )
 
     def send(self, *, recipient: str, body: str, sender: str, credentials: dict) -> None:
-        # TODO: POST https://eu.api.ovh.com/1.0/sms/{serviceName}/jobs
-        # avec application_key, application_secret, consumer_key et sender.
-        raise SmsNotImplemented(
-            "TODO : brancher l'API SMS OVH. Aucun SMS n'a été envoyé."
+        service = str(credentials.get("service_name") or "").strip()
+        application_key = str(credentials.get("application_key") or "").strip()
+        application_secret = str(credentials.get("application_secret") or "").strip()
+        consumer_key = str(credentials.get("consumer_key") or "").strip()
+        url = f"https://eu.api.ovh.com/1.0/sms/{service}/jobs"
+        payload = {
+            "sender": (sender or DEFAULT_SENDER)[:32],
+            "message": body,
+            "receivers": [recipient],
+            "noStopClause": True,
+        }
+        encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        timestamp = str(int(time.time()))
+        raw = "+".join(
+            [application_secret, consumer_key, "POST", url, encoded, timestamp]
         )
+        headers = {
+            "Content-Type": "application/json",
+            "X-Ovh-Application": application_key,
+            "X-Ovh-Consumer": consumer_key,
+            "X-Ovh-Timestamp": timestamp,
+            "X-Ovh-Signature": "$1$" + hashlib.sha1(raw.encode("utf-8")).hexdigest(),
+        }
+        try:
+            response = httpx.post(url, content=encoded.encode("utf-8"), headers=headers, timeout=20)
+        except httpx.HTTPError as exc:
+            raise SmsSendError("OVH : service injoignable.") from exc
+        _ensure_success(response, "OVH")
 
 
 class BrevoSmsBackend(SmsBackend):
@@ -68,11 +100,26 @@ class BrevoSmsBackend(SmsBackend):
     )
 
     def send(self, *, recipient: str, body: str, sender: str, credentials: dict) -> None:
-        # TODO: POST https://api.brevo.com/v3/transactionalSMS/sms
-        # en-tête api-key, corps sender / recipient / content.
-        raise SmsNotImplemented(
-            "TODO : brancher l'API SMS Brevo. Aucun SMS n'a été envoyé."
-        )
+        api_key = str(credentials.get("api_key") or "").strip()
+        payload = {
+            "sender": (sender or DEFAULT_SENDER)[:11],
+            "recipient": recipient,
+            "content": body,
+        }
+        try:
+            response = httpx.post(
+                "https://api.brevo.com/v3/transactionalSMS/sms",
+                headers={
+                    "api-key": api_key,
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                },
+                json=payload,
+                timeout=20,
+            )
+        except httpx.HTTPError as exc:
+            raise SmsSendError("Brevo : service injoignable.") from exc
+        _ensure_success(response, "Brevo")
 
 
 class TwilioSmsBackend(SmsBackend):
@@ -85,11 +132,24 @@ class TwilioSmsBackend(SmsBackend):
     )
 
     def send(self, *, recipient: str, body: str, sender: str, credentials: dict) -> None:
-        # TODO: POST https://api.twilio.com/2010-04-01/Accounts/{AccountSid}/Messages.json
-        # authentification SID + token, From / To / Body.
-        raise SmsNotImplemented(
-            "TODO : brancher l'API SMS Twilio. Aucun SMS n'a été envoyé."
-        )
+        account_sid = str(credentials.get("account_sid") or "").strip()
+        auth_token = str(credentials.get("auth_token") or "").strip()
+        from_number = str(credentials.get("from_number") or "").strip()
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        try:
+            response = httpx.post(
+                url,
+                auth=(account_sid, auth_token),
+                data={
+                    "From": from_number or sender,
+                    "To": recipient,
+                    "Body": body,
+                },
+                timeout=20,
+            )
+        except httpx.HTTPError as exc:
+            raise SmsSendError("Twilio : service injoignable.") from exc
+        _ensure_success(response, "Twilio")
 
 
 REGISTRY = {
@@ -180,8 +240,12 @@ def save_provider_post(request) -> str:
     return "Réglages SMS enregistrés."
 
 
-def test_provider(code: str) -> dict:
-    """Contrôle la présence des identifiants. N'appelle pas le réseau."""
+def test_provider(code: str, recipient: str = "", actor=None) -> dict:
+    """Teste un fournisseur.
+
+    Sans numéro, seuls les identifiants sont contrôlés. Avec un numéro, un
+    vrai SMS de test est envoyé et journalisé.
+    """
     backend = get_backend(code)
     if backend is None:
         return {"ok": False, "message": "Fournisseur inconnu."}
@@ -194,22 +258,78 @@ def test_provider(code: str) -> dict:
             "ok": False,
             "message": f"Test {backend.label} : configuration incomplète ({', '.join(missing)}).",
         }
+    if recipient:
+        return send_test_sms(code, recipient, actor=actor)
     state = "activé" if config.enabled else "désactivé"
     return {
         "ok": True,
         "message": (
             f"Test {backend.label} : identifiants enregistrés, fournisseur {state}. "
-            "L'appel API réel n'est pas encore branché."
+            "Ajoutez un numéro pour envoyer un vrai SMS de test."
         ),
     }
+
+
+def send_test_sms(code: str, recipient: str, actor=None) -> dict:
+    """Envoie un SMS de test avec le fournisseur demandé, même s'il n'est pas actif."""
+    backend = get_backend(code)
+    if backend is None:
+        return {"ok": False, "message": "Fournisseur inconnu."}
+    config = SmsProviderConfig.objects.filter(code=code).first()
+    if config is None:
+        return {"ok": False, "message": f"{backend.label} : fournisseur absent."}
+    missing = backend.missing(config)
+    if missing:
+        return {
+            "ok": False,
+            "message": f"{backend.label} : configuration incomplète ({', '.join(missing)}).",
+        }
+    recipient = (recipient or "").strip()[:32]
+    body = "Test Road Runner Solutions : votre configuration SMS fonctionne."
+    try:
+        backend.send(
+            recipient=recipient,
+            body=body,
+            sender=config.sender_name,
+            credentials=dict(config.credentials or {}),
+        )
+    except SmsSendError as exc:
+        detail = str(exc)[:500]
+        SmsMessage.objects.create(
+            recipient=recipient,
+            body=body,
+            provider=code,
+            status="failed",
+            detail=detail,
+            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+        )
+        return {"ok": False, "message": f"Test {backend.label} : échec. {detail}"}
+    except Exception:
+        SmsMessage.objects.create(
+            recipient=recipient,
+            body=body,
+            provider=code,
+            status="failed",
+            detail="Échec de l'envoi. Le détail technique n'est pas affiché.",
+            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+        )
+        return {"ok": False, "message": f"Test {backend.label} : échec de l'envoi."}
+    SmsMessage.objects.create(
+        recipient=recipient,
+        body=body,
+        provider=code,
+        status="sent",
+        detail="SMS de test envoyé.",
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    return {"ok": True, "message": f"Test {backend.label} : SMS envoyé au {recipient}."}
 
 
 def dispatch_sms(*, recipient: str, body: str, template: SmsTemplate | None = None, actor=None) -> SmsMessage:
     """Point d'entrée unique pour envoyer un SMS.
 
-    Le fournisseur actif (OVH, Brevo ou Twilio) est résolu ici.
-    Tant que `SmsBackend.send` n'est pas implémenté, le message est journalisé
-    avec le statut « skipped » et aucun appel réseau n'est fait.
+    Le fournisseur actif (OVH, Brevo ou Twilio) est résolu ici, puis l'API
+    réelle est appelée. Chaque tentative est journalisée sans secret.
     """
     recipient = (recipient or "").strip()
     body = (body or "").strip()
@@ -249,8 +369,8 @@ def dispatch_sms(*, recipient: str, body: str, template: SmsTemplate | None = No
             sender=config.sender_name,
             credentials=dict(config.credentials or {}),
         )
-    except SmsNotImplemented as exc:
-        return _log("skipped", str(exc), provider=code)
+    except SmsSendError as exc:
+        return _log("failed", str(exc), provider=code)
     except Exception:
         return _log("failed", "Échec de l'envoi. Le détail technique n'est pas affiché.", provider=code)
-    return _log("sent", "Envoyé.", provider=code)
+    return _log("sent", f"Envoyé via {backend.label}.", provider=code)

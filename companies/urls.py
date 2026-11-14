@@ -14,7 +14,10 @@ urlpatterns = [
     path("ajouter/", views.onboarding, name="onboarding"),
     path("ajouter/confirmer/", views.onboarding_confirm, name="onboarding_confirm"),
     path("societe/", views.company_settings, name="company_settings"),
+    path("societe/supprimer/", views.company_delete, name="company_delete"),
     path("societe/logo/", views.company_logo, name="company_logo"),
     path("aide/", views.help_page, name="help"),
     path("mentions-legales/", views.legal_notice, name="legal_notice"),
+    path("conditions-generales/", views.terms_of_use, name="terms_of_use"),
+    path("confidentialite/", views.privacy_policy, name="privacy_policy"),
 ]

@@ -3,12 +3,15 @@ from datetime import date
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from integrations.insee import lookup_siren
+from integrations.insee import lookup_siren, parse_company_query, search_entreprises
 
 from accounting.reports import cockpit_figures
 from core.context import resolve_company
@@ -52,22 +55,48 @@ LOOKUP_ERRORS = {
     ),
 }
 
+SEARCH_ERRORS = {
+    "invalid": (
+        "Saisissez le nom de la société (2 caractères minimum) ou un SIREN à 9 chiffres."
+    ),
+    "rate_limit": (
+        "L'annuaire des entreprises est très sollicité en ce moment. "
+        "Patientez quelques instants, puis relancez la recherche."
+    ),
+    "error": (
+        "L'annuaire des entreprises est momentanément indisponible. "
+        "Réessayez dans quelques minutes."
+    ),
+    "empty": (
+        "Aucune société ne correspond à cette recherche. "
+        "Vérifiez l'orthographe ou saisissez directement le SIREN."
+    ),
+}
+
 
 class SirenForm(forms.Form):
     siren = forms.CharField(
-        label="Numéro SIREN",
-        max_length=9,
-        min_length=9,
+        label="Nom de la société ou SIREN",
+        max_length=80,
         widget=forms.TextInput(
-            attrs={"inputmode": "numeric", "placeholder": "123 456 789", "autofocus": True}
+            attrs={
+                "placeholder": "Nom de la société ou 123 456 789",
+                "autofocus": True,
+                "autocomplete": "organization",
+            }
         ),
     )
 
     def clean_siren(self):
-        siren = "".join(c for c in self.cleaned_data["siren"] if c.isdigit())
-        if len(siren) != 9:
-            raise forms.ValidationError("Le SIREN doit contenir exactement 9 chiffres.")
-        return siren
+        raw = " ".join((self.cleaned_data["siren"] or "").split())
+        kind, normalized = parse_company_query(raw)
+        if kind == "invalid":
+            raise forms.ValidationError(
+                "Saisissez le nom de la société (2 caractères minimum) ou un SIREN à 9 chiffres."
+            )
+        if kind == "siret":
+            return normalized[:9]
+        return normalized
 
 
 class CompanyProfileForm(forms.Form):
@@ -119,25 +148,42 @@ def cockpit(request):
 
 @login_required
 def onboarding(request):
-    """Étape 1 : saisie du SIREN. Les données légales sont récupérées via INSEE."""
+    """Étape 1 : nom ou SIREN. Les données légales viennent de l'INSEE ou de l'annuaire."""
     form = SirenForm(request.POST or None)
+    results: list[dict] = []
+    search_message = ""
+    query = ""
     if request.method == "POST" and form.is_valid():
-        siren = form.cleaned_data["siren"]
-        if Company.objects.filter(owner=request.user, siren=siren).exists():
-            form.add_error("siren", "Cette société est déjà dans votre cockpit.")
+        query = form.cleaned_data["siren"]
+        kind, normalized = parse_company_query(query)
+        if kind in {"siren", "siret"}:
+            siren = normalized[:9]
+            if Company.objects.filter(owner=request.user, siren=siren).exists():
+                form.add_error("siren", "Cette société est déjà dans votre cockpit.")
+            else:
+                data, error = lookup_siren(siren)
+                if isinstance(data, dict):
+                    # Le cookie de session est trop petit pour le JSON brut de l'API.
+                    data = {key: value for key, value in data.items() if key != "raw"}
+                request.session["onboarding_lookup"] = {
+                    "siren": siren,
+                    "data": data,
+                    "error": error,
+                    "fetched_at": timezone.now().isoformat(),
+                }
+                return redirect("onboarding_confirm")
         else:
-            data, error = lookup_siren(siren)
-            if isinstance(data, dict):
-                # Le cookie de session est trop petit pour le JSON brut de l'API.
-                data = {key: value for key, value in data.items() if key != "raw"}
-            request.session["onboarding_lookup"] = {
-                "siren": siren,
-                "data": data,
-                "error": error,
-                "fetched_at": timezone.now().isoformat(),
-            }
-            return redirect("onboarding_confirm")
-    return render(request, "companies/onboarding.html", {"form": form})
+            results, error = search_entreprises(normalized)
+            if error:
+                search_message = SEARCH_ERRORS.get(error, SEARCH_ERRORS["error"])
+            elif not results:
+                search_message = SEARCH_ERRORS["empty"]
+    return render(request, "companies/onboarding.html", {
+        "form": form,
+        "results": results,
+        "search_message": search_message,
+        "query": query,
+    })
 
 
 @login_required
@@ -237,13 +283,15 @@ class CompanySettingsForm(forms.ModelForm):
 
     class Meta:
         model = Company
-        fields = ("denomination", "forme", "address", "phone", "email", "invoice_theme")
+        fields = ("denomination", "forme", "address", "phone", "email", "slogan", "tva_intra", "invoice_theme")
         labels = {
             "denomination": "Dénomination",
             "forme": "Forme juridique",
             "address": "Adresse",
             "phone": "Téléphone",
             "email": "Email de facturation",
+            "slogan": "Slogan (facultatif)",
+            "tva_intra": "TVA intracommunautaire",
             "invoice_theme": "Modèle de facture",
         }
 
@@ -269,6 +317,16 @@ class CompanySettingsForm(forms.ModelForm):
         if kind not in ("image/png", "image/jpeg", "image/webp"):
             raise forms.ValidationError("Utilisez un fichier PNG, JPEG ou WebP.")
         return upload
+
+    def clean_tva_intra(self):
+        from documents.vat import is_valid_vat_number, normalize_vat_number
+
+        value = normalize_vat_number(self.cleaned_data.get("tva_intra"))
+        if value and not is_valid_vat_number(value):
+            raise forms.ValidationError(
+                "Numéro de TVA intracommunautaire invalide (ex. FR17100408517)."
+            )
+        return value
 
 
 def _company_or_redirect(request):
@@ -325,6 +383,26 @@ def company_settings(request):
 
 
 @login_required
+@require_POST
+def company_delete(request):
+    """Supprime définitivement la société courante et ses données rattachées."""
+    company_id = request.POST.get("societe") or request.GET.get("societe")
+    try:
+        company = Company.objects.get(pk=company_id, owner=request.user)
+    except (Company.DoesNotExist, ValidationError, TypeError):
+        raise Http404("Société introuvable.")
+    if request.POST.get("confirm") != "supprimer":
+        messages.error(request, "Cochez la confirmation avant de supprimer la société.")
+        return redirect(reverse("company_settings") + f"?societe={company.id}")
+    name = company.denomination
+    if request.session.get("societe_id") == str(company.id):
+        request.session.pop("societe_id", None)
+    company.delete()
+    messages.success(request, f"Société {name} supprimée.")
+    return redirect("cockpit")
+
+
+@login_required
 def company_logo(request):
     company, bounce = _company_or_redirect(request)
     if bounce or not company.logo:
@@ -342,7 +420,7 @@ def help_page(request):
 
 
 def legal_notice(request):
-    """Mentions légales — placeholders complétés par les coordonnées du back-office."""
+    """Mentions légales de l'éditeur Road Runner One."""
     contact = {"address": "", "phone": "", "email": ""}
     try:
         from admin_backoffice.models import SiteConfiguration
@@ -357,4 +435,14 @@ def legal_notice(request):
     except Exception:
         pass
     return render(request, "companies/legal_notice.html", {"contact": contact})
+
+
+def terms_of_use(request):
+    """Conditions générales d'utilisation."""
+    return render(request, "companies/terms_of_use.html")
+
+
+def privacy_policy(request):
+    """Politique de confidentialité et droits RGPD."""
+    return render(request, "companies/privacy_policy.html")
 

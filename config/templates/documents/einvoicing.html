@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Facture électronique — {{ invoice.number }}{% endblock %}
+{% block crumbs %}Facturation / {{ invoice.number }} / Factur-X{% endblock %}
+{% block nav_invoices %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Facture électronique</h1>
+    <p class="sub">{{ invoice.number }} · {{ invoice.client_name }} · {{ invoice.amount_ttc|floatformat:2 }} € TTC</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="{% url 'invoice_detail' invoice.id %}?societe={{ company.id }}">Retour à la facture</a>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card">
+    <h2 style="margin-top:0;font-family:var(--font-head);font-size:20px">Format Factur-X</h2>
+    <p class="sub">
+      Le fichier contient le PDF de la facture et un XML CII conforme au profil choisi.
+      Il peut être déposé sur une plateforme agréée, Chorus Pro ou le portail public de
+      facturation. La transmission réelle n'est lancée que par le bouton « Transmettre ».
+    </p>
+    <dl class="legal-facts legal-facts--compact">
+      <div><dt>Profil par défaut</dt><dd>{{ default_profile }}</dd></div>
+      <div><dt>Plateforme</dt><dd>{{ provider|default:"Non configurée" }}</dd></div>
+      <div><dt>Activation</dt><dd>{% if enabled %}Activée{% else %}Désactivée dans le back-office{% endif %}</dd></div>
+      <div><dt>API de dépôt</dt><dd>{% if api_configured %}URL renseignée{% else %}Aucune URL renseignée{% endif %}</dd></div>
+    </dl>
+    <form method="post" action="{% url 'invoice_einvoicing_generate' invoice.id %}?societe={{ company.id }}" class="form-stack">
+      {% csrf_token %}
+      <label for="profile">Profil Factur-X</label>
+      <select id="profile" name="profile">
+        {% for code, label in profiles %}
+        <option value="{{ code }}"{% if code == default_profile %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-primary" type="submit">Générer le Factur-X</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 style="margin-top:0;font-family:var(--font-head);font-size:20px">Dernier dépôt</h2>
+    {% if submission %}
+    <p>
+      <span class="badge {% if submission.status == 'accepted' %}badge-green{% elif submission.status == 'error' or submission.status == 'rejected' %}badge-red{% else %}badge-amber{% endif %}">
+        {{ submission.get_status_display }}
+      </span>
+    </p>
+    <dl class="legal-facts legal-facts--compact">
+      <div><dt>Référence</dt><dd>{{ submission.reference }}</dd></div>
+      <div><dt>Profil</dt><dd>{{ submission.get_profile_display }}</dd></div>
+      <div><dt>Généré le</dt><dd>{{ submission.created_at|date:"d/m/Y H:i" }}</dd></div>
+      <div><dt>Transmis le</dt><dd>{% if submission.sent_at %}{{ submission.sent_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Identifiant distant</dt><dd>{{ submission.remote_id|default:"—" }}</dd></div>
+      <div><dt>Empreinte SHA-256</dt><dd style="overflow-wrap:anywhere">{{ submission.checksum }}</dd></div>
+    </dl>
+    {% if submission.response_message %}
+    <details>
+      <summary class="btn btn-ghost btn-sm">Réponse de la plateforme</summary>
+      <pre class="code-block" style="white-space:pre-wrap;overflow-wrap:anywhere">{{ submission.response_message }}</pre>
+    </details>
+    {% endif %}
+    <div class="form-actions">
+      <a class="btn btn-ghost" href="{% url 'invoice_einvoicing_xml' invoice.id %}?societe={{ company.id }}">Télécharger le XML</a>
+      <a class="btn btn-ghost" href="{% url 'invoice_einvoicing_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF Factur-X</a>
+    </div>
+    <form method="post" action="{% url 'invoice_einvoicing_submit' invoice.id %}?societe={{ company.id }}" style="margin-top:12px" onsubmit="return confirm('Transmettre cette facture à la plateforme configurée ?')">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit"{% if not enabled or not api_configured %} disabled title="Activez et configurez la plateforme dans le back-office"{% endif %}>Transmettre</button>
+    </form>
+    {% else %}
+    <p class="sub">Aucune version électronique générée. Choisissez un profil puis lancez la génération.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <h2 style="margin-top:0;font-family:var(--font-head);font-size:20px">Ce que contient le fichier</h2>
+  <ul class="checklist">
+    <li>Identité de l'émetteur : SIREN, TVA intracommunautaire, adresse.</li>
+    <li>Identité du client : SIREN, TVA intracommunautaire, adresse.</li>
+    <li>Lignes, quantités, prix HT, taux de TVA et totaux.</li>
+    <li>Mention d'autoliquidation ou d'exonération lorsque la facture la porte.</li>
+    <li>Échéance à 30 jours et montants déjà réglés.</li>
+  </ul>
+  {% if invoice.reverse_charge %}
+  <p class="legal-note">Cette facture est en autoliquidation : le XML porte la catégorie de TVA « AE » et un montant de TVA à zéro.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.13.3">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.13.3">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.2">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.2">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -84,7 +84,6 @@
     <a class="brand" href="{% url 'cockpit' %}">
       {% if request.dark_ui %}
       <img class="product-logo product-logo--md" src="{% static 'img/dark/mark.png' %}" alt="" width="40" height="40">
-      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="150" height="32">
       {% else %}
       <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
       <span class="brand-text">
@@ -195,6 +194,17 @@
 
   <div class="main">
     <header class="topbar">
+      <button
+        type="button"
+        class="nav-desktop-toggle"
+        data-nav-toggle
+        aria-expanded="true"
+        aria-controls="app-drawer"
+        aria-label="Masquer le menu"
+        title="Masquer le menu"
+      >
+        {% include "partials/icon.html" with name="list" %}
+      </button>
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
       <div class="top-actions">
         {% if request.user.is_authenticated %}
@@ -241,7 +251,7 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.13.3" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.14.2" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

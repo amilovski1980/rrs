@@ -1,0 +1,11 @@
+<nav class="legal-nav" aria-label="Documents juridiques">
+  <a class="legal-nav-link{% if request.resolver_match.url_name == 'legal_notice' %} is-on{% endif %}" href="{% url 'legal_notice' %}"{% if request.resolver_match.url_name == 'legal_notice' %} aria-current="page"{% endif %}>
+    Mentions légales
+  </a>
+  <a class="legal-nav-link{% if request.resolver_match.url_name == 'terms_of_use' %} is-on{% endif %}" href="{% url 'terms_of_use' %}"{% if request.resolver_match.url_name == 'terms_of_use' %} aria-current="page"{% endif %}>
+    Conditions générales
+  </a>
+  <a class="legal-nav-link{% if request.resolver_match.url_name == 'privacy_policy' %} is-on{% endif %}" href="{% url 'privacy_policy' %}"{% if request.resolver_match.url_name == 'privacy_policy' %} aria-current="page"{% endif %}>
+    Confidentialité
+  </a>
+</nav>
