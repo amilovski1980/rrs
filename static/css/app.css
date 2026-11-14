@@ -3139,6 +3139,10 @@ label.ticket-camera-btn.btn-primary:hover {
 }
 
 /* ---------- Modèles de facture A4 : 5 mises en page ---------- */
+.settings-preview-head { margin: 28px 0 10px; }
+.settings-preview-head h2 { margin: 0 0 4px; font-size: 20px; }
+.settings-sheet-preview { max-width: 900px; margin: 0 auto 28px; }
+
 .model-picker-label {
   margin: 18px 0 8px;
   color: var(--muted);

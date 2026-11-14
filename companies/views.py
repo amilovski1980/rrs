@@ -535,6 +535,8 @@ def _company_or_redirect(request):
 
 
 def _settings_extra_context(company):
+    from decimal import Decimal
+
     mailbox = getattr(company, "mailbox_config", None)
     scopes = (getattr(mailbox, "granted_scopes", "") or "") if mailbox else ""
     linked = bool(mailbox and mailbox.has_tokens)
@@ -544,6 +546,28 @@ def _settings_extra_context(company):
         "google_mail_linked": linked,
         "google_mail_connected": linked and "gmail.send" in scopes,
         "google_mail_email": getattr(mailbox, "email_address", "") if mailbox else "",
+        "preview_date": timezone.localdate(),
+        "preview_amount_ht": Decimal("295.00"),
+        "preview_vat_amount": Decimal("54.50"),
+        "preview_amount_ttc": Decimal("349.50"),
+        "preview_lines": [
+            {
+                "description": "Pose de fenêtre",
+                "quantity": Decimal("1.00"),
+                "unit_price": Decimal("250.00"),
+                "vat_rate": Decimal("20.00"),
+                "amount_ht": Decimal("250.00"),
+                "amount_ttc": Decimal("300.00"),
+            },
+            {
+                "description": "Déplacement chantier",
+                "quantity": Decimal("1.00"),
+                "unit_price": Decimal("45.00"),
+                "vat_rate": Decimal("10.00"),
+                "amount_ht": Decimal("45.00"),
+                "amount_ttc": Decimal("49.50"),
+            },
+        ],
     }
 
 
