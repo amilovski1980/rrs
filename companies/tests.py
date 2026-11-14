@@ -32,6 +32,8 @@ class CompanySettingsTests(TestCase):
             "phone": "06 12 34 56 78",
             "email": "compta@atelier.fr",
             "invoice_theme": "carmin",
+            "regime": "reel_simple",
+            "tva": "reel",
         })
         self.assertEqual(saved.status_code, 302)
         self.company.refresh_from_db()
@@ -48,6 +50,8 @@ class CompanySettingsTests(TestCase):
             "email": "",
             "slogan": "L'artisan qui avance.",
             "invoice_theme": "azur",
+            "regime": "reel_simple",
+            "tva": "reel",
         })
         self.assertEqual(response.status_code, 302)
         self.company.refresh_from_db()

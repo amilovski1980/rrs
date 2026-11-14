@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
@@ -22,11 +23,13 @@ from .forms import (
     ClientForm,
     CreditNoteForm,
     InvoiceForm,
+    InvoiceLineFormSet,
     PaymentForm,
     PdfImportForm,
     ProductForm,
     ProjectForm,
     QuoteForm,
+    QuoteLineFormSet,
     TicketDeCaisseForm,
     TicketUploadForm,
 )
@@ -57,6 +60,8 @@ from .services import (
     issue_invoice,
     issue_quote_number,
     pay_invoice,
+    recompute_invoice_totals_from_lines,
+    recompute_quote_totals_from_lines,
     register_payment,
     sync_sale,
 )
@@ -196,22 +201,40 @@ def invoice_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
-    form = InvoiceForm(request.POST or None, company=company)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST":
         from billing.access import invoice_create_block
 
         blocked = invoice_create_block(request.user)
         if blocked:
             messages.info(request, blocked)
             return redirect("plan_upgrade")
-        invoice = form.save(commit=False)
-        invoice.company = company
-        invoice.status = "draft"
-        invoice.number = f"BR-{uuid.uuid4().hex[:10]}"
-        invoice.save()
+    invoice = Invoice(company=company)
+    form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    formset = InvoiceLineFormSet(
+        request.POST or None,
+        instance=invoice,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            invoice = form.save(commit=False)
+            invoice.company = company
+            invoice.status = "draft"
+            invoice.number = f"BR-{uuid.uuid4().hex[:10]}"
+            invoice.amount_ht = Decimal("0.00")
+            invoice.save()
+            formset.instance = invoice
+            formset.save()
+            recompute_invoice_totals_from_lines(invoice)
         messages.success(request, "Brouillon enregistré. Émettez la facture pour la numéroter.")
         return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
-    return render(request, "documents/invoice_form.html", {"company": company, "form": form})
+    return render(request, "documents/invoice_form.html", {
+        "company": company,
+        "form": form,
+        "formset": formset,
+        "invoice": None,
+    })
 
 
 @login_required
@@ -221,8 +244,18 @@ def invoice_edit(request, pk):
         return bounce
     invoice = _scoped(Invoice, company, pk)
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    formset = InvoiceLineFormSet(
+        request.POST or None,
+        instance=invoice,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            invoice = form.save()
+            formset.instance = invoice
+            formset.save()
+            recompute_invoice_totals_from_lines(invoice)
         if invoice.status != "draft":
             sync_sale(invoice)
             messages.success(request, "Facture mise à jour. Les écritures liées ont été recalculées.")
@@ -232,6 +265,7 @@ def invoice_edit(request, pk):
     return render(request, "documents/invoice_form.html", {
         "company": company,
         "form": form,
+        "formset": formset,
         "invoice": invoice,
     })
 
@@ -707,16 +741,34 @@ def quote_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
-    form = QuoteForm(request.POST or None, company=company)
-    if request.method == "POST" and form.is_valid():
-        quote = form.save(commit=False)
-        quote.company = company
-        quote.status = "draft"
-        quote.number = f"BR-{uuid.uuid4().hex[:10]}"
-        quote.save()
+    quote = Quote(company=company)
+    form = QuoteForm(request.POST or None, instance=quote, company=company)
+    formset = QuoteLineFormSet(
+        request.POST or None,
+        instance=quote,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            quote = form.save(commit=False)
+            quote.company = company
+            quote.status = "draft"
+            quote.number = f"BR-{uuid.uuid4().hex[:10]}"
+            quote.amount_ht = Decimal("0.00")
+            quote.vat_rate = Decimal("0.00")
+            quote.save()
+            formset.instance = quote
+            formset.save()
+            recompute_quote_totals_from_lines(quote)
         messages.success(request, "Devis enregistré en brouillon.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
-    return render(request, "documents/quote_form.html", {"company": company, "form": form})
+    return render(request, "documents/quote_form.html", {
+        "company": company,
+        "form": form,
+        "formset": formset,
+        "quote": None,
+    })
 
 
 @login_required
@@ -729,12 +781,22 @@ def quote_edit(request, pk):
         messages.error(request, "Un devis converti ne peut plus être modifié.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
     form = QuoteForm(request.POST or None, instance=quote, company=company)
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    formset = QuoteLineFormSet(
+        request.POST or None,
+        instance=quote,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            quote = form.save()
+            formset.instance = quote
+            formset.save()
+            recompute_quote_totals_from_lines(quote)
         messages.success(request, "Devis mis à jour.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
     return render(request, "documents/quote_form.html", {
-        "company": company, "form": form, "quote": quote,
+        "company": company, "form": form, "formset": formset, "quote": quote,
     })
 
 

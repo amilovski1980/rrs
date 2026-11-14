@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Factures à valider{% endblock %}
+{% block crumbs %}Société / Connecteur e-mail / Factures à valider{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .draft-amount { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 700; }
+  .draft-source { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; }
+  .draft-empty { text-align: center; padding: 34px 12px; }
+  .draft-empty p { margin: 6px 0 16px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Factures reçues par e-mail</h1>
+    <p class="sub">
+      Chaque facture est un brouillon pré-rempli. Ouvrez-la, vérifiez les montants,
+      puis validez en un clic dans le journal d'achats.
+    </p>
+  </div>
+  <div class="mail-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'mailsync:settings' %}">Réglages du connecteur</a>
+  </div>
+</div>
+
+<section class="card" style="margin-bottom:18px">
+  <h2 style="margin:0 0 12px;font-size:17px">
+    À valider
+    {% if pending %}<span class="badge badge-blue">{{ pending|length }}</span>{% endif %}
+  </h2>
+  {% if pending %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reçue le</th>
+            <th>Fournisseur</th>
+            <th>N° facture</th>
+            <th>Date facture</th>
+            <th>TTC</th>
+            <th>Source</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for draft in pending %}
+          <tr>
+            <td>{{ draft.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              {{ draft.supplier.name|default:draft.proposed_supplier_name }}
+              {% if not draft.supplier %}<span class="badge">Nouveau</span>{% endif %}
+            </td>
+            <td>{{ draft.invoice_number|default:"—" }}</td>
+            <td>{{ draft.invoice_date|date:"d/m/Y"|default:"—" }}</td>
+            <td class="draft-amount">{{ draft.amount_ttc }} €</td>
+            <td><span class="badge draft-source">{{ draft.get_source_display }}</span></td>
+            <td><a class="btn btn-primary btn-sm" href="{% url 'mailsync:draft_detail' draft.pk %}">Contrôler</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="draft-empty">
+      <p class="micro">Aucune facture en attente. La boîte est à jour.</p>
+      <a class="btn btn-ghost btn-sm" href="{% url 'mailsync:settings' %}">Voir le connecteur</a>
+    </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2 style="margin:0 0 12px;font-size:17px">Historique récent</h2>
+  {% if history %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Traitée le</th>
+            <th>Fournisseur</th>
+            <th>N° facture</th>
+            <th>TTC</th>
+            <th>État</th>
+            <th>Écriture</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for draft in history %}
+          <tr>
+            <td>{{ draft.validated_at|date:"d/m/Y H:i"|default:draft.created_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ draft.supplier.name|default:draft.proposed_supplier_name }}</td>
+            <td>{{ draft.invoice_number|default:"—" }}</td>
+            <td class="draft-amount">{{ draft.amount_ttc }} €</td>
+            <td>
+              {% if draft.status == "validated" %}
+                <span class="badge badge-green">Validée</span>
+              {% else %}
+                <span class="badge">Ignorée</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if draft.entry %}
+                {{ draft.entry.journal.code }} · {{ draft.entry.date|date:"d/m/Y" }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="micro">L'historique apparaîtra après la première validation.</p>
+  {% endif %}
+</section>
+{% endblock %}

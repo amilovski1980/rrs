@@ -52,16 +52,25 @@
     <div class="l">Chiffre d'affaires</div>
     <div class="v">{{ figures.revenue|floatformat:2 }} €</div>
     <div class="d">Comptes 7, écritures validées</div>
+    <div class="kpi-spark" role="img" aria-label="Tendance du chiffre d'affaires sur 6 mois">
+      {% for h in figures.trend.revenue_spark %}<i style="height: {{ h }}%"></i>{% endfor %}
+    </div>
   </div>
   <div class="kpi">
     <div class="l">Clients</div>
     <div class="v">{{ figures.clients|floatformat:2 }} €</div>
     <div class="d">Solde du compte 411</div>
+    <div class="kpi-spark kpi-spark-clients" role="img" aria-label="Tendance du solde clients sur 6 mois">
+      {% for h in figures.trend.clients_spark %}<i style="height: {{ h }}%"></i>{% endfor %}
+    </div>
   </div>
   <div class="kpi">
     <div class="l">TVA nette</div>
     <div class="v">{{ figures.vat_net|floatformat:2 }} €</div>
     <div class="d">{% if figures.balanced %}Balance équilibrée{% else %}Écart de balance{% endif %} · {{ figures.entries_count }} écriture{{ figures.entries_count|pluralize }}</div>
+    <div class="kpi-spark kpi-spark-vat" role="img" aria-label="Tendance de la TVA nette sur 6 mois">
+      {% for h in figures.trend.vat_spark %}<i style="height: {{ h }}%"></i>{% endfor %}
+    </div>
   </div>
 </div>
 
@@ -114,7 +123,7 @@
           <td><a href="{% url 'invoice_detail' inv.id %}?societe={{ selected.id }}"><b>{{ inv.number }}</b></a></td>
           <td>{{ inv.client_name }}</td>
           <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
-          <td><span class="tag">{{ inv.get_status_display }}</span></td>
+          <td>{% if inv.is_late %}<span class="tag tag-late">Dépassé</span>{% else %}<span class="tag">{{ inv.get_status_display }}</span>{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td colspan="4" class="empty">Aucune facture ouverte.</td></tr>

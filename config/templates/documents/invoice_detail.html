@@ -110,22 +110,47 @@
   </table>
 </div>
 {% endif %}
-{% if lines %}
 <div class="card card-tight" style="margin-top:16px">
-  <h2 style="font-size:18px;margin:0 0 12px">Lignes</h2>
+  <div class="invoice-lines-head" style="padding-bottom:0">
+    <div>
+      <h2 style="margin:0 0 4px;font-size:18px">Lignes de facture</h2>
+      <p class="sub" style="margin:0 0 12px">Chaque ligne est reliée à son produit catalogue ou reste libre.</p>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">Modifier les lignes</a>
+  </div>
+  {% if lines %}
   <table>
-    <thead><tr><th>Désignation</th><th class="num">Qté</th><th class="num">PU HT</th><th class="num">TVA</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Produit</th>
+        <th>Désignation</th>
+        <th class="num">Qté</th>
+        <th class="num">PU HT</th>
+        <th class="num">TVA</th>
+        <th class="num">Montant HT</th>
+      </tr>
+    </thead>
     <tbody>
       {% for line in lines %}
       <tr>
-        <td>{{ line.description }}{% if line.product %} <span class="badge badge-blue">{{ line.product.label }}</span>{% endif %}</td>
+        <td>
+          {% if line.product %}
+          <a href="{% url 'product_detail' line.product.id %}?societe={{ company.id }}">{{ line.product.label }}</a>
+          {% else %}
+          <span class="badge">Ligne libre</span>
+          {% endif %}
+        </td>
+        <td>{{ line.description }}</td>
         <td class="num">{{ line.quantity }}</td>
         <td class="num">{{ line.unit_price|floatformat:2 }} €</td>
         <td class="num">{{ line.vat_rate|floatformat:2 }} %</td>
+        <td class="num">{{ line.amount_ht|floatformat:2 }} €</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% else %}
+  <p class="empty">Aucune ligne détaillée sur cette facture. Ajoutez un produit catalogue ou une ligne libre pour que le PDF affiche le détail des prestations.</p>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

@@ -89,6 +89,24 @@ def instructions_for(user, company):
     extra = ""
     if others:
         extra = " Autres sociétés : " + ", ".join(others) + ". Utilise switch_company pour changer."
+    from documents.models import Product
+
+    products = list(company.products.filter(active=True).order_by("label")[:40])
+    if products:
+        catalogue = "; ".join(
+            f"{p.label} ({p.unit_price:.2f} € HT, TVA {p.vat_rate:g} %, id {p.id})"
+            for p in products
+        )
+        extra += (
+            " Catalogue produits de la société, à utiliser en priorité pour les lignes "
+            f"de facture : {catalogue}. Quand un produit correspond, transmets son id "
+            "dans draft_invoice (champ lines[].product_id)."
+        )
+    else:
+        extra += (
+            " Le catalogue produits est vide : utilise une désignation libre pour "
+            "les lignes de facture."
+        )
     return (
         "Tu es Aminia, assistante comptable vocale de Road Runner Solutions. "
         "Tu gères la comptabilité de la société "
@@ -236,19 +254,41 @@ TOOLS = [
         "type": "function",
         "name": "draft_invoice",
         "description": (
-            "Rédige un brouillon de facture. À appeler dès que le client et le montant HT "
-            "sont connus. L'utilisateur voit les champs se remplir en direct. N'émet pas la facture."
+            "Rédige un brouillon de facture avec une ou plusieurs lignes. À appeler dès "
+            "que le client et les montants sont connus. Utilise de préférence un produit "
+            "du catalogue via lines[].product_id. N'émet pas la facture."
         ),
         "parameters": {
             "type": "object",
             "properties": {
                 "client_name": {"type": "string", "description": "Nom du client"},
                 "client_siren": {"type": "string", "description": "SIREN à 9 chiffres, ou vide"},
-                "amount_ht": {"type": "string", "description": "Montant hors taxe en euros"},
+                "amount_ht": {
+                    "type": "string",
+                    "description": "Montant HT total, si aucune ligne détaillée n'est fournie",
+                },
                 "vat_rate": {"type": "string", "description": "Taux de TVA, par exemple 20 ou 0"},
                 "designation": {"type": "string", "description": "Libellé de la prestation"},
+                "lines": {
+                    "type": "array",
+                    "description": "Lignes détaillées de la facture",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "product_id": {
+                                "type": "string",
+                                "description": "Identifiant UUID d'un produit du catalogue",
+                            },
+                            "description": {"type": "string", "description": "Désignation de la ligne"},
+                            "quantity": {"type": "string", "description": "Quantité, 1 par défaut"},
+                            "unit_price": {"type": "string", "description": "Prix unitaire HT en euros"},
+                            "vat_rate": {"type": "string", "description": "Taux de TVA de la ligne"},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
             },
-            "required": ["client_name", "amount_ht"],
+            "required": ["client_name"],
             "additionalProperties": False,
         },
     },
@@ -467,40 +507,121 @@ def _confirm_entry(company, args):
 def _draft_invoice(company, args):
     import uuid
 
-    from documents.models import Invoice
+    from documents.models import Invoice, InvoiceLine, Product
 
     client = (args.get("client_name") or "").strip()
     if len(client) < 2:
         return {"error": "Nom du client manquant."}
-    try:
-        amount = money(args.get("amount_ht"))
-    except ValueError:
-        return {"error": "Montant HT illisible."}
-    if amount <= 0:
-        return {"error": "Le montant HT doit être positif."}
     siren = "".join(ch for ch in str(args.get("client_siren") or "") if ch.isdigit())
     if siren and len(siren) != 9:
         return {"error": "Le SIREN client doit contenir 9 chiffres, ou rester vide."}
-    raw_rate = args.get("vat_rate")
-    if raw_rate in (None, ""):
-        rate = Decimal("20.00") if company.tva == "reel" else Decimal("0.00")
+
+    def default_rate():
+        return Decimal("20.00") if company.tva == "reel" else Decimal("0.00")
+
+    def parse_rate(raw):
+        if raw in (None, ""):
+            return default_rate()
+        rate_value = money(raw)
+        if rate_value < 0 or rate_value > 100:
+            raise ValueError("Taux de TVA invalide.")
+        return rate_value
+
+    prepared = []
+    raw_lines = args.get("lines")
+    if isinstance(raw_lines, list) and raw_lines:
+        for raw in raw_lines[:50]:
+            if not isinstance(raw, dict):
+                continue
+            product = None
+            product_id = str(raw.get("product_id") or "").strip()
+            if product_id:
+                product = Product.objects.filter(
+                    company=company, active=True, pk=product_id
+                ).first()
+                if product is None:
+                    return {"error": "Produit du catalogue introuvable pour cette société."}
+            description = (
+                (raw.get("description") or "").strip()
+                or (product.label if product else "")
+                or "Prestation"
+            )[:200]
+            try:
+                quantity = money(raw.get("quantity") or "1")
+                unit_price = money(
+                    raw.get("unit_price")
+                    if raw.get("unit_price") not in (None, "")
+                    else (product.unit_price if product else "0")
+                )
+                rate = parse_rate(
+                    raw.get("vat_rate")
+                    if raw.get("vat_rate") not in (None, "")
+                    else (product.vat_rate if product else None)
+                )
+            except ValueError as exc:
+                return {"error": str(exc) or "Ligne de facture illisible."}
+            if quantity <= 0:
+                return {"error": "La quantité doit être supérieure à 0."}
+            if unit_price < 0:
+                return {"error": "Le prix unitaire ne peut pas être négatif."}
+            prepared.append({
+                "product": product,
+                "description": description,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "vat_rate": rate,
+            })
     else:
         try:
-            rate = money(raw_rate)
+            amount = money(args.get("amount_ht"))
+            rate = parse_rate(args.get("vat_rate"))
         except ValueError:
-            return {"error": "Taux de TVA illisible."}
-    if rate < 0 or rate > 100:
-        return {"error": "Taux de TVA invalide."}
-    designation = (args.get("designation") or "Prestation").strip()[:200]
-    invoice = Invoice.objects.create(
-        company=company,
-        number=f"BR-{uuid.uuid4().hex[:10]}",
-        client_name=client[:200],
-        client_siren=siren,
-        amount_ht=amount,
-        vat_rate=rate,
-        status="draft",
-    )
+            return {"error": "Montant HT illisible."}
+        if amount <= 0:
+            return {"error": "Le montant HT doit être positif."}
+        prepared.append({
+            "product": None,
+            "description": (args.get("designation") or "Prestation").strip()[:200],
+            "quantity": Decimal("1"),
+            "unit_price": amount,
+            "vat_rate": rate,
+        })
+
+    if not prepared:
+        return {"error": "Ajoutez au moins une ligne à la facture."}
+
+    total_ht = sum(
+        (line["quantity"] * line["unit_price"] for line in prepared), Decimal("0.00")
+    ).quantize(Decimal("0.01"))
+    if total_ht <= 0:
+        return {"error": "Le montant HT doit être positif."}
+    bases: dict[Decimal, Decimal] = {}
+    for line in prepared:
+        bases[line["vat_rate"]] = bases.get(line["vat_rate"], Decimal("0.00")) + (
+            line["quantity"] * line["unit_price"]
+        )
+    dominant_rate = max(bases, key=bases.get)
+
+    with transaction.atomic():
+        invoice = Invoice.objects.create(
+            company=company,
+            number=f"BR-{uuid.uuid4().hex[:10]}",
+            client_name=client[:200],
+            client_siren=siren,
+            amount_ht=total_ht,
+            vat_rate=dominant_rate,
+            status="draft",
+        )
+        for position, line in enumerate(prepared):
+            InvoiceLine.objects.create(
+                invoice=invoice,
+                product=line["product"],
+                description=line["description"],
+                quantity=line["quantity"],
+                unit_price=line["unit_price"],
+                vat_rate=line["vat_rate"],
+                position=position,
+            )
     return {
         "ok": True,
         "status": "brouillon",
@@ -510,10 +631,20 @@ def _draft_invoice(company, args):
             "number": invoice.number,
             "client_name": invoice.client_name,
             "client_siren": invoice.client_siren,
-            "designation": designation,
+            "designation": prepared[0]["description"],
             "amount_ht": str(invoice.amount_ht),
             "vat_rate": str(invoice.vat_rate),
             "amount_ttc": str(invoice.amount_ttc),
+            "lines": [
+                {
+                    "product_id": str(line["product"].id) if line["product"] else "",
+                    "description": line["description"],
+                    "quantity": str(line["quantity"]),
+                    "unit_price": str(line["unit_price"]),
+                    "vat_rate": str(line["vat_rate"]),
+                }
+                for line in prepared
+            ],
             "url": f"/factures/{invoice.id}/?societe={company.id}",
         },
     }

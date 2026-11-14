@@ -1,0 +1,34 @@
+<tr class="invoice-line-row" data-line-form>
+  {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
+  <td class="line-product">
+    {{ line_form.product }}
+    {% if line_form.product.errors %}<p class="error">{{ line_form.product.errors.0 }}</p>{% endif %}
+  </td>
+  <td class="line-description">
+    {{ line_form.description }}
+    {% if line_form.description.errors %}<p class="error">{{ line_form.description.errors.0 }}</p>{% endif %}
+  </td>
+  <td class="line-qty">
+    {{ line_form.quantity }}
+    {% if line_form.quantity.errors %}<p class="error">{{ line_form.quantity.errors.0 }}</p>{% endif %}
+  </td>
+  <td class="line-price">
+    {{ line_form.unit_price }}
+    {% if line_form.unit_price.errors %}<p class="error">{{ line_form.unit_price.errors.0 }}</p>{% endif %}
+  </td>
+  <td class="line-vat">
+    {{ line_form.vat_rate }}
+    {% if line_form.vat_rate.errors %}<p class="error">{{ line_form.vat_rate.errors.0 }}</p>{% endif %}
+  </td>
+  <td class="num line-total" data-line-total>0,00 €</td>
+  <td class="line-remove">
+    {% if not line_form.is_new %}
+    <label class="line-delete" title="Supprimer cette ligne">
+      {{ line_form.DELETE }}
+      <span>Supprimer</span>
+    </label>
+    {% else %}
+    <button type="button" class="line-remove-btn" data-remove-line aria-label="Retirer cette ligne">×</button>
+    {% endif %}
+  </td>
+</tr>

@@ -58,12 +58,10 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
         {% endfor %}
       {% else %}
         <tr>
-          <td>Prestation — {{ client_name }}</td>
-          <td class="num">1</td>
-          <td class="num">{{ amount_ht|floatformat:2 }} €</td>
-          <td class="num">{{ vat_rate|floatformat:2 }} %</td>
-          <td class="num">{{ amount_ht|floatformat:2 }} €</td>
-          <td class="num">{{ amount_ttc|floatformat:2 }} €</td>
+          <td class="sheet-no-lines" colspan="6">
+            <strong>Aucune ligne détaillée</strong>
+            <span>Modifiez la facture pour ajouter les prestations, produits et quantités facturés.</span>
+          </td>
         </tr>
       {% endif %}
     </tbody>
@@ -77,6 +75,9 @@ amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_
       <p>TVA non applicable, article 293 B du CGI.</p>
       {% else %}
       <p>TVA {{ vat_rate|floatformat:2 }} % · {{ vat_amount|floatformat:2 }} €.</p>
+      {% endif %}
+      {% if company.bank_iban %}
+      <p class="sheet-bank"><b>Règlement par virement</b> · IBAN {{ company.bank_iban }}{% if company.bank_bic %} · BIC {{ company.bank_bic }}{% endif %}{% if company.bank_name %} · {{ company.bank_name }}{% endif %}</p>
       {% endif %}
       {% if kind_label == "Facture" %}
       <p>En cas de retard de paiement : pénalités de trois fois le taux d'intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce).</p>

@@ -86,8 +86,8 @@
         <td>{{ inv.created_at|date:"d/m/Y" }}</td>
         <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
         <td>
-          <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% elif inv.status == 'late' %}badge-red{% else %}badge-amber{% endif %}">
-            {{ inv.get_status_display }}
+          <span class="badge {% if inv.is_late %}badge-red{% elif inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}">
+            {% if inv.is_late %}Dépassé{% else %}{{ inv.get_status_display }}{% endif %}
           </span>
         </td>
         <td><a class="btn btn-ghost btn-sm" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">Voir</a></td>

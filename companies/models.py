@@ -49,6 +49,16 @@ class Company(models.Model):
     address = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
+    # SMTP propre à la société : si renseigné, les factures/devis partent avec
+    # ce serveur au lieu du SMTP global de la plateforme.
+    smtp_host = models.CharField(max_length=255, blank=True, verbose_name="Serveur SMTP")
+    smtp_port = models.PositiveIntegerField(default=587, verbose_name="Port SMTP")
+    smtp_username = models.CharField(max_length=255, blank=True, verbose_name="Utilisateur SMTP")
+    smtp_password = models.CharField(max_length=255, blank=True, verbose_name="Mot de passe SMTP")
+    smtp_use_tls = models.BooleanField(default=True, verbose_name="SMTP avec TLS")
+    smtp_from_email = models.EmailField(
+        blank=True, verbose_name="Expéditeur des documents"
+    )
     code_naf = models.CharField(max_length=10, blank=True)
     invoice_theme = models.CharField(max_length=12, choices=INVOICE_THEMES, default="azur")
     logo = models.BinaryField(null=True, blank=True)
@@ -60,6 +70,11 @@ class Company(models.Model):
         verbose_name="TVA intracommunautaire",
         help_text="Vide = calculée automatiquement depuis le SIREN.",
     )
+
+    # Coordonnées bancaires de la société, affichées sur les factures et devis.
+    bank_name = models.CharField(max_length=120, blank=True, verbose_name="Banque")
+    bank_iban = models.CharField(max_length=34, blank=True, verbose_name="IBAN")
+    bank_bic = models.CharField(max_length=11, blank=True, verbose_name="BIC")
 
     # Profil repartition compta
     activites = models.JSONField(default=list, help_text="codes du questionnaire")

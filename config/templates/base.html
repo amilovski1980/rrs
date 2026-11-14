@@ -1,4 +1,4 @@
-{% load static %}<!DOCTYPE html>
+{% load static company_colors %}<!DOCTYPE html>
 <html lang="fr"{% if request.dark_ui %} data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.4">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.4">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.6">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.6">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -160,6 +160,9 @@
       <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
       {% if forfait.locks.ai_drafts %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
+    <a class="side-link {% block nav_mail %}{% endblock %}" href="{% url 'mailsync:drafts' %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="mail" %}</span> Factures e-mail
+    </a>
     </div>{# /.sidebar-nav-scroll #}
 
     <div class="sidebar-foot">
@@ -206,6 +209,14 @@
         {% include "partials/icon.html" with name="list" %}
       </button>
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
+      {% if top_companies|length > 1 %}
+      <nav class="company-switch" aria-label="Changer de société">
+        {% for c in top_companies %}
+        {% company_color_class c top_companies as co_cls %}
+        <a class="company-switch-btn {{ co_cls }}{% if top_company and top_company.id == c.id %} is-on{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}" title="{{ c.denomination }}" aria-label="Passer à {{ c.denomination }}"{% if top_company and top_company.id == c.id %} aria-current="true"{% endif %}>{{ c|company_initial }}</a>
+        {% endfor %}
+      </nav>
+      {% endif %}
       <div class="top-actions">
         {% if request.user.is_authenticated %}
         <span class="badge top-mail" title="{{ request.user.email|default:'' }}">{{ request.user.email|default:'' }}</span>
@@ -214,7 +225,7 @@
           <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
         </form>
         {% endif %}
-        <a class="btn btn-ghost btn-sm top-site" href="{% url 'landing' %}">Site vitrine</a>
+        <a class="btn btn-ghost btn-sm top-site" href="{% url 'landing' %}" aria-label="Site vitrine" title="Site vitrine">{% include "partials/icon.html" with name="house" %}</a>
       </div>
     </header>
     <main class="content">
@@ -251,7 +262,8 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.14.4" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.14.5" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

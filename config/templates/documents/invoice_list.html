@@ -40,8 +40,8 @@
         <td class="num">{{ inv.amount_ttc|floatformat:2 }} €</td>
         <td class="num">{{ inv.amount_remaining|floatformat:2 }} €</td>
         <td>
-          <span class="badge {% if inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% elif inv.status == 'late' %}badge-red{% else %}badge-amber{% endif %}">
-            {{ inv.get_status_display }}
+          <span class="badge {% if inv.is_late %}badge-red{% elif inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}">
+            {% if inv.is_late %}Dépassé{% else %}{{ inv.get_status_display }}{% endif %}
           </span>
         </td>
         <td>

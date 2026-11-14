@@ -110,7 +110,7 @@ def _invoice_lines(invoice):
         return rows
     return [
         {
-            "description": f"Prestation — {invoice.client_name}",
+            "description": "Prestation - montant global",
             "quantity": Decimal("1"),
             "unit_price": invoice.amount_ht,
             "vat_rate": Decimal("0.00") if reverse else invoice.vat_rate,

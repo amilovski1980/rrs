@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
@@ -12,7 +13,18 @@ from companies.models import Company
 from contacts.models import Contact
 from fpdf import FPDF
 
-from .models import Client, CreditNote, Invoice, InvoiceLine, Payment, Product, Project, Quote
+from .models import (
+    Client,
+    CreditNote,
+    Invoice,
+    InvoiceLine,
+    InvoiceSeries,
+    Payment,
+    Product,
+    Project,
+    Quote,
+    next_invoice_number,
+)
 from .pdf_import import PdfImportError, extract_pdf_text, import_invoice_pdf, parse_invoice_text
 from .services import (
     convert_quote_to_invoice,
@@ -77,14 +89,22 @@ class InvoiceFlowTests(TestCase):
             "client": "",
             "client_name": "Client Modifié",
             "client_siren": "",
+            "client_tva_intra": "",
             "project": "",
-            "amount_ht": "150.00",
-            "vat_rate": "20.00",
+            "lines-TOTAL_FORMS": "1",
+            "lines-INITIAL_FORMS": "0",
+            "lines-MIN_NUM_FORMS": "0",
+            "lines-MAX_NUM_FORMS": "1000",
+            "lines-0-description": "Prestation modifiée",
+            "lines-0-quantity": "1",
+            "lines-0-unit_price": "150.00",
+            "lines-0-vat_rate": "20.00",
         })
         self.assertEqual(edit.status_code, 302)
         self.invoice.refresh_from_db()
         self.assertEqual(self.invoice.client_name, "Client Modifié")
         self.assertEqual(self.invoice.amount_ht, Decimal("150.00"))
+        self.assertTrue(self.invoice.lines.filter(description="Prestation modifiée").exists())
         self.assertEqual(self.client.get("/cockpit/").status_code, 200)
         self.assertEqual(self.client.get("/compta/grand-livre/").status_code, 200)
         self.assertEqual(self.client.get("/compta/balance/").status_code, 200)
@@ -97,6 +117,189 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
         self.assertIn(b"attachment", response["Content-Disposition"].encode())
+
+
+class InvoiceNumberingTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("numerotation@example.com")
+        self.company = _company(user, siren="911111111", name="Numérotation A")
+        self.other = _company(user, siren="922222222", name="Numérotation B")
+        self.year = date.today().year
+
+    def test_stale_series_skips_existing_number(self):
+        Invoice.objects.create(
+            company=self.company,
+            number=f"FAC-{self.year}-00002",
+            client_name="Déjà là",
+            amount_ht=Decimal("10.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        InvoiceSeries.objects.create(
+            company=self.company, year=self.year, prefix="FAC", last_number=1
+        )
+        number = next_invoice_number(self.company, self.year)
+        self.assertEqual(number, f"FAC-{self.year}-00003")
+        series = InvoiceSeries.objects.get(
+            company=self.company, year=self.year, prefix="FAC"
+        )
+        self.assertEqual(series.last_number, 3)
+
+    def test_two_companies_can_share_the_same_number(self):
+        first = Invoice.objects.create(
+            company=self.company,
+            number=f"FAC-{self.year}-00001",
+            client_name="Client A",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        second = Invoice.objects.create(
+            company=self.other,
+            number=f"FAC-{self.year}-00001",
+            client_name="Client B",
+            amount_ht=Decimal("200.00"),
+            vat_rate=Decimal("20.00"),
+            status="issued",
+        )
+        self.assertEqual(first.number, second.number)
+        self.assertEqual(
+            next_invoice_number(self.other, self.year),
+            f"FAC-{self.year}-00002",
+        )
+
+    def test_failed_issuance_rolls_back_number_and_status(self):
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-rollback",
+            client_name="Client rollback",
+            amount_ht=Decimal("50.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        with patch("documents.services.post_sale", side_effect=RuntimeError("boom")):
+            with self.assertRaises(RuntimeError):
+                issue_invoice(invoice)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "draft")
+        self.assertEqual(invoice.number, "BR-rollback")
+        self.assertFalse(
+            InvoiceSeries.objects.filter(
+                company=self.company, year=self.year, prefix="FAC"
+            ).exists()
+        )
+
+
+class InvoiceLineEditorTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("lignes@example.com")
+        self.company = _company(user, siren="876543210", name="Lignes Co")
+        self.http = self.client
+        self.http.force_login(user)
+        self.client_obj = Client.objects.create(
+            company=self.company,
+            name="Client Catalogue",
+            siren="907825327",
+            tva_intra="FR44907825327",
+        )
+        self.product = Product.objects.create(
+            company=self.company,
+            label="Pose fenêtre",
+            description="Fourniture et pose",
+            unit_price=Decimal("250.00"),
+            vat_rate=Decimal("20.00"),
+            unit="unité",
+        )
+
+    def _line_data(self, index, **overrides):
+        data = {
+            f"lines-{index}-product": "",
+            f"lines-{index}-description": "",
+            f"lines-{index}-quantity": "1",
+            f"lines-{index}-unit_price": "0.00",
+            f"lines-{index}-vat_rate": "20.00",
+        }
+        for key, value in overrides.items():
+            data[f"lines-{index}-{key}"] = value
+        return data
+
+    def _post_create(self, lines, **overrides):
+        data = {
+            "client": "",
+            "client_name": "Client libre",
+            "client_siren": "",
+            "client_tva_intra": "",
+            "project": "",
+            "lines-TOTAL_FORMS": str(len(lines)),
+            "lines-INITIAL_FORMS": "0",
+            "lines-MIN_NUM_FORMS": "0",
+            "lines-MAX_NUM_FORMS": "1000",
+        }
+        for index, line in enumerate(lines):
+            data.update(self._line_data(index, **line))
+        data.update(overrides)
+        return self.http.post("/factures/nouvelle/", data)
+
+    def test_form_exposes_real_catalog_and_client_fields(self):
+        response = self.http.get("/factures/nouvelle/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-client-select")
+        self.assertContains(response, "data-product-select")
+        self.assertContains(response, "data-add-line")
+        self.assertContains(response, "Lignes de facture")
+        self.assertContains(response, "data-client-name=\"Client Catalogue\"")
+        self.assertContains(response, "data-product-label=\"Pose fenêtre\"")
+
+    def test_create_with_catalog_line_and_client_prefill(self):
+        response = self._post_create(
+            [{
+                "product": str(self.product.id),
+                "description": "Pose fenêtre",
+                "quantity": "2",
+                "unit_price": "250.00",
+                "vat_rate": "20.00",
+            }],
+            client=str(self.client_obj.id),
+            client_name="",
+            client_siren="",
+            client_tva_intra="",
+        )
+        self.assertEqual(response.status_code, 302)
+        invoice = Invoice.objects.get(company=self.company)
+        line = invoice.lines.get()
+        self.assertEqual(line.product_id, self.product.id)
+        self.assertEqual(invoice.amount_ht, Decimal("500.00"))
+        self.assertEqual(invoice.vat_amount, Decimal("100.00"))
+        self.assertEqual(invoice.amount_ttc, Decimal("600.00"))
+        self.assertEqual(invoice.client_name, "Client Catalogue")
+        self.assertEqual(invoice.client_siren, "907825327")
+        self.assertEqual(invoice.client_tva_intra, "FR44907825327")
+
+    def test_multiple_rates_and_free_line_are_summed(self):
+        response = self._post_create([
+            {
+                "product": str(self.product.id),
+                "description": "Pose fenêtre",
+                "quantity": "1",
+                "unit_price": "250.00",
+                "vat_rate": "20.00",
+            },
+            {
+                "description": "Déplacement libre",
+                "quantity": "2",
+                "unit_price": "50.00",
+                "vat_rate": "10.00",
+            },
+        ])
+        self.assertEqual(response.status_code, 302)
+        invoice = Invoice.objects.get(company=self.company)
+        self.assertEqual(invoice.lines.count(), 2)
+        free_line = invoice.lines.get(description="Déplacement libre")
+        self.assertIsNone(free_line.product_id)
+        self.assertEqual(invoice.amount_ht, Decimal("350.00"))
+        self.assertEqual(invoice.vat_amount, Decimal("60.00"))
+        self.assertEqual(invoice.amount_ttc, Decimal("410.00"))
+        self.assertEqual(invoice.vat_rate, Decimal("20.00"))
 
 
 class TenantIsolationTests(TestCase):
@@ -437,6 +640,21 @@ class VatIntracomTests(TestCase):
             address="Musterstrasse 1, Berlin",
             legal_form="GmbH",
         )
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-tva",
+            client_name="Bau GmbH",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            status="draft",
+        )
+        InvoiceLine.objects.create(
+            invoice=invoice,
+            description="Prestation",
+            quantity=Decimal("1"),
+            unit_price=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+        )
         form = InvoiceForm(
             data={
                 "client": client.pk,
@@ -444,19 +662,14 @@ class VatIntracomTests(TestCase):
                 "client_siren": "",
                 "client_tva_intra": "DE811234567",
                 "project": "",
-                "amount_ht": "100.00",
-                "vat_rate": "20.00",
                 "reverse_charge": "on",
                 "vat_exemption_reason": "",
             },
+            instance=invoice,
             company=self.company,
         )
         self.assertTrue(form.is_valid(), form.errors)
-        invoice = form.save(commit=False)
-        invoice.company = self.company
-        invoice.status = "draft"
-        invoice.number = "BR-tva"
-        invoice.save()
+        invoice = form.save()
 
         self.assertTrue(invoice.reverse_charge)
         self.assertEqual(invoice.vat_rate, Decimal("0.00"))
@@ -550,7 +763,8 @@ class ThemeAndDocumentPdfTests(TestCase):
         )
         response = self.http.get(f"/factures/{bare.id}/")
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Prestation — Sans Lignes")
+        self.assertContains(response, "Aucune ligne détaillée")
+        self.assertNotContains(response, "Prestation — Sans Lignes")
 
     def test_invoice_pdf_matches_reference_layout(self):
         from documents.pdf import render_invoice_pdf

@@ -11,7 +11,7 @@ E_INVOICING_STATUSES = [
     ("issued", "Émise"),
     ("received", "Réceptionnée (PA)"),
     ("paid", "Payée"),
-    ("late", "En retard de paiement"),
+    ("late", "Dépassé"),
 ]
 
 QUOTE_STATUSES = [
@@ -158,16 +158,28 @@ class InvoiceSeries(models.Model):
 
 
 def next_invoice_number(company, year, prefix="FAC"):
-    """Numérotation atomique transactionnelle. Amende si trou => SELECT FOR UPDATE."""
+    """Numérotation atomique transactionnelle, sans collision avec l'existant.
+
+    La série peut être en retard (imports, reprise de données, ancienne
+    numérotation manuelle). On avance donc jusqu'au premier numéro libre de la
+    société au lieu de faire confiance aveuglément à ``last_number``.
+    """
     from django.db import transaction
 
     with transaction.atomic():
         series, _ = InvoiceSeries.objects.select_for_update().get_or_create(
             company=company, year=year, prefix=prefix
         )
-        series.last_number += 1
+        last = series.last_number
+        while True:
+            last += 1
+            number = f"{prefix}-{year}-{last:05d}"
+            taken = Invoice.objects.filter(company=company, number=number).exists()
+            if not taken:
+                break
+        series.last_number = last
         series.save(update_fields=["last_number"])
-        return f"{prefix}-{year}-{series.last_number:05d}"
+        return number
 
 
 class Invoice(models.Model):
@@ -175,7 +187,7 @@ class Invoice(models.Model):
     company = models.ForeignKey(
         "companies.Company", on_delete=models.CASCADE, related_name="invoices"
     )
-    number = models.CharField(max_length=30, unique=True, editable=False)
+    number = models.CharField(max_length=30, editable=False)
     client = models.ForeignKey(
         Client,
         on_delete=models.SET_NULL,
@@ -213,6 +225,11 @@ class Invoice(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["company", "number"], name="uniq_invoice_company_number"
+            )
+        ]
 
     def __str__(self):
         return self.number
@@ -221,6 +238,13 @@ class Invoice(models.Model):
     def vat_amount(self):
         if self.reverse_charge:
             return Decimal("0.00")
+        # Une facture peut contenir plusieurs taux de TVA : le montant se calcule
+        # ligne par ligne, le taux global n'étant qu'un résumé d'affichage.
+        if self.pk:
+            lines = list(self.lines.all())
+            if lines:
+                total = sum((line.vat_amount for line in lines), Decimal("0.00"))
+                return total.quantize(Decimal("0.01"))
         return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
@@ -238,6 +262,19 @@ class Invoice(models.Model):
         if rem < 0:
             return Decimal("0.00")
         return rem.quantize(Decimal("0.01"))
+
+    @property
+    def is_late(self):
+        """Facture ouverte dont l'échéance usuelle (30 jours) est dépassée.
+
+        Le statut ``late`` reste prioritaire ; à défaut, une facture émise
+        depuis plus de 30 jours est signalée « Dépassé » dans les listes.
+        """
+        if self.status == "late":
+            return True
+        if self.status not in ("issued", "received") or not self.created_at:
+            return False
+        return (timezone.localdate() - self.created_at.date()).days > 30
 
     def refresh_payment_status(self):
         """Met à jour le statut payé / émis selon les paiements enregistrés."""
@@ -344,6 +381,12 @@ class Quote(models.Model):
 
     @property
     def vat_amount(self):
+        # Comme une facture, un devis peut porter plusieurs taux de TVA.
+        if self.pk:
+            lines = list(self.lines.all())
+            if lines:
+                total = sum((line.vat_amount for line in lines), Decimal("0.00"))
+                return total.quantize(Decimal("0.01"))
         return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
@@ -369,6 +412,14 @@ class QuoteLine(models.Model):
     @property
     def amount_ht(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+    @property
+    def vat_amount(self):
+        return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def amount_ttc(self):
+        return (self.amount_ht + self.vat_amount).quantize(Decimal("0.01"))
 
 
 class EInvoicingSubmission(models.Model):

@@ -1838,6 +1838,93 @@ label.ticket-camera-btn.btn-primary:hover {
   gap: 10px;
   margin-top: 24px;
 }
+
+/* Éditeur de lignes de facture */
+.invoice-lines-card { padding: 0; overflow: hidden; margin-top: 20px; }
+.invoice-lines-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 8px;
+}
+.invoice-lines-head h2 { margin: 0 0 4px; font-size: 18px; }
+.invoice-lines-head .sub { margin: 0; font-size: 13px; }
+.invoice-lines-card .form-errors { margin: 4px 22px 12px; }
+.invoice-lines-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.invoice-lines-table { min-width: 960px; font-size: 13px; }
+.invoice-lines-table th { padding: 10px 8px; }
+.invoice-lines-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.invoice-lines-table input,
+.invoice-lines-table select {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 9px;
+}
+.invoice-lines-table .line-product { width: 190px; min-width: 170px; }
+.invoice-lines-table .line-description { min-width: 240px; }
+.invoice-lines-table .line-qty,
+.invoice-lines-table .line-price,
+.invoice-lines-table .line-vat { width: 96px; }
+.invoice-lines-table .line-total {
+  padding-top: 20px;
+  vertical-align: middle;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.invoice-lines-table .line-remove { width: 92px; text-align: center; vertical-align: middle; padding-top: 16px; }
+.line-remove-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--red);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.line-remove-btn:hover { background: var(--red-soft); }
+.line-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--red);
+  cursor: pointer;
+}
+.line-delete input { width: 16px; min-height: 0; margin: 0; }
+.invoice-line-row.is-deleted { opacity: .45; }
+.invoice-line-row.is-deleted td { background: var(--red-soft); }
+.invoice-lines-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--line);
+}
+.invoice-preview-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+.invoice-preview-totals b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.invoice-preview-ttc { padding-left: 14px; border-left: 1px solid var(--line); }
+.sheet-no-lines { padding: 20px 12px !important; text-align: center; color: var(--muted); }
+.sheet-no-lines strong { display: block; margin-bottom: 4px; color: inherit; }
+.sheet-no-lines span { display: block; font-size: 12px; }
 .ticket-form-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2763,4 +2850,63 @@ label.ticket-camera-btn.btn-primary:hover {
 @media (max-width: 860px) {
   .actions-list form { width: 100%; }
   .actions-list form .btn { width: 100%; }
+}
+
+/* ---------- Sélecteur de société dans la barre supérieure ---------- */
+.company-switch {
+  display: flex; align-items: center; gap: 4px;
+  max-width: 260px; overflow-x: auto; scrollbar-width: none;
+  padding: 2px; flex: 0 0 auto;
+}
+.company-switch::-webkit-scrollbar { display: none; }
+.company-switch-btn {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-head); font-size: 12px; font-weight: 800;
+  color: #fff; background: #334155; text-decoration: none;
+  border: 2px solid transparent; transition: transform .18s var(--ease), box-shadow .18s;
+}
+.company-switch-btn:hover { text-decoration: none; color: #fff; transform: translateY(-1px); }
+.company-switch-btn.is-on { border-color: var(--ink); box-shadow: 0 0 0 2px #fff inset; }
+.company-switch-btn.co-c0 { background: #0b3d91; }
+.company-switch-btn.co-c1 { background: #ca1c60; }
+.company-switch-btn.co-c2 { background: #1f7a4d; }
+.company-switch-btn.co-c3 { background: #b45331; }
+.company-switch-btn.co-c4 { background: #4f46e5; }
+.company-switch-btn.co-c5 { background: #0e7490; }
+.company-switch-btn.co-c6 { background: #a16207; }
+.company-switch-btn.co-c7 { background: #7c3aed; }
+.company-switch-btn.co-c8 { background: #be123c; }
+.company-switch-btn.co-c9 { background: #334155; }
+
+/* ---------- Mini-tendances des KPI ---------- */
+.kpi-spark {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 34px; margin-top: 12px;
+}
+.kpi-spark i {
+  flex: 1 1 0; min-height: 3px; border-radius: 4px 4px 1px 1px;
+  background: linear-gradient(180deg, var(--blue-2), var(--blue));
+  opacity: .8;
+}
+.kpi-spark-clients i { background: linear-gradient(180deg, #62d99a, #1f7a4d); }
+.kpi-spark-vat i { background: linear-gradient(180deg, #ffcf70, #b45309); }
+
+.tag-late { background: var(--red-soft); color: var(--red); border: 1px solid rgba(255, 61, 120, .28); }
+.sheet-bank { overflow-wrap: anywhere; }
+
+/* Logos plus généreux sur les modèles qui ont de la place. */
+.sheet-azur .sheet-logo { width: 96px; height: 96px; }
+.sheet-graphite .sheet-logo { width: 92px; height: 92px; }
+.sheet-indigo .sheet-logo { width: 84px; height: 84px; }
+.sheet-sauge .sheet-logo { width: 84px; height: 84px; }
+.sheet-carmin .sheet-logo { width: 78px; height: 78px; }
+
+@media (max-width: 900px) {
+  .top-mail { display: none; }
+  .company-switch { max-width: 150px; }
+}
+@media (max-width: 560px) {
+  .company-switch { max-width: 96px; }
+  .company-switch-btn { width: 26px; height: 26px; font-size: 10.5px; }
 }

@@ -4,7 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, get_connection
 from django.utils.text import get_valid_filename
 
 from admin_backoffice.email_templates import render_email
@@ -64,7 +64,11 @@ def _recipient_for(document, kind):
     return "", fallback_name
 
 
-def _from_email() -> str:
+def _from_email(company=None) -> str:
+    if company is not None:
+        own = (getattr(company, "smtp_from_email", "") or "").strip()
+        if own:
+            return own
     try:
         from admin_backoffice.models import SiteConfiguration
 
@@ -73,6 +77,22 @@ def _from_email() -> str:
     except Exception:
         configured = ""
     return configured or (settings.DEFAULT_FROM_EMAIL or "").strip()
+
+
+def _company_connection(company):
+    """Connexion SMTP propre à la société, ou None pour le SMTP global."""
+    host = (getattr(company, "smtp_host", "") or "").strip()
+    if not host:
+        return None
+    return get_connection(
+        backend="django.core.mail.backends.smtp.EmailBackend",
+        host=host,
+        port=getattr(company, "smtp_port", 587) or 587,
+        username=(getattr(company, "smtp_username", "") or "").strip(),
+        password=getattr(company, "smtp_password", "") or "",
+        use_tls=bool(getattr(company, "smtp_use_tls", True)),
+        fail_silently=False,
+    )
 
 
 def send_document_email(document, company, user, kind: str, request=None) -> str:
@@ -108,9 +128,10 @@ def send_document_email(document, company, user, kind: str, request=None) -> str
     message = EmailMessage(
         subject=subject,
         body=body,
-        from_email=_from_email(),
+        from_email=_from_email(company),
         to=[recipient],
         reply_to=[user.email] if user.email else None,
+        connection=_company_connection(company),
     )
     payload = details["render"](document, company)
     filename = get_valid_filename(f"{document.number or kind}.pdf") or "document.pdf"

@@ -60,6 +60,45 @@ SIGNUP_VERIFICATION_ENABLED=0
 3. `lookup_siren()` interroge le siège via `/siret`, avec repli sur `/siren`.
 4. Sans clé, l'application reste utilisable en saisie manuelle.
 
+## Connecteur e-mail comptable (Gmail)
+
+Module `mailsync/` : importe les factures fournisseurs PDF / XML (Factur-X, UBL)
+depuis une boîte Gmail, crée des **brouillons d'écriture** dans le journal `ACH`
+et les valide à la main.
+
+### Configuration Google
+
+1. Console Google Cloud → activer **Gmail API**.
+2. Créer un client OAuth 2.0 de type « Application Web ».
+3. URI de redirection autorisée :
+   `https://votre-domaine/mail/callback/gmail/` (et `http://localhost:8000/mail/callback/gmail/` en dev).
+4. Renseigner `.env` :
+
+```bash
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+# Recommandé : clé Fernet dédiée (openssl rand -base64 32)
+MAILSYNC_ENCRYPTION_KEY=...
+```
+
+### Utilisation
+
+- `python manage.py migrate` (migration `mailsync.0001_initial`).
+- Dans **Configuration → Connecteur e-mail**, cliquer « Connecter mon compte Gmail »,
+  régler la fréquence (15/30/60 min), le libellé Gmail optionnel et les comptes
+  par défaut (`606000`, `445660`, racine `401`).
+- Worker : `python manage.py mail_sync` toutes les 5 à 15 minutes (Render Cron Job
+  ou cron système). Chaque société garde sa propre fréquence ; `--force` ignore
+  la fréquence, `--societe <UUID|SIREN>` cible une société.
+
+### Garanties
+
+- Jetons OAuth2 chiffrés en base (Fernet) ; scope `gmail.readonly` uniquement.
+- Anti-doublon strict : contrainte unique `(boîte, message_id)`.
+- Isolation par société sur chaque table et chaque écran.
+- Aucune écriture comptable avant validation humaine ; l'écriture créée est
+  équilibrée (débit charge + TVA = crédit fournisseur).
+
 ## Tests
 
 ```bash
@@ -107,6 +146,7 @@ Render : GitHub Pages et Vercel ne servent que la page publique.
 - `documents/` : factures et numérotation.
 - `integrations/` : INSEE Sirene, INPI.
 - `ai/` : client Qwen, brouillons d'écritures.
+- `mailsync/` : connecteur e-mail comptable (Gmail, adapter Outlook à venir).
 - `billing/` : plans, abonnements, webhooks Stripe.
 - `core/` : isolation multi-tenant.
 - `static/css/app.css` : design system inspiré de Santé publique France, modernisé.
