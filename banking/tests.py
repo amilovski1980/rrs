@@ -5,10 +5,11 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from accounting.models import EntryLine, Journal, JournalEntry
+from accounting.models import ChartAccount, EntryLine, Journal, JournalEntry
 from accounting.services import generate_portal
 from companies.models import Company
 
+from .forms import TransactionEntryForm
 from .models import BankAccount, BankRule, BankTransaction
 from .parsers import parse_csv, parse_ofx
 from .services import (
@@ -110,6 +111,32 @@ class BankTestCase(TestCase):
         self.assertFalse(
             BankTransaction.objects.filter(pk=transaction.pk).exists()
         )
+
+    def test_entry_form_auto_fills_reference_and_counterpart(self):
+        ChartAccount.objects.get_or_create(
+            company=self.company, code="6063", defaults={"label": "Achats"}
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 9, 7),
+            label="EUROPEEN 5509493075 SOC NOUVELLE B O F 200355332026-08-21",
+            amount=Decimal("-428.89"),
+        )
+        form = TransactionEntryForm(bank_transaction=transaction)
+        self.assertEqual(form.initial.get("reference"), "5509493075")
+        self.assertEqual(form.initial.get("counterpart_code"), "6063")
+
+    def test_incoming_entry_prefers_client_account(self):
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 9, 8),
+            label="VIR CLIENT DUPONT",
+            amount=Decimal("1200.00"),
+        )
+        form = TransactionEntryForm(bank_transaction=transaction)
+        self.assertEqual(form.initial.get("counterpart_code"), "411")
 
     def test_statement_file_is_kept_in_database_and_downloadable(self):
         result = import_statement(self.account, CSV_SAMPLE, "releve.csv")

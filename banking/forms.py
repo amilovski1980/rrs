@@ -3,6 +3,7 @@ from decimal import Decimal
 from django import forms
 
 from .models import BankAccount, BankRule, BankTransaction
+from .suggestions import guess_counterpart_code, guess_reference
 
 
 class BankAccountForm(forms.ModelForm):
@@ -72,11 +73,16 @@ class TransactionEntryForm(forms.Form):
         label="Date de l'écriture", widget=forms.DateInput(attrs={"type": "date"})
     )
     label = forms.CharField(label="Libellé", max_length=200)
-    reference = forms.CharField(label="Référence", max_length=50, required=False)
+    reference = forms.CharField(
+        label="Référence",
+        max_length=50,
+        required=False,
+        help_text="Extraite automatiquement du relevé, modifiable.",
+    )
     counterpart_code = forms.CharField(
         label="Compte de contrepartie",
         max_length=10,
-        help_text="Frais bancaires : 627000. Virement fournisseur : 401. Encaissement : 411.",
+        help_text="Pré-sélectionné selon le libellé du relevé. Modifiable si besoin.",
     )
     vat_account_code = forms.CharField(
         label="Compte de TVA", max_length=10, required=False
@@ -115,13 +121,22 @@ class TransactionEntryForm(forms.Form):
             }
         )
         if not self.is_bound:
-            self.fields["date"].initial = bank_transaction.date
-            self.fields["label"].initial = (
+            label = (
                 rule.entry_label if rule and rule.entry_label else bank_transaction.label
             )[:200]
-            self.fields["reference"].initial = bank_transaction.reference
+            reference = guess_reference(bank_transaction)
             if rule and rule.counterpart_account_id:
-                self.fields["counterpart_code"].initial = rule.counterpart_account.code
+                counterpart = rule.counterpart_account.code
+            else:
+                counterpart = guess_counterpart_code(bank_transaction)
+            for name, value in (
+                ("date", bank_transaction.date),
+                ("label", label),
+                ("reference", reference),
+                ("counterpart_code", counterpart),
+            ):
+                self.fields[name].initial = value
+                self.initial.setdefault(name, value)
 
     def clean_counterpart_code(self):
         return (self.cleaned_data.get("counterpart_code") or "").strip().upper()
