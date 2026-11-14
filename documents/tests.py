@@ -841,6 +841,40 @@ class TicketDeCaisseTests(TestCase):
         self.assertEqual(debit, credit)
         self.assertEqual(debit, Decimal("45.60"))
 
+    def test_upload_keeps_the_image_in_database_when_storage_is_read_only(self):
+        """Vercel monte /var/task en lecture seule : l'image doit aller en base."""
+        from unittest.mock import patch
+
+        from django.core.files.storage.filesystem import FileSystemStorage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from .models import TicketDeCaisse
+
+        png_bytes = b"\x89PNG\r\n\x1a\nfake"
+        png = SimpleUploadedFile("ticket.png", png_bytes, content_type="image/png")
+        with patch("documents.views.extract_receipt_text", return_value=SAMPLE_RECEIPT_TEXT):
+            with patch("documents.views.validate_upload"):
+                with patch.object(
+                    FileSystemStorage,
+                    "_save",
+                    side_effect=OSError(30, "Read-only file system"),
+                ):
+                    response = self.http.post(
+                        f"/factures/tickets/import/?societe={self.company.id}",
+                        {"fichier": png, "categorie": "fournitures"},
+                    )
+        self.assertEqual(response.status_code, 302)
+        ticket = TicketDeCaisse.objects.get(company=self.company)
+        self.assertEqual(bytes(ticket.image_data), png_bytes)
+        self.assertEqual(ticket.image_type, "image/png")
+        self.assertFalse(ticket.image)
+        image = self.http.get(
+            f"/factures/tickets/{ticket.id}/image/?societe={self.company.id}"
+        )
+        self.assertEqual(image.status_code, 200)
+        self.assertEqual(image.content, png_bytes)
+        self.assertEqual(image["Content-Type"], "image/png")
+
     def test_list_filters_and_totals(self):
         from .models import TicketDeCaisse
         TicketDeCaisse.objects.create(

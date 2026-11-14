@@ -538,6 +538,18 @@ class TicketDeCaisse(models.Model):
         blank=True,
         verbose_name="Image / scan",
     )
+    image_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Image en base",
+        help_text="Repli quand le stockage fichiers est indisponible (Vercel).",
+    )
+    image_type = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Type MIME de l'image",
+    )
     ocr_text = models.TextField(blank=True, verbose_name="Texte OCR brut")
     line_items = models.JSONField(
         default=list,

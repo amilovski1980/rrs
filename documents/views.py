@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
@@ -86,6 +87,29 @@ def _pdf_response(request, number, payload):
 
 def _qs(company):
     return f"?societe={company.id}"
+
+
+def _store_ticket_image(ticket, upload):
+    """Stocke l'image sur disque, ou en base si le système de fichiers est read-only.
+
+    Les fonctions Vercel ont un système de fichiers en lecture seule : sans ce
+    repli, la sauvegarde d'un ticket importé par OCR renvoie une erreur 500.
+    """
+    if not upload:
+        return
+    content = upload.read()
+    content_type = getattr(upload, "content_type", "") or ""
+    try:
+        upload.seek(0)
+        ticket.image.save(upload.name or "ticket", ContentFile(content), save=False)
+        ticket.image_data = None
+        ticket.image_type = content_type
+        ticket.save(update_fields=["image", "image_type", "image_data"])
+    except OSError:
+        ticket.image = ""
+        ticket.image_data = content
+        ticket.image_type = content_type
+        ticket.save(update_fields=["image", "image_data", "image_type"])
 
 
 # ---------------------------------------------------------------------------
@@ -1104,8 +1128,8 @@ def ticket_upload(request):
             ocr_text=text,
             line_items=parsed.get("line_items") or [],
         )
-        ticket.image = upload
         ticket.save()
+        _store_ticket_image(ticket, upload)
         # Propose draft entry (still brouillon / unvalidated)
         try:
             propose_ticket_entry(ticket)
@@ -1136,11 +1160,15 @@ def ticket_create(request):
         return bounce
     form = TicketDeCaisseForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data.get("image")
         ticket = form.save(commit=False)
         ticket.company = company
         if not ticket.statut:
             ticket.statut = "brouillon"
+        if upload:
+            ticket.image = None
         ticket.save()
+        _store_ticket_image(ticket, upload)
         try:
             propose_ticket_entry(ticket)
         except ValueError:
@@ -1167,6 +1195,25 @@ def ticket_detail(request, pk):
 
 
 @login_required
+def ticket_image(request, pk):
+    """Sert l'image du ticket, y compris quand elle est stockée en base."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    if ticket.image_data:
+        response = HttpResponse(
+            bytes(ticket.image_data),
+            content_type=ticket.image_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'inline; filename="ticket-{ticket.id}"'
+        return response
+    if ticket.image:
+        return redirect(ticket.image.url)
+    raise Http404("Aucune image pour ce ticket.")
+
+
+@login_required
 def ticket_edit(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -1174,7 +1221,11 @@ def ticket_edit(request, pk):
     ticket = _scoped(TicketDeCaisse, company, pk)
     form = TicketDeCaisseForm(request.POST or None, request.FILES or None, instance=ticket)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        upload = form.cleaned_data.get("image")
+        if upload:
+            form.instance.image = None
+        ticket = form.save()
+        _store_ticket_image(ticket, upload)
         if ticket.statut == "brouillon":
             try:
                 # Recréer le brouillon si montants changés et ancienne non validée

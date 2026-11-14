@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.3">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -81,20 +81,21 @@
             <li><a href="{% url 'magic_link_request' %}">Connexion</a></li>
             <li><a href="{% url 'landing' %}#features">Guide de démarrage</a></li>
             <li><a href="https://api.insee.fr/api-sirene/3.11" target="_blank" rel="noopener">API Sirene INSEE</a></li>
-            <li><a href="mailto:contact@roadrunner-solutions.fr">Contact</a></li>
+            <li><a href="mailto:admin@road-runner-solutions.com">Contact</a></li>
           </ul>
         </div>
         <div>
-          <h4>Informations</h4>
+          <h4>Informations légales</h4>
           <ul>
-            <li><a href="{% url 'privacy_policy' %}">Protection des données</a></li>
             <li><a href="{% url 'legal_notice' %}">Mentions légales</a></li>
-            <li><a href="{% url 'terms_of_use' %}">Conditions générales</a></li>
+            <li><a href="{% url 'terms_of_sale' %}">CGV</a></li>
+            <li><a href="{% url 'terms_of_use' %}">CGU</a></li>
+            <li><a href="{% url 'privacy_policy' %}">Confidentialité</a></li>
           </ul>
         </div>
       </div>
       <div class="foot-bottom">
-        <div>© {% now "Y" %} Road Runner Solutions — Comptabilité pour bâtisseurs SARL / EURL</div>
+        <div>© {% now "Y" %} Road Runner One SAS — RCS Bobigny 951 386 127</div>
         <div class="foot-flag" aria-label="Hébergé en France">
           <i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i>
           <span>Hébergé en France · RGPD · Données cloisonnées</span>
@@ -103,7 +104,7 @@
     </div>
   </footer>
   {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.14.2" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.14.3" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

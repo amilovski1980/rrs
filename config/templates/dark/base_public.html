@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.14.2">
+  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.14.3">
 </head>
 <body>
   <div class="accent-bar" aria-hidden="true"></div>
@@ -77,21 +77,21 @@
             <li><a href="{% url 'magic_link_request' %}">Connexion</a></li>
             <li><a href="{% url 'password_reset' %}">Mot de passe oublié</a></li>
             <li><a href="{% url 'demo_login' %}">Voir la démo</a></li>
-            <li><a href="mailto:contact@roadrunner-solutions.fr">Contact</a></li>
+            <li><a href="mailto:admin@road-runner-solutions.com">Contact</a></li>
           </ul>
         </div>
         <div>
-          <h4>Repères</h4>
+          <h4>Informations légales</h4>
           <ul>
-            <li><a href="{% url 'privacy_policy' %}">Confidentialité</a></li>
             <li><a href="{% url 'legal_notice' %}">Mentions légales</a></li>
-            <li><a href="{% url 'terms_of_use' %}">Conditions générales</a></li>
-            <li><a href="https://api.insee.fr/api-sirene/3.11" target="_blank" rel="noopener">API Sirene INSEE</a></li>
+            <li><a href="{% url 'terms_of_sale' %}">CGV</a></li>
+            <li><a href="{% url 'terms_of_use' %}">CGU</a></li>
+            <li><a href="{% url 'privacy_policy' %}">Confidentialité</a></li>
           </ul>
         </div>
       </div>
       <div class="foot-bottom">
-        <div>© {% now "Y" %} Road Runner Solutions</div>
+        <div>© {% now "Y" %} Road Runner One SAS</div>
         <div>Hébergé en France · RGPD · Données cloisonnées</div>
       </div>
     </div>

@@ -19,5 +19,6 @@ urlpatterns = [
     path("aide/", views.help_page, name="help"),
     path("mentions-legales/", views.legal_notice, name="legal_notice"),
     path("conditions-generales/", views.terms_of_use, name="terms_of_use"),
+    path("conditions-generales-de-vente/", views.terms_of_sale, name="terms_of_sale"),
     path("confidentialite/", views.privacy_policy, name="privacy_policy"),
 ]

@@ -3,7 +3,10 @@
     Mentions légales
   </a>
   <a class="legal-nav-link{% if request.resolver_match.url_name == 'terms_of_use' %} is-on{% endif %}" href="{% url 'terms_of_use' %}"{% if request.resolver_match.url_name == 'terms_of_use' %} aria-current="page"{% endif %}>
-    Conditions générales
+    CGU
+  </a>
+  <a class="legal-nav-link{% if request.resolver_match.url_name == 'terms_of_sale' %} is-on{% endif %}" href="{% url 'terms_of_sale' %}"{% if request.resolver_match.url_name == 'terms_of_sale' %} aria-current="page"{% endif %}>
+    CGV
   </a>
   <a class="legal-nav-link{% if request.resolver_match.url_name == 'privacy_policy' %} is-on{% endif %}" href="{% url 'privacy_policy' %}"{% if request.resolver_match.url_name == 'privacy_policy' %} aria-current="page"{% endif %}>
     Confidentialité

@@ -442,6 +442,11 @@ def terms_of_use(request):
     return render(request, "companies/terms_of_use.html")
 
 
+def terms_of_sale(request):
+    """Conditions générales de vente (abonnements B2B)."""
+    return render(request, "companies/terms_of_sale.html")
+
+
 def privacy_policy(request):
     """Politique de confidentialité et droits RGPD."""
     return render(request, "companies/privacy_policy.html")

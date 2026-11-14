@@ -44,8 +44,8 @@
   </div>
   <div class="card card-tight">
     <h3>Image</h3>
-    {% if ticket.image %}
-    <p><a href="{{ ticket.image.url }}" target="_blank" rel="noopener">Voir le fichier</a></p>
+    {% if ticket.image_data or ticket.image %}
+    <p><a href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">Voir le fichier</a></p>
     {% else %}
     <p class="sub">Aucune image jointe.</p>
     {% endif %}

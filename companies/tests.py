@@ -331,15 +331,30 @@ class MobileNavChromeTests(TestCase):
         self.assertContains(cgu, "1 000,00 €")
         self.assertContains(cgu, "page d'offres")
 
+        cgv = anon.get("/conditions-generales-de-vente/")
+        self.assertEqual(cgv.status_code, 200)
+        self.assertContains(cgv, "Conditions générales de vente")
+        self.assertContains(cgv, "Stripe")
+        self.assertContains(cgv, "autoliquidation")
+        self.assertContains(cgv, "951 386 127")
+
         privacy = anon.get("/confidentialite/")
         self.assertEqual(privacy.status_code, 200)
         self.assertContains(privacy, "Politique de confidentialité")
         self.assertContains(privacy, "RGPD")
         self.assertContains(privacy, "admin@road-runner-solutions.com")
 
+    def test_home_page_links_all_legal_documents(self):
+        response = self.client.get("/")
+        self.assertContains(response, "/conditions-generales-de-vente/")
+        self.assertContains(response, "/conditions-generales/")
+        self.assertContains(response, "/mentions-legales/")
+        self.assertContains(response, "/confidentialite/")
+
     def test_legal_pages_cross_link_each_other(self):
         page = self.client.get("/mentions-legales/")
         self.assertContains(page, "/conditions-generales/")
+        self.assertContains(page, "/conditions-generales-de-vente/")
         self.assertContains(page, "/confidentialite/")
         self.assertContains(page, 'aria-current="page"')
 
