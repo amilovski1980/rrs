@@ -53,6 +53,13 @@ class Company(models.Model):
     invoice_theme = models.CharField(max_length=12, choices=INVOICE_THEMES, default="azur")
     logo = models.BinaryField(null=True, blank=True)
     logo_type = models.CharField(max_length=40, blank=True)
+    slogan = models.CharField(max_length=120, blank=True)
+    tva_intra = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="TVA intracommunautaire",
+        help_text="Vide = calculée automatiquement depuis le SIREN.",
+    )
 
     # Profil repartition compta
     activites = models.JSONField(default=list, help_text="codes du questionnaire")
@@ -74,6 +81,21 @@ class Company(models.Model):
 
     def __str__(self):
         return f"{self.denomination} ({self.siren})"
+
+    @property
+    def tva_intra_number(self) -> str:
+        """Numéro de TVA saisi, extrait des données officielles, ou calculé depuis le SIREN."""
+        from documents.vat import french_vat_from_siren, normalize_vat_number
+
+        stored = normalize_vat_number(self.tva_intra)
+        if stored:
+            return stored
+        data = self.source_data if isinstance(self.source_data, dict) else {}
+        for key in ("tva_intra", "tva_number", "numero_tva", "vat_number"):
+            candidate = normalize_vat_number(data.get(key))
+            if candidate:
+                return candidate
+        return french_vat_from_siren(self.siren)
 
 
 class KbisFile(models.Model):

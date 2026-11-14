@@ -19,6 +19,7 @@ SECRET_FIELDS = (
     "llm_api_key",
     "xai_api_key",
     "insee_api_key",
+    "einvoicing_api_key",
 )
 
 
@@ -77,6 +78,12 @@ class SiteConfigurationForm(forms.ModelForm):
             "xai_voice",
             "ai_text_provider",
             "insee_api_key",
+            "einvoicing_enabled",
+            "einvoicing_provider",
+            "einvoicing_api_url",
+            "einvoicing_api_key",
+            "einvoicing_sender_siret",
+            "einvoicing_default_profile",
         ]
         widgets = {
             name: forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"})
@@ -92,6 +99,14 @@ class SiteConfigurationForm(forms.ModelForm):
             self.fields[name].help_text = (
                 "Laisser vide pour conserver la valeur déjà enregistrée. Elle n'est jamais réaffichée."
             )
+        for name, fallback in (
+            ("einvoicing_provider", "generic"),
+            ("einvoicing_default_profile", "EN16931"),
+        ):
+            self.fields[name].required = False
+            self.fields[name].initial = (
+                getattr(self.instance, name, "") if self.instance and self.instance.pk else fallback
+            ) or fallback
 
     def clean(self):
         cleaned = super().clean()
@@ -99,6 +114,15 @@ class SiteConfigurationForm(forms.ModelForm):
             for name in SECRET_FIELDS:
                 if name in self.fields and not (cleaned.get(name) or "").strip():
                     cleaned[name] = getattr(self.instance, name) or ""
+        for name, fallback in (
+            ("einvoicing_provider", "generic"),
+            ("einvoicing_default_profile", "EN16931"),
+        ):
+            cleaned[name] = (
+                cleaned.get(name)
+                or (getattr(self.instance, name, "") if self.instance and self.instance.pk else "")
+                or fallback
+            )
         return cleaned
 
 

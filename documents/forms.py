@@ -20,7 +20,17 @@ from .models import (
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ("name", "siren", "address", "email", "phone", "notes")
+        fields = (
+            "name",
+            "siren",
+            "tva_intra",
+            "legal_form",
+            "rcs",
+            "address",
+            "email",
+            "phone",
+            "notes",
+        )
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,6 +38,13 @@ class ClientForm(forms.ModelForm):
         self.fields["name"].label = "Nom"
         self.fields["siren"].label = "SIREN"
         self.fields["siren"].required = False
+        self.fields["tva_intra"].label = "TVA intracommunautaire"
+        self.fields["tva_intra"].required = False
+        self.fields["tva_intra"].help_text = "Ex. FR17100408517. Vide si le client n'est pas assujetti."
+        self.fields["legal_form"].label = "Forme juridique"
+        self.fields["legal_form"].required = False
+        self.fields["rcs"].label = "RCS"
+        self.fields["rcs"].required = False
         self.fields["address"].label = "Adresse"
         self.fields["email"].label = "E-mail"
         self.fields["phone"].label = "Téléphone"
@@ -48,6 +65,16 @@ class ClientForm(forms.ModelForm):
         if raw and len(raw) != 9:
             raise forms.ValidationError("Le SIREN doit contenir 9 chiffres, ou rester vide.")
         return raw
+
+    def clean_tva_intra(self):
+        from .vat import is_valid_vat_number, normalize_vat_number
+
+        value = normalize_vat_number(self.cleaned_data.get("tva_intra"))
+        if value and not is_valid_vat_number(value):
+            raise forms.ValidationError(
+                "Numéro de TVA intracommunautaire invalide (ex. FR17100408517)."
+            )
+        return value
 
 
 class ProductForm(forms.ModelForm):
@@ -106,7 +133,17 @@ class ProjectForm(forms.ModelForm):
 class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
-        fields = ("client", "client_name", "client_siren", "project", "amount_ht", "vat_rate")
+        fields = (
+            "client",
+            "client_name",
+            "client_siren",
+            "client_tva_intra",
+            "project",
+            "amount_ht",
+            "vat_rate",
+            "reverse_charge",
+            "vat_exemption_reason",
+        )
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -116,6 +153,16 @@ class InvoiceForm(forms.ModelForm):
         self.fields["client_name"].label = "Nom client (affiché)"
         self.fields["client_siren"].label = "SIREN client"
         self.fields["client_siren"].required = False
+        self.fields["client_tva_intra"].label = "TVA intracommunautaire du client"
+        self.fields["client_tva_intra"].required = False
+        self.fields["client_tva_intra"].help_text = "Renseigne automatiquement la fiche client."
+        self.fields["reverse_charge"].label = "Autoliquidation de la TVA (client UE)"
+        self.fields["reverse_charge"].help_text = (
+            "Cochez pour un client professionnel établi dans un autre État membre : "
+            "la TVA est due par le preneur et le taux est ramené à 0 %."
+        )
+        self.fields["vat_exemption_reason"].label = "Mention d'exonération (facultatif)"
+        self.fields["vat_exemption_reason"].required = False
         self.fields["project"].label = "Projet"
         self.fields["project"].required = False
         self.fields["amount_ht"].label = "Montant HT"
@@ -134,6 +181,16 @@ class InvoiceForm(forms.ModelForm):
         if raw and len(raw) != 9:
             raise forms.ValidationError("Le SIREN client doit contenir 9 chiffres, ou rester vide.")
         return raw
+
+    def clean_client_tva_intra(self):
+        from .vat import is_valid_vat_number, normalize_vat_number
+
+        value = normalize_vat_number(self.cleaned_data.get("client_tva_intra"))
+        if value and not is_valid_vat_number(value):
+            raise forms.ValidationError(
+                "Numéro de TVA intracommunautaire invalide (ex. FR17100408517)."
+            )
+        return value
 
     def clean_amount_ht(self):
         amount = self.cleaned_data["amount_ht"]
@@ -154,6 +211,14 @@ class InvoiceForm(forms.ModelForm):
             cleaned["client_name"] = client.name
         if client and client.siren and not cleaned.get("client_siren"):
             cleaned["client_siren"] = client.siren
+        if client and getattr(client, "tva_intra", "") and not cleaned.get("client_tva_intra"):
+            cleaned["client_tva_intra"] = client.tva_intra
+        if cleaned.get("reverse_charge"):
+            from .vat import REVERSE_CHARGE_MENTION
+
+            cleaned["vat_rate"] = Decimal("0.00")
+            if not (cleaned.get("vat_exemption_reason") or "").strip():
+                cleaned["vat_exemption_reason"] = REVERSE_CHARGE_MENTION
         return cleaned
 
 

@@ -47,7 +47,13 @@ from .forms import (
     SubscriptionAdminForm,
     UserAdminForm,
 )
-from .integrations import integration_cards, probe
+from .integrations import (
+    integration_cards,
+    probe,
+    probe_smtp,
+    smtp_material,
+    stripe_material,
+)
 from .models import EmailTemplate, SiteConfiguration, SmsMessage, SmsTemplate, SystemLog
 from .sms import (
     dispatch_sms,
@@ -55,6 +61,7 @@ from .sms import (
     get_settings,
     provider_card,
     save_provider_post,
+    send_test_sms,
     test_provider,
 )
 
@@ -256,16 +263,25 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         config, _ = SiteConfiguration.objects.get_or_create(id=1)
+        smtp = smtp_material()
+        stripe = stripe_material()
         context["config"] = config
         context["form"] = kwargs.get("form") or SiteConfigurationForm(instance=config)
+        context["smtp_status"] = smtp
+        context["stripe_configured"] = stripe["configured"]
+        context["sms_providers"] = [provider_card(row) for row in ensure_providers()]
+        context["sms_active"] = get_settings().active_provider
+        context["test_email"] = self.request.user.email or ""
+        context["test_phone"] = getattr(self.request.user, "phone", "") or ""
         context["secrets"] = {
-            "smtp_password": bool(config.smtp_password),
+            "smtp_password": bool(smtp["password"]),
             "stripe_secret_key": bool(config.stripe_secret_key),
             "stripe_publishable_key": bool(config.stripe_publishable_key),
             "stripe_webhook_secret": bool(config.stripe_webhook_secret),
             "llm_api_key": bool(config.llm_api_key),
             "xai_api_key": bool(config.xai_api_key),
             "insee_api_key": bool(config.insee_api_key),
+            "einvoicing_api_key": bool(config.einvoicing_api_key),
         }
         return context
 
@@ -279,6 +295,54 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
             return redirect("admin_backoffice:settings")
         messages.error(request, "La configuration n'a pas pu être enregistrée.")
         return self.render_to_response(self.get_context_data(form=form))
+
+
+@staff_required
+@require_POST
+def settings_test(request):
+    """Tests réels depuis le centre de configuration, sans exposer les secrets."""
+    action = (request.POST.get("action") or "").strip()
+    anchors = {
+        "smtp": "email",
+        "stripe": "stripe",
+        "sms": "sms",
+        "einvoicing": "einvoicing",
+    }
+    if action == "smtp":
+        result = probe_smtp(request.POST.get("recipient") or "")
+    elif action == "stripe":
+        result = probe("stripe")
+    elif action == "sms":
+        provider = (request.POST.get("provider") or "").strip()
+        recipient = (request.POST.get("recipient") or "").strip()
+        if not provider:
+            result = {"ok": False, "message": "SMS : choisissez un fournisseur."}
+        elif not recipient:
+            result = {"ok": False, "message": "SMS : indiquez un numéro de test."}
+        else:
+            result = send_test_sms(provider, recipient, actor=request.user)
+    elif action == "einvoicing":
+        config = SiteConfiguration.objects.filter(pk=1).first()
+        enabled = bool(getattr(config, "einvoicing_enabled", False))
+        configured = bool((getattr(config, "einvoicing_api_url", "") or "").strip())
+        if enabled and configured:
+            result = {
+                "ok": True,
+                "message": "Facturation électronique : activation et URL de dépôt renseignées.",
+            }
+        else:
+            result = {
+                "ok": False,
+                "message": "Facturation électronique : activez le module et renseignez l'URL de dépôt.",
+            }
+    else:
+        result = {"ok": False, "message": "Test inconnu."}
+    journaliser(request, f"Test configuration {action or 'inconnu'} — {'ok' if result.get('ok') else 'échec'}")
+    if result.get("ok"):
+        messages.success(request, result["message"])
+    else:
+        messages.warning(request, result["message"])
+    return redirect(reverse("admin_backoffice:settings") + f"#{anchors.get(action, 'top')}")
 
 
 class CompanyListView(AdminStaffMixin, ListView):
@@ -875,7 +939,11 @@ class SmsView(AdminStaffMixin, TemplateView):
 @staff_required
 @require_POST
 def sms_test(request, code):
-    result = test_provider(code)
+    result = test_provider(
+        code,
+        recipient=(request.POST.get("recipient") or "").strip(),
+        actor=request.user,
+    )
     journaliser(request, f"Test SMS {code} — {'ok' if result.get('ok') else 'incomplet'}")
     if result.get("ok"):
         messages.success(request, result["message"])

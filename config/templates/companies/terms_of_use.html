@@ -1,0 +1,124 @@
+{% extends "companies/legal_base.html" %}
+{% block title %}Conditions générales d'utilisation{% endblock %}
+{% block legal_heading %}Conditions générales d'utilisation{% endblock %}
+{% block legal_sub %}Règles d'accès et d'utilisation de la plateforme Road Runner Solutions.{% endblock %}
+{% block legal_updated %}Date de mise à jour : 5 août 2025{% endblock %}
+{% block legal_content %}
+<dl class="legal-facts legal-facts--compact">
+  <div><dt>Nom commercial</dt><dd>Road Runner Solutions</dd></div>
+  <div><dt>Éditeur</dt><dd>Road Runner One, SAS à associé unique au capital de 1 000,00 €</dd></div>
+  <div><dt>RCS</dt><dd>951 386 127 R.C.S. Bobigny</dd></div>
+  <div><dt>Numéro de TVA</dt><dd>FR17100408517</dd></div>
+  <div><dt>Siège social</dt><dd>15 Rue de Paris, 93800 Épinay-sur-Seine, France</dd></div>
+  <div><dt>Contact</dt><dd><a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a></dd></div>
+</dl>
+
+<h2>1. Objet</h2>
+<p>
+  Les présentes Conditions Générales d'Utilisation (CGU) définissent les règles
+  applicables à l'accès et à l'utilisation de la plateforme SaaS Road Runner
+  Solutions, exploitée par Road Runner One. Toute utilisation de la plateforme
+  implique l'acceptation pleine et entière des présentes CGU.
+</p>
+
+<h2>2. Accès au service</h2>
+<ul>
+  <li>L'accès à la plateforme nécessite la création d'un compte utilisateur, par adresse e-mail et mot de passe.</li>
+  <li>Le service est réservé aux professionnels (usage B2B uniquement).</li>
+  <li>Aucune restriction d'âge n'est exigée, mais l'utilisation du service implique la capacité juridique de contracter.</li>
+</ul>
+
+<h2>3. Fonctionnalités proposées</h2>
+<p>La plateforme permet notamment :</p>
+<ul>
+  <li>La génération de devis, factures, avoirs et documents comptables ;</li>
+  <li>La gestion des clients, des contacts, des projets et de la comptabilité simplifiée ;</li>
+  <li>L'import de factures PDF et la lecture de tickets de caisse par OCR ;</li>
+  <li>La préparation des factures électroniques au format Factur-X ;</li>
+  <li>L'utilisation d'agents IA (dont Aminia) pour automatiser certaines tâches ;</li>
+  <li>L'envoi d'e-mails (devis, factures, relances) depuis la plateforme ;</li>
+  <li>L'accès à des tableaux de bord et à des analyses ;</li>
+  <li>La gestion multi-sociétés par un même utilisateur.</li>
+</ul>
+<p class="legal-note">
+  La gestion multi-utilisateurs au sein d'une même société n'est pas encore
+  disponible à ce jour.
+</p>
+
+<h2>4. Formules d'abonnement</h2>
+<p>
+  La plateforme propose plusieurs formules d'abonnement. Les limites et les tarifs
+  applicables sont ceux affichés sur la page d'offres au moment de la souscription.
+  Le paiement est géré par Stripe. L'utilisateur reste responsable du bon dimensionnement
+  de sa formule au regard de son usage.
+</p>
+
+<h2>5. Responsabilité de l'utilisateur</h2>
+<p>L'utilisateur s'engage à :</p>
+<ul>
+  <li>Fournir des informations exactes lors de la création de compte et de la gestion de ses sociétés ;</li>
+  <li>Ne pas utiliser la plateforme à des fins illicites, frauduleuses ou contraires aux lois en vigueur ;</li>
+  <li>Rester seul responsable des données qu'il gère via la plateforme (contenu des factures, automatisations, envois d'e-mails, etc.) ;</li>
+  <li>Protéger ses identifiants de connexion et signaler sans délai toute utilisation non autorisée.</li>
+</ul>
+
+<h2>6. Propriété intellectuelle</h2>
+<ul>
+  <li>Le nom Road Runner Solutions, les agents IA (dont Aminia), l'interface, le design et le code source sont la propriété exclusive de Road Runner One.</li>
+  <li>Toute reproduction, distribution ou revente sans autorisation expresse est interdite.</li>
+  <li>Le logo et les éléments graphiques sont protégés par le droit d'auteur.</li>
+</ul>
+
+<h2>7. Responsabilité de la plateforme</h2>
+<p>Road Runner One ne saurait être tenue responsable en cas de :</p>
+<ul>
+  <li>Bug, erreur ou interruption temporaire de la plateforme ;</li>
+  <li>Perte de données ou défaut d'intégration ;</li>
+  <li>Erreur de calcul sur un document généré automatiquement ;</li>
+  <li>Dommages indirects ou consécutifs à l'utilisation du service.</li>
+</ul>
+<p>Aucune garantie de résultat n'est fournie.</p>
+
+<h2>8. Suppression et résiliation</h2>
+<ul>
+  <li>L'utilisateur peut supprimer une société à tout moment depuis sa configuration, dans l'espace « Configuration » puis « Supprimer la société ».</li>
+  <li>La suppression d'une société est irréversible et supprime définitivement ses clients, devis, factures, documents et données comptables.</li>
+  <li>La suppression du compte utilisateur s'effectue sur demande adressée à <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.</li>
+  <li>La plateforme peut suspendre ou résilier un compte en cas de non-respect des CGU, d'usage frauduleux ou d'impayés.</li>
+</ul>
+
+<h2>9. Données personnelles</h2>
+<p>
+  Les données sont traitées conformément au RGPD. Voir notre
+  <a href="{% url 'privacy_policy' %}">politique de confidentialité</a>.
+</p>
+
+<h2>10. Services tiers</h2>
+<ul>
+  <li>Stripe : gestion des paiements et des abonnements ;</li>
+  <li>API Sirene (INSEE) et API Entreprise / INPI : vérification des données officielles des sociétés ;</li>
+  <li>Prestataires d'e-mail et de SMS transactionnels : envoi des messages de la plateforme ;</li>
+  <li>Prestataires d'intelligence artificielle : génération assistée de contenus, sans cession des données à des fins publicitaires ;</li>
+  <li>Hébergeur cloud : hébergement de l'application et de la base de données.</li>
+</ul>
+<p>Aucun autre tiers n'a accès aux données personnelles.</p>
+
+<h2>11. Modification des CGU</h2>
+<p>
+  Road Runner One se réserve le droit de modifier les présentes CGU à tout moment.
+  Les utilisateurs seront informés par e-mail ou via la plateforme.
+</p>
+
+<h2>12. Droit applicable</h2>
+<p>
+  Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux
+  du ressort du siège social de l'éditeur sont seuls compétents.
+</p>
+
+<h2>Contact</h2>
+<p>
+  Pour toute question liée à ces conditions d'utilisation :
+  <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.
+</p>
+<p class="legal-copyright">© {% now "Y" %} ROAD RUNNER SOLUTIONS. Tous droits réservés.</p>
+{% endblock %}

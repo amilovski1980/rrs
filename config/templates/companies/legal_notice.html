@@ -1,37 +1,90 @@
-{% extends "base.html" %}
+{% extends "companies/legal_base.html" %}
 {% block title %}Mentions légales{% endblock %}
-{% block crumbs %}Mentions légales{% endblock %}
-{% block content %}
-<div class="page-head">
+{% block legal_heading %}Mentions légales{% endblock %}
+{% block legal_sub %}Éditeur, hébergement, propriété intellectuelle et données personnelles.{% endblock %}
+{% block legal_content %}
+<p>
+  Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance
+  dans l'économie numérique (LCEN), il est précisé aux utilisateurs du service
+  Road Runner Solutions l'identité des différents intervenants dans le cadre de sa
+  réalisation et de son suivi.
+</p>
+
+<h2>1. Éditeur du site</h2>
+<dl class="legal-facts">
+  <div><dt>Nom de la société</dt><dd>ROAD RUNNER ONE</dd></div>
+  <div><dt>Forme juridique</dt><dd>Société par actions simplifiée (associé unique)</dd></div>
+  <div><dt>Capital social</dt><dd>1 000,00 €</dd></div>
+  <div><dt>RCS</dt><dd>951 386 127 R.C.S. Bobigny</dd></div>
+  <div><dt>Numéro de TVA</dt><dd>FR17100408517</dd></div>
+  <div><dt>Siège social</dt><dd>15 Rue de Paris, 93800 Épinay-sur-Seine, France</dd></div>
+  <div><dt>Président</dt><dd>KONATE Mamadou</dd></div>
+  <div><dt>Directeur de la publication</dt><dd>Saidhad Louey</dd></div>
   <div>
-    <h1>Mentions légales</h1>
-    <p class="sub">Informations légales du service — à compléter par le propriétaire.</p>
+    <dt>Contact</dt>
+    <dd><a href="mailto:{% if contact.email %}{{ contact.email }}{% else %}admin@road-runner-solutions.com{% endif %}">{% if contact.email %}{{ contact.email }}{% else %}admin@road-runner-solutions.com{% endif %}</a>{% if contact.phone %} · {{ contact.phone }}{% endif %}</dd>
   </div>
-</div>
-<div class="card" style="max-width:720px">
-  <p><strong>Attention :</strong> les champs ci-dessous sont des <em>placeholders</em>. Ils doivent être renseignés par le propriétaire de la société / l’éditeur du service. Aucune information juridique n’est inventée ici.</p>
+</dl>
 
-  <h2 style="font-size:18px">Éditeur du service</h2>
-  <ul>
-    <li>Raison sociale : <em>[À compléter]</em></li>
-    <li>Forme juridique / capital : <em>[À compléter]</em></li>
-    <li>SIREN / SIRET : <em>[À compléter]</em></li>
-    <li>RCS / ville d’immatriculation : <em>[À compléter]</em></li>
-    <li>Siège social : {% if contact.address %}{{ contact.address }}{% else %}<em>[À compléter]</em>{% endif %}</li>
-    <li>Directeur de la publication : <em>[À compléter]</em></li>
-    <li>Contact : {% if contact.email or contact.phone %}{% if contact.email %}<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>{% endif %}{% if contact.email and contact.phone %} · {% endif %}{% if contact.phone %}{{ contact.phone }}{% endif %}{% else %}<em>[À compléter — email / téléphone]</em>{% endif %}</li>
-  </ul>
+<h2>2. Hébergement</h2>
+<dl class="legal-facts">
+  <div><dt>Hébergeur</dt><dd>Google Cloud Platform (Firebase)</dd></div>
+  <div><dt>Société</dt><dd>Google Ireland Limited</dd></div>
+  <div><dt>Adresse</dt><dd>Gordon House, Barrow Street, Dublin 4, Irlande</dd></div>
+  <div><dt>Site web</dt><dd><a href="https://cloud.google.com" target="_blank" rel="noopener">https://cloud.google.com</a></dd></div>
+</dl>
+<p>
+  Les données de la plateforme sont hébergées dans l'Union européenne
+  (région europe-west1, Belgique).
+</p>
 
-  <h2 style="font-size:18px">Hébergement</h2>
-  <ul>
-    <li>Hébergeur : <em>[À compléter]</em></li>
-    <li>Adresse de l’hébergeur : <em>[À compléter]</em></li>
-  </ul>
+<h2>3. Propriété intellectuelle</h2>
+<p>
+  La structure générale du site, son nom, son design, son logo, ainsi que l'ensemble
+  des éléments accessibles (textes, images, graphismes, icônes, logos, vidéos,
+  logiciels, etc.) sont la propriété exclusive de Road Runner One, sauf mention
+  contraire explicite.
+</p>
+<p>
+  Toute reproduction, représentation, modification, publication ou adaptation de tout
+  ou partie du site, par quelque moyen que ce soit, est interdite sans l'autorisation
+  écrite préalable de l'éditeur.
+</p>
 
-  <h2 style="font-size:18px">Données personnelles</h2>
-  <p class="sub">Politique de confidentialité et droits RGPD : <em>[À compléter — lien ou texte]</em>.</p>
+<h2>4. Données personnelles</h2>
+<p>
+  La collecte et le traitement des données personnelles des utilisateurs sont
+  détaillés dans notre <a href="{% url 'privacy_policy' %}">politique de confidentialité</a>.
+  Conformément au RGPD, les utilisateurs disposent d'un droit d'accès, de
+  rectification, de suppression, de limitation et de portabilité de leurs données
+  personnelles. Pour exercer ces droits, vous pouvez écrire à
+  <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.
+</p>
 
-  <h2 style="font-size:18px">Propriété intellectuelle</h2>
-  <p class="sub"><em>[À compléter]</em></p>
-</div>
+<h2>5. Cookies</h2>
+<p>
+  Le site utilise uniquement des cookies strictement nécessaires au fonctionnement de
+  la plateforme. Aucun cookie publicitaire ou de suivi tiers n'est utilisé. Pour en
+  savoir plus, consultez notre <a href="{% url 'privacy_policy' %}">politique de confidentialité</a>.
+</p>
+
+<h2>6. Droit applicable</h2>
+<p>
+  Les présentes mentions légales sont régies par le droit français. En cas de litige,
+  la juridiction compétente sera celle du siège social de l'éditeur.
+</p>
+
+<h2>Contact</h2>
+<p>
+  Pour toute question relative à ces mentions légales :
+  <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.
+</p>
+{% if contact.address or contact.phone or contact.email %}
+<dl class="legal-facts">
+  {% if contact.address %}<div><dt>Adresse de contact</dt><dd>{{ contact.address }}</dd></div>{% endif %}
+  {% if contact.phone %}<div><dt>Téléphone</dt><dd>{{ contact.phone }}</dd></div>{% endif %}
+  {% if contact.email %}<div><dt>Email</dt><dd><a href="mailto:{{ contact.email }}">{{ contact.email }}</a></dd></div>{% endif %}
+</dl>
+{% endif %}
+<p class="legal-copyright">© {% now "Y" %} ROAD RUNNER SOLUTIONS. Tous droits réservés.</p>
 {% endblock %}

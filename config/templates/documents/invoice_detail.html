@@ -12,6 +12,7 @@
     <summary class="btn btn-primary actions-summary">Actions</summary>
     <div class="actions-list">
       <a class="btn btn-primary" href="{% url 'invoice_pdf' invoice.id %}?societe={{ company.id }}">Télécharger le PDF</a>
+      <a class="btn btn-ghost" href="{% url 'invoice_einvoicing' invoice.id %}?societe={{ company.id }}">Facture électronique (Factur-X)</a>
       <form method="post" action="{% url 'invoice_email' invoice.id %}?societe={{ company.id }}">
         {% csrf_token %}
         <button class="btn btn-ghost" type="submit">Envoyer par email</button>
@@ -57,6 +58,11 @@
   {% endif %}
   {% if invoice.project %}
   <p>Projet : <a href="{% url 'project_detail' invoice.project.id %}?societe={{ company.id }}">{{ invoice.project.name }}</a></p>
+  {% endif %}
+  {% if invoice.client_tva_intra %}
+  <p class="sub">TVA intracommunautaire du client : {{ invoice.client_tva_intra }}{% if invoice.reverse_charge %} · autoliquidation{% endif %}</p>
+  {% elif invoice.reverse_charge %}
+  <p class="sub">Autoliquidation de la TVA — TVA due par le preneur.</p>
   {% endif %}
   {% if invoice.source_quote %}
   <p>Issu du devis <a href="{% url 'quote_detail' invoice.source_quote.id %}?societe={{ company.id }}">{{ invoice.source_quote.number }}</a></p>

@@ -1,116 +1,272 @@
 {% extends "admin_backoffice/base.html" %}
-{% block title %}Paramètres{% endblock %}
+{% block title %}Centre de configuration{% endblock %}
 {% block content %}
-<div class="page-head">
+<div class="page-head settings-head" id="top">
   <div>
-    <h1>Paramètres</h1>
-    <p class="sub">Nom du site, maintenance, email et clés. Un champ secret laissé vide conserve la valeur déjà enregistrée.</p>
+    <p class="settings-kicker">Administration</p>
+    <h1>Centre de configuration</h1>
+    <p class="sub">Identité, emails, paiements, facturation électronique et agents IA. Les secrets enregistrés ne sont jamais réaffichés.</p>
+  </div>
+  <div class="settings-health" aria-label="État des intégrations">
+    <span class="badge {% if smtp_status.configured %}badge-green{% else %}badge-amber{% endif %}">SMTP {% if smtp_status.configured %}prêt{% else %}à compléter{% endif %}</span>
+    <span class="badge {% if stripe_configured %}badge-green{% else %}badge-amber{% endif %}">Stripe {% if stripe_configured %}prêt{% else %}à compléter{% endif %}</span>
+    <span class="badge {% if sms_active %}badge-green{% else %}badge-amber{% endif %}">SMS {% if sms_active %}{{ sms_active|upper }}{% else %}inactif{% endif %}</span>
+    <span class="badge {% if config.einvoicing_enabled %}badge-green{% else %}badge-amber{% endif %}">Factur-X {% if config.einvoicing_enabled %}actif{% else %}inactif{% endif %}</span>
   </div>
 </div>
-<form method="post" class="stack" autocomplete="off">
+
+<form method="post" class="settings-layout" autocomplete="off" id="settings-form">
   {% csrf_token %}
-  {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+  <nav class="settings-nav" aria-label="Sections de configuration">
+    <a href="#site">Site</a>
+    <a href="#contact">Coordonnées</a>
+    <a href="#email">Email / SMTP</a>
+    <a href="#stripe">Stripe</a>
+    <a href="#einvoicing">Facturation électronique</a>
+    <a href="#sms">SMS</a>
+    <a href="#ai">Aminia &amp; IA</a>
+    <a href="#insee">INSEE</a>
+  </nav>
 
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Site</h2>
-    <label for="{{ form.site_name.id_for_label }}">{{ form.site_name.label }}</label>
-    {{ form.site_name }}
-    <div class="check-row">
-      {{ form.maintenance_mode }}
-      <label for="{{ form.maintenance_mode.id_for_label }}">Mode maintenance (les admins et une consultation de cockpit restent ouverts)</label>
+  <div class="settings-sections">
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+
+    <section class="card admin-form settings-card" id="site">
+      <div class="settings-card-head">
+        <div>
+          <h2>Site</h2>
+          <p>Nom public et disponibilité de l'application.</p>
+        </div>
+      </div>
+      <label for="{{ form.site_name.id_for_label }}">{{ form.site_name.label }}</label>
+      {{ form.site_name }}
+      {% for err in form.site_name.errors %}<p class="error">{{ err }}</p>{% endfor %}
+      <div class="check-row">
+        {{ form.maintenance_mode }}
+        <label for="{{ form.maintenance_mode.id_for_label }}">Mode maintenance (les admins et une consultation de cockpit restent ouverts)</label>
+      </div>
+    </section>
+
+    <section class="card admin-form settings-card" id="contact">
+      <div class="settings-card-head">
+        <div>
+          <h2>Coordonnées de contact</h2>
+          <p>Utilisées dans les emails automatiques et, si renseignées, dans les mentions légales.</p>
+        </div>
+      </div>
+      <label for="{{ form.contact_address.id_for_label }}">{{ form.contact_address.label }}</label>
+      {{ form.contact_address }}
+      <p class="secret-hint">{{ form.contact_address.help_text }}</p>
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
+          {{ form.contact_phone }}
+        </div>
+        <div>
+          <label for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
+          {{ form.contact_email }}
+          <p class="secret-hint">{{ form.contact_email.help_text }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card admin-form settings-card" id="email">
+      <div class="settings-card-head">
+        <div>
+          <h2>Email / SMTP</h2>
+          <p>Les réglages enregistrés remplacent les variables d'environnement. Un champ secret vide conserve la valeur existante.</p>
+        </div>
+        <span class="badge {% if smtp_status.configured %}badge-green{% else %}badge-amber{% endif %}">
+          {% if smtp_status.configured %}Configuré{% else %}À compléter{% endif %}
+        </span>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.smtp_host.id_for_label }}">{{ form.smtp_host.label }}</label>
+          {{ form.smtp_host }}
+        </div>
+        <div>
+          <label for="{{ form.smtp_port.id_for_label }}">{{ form.smtp_port.label }}</label>
+          {{ form.smtp_port }}
+        </div>
+      </div>
+      <label for="{{ form.smtp_user.id_for_label }}">{{ form.smtp_user.label }}</label>
+      {{ form.smtp_user }}
+      <label for="{{ form.smtp_password.id_for_label }}">{{ form.smtp_password.label }}</label>
+      {{ form.smtp_password }}
+      <p class="secret-hint">{% if secrets.smtp_password %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %} Jamais réaffiché.</p>
+      <label for="{{ form.email_from.id_for_label }}">{{ form.email_from.label }}</label>
+      {{ form.email_from }}
+      <div class="settings-test-row">
+        <label class="sr-only" for="smtp-test-recipient">Adresse de test</label>
+        <input id="smtp-test-recipient" form="smtp-test-form" type="email" name="recipient" value="{{ test_email }}" placeholder="vous@exemple.fr" class="form-control">
+        <button class="btn btn-ghost btn-sm" type="submit" form="smtp-test-form">Tester l'envoi</button>
+      </div>
+      <p class="secret-hint">Le test envoie un vrai email avec la configuration enregistrée. Enregistrez avant de tester.</p>
+    </section>
+
+    <section class="card admin-form settings-card" id="stripe">
+      <div class="settings-card-head">
+        <div>
+          <h2>Paiement Stripe</h2>
+          <p>Abonnements par carte. Une clé saisie ici remplace la variable d'environnement.</p>
+        </div>
+        <span class="badge {% if stripe_configured %}badge-green{% else %}badge-amber{% endif %}">
+          {% if stripe_configured %}Configuré{% else %}À compléter{% endif %}
+        </span>
+      </div>
+      <label for="{{ form.stripe_secret_key.id_for_label }}">{{ form.stripe_secret_key.label }}</label>
+      {{ form.stripe_secret_key }}
+      <p class="secret-hint">{% if secrets.stripe_secret_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %} {{ form.stripe_secret_key.help_text }}</p>
+      <label for="{{ form.stripe_publishable_key.id_for_label }}">{{ form.stripe_publishable_key.label }}</label>
+      {{ form.stripe_publishable_key }}
+      <p class="secret-hint">{% if secrets.stripe_publishable_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+      <label for="{{ form.stripe_webhook_secret.id_for_label }}">{{ form.stripe_webhook_secret.label }}</label>
+      {{ form.stripe_webhook_secret }}
+      <p class="secret-hint">{% if secrets.stripe_webhook_secret %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %}</p>
+      <div class="settings-test-row">
+        <p class="secret-hint">Le test interroge l'API Stripe et vérifie l'authentification de la clé secrète.</p>
+        <button class="btn btn-ghost btn-sm" type="submit" form="stripe-test-form">Tester Stripe</button>
+      </div>
+    </section>
+
+    <section class="card admin-form settings-card" id="einvoicing">
+      <div class="settings-card-head">
+        <div>
+          <h2>Facturation électronique</h2>
+          <p>Factur-X (XML CII + PDF) et dépôt vers une plateforme agréée, Chorus Pro ou le portail public.</p>
+        </div>
+        <span class="badge {% if config.einvoicing_enabled %}badge-green{% else %}badge-amber{% endif %}">
+          {% if config.einvoicing_enabled %}Activée{% else %}Désactivée{% endif %}
+        </span>
+      </div>
+      <div class="check-row">
+        {{ form.einvoicing_enabled }}
+        <label for="{{ form.einvoicing_enabled.id_for_label }}">{{ form.einvoicing_enabled.label }}</label>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.einvoicing_provider.id_for_label }}">{{ form.einvoicing_provider.label }}</label>
+          {{ form.einvoicing_provider }}
+        </div>
+        <div>
+          <label for="{{ form.einvoicing_default_profile.id_for_label }}">{{ form.einvoicing_default_profile.label }}</label>
+          {{ form.einvoicing_default_profile }}
+        </div>
+      </div>
+      <label for="{{ form.einvoicing_api_url.id_for_label }}">{{ form.einvoicing_api_url.label }}</label>
+      {{ form.einvoicing_api_url }}
+      <p class="secret-hint">{{ form.einvoicing_api_url.help_text }}</p>
+      <label for="{{ form.einvoicing_api_key.id_for_label }}">{{ form.einvoicing_api_key.label }}</label>
+      {{ form.einvoicing_api_key }}
+      <p class="secret-hint">{% if secrets.einvoicing_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %} Jamais réaffichée.</p>
+      <label for="{{ form.einvoicing_sender_siret.id_for_label }}">{{ form.einvoicing_sender_siret.label }}</label>
+      {{ form.einvoicing_sender_siret }}
+      <p class="secret-hint">{{ form.einvoicing_sender_siret.help_text }}</p>
+      <div class="settings-callout">
+        <strong>Transmission explicite.</strong> La génération est locale. Aucun fichier ne part vers une plateforme avant l'action « Transmettre » depuis la fiche d'une facture émise.
+      </div>
+      <div class="settings-test-row">
+        <p class="secret-hint">Le test vérifie l'activation et la présence de l'URL de dépôt, sans envoyer de facture.</p>
+        <button class="btn btn-ghost btn-sm" type="submit" form="einvoicing-test-form">Tester la configuration</button>
+      </div>
+    </section>
+
+    <section class="card admin-form settings-card" id="ai">
+      <div class="settings-card-head">
+        <div>
+          <h2>Aminia — chat et voix</h2>
+          <p>Le chat utilise le fournisseur choisi. La voix reste sur xAI. Les secrets laissés vides sont conservés.</p>
+        </div>
+      </div>
+      <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>
+      {{ form.ai_text_provider }}
+      <label for="{{ form.llm_base_url.id_for_label }}">{{ form.llm_base_url.label }}</label>
+      {{ form.llm_base_url }}
+      <p class="secret-hint">{{ form.llm_base_url.help_text }}</p>
+      <label for="{{ form.llm_model.id_for_label }}">{{ form.llm_model.label }}</label>
+      {{ form.llm_model }}
+      <label for="{{ form.llm_api_key.id_for_label }}">{{ form.llm_api_key.label }}</label>
+      {{ form.llm_api_key }}
+      <p class="secret-hint">{% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+      <label for="{{ form.xai_api_key.id_for_label }}">{{ form.xai_api_key.label }}</label>
+      {{ form.xai_api_key }}
+      <p class="secret-hint">{% if secrets.xai_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+      <label for="{{ form.xai_text_model.id_for_label }}">{{ form.xai_text_model.label }}</label>
+      {{ form.xai_text_model }}
+      <p class="secret-hint">{{ form.xai_text_model.help_text }}</p>
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.xai_voice_model.id_for_label }}">{{ form.xai_voice_model.label }}</label>
+          {{ form.xai_voice_model }}
+        </div>
+        <div>
+          <label for="{{ form.xai_voice.id_for_label }}">{{ form.xai_voice.label }}</label>
+          {{ form.xai_voice }}
+        </div>
+      </div>
+    </section>
+
+    <section class="card admin-form settings-card" id="insee">
+      <div class="settings-card-head">
+        <div>
+          <h2>Annuaire INSEE</h2>
+          <p>Recherche officielle des sociétés par SIREN.</p>
+        </div>
+      </div>
+      <label for="{{ form.insee_api_key.id_for_label }}">{{ form.insee_api_key.label }}</label>
+      {{ form.insee_api_key }}
+      <p class="secret-hint">{% if secrets.insee_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
+      <p class="secret-hint">Les tests avancés INSEE, INPI, Qwen et xAI restent disponibles dans <a href="{% url 'admin_backoffice:integrations' %}">Intégrations</a>.</p>
+    </section>
+
+    {% for field in form %}
+      {% if field.errors %}<p class="error">{{ field.label }} : {{ field.errors|striptags }}</p>{% endif %}
+    {% endfor %}
+
+    <div class="settings-savebar">
+      <p class="secret-hint">Les modifications s'appliquent immédiatement après enregistrement.</p>
+      <button class="btn btn-primary" type="submit">Enregistrer la configuration</button>
     </div>
-  </div>
-
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Coordonnées de contact</h2>
-    <p class="sub">Utilisées dans les emails automatiques et, si renseignées, dans les mentions légales.</p>
-    <label for="{{ form.contact_address.id_for_label }}">{{ form.contact_address.label }}</label>
-    {{ form.contact_address }}
-    <p class="secret-hint">{{ form.contact_address.help_text }}</p>
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
-        {{ form.contact_phone }}
-      </div>
-      <div>
-        <label for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
-        {{ form.contact_email }}
-        <p class="secret-hint">{{ form.contact_email.help_text }}</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Email (SMTP)</h2>
-    <p class="sub">Appliqué seulement si un utilisateur ou un mot de passe est renseigné.</p>
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.smtp_host.id_for_label }}">{{ form.smtp_host.label }}</label>
-        {{ form.smtp_host }}
-      </div>
-      <div>
-        <label for="{{ form.smtp_port.id_for_label }}">{{ form.smtp_port.label }}</label>
-        {{ form.smtp_port }}
-      </div>
-    </div>
-    <label for="{{ form.smtp_user.id_for_label }}">{{ form.smtp_user.label }}</label>
-    {{ form.smtp_user }}
-    <label for="{{ form.smtp_password.id_for_label }}">{{ form.smtp_password.label }}</label>
-    {{ form.smtp_password }}
-    <p class="secret-hint">{% if secrets.smtp_password %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %} Jamais réaffiché.</p>
-    <label for="{{ form.email_from.id_for_label }}">{{ form.email_from.label }}</label>
-    {{ form.email_from }}
-  </div>
-
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Paiement Stripe</h2>
-    <p class="sub">Une clé saisie ici remplace la variable d'environnement. Elle n'est jamais réaffichée.</p>
-    <label for="{{ form.stripe_secret_key.id_for_label }}">{{ form.stripe_secret_key.label }}</label>
-    {{ form.stripe_secret_key }}
-    <p class="secret-hint">{% if secrets.stripe_secret_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %} {{ form.stripe_secret_key.help_text }}</p>
-    <label for="{{ form.stripe_publishable_key.id_for_label }}">{{ form.stripe_publishable_key.label }}</label>
-    {{ form.stripe_publishable_key }}
-    <p class="secret-hint">{% if secrets.stripe_publishable_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-    <label for="{{ form.stripe_webhook_secret.id_for_label }}">{{ form.stripe_webhook_secret.label }}</label>
-    {{ form.stripe_webhook_secret }}
-    <p class="secret-hint">{% if secrets.stripe_webhook_secret %}<span class="badge badge-green">Enregistré</span>{% else %}<span class="badge">Non configuré</span>{% endif %}</p>
-  </div>
-
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Aminia — chat et voix</h2>
-    <p class="sub">Le chat utilise le fournisseur choisi. La voix reste sur xAI. Les secrets laissés vides sont conservés.</p>
-    <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>
-    {{ form.ai_text_provider }}
-    <label for="{{ form.llm_base_url.id_for_label }}">{{ form.llm_base_url.label }}</label>
-    {{ form.llm_base_url }}
-    <p class="secret-hint">{{ form.llm_base_url.help_text }}</p>
-    <label for="{{ form.llm_model.id_for_label }}">{{ form.llm_model.label }}</label>
-    {{ form.llm_model }}
-    <label for="{{ form.llm_api_key.id_for_label }}">{{ form.llm_api_key.label }}</label>
-    {{ form.llm_api_key }}
-    <p class="secret-hint">{% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-    <label for="{{ form.xai_api_key.id_for_label }}">{{ form.xai_api_key.label }}</label>
-    {{ form.xai_api_key }}
-    <p class="secret-hint">{% if secrets.xai_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-    <label for="{{ form.xai_text_model.id_for_label }}">{{ form.xai_text_model.label }}</label>
-    {{ form.xai_text_model }}
-    <p class="secret-hint">{{ form.xai_text_model.help_text }}</p>
-    <label for="{{ form.xai_voice_model.id_for_label }}">{{ form.xai_voice_model.label }}</label>
-    {{ form.xai_voice_model }}
-    <label for="{{ form.xai_voice.id_for_label }}">{{ form.xai_voice.label }}</label>
-    {{ form.xai_voice }}
-  </div>
-
-  <div class="card admin-form">
-    <h2 style="margin-top:0;font-family:var(--font-head)">Annuaire INSEE</h2>
-    <label for="{{ form.insee_api_key.id_for_label }}">{{ form.insee_api_key.label }}</label>
-    {{ form.insee_api_key }}
-    <p class="secret-hint">{% if secrets.insee_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-    {% for field in form %}{% for err in field.errors %}<p class="error">{{ field.label }} : {{ err }}</p>{% endfor %}{% endfor %}
-  </div>
-
-  <div>
-    <button class="btn btn-primary" type="submit">Enregistrer</button>
   </div>
 </form>
+
+<section class="card settings-sms-card" id="sms" aria-labelledby="sms-title">
+  <div class="settings-card-head">
+    <div>
+      <h2 id="sms-title">SMS — test réel</h2>
+      <p>Choisissez un fournisseur déjà renseigné. Le test envoie un vrai SMS et l'ajoute au journal.</p>
+    </div>
+    <a class="btn btn-ghost btn-sm" href="{% url 'admin_backoffice:sms' %}">Configurer les fournisseurs</a>
+  </div>
+  <div class="settings-test-row">
+    <label class="sr-only" for="sms-test-recipient">Numéro de test</label>
+    <input id="sms-test-recipient" form="sms-test-form" type="tel" name="recipient" value="{{ test_phone }}" placeholder="+33 6 12 34 56 78" class="form-control">
+    <span class="secret-hint">Numéro au format international.</span>
+  </div>
+  <div class="provider-grid">
+    {% for provider in sms_providers %}
+    <div class="provider-test-card">
+      <div class="provider-test-head">
+        <strong>{{ provider.label }}</strong>
+        <span class="badge {% if provider.configured %}badge-green{% else %}badge-amber{% endif %}">
+          {% if provider.configured %}Identifiants OK{% else %}Incomplet{% endif %}
+        </span>
+      </div>
+      <p class="secret-hint">
+        {% if provider.enabled %}Activé{% else %}Désactivé{% endif %}
+        {% if sms_active == provider.code %} · fournisseur actif{% endif %}
+      </p>
+      <button class="btn btn-ghost btn-sm" type="submit" form="sms-test-form" name="provider" value="{{ provider.code }}"{% if not provider.configured %} disabled title="Renseignez les identifiants dans SMS"{% endif %}>
+        Tester {{ provider.label }}
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<form id="smtp-test-form" method="post" action="{% url 'admin_backoffice:settings_test' %}" class="form-source">{% csrf_token %}<input type="hidden" name="action" value="smtp"></form>
+<form id="stripe-test-form" method="post" action="{% url 'admin_backoffice:settings_test' %}" class="form-source">{% csrf_token %}<input type="hidden" name="action" value="stripe"></form>
+<form id="sms-test-form" method="post" action="{% url 'admin_backoffice:settings_test' %}" class="form-source">{% csrf_token %}<input type="hidden" name="action" value="sms"></form>
+<form id="einvoicing-test-form" method="post" action="{% url 'admin_backoffice:settings_test' %}" class="form-source">{% csrf_token %}<input type="hidden" name="action" value="einvoicing"></form>
 {% endblock %}

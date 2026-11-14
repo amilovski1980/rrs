@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.12.3">
+  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.14.2">
 </head>
 <body>
   <div class="accent-bar" aria-hidden="true"></div>
@@ -58,7 +58,6 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="brand" href="{% url 'landing' %}">
-            <img class="brand-mark" src="{% static 'img/dark/mark.png' %}" alt="" width="42" height="42">
             <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="148" height="32">
           </a>
           <p>Factures, grand livre et TVA pour les sociétés qui démarrent. Fiche officielle, écritures contrôlées, hébergement en France.</p>
@@ -84,7 +83,9 @@
         <div>
           <h4>Repères</h4>
           <ul>
-            <li><a href="{% url 'landing' %}#securite">Données et hébergement</a></li>
+            <li><a href="{% url 'privacy_policy' %}">Confidentialité</a></li>
+            <li><a href="{% url 'legal_notice' %}">Mentions légales</a></li>
+            <li><a href="{% url 'terms_of_use' %}">Conditions générales</a></li>
             <li><a href="https://api.insee.fr/api-sirene/3.11" target="_blank" rel="noopener">API Sirene INSEE</a></li>
           </ul>
         </div>

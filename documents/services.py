@@ -191,6 +191,7 @@ def convert_quote_to_invoice(quote):
             client=quote.client,
             client_name=quote.client_name,
             client_siren=quote.client_siren,
+            client_tva_intra=getattr(quote.client, "tva_intra", "") if quote.client else "",
             project=quote.project,
             amount_ht=quote.amount_ht,
             vat_rate=quote.vat_rate,

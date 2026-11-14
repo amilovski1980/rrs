@@ -389,6 +389,106 @@ class CrudPagesSmokeTests(TestCase):
 
 
 
+class VatIntracomTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user("tva@example.com")
+        self.company = _company(user, siren="812345679", name="TVA Co")
+        self.client.force_login(user)
+
+    def test_company_vat_number_is_derived_from_siren_when_empty(self):
+        self.assertEqual(self.company.tva_intra, "")
+        self.assertEqual(self.company.tva_intra_number, "FR28812345679")
+        self.company.tva_intra = "fr 28 812 345 679"
+        self.company.save(update_fields=["tva_intra"])
+        self.assertEqual(self.company.tva_intra_number, "FR28812345679")
+
+    def test_client_form_stores_intracom_identity(self):
+        from .forms import ClientForm
+
+        form = ClientForm(
+            data={
+                "name": "Bau GmbH",
+                "siren": "",
+                "tva_intra": "de 811 234 567",
+                "legal_form": "GmbH",
+                "rcs": "HRB 12345",
+                "address": "Musterstrasse 1, Berlin",
+                "email": "",
+                "phone": "",
+                "notes": "",
+            },
+            company=self.company,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        client = form.save(commit=False)
+        client.company = self.company
+        client.save()
+        self.assertEqual(client.tva_intra, "DE811234567")
+        self.assertEqual(client.legal_form, "GmbH")
+
+    def test_reverse_charge_invoice_forces_zero_vat_and_prints_mention(self):
+        from .forms import InvoiceForm
+        from .pdf import render_invoice_pdf
+
+        client = Client.objects.create(
+            company=self.company,
+            name="Bau GmbH",
+            tva_intra="DE811234567",
+            address="Musterstrasse 1, Berlin",
+            legal_form="GmbH",
+        )
+        form = InvoiceForm(
+            data={
+                "client": client.pk,
+                "client_name": "Bau GmbH",
+                "client_siren": "",
+                "client_tva_intra": "DE811234567",
+                "project": "",
+                "amount_ht": "100.00",
+                "vat_rate": "20.00",
+                "reverse_charge": "on",
+                "vat_exemption_reason": "",
+            },
+            company=self.company,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        invoice = form.save(commit=False)
+        invoice.company = self.company
+        invoice.status = "draft"
+        invoice.number = "BR-tva"
+        invoice.save()
+
+        self.assertTrue(invoice.reverse_charge)
+        self.assertEqual(invoice.vat_rate, Decimal("0.00"))
+        self.assertEqual(invoice.vat_amount, Decimal("0.00"))
+        self.assertEqual(invoice.amount_ttc, Decimal("100.00"))
+        self.assertIn("283-2", invoice.vat_exemption_reason)
+
+        text = extract_pdf_text(render_invoice_pdf(invoice, self.company))
+        self.assertIn("Autoliquidation", text)
+        self.assertIn("TVA intracommunautaire : DE811234567", text)
+        self.assertIn("TVA 0 % (autoliquidation)", text)
+        self.assertNotIn("TVA 20 %", text)
+
+    def test_reverse_charge_posts_no_collected_vat(self):
+        from .services import issue_invoice
+
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="BR-tva-2",
+            client_name="Bau GmbH",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("0.00"),
+            reverse_charge=True,
+            status="draft",
+        )
+        issue_invoice(invoice)
+        invoice.refresh_from_db()
+        entry = JournalEntry.objects.get(reference=invoice.number)
+        self.assertFalse(entry.lines.filter(account__code="44571").exists())
+        self.assertEqual(sum(line.debit for line in entry.lines.all()), Decimal("100.00"))
+
+
 class ThemeAndDocumentPdfTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("themes@example.com")
@@ -451,6 +551,47 @@ class ThemeAndDocumentPdfTests(TestCase):
         response = self.http.get(f"/factures/{bare.id}/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Prestation — Sans Lignes")
+
+    def test_invoice_pdf_matches_reference_layout(self):
+        from documents.pdf import render_invoice_pdf
+
+        client = Client.objects.create(
+            company=self.company,
+            name="WASH & TEINTE",
+            siren="907825327",
+            address="2 Allée de Chantereine – 78711 Mantes-la-Ville – France",
+        )
+        self.company.source_data = {"siret": "91919191900017"}
+        self.company.slogan = "Stratégie. Performance. Succès."
+        self.company.save(update_fields=["source_data", "slogan"])
+        self.invoice.client = client
+        self.invoice.client_name = "WASH & TEINTE"
+        self.invoice.client_siren = "907825327"
+        self.invoice.save(update_fields=["client", "client_name", "client_siren"])
+
+        text = extract_pdf_text(render_invoice_pdf(self.invoice, self.company))
+        for expected in (
+            "FACTURE",
+            "BR-theme",
+            "FACTURÉ À",
+            "WASH & TEINTE",
+            "SIREN 907825327",
+            "CLI-WASH-TEINTE",
+            "DESCRIPTION",
+            "QTÉ",
+            "UNITÉ",
+            "PRIX HT",
+            "TVA",
+            "TTC",
+            "Sous-total HT",
+            "TVA 20 %",
+            "Montant Total TTC (EUR)",
+            "Montant à payer (EUR)",
+            "Règlement à 30 jours.",
+            "SIRET 919 191 919 00017",
+            "Stratégie. Performance. Succès.",
+        ):
+            self.assertIn(expected, text, expected)
 
     def test_new_themes_accepted_in_settings(self):
         for theme in ("graphite", "indigo", "terra"):
@@ -600,6 +741,70 @@ class TicketDeCaisseTests(TestCase):
         self.assertTrue(data["moyen_paiement"])
         self.assertEqual(str(data["date"].year), "2026")
 
+    def test_parse_multiple_vat_rates_and_breakdown(self):
+        from .receipt_ocr import parse_receipt_text
+
+        text = """
+        BRICOMARCHE
+        Date: 04/11/2026
+        TOTAL TTC               120,00
+        TVA 20 %                 10,00
+        TVA 10 %                  5,00
+        CB
+        """
+        data = parse_receipt_text(text)
+        self.assertEqual(data["montant_ttc"], Decimal("120.00"))
+        self.assertEqual(data["montant_tva"], Decimal("15.00"))
+        self.assertEqual(data["taux_tva"], Decimal("20.00"))
+        self.assertEqual(len(data["vat_breakdown"]), 2)
+
+    def test_scanned_pdf_falls_back_to_embedded_image_ocr(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from .receipt_ocr import extract_pdf_text_or_ocr
+
+        page = SimpleNamespace(
+            extract_text=lambda: "",
+            images=[SimpleNamespace(data=b"fake-image", name="scan.jpg")],
+        )
+        reader = SimpleNamespace(pages=[page])
+        with patch("pypdf.PdfReader", return_value=reader):
+            with patch(
+                "documents.receipt_ocr.ocr_image_bytes",
+                return_value="BOULANGERIE\nTOTAL TTC 12,00\nTVA 10 % 1,09",
+            ):
+                text = extract_pdf_text_or_ocr(b"%PDF-fake")
+        self.assertIn("BOULANGERIE", text)
+        self.assertIn("TOTAL TTC 12,00", text)
+
+    def test_upload_warns_when_a_duplicate_ticket_exists(self):
+        from unittest.mock import patch
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import TicketDeCaisse
+
+        TicketDeCaisse.objects.create(
+            company=self.company,
+            date=date(2026, 11, 3),
+            magasin="CARREFOUR MARKET",
+            montant_ttc=Decimal("45.60"),
+            montant_tva=Decimal("7.60"),
+            taux_tva=Decimal("20.00"),
+            categorie="fournitures",
+        )
+        png = SimpleUploadedFile(
+            "ticket.png", b"\x89PNG\r\n\x1a\nfake", content_type="image/png"
+        )
+        with patch("documents.views.extract_receipt_text", return_value=SAMPLE_RECEIPT_TEXT):
+            with patch("documents.views.validate_upload"):
+                response = self.http.post(
+                    f"/factures/tickets/import/?societe={self.company.id}",
+                    {"fichier": png, "categorie": "fournitures"},
+                    follow=True,
+                )
+        self.assertContains(response, "Doublon possible")
+        self.assertEqual(TicketDeCaisse.objects.filter(company=self.company).count(), 2)
+
     def test_ocr_missing_engine_french_error(self):
         from unittest.mock import patch
         from .receipt_ocr import ReceiptOcrError, ocr_image_bytes
@@ -742,8 +947,9 @@ class TicketCameraUploadTests(TestCase):
         self.assertContains(r, 'capture="environment"')
         self.assertContains(r, 'accept="image/*"')
         self.assertContains(r, "mobile-only")
-        self.assertContains(r, "desktop-only")
         self.assertContains(r, 'data-ticket-upload-form')
+        self.assertContains(r, 'id="id_fichier"', count=1)
+        self.assertContains(r, 'name="fichier"', count=1)
 
     def test_list_has_mobile_camera_entry(self):
         r = self.http.get(f"/factures/tickets/?societe={self.company.id}")
@@ -1147,3 +1353,168 @@ class DocumentEmailTests(TestCase):
         response = self.http.post(f"/factures/{self.invoice.id}/envoyer/")
         self.assertEqual(response.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class EInvoicingTests(TestCase):
+    """Factur-X : XML CII, PDF joint, dépôt API et garde-fous."""
+
+    def setUp(self):
+        from admin_backoffice.models import SiteConfiguration
+
+        self.user = get_user_model().objects.create_user(
+            "facturx@example.com", password="password123"
+        )
+        self.company = _company(self.user, siren="812345679", name="Atelier Factur-X")
+        self.company.tva_intra = "FR28812345679"
+        self.company.save(update_fields=["tva_intra"])
+        self.customer = Client.objects.create(
+            company=self.company,
+            name="Berlin Handels GmbH",
+            siren="",
+            tva_intra="DE811234567",
+            address="5 Unter den Linden, 10117 Berlin",
+        )
+        self.invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC-2026-00901",
+            client=self.customer,
+            client_name="Berlin Handels GmbH",
+            client_tva_intra="DE811234567",
+            amount_ht=Decimal("100.00"),
+            vat_rate=Decimal("20.00"),
+            reverse_charge=True,
+            status="issued",
+        )
+        self.config, _ = SiteConfiguration.objects.get_or_create(pk=1)
+        self.config.einvoicing_enabled = True
+        self.config.einvoicing_provider = "generic"
+        self.config.einvoicing_api_url = "https://plateforme.example/api/factures"
+        self.config.einvoicing_api_key = "secret-plateforme-123"
+        self.config.einvoicing_sender_siret = "81234567900011"
+        self.config.save()
+        self.http = self.client
+        self.http.force_login(self.user)
+
+    def test_facturx_xml_contains_reverse_charge_and_parties(self):
+        from xml.etree import ElementTree
+
+        from .einvoicing import build_facturx_xml
+
+        payload = build_facturx_xml(self.invoice, self.company, profile="EN16931")
+        root = ElementTree.fromstring(payload)
+        ns = {
+            "rsm": "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100",
+            "ram": "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100",
+        }
+        self.assertEqual(
+            root.findtext("rsm:ExchangedDocument/ram:ID", namespaces=ns),
+            "FAC-2026-00901",
+        )
+        self.assertEqual(
+            root.findtext(
+                "rsm:ExchangedDocumentContext/ram:GuidelineSpecifiedDocumentContextParameter/ram:ID",
+                namespaces=ns,
+            ),
+            "urn:cen.eu:en16931:2017",
+        )
+        self.assertEqual(
+            root.findtext(
+                ".//ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax/ram:CategoryCode",
+                namespaces=ns,
+            ),
+            "AE",
+        )
+        tax_total = root.find(
+            ".//ram:SpecifiedTradeSettlementHeaderMonetarySummation/ram:TaxTotalAmount",
+            namespaces=ns,
+        )
+        self.assertEqual(tax_total.text, "0.00")
+        self.assertEqual(tax_total.attrib.get("currencyID"), "EUR")
+        seller_vat = root.findtext(
+            ".//ram:SellerTradeParty/ram:SpecifiedTaxRegistration/ram:ID", namespaces=ns
+        )
+        self.assertEqual(seller_vat, "FR28812345679")
+        buyer_vat = root.findtext(
+            ".//ram:BuyerTradeParty/ram:SpecifiedTaxRegistration/ram:ID", namespaces=ns
+        )
+        self.assertEqual(buyer_vat, "DE811234567")
+
+    def test_facturx_pdf_embeds_xml_attachment(self):
+        from pypdf import PdfReader
+
+        from .einvoicing import build_facturx_pdf
+
+        payload = build_facturx_pdf(self.invoice, self.company)
+        self.assertTrue(payload.startswith(b"%PDF"))
+        reader = PdfReader(BytesIO(payload))
+        self.assertIn("factur-x.xml", reader.attachments)
+        self.assertIn(b"CrossIndustryInvoice", reader.attachments["factur-x.xml"][0])
+
+    def test_generate_xml_download_and_submit(self):
+        from unittest.mock import Mock, patch
+
+        from .models import EInvoicingSubmission
+
+        generated = self.http.post(
+            f"/factures/{self.invoice.id}/facture-electronique/generer/",
+            {"profile": "EXTENDED"},
+        )
+        self.assertEqual(generated.status_code, 302)
+        submission = EInvoicingSubmission.objects.get(invoice=self.invoice)
+        self.assertEqual(submission.profile, "EXTENDED")
+        self.assertEqual(len(submission.checksum), 64)
+        page = self.http.get(f"/factures/{self.invoice.id}/facture-electronique/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Dernier dépôt")
+        self.assertContains(page, "Télécharger le PDF Factur-X")
+
+        xml_response = self.http.get(
+            f"/factures/{self.invoice.id}/facture-electronique/xml/"
+        )
+        self.assertEqual(xml_response.status_code, 200)
+        self.assertIn(b"CrossIndustryInvoice", xml_response.content)
+
+        remote = Mock()
+        remote.is_success = True
+        remote.status_code = 202
+        remote.text = '{"id": "PLAT-42", "status": "accepted"}'
+        with patch("documents.einvoicing.httpx.post", return_value=remote) as posted:
+            response = self.http.post(
+                f"/factures/{self.invoice.id}/facture-electronique/transmettre/"
+            )
+        self.assertEqual(response.status_code, 302)
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, "accepted")
+        self.assertEqual(submission.remote_id, "PLAT-42")
+        self.assertEqual(submission.platform, "generic")
+        self.assertIsNotNone(submission.sent_at)
+        _, kwargs = posted.call_args
+        self.assertEqual(
+            kwargs["headers"]["Authorization"], "Bearer secret-plateforme-123"
+        )
+        self.assertEqual(kwargs["data"]["sender_siret"], "81234567900011")
+        self.assertEqual(
+            kwargs["files"]["file"][0],
+            "factur-x.xml",
+        )
+
+    def test_submit_is_refused_when_module_is_disabled(self):
+        from .models import EInvoicingSubmission
+
+        submission = EInvoicingSubmission.objects.create(
+            invoice=self.invoice,
+            profile="EN16931",
+            status="generated",
+            reference="FE-TEST",
+            xml_payload="<xml/>",
+            checksum="0" * 64,
+        )
+        self.config.einvoicing_enabled = False
+        self.config.save(update_fields=["einvoicing_enabled"])
+        response = self.http.post(
+            f"/factures/{self.invoice.id}/facture-electronique/transmettre/",
+            follow=True,
+        )
+        self.assertContains(response, "pas activ")
+        submission.refresh_from_db()
+        self.assertEqual(submission.status, "generated")

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.13.2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.2">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -87,9 +87,9 @@
         <div>
           <h4>Informations</h4>
           <ul>
-            <li><a href="{% url 'landing' %}#securite">Protection des données</a></li>
-            <li><a href="{% url 'landing' %}#securite">Mentions légales</a></li>
-            <li><a href="{% url 'landing' %}#securite">Accessibilité</a></li>
+            <li><a href="{% url 'privacy_policy' %}">Protection des données</a></li>
+            <li><a href="{% url 'legal_notice' %}">Mentions légales</a></li>
+            <li><a href="{% url 'terms_of_use' %}">Conditions générales</a></li>
           </ul>
         </div>
       </div>
@@ -103,7 +103,7 @@
     </div>
   </footer>
   {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.13.2" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.14.2" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

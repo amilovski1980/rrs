@@ -28,16 +28,10 @@
     <p class="sub">La photo est envoyée au même OCR que l'import classique (brouillon à valider).</p>
   </div>
 
-  <div class="field desktop-only">
+  <div class="field">
     <label for="{{ form.fichier.id_for_label }}">{{ form.fichier.label }}</label>
     {{ form.fichier }}
     {% if form.fichier.help_text %}<p class="sub">{{ form.fichier.help_text }}</p>{% endif %}
-    {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
-  </div>
-
-  {# Sur mobile le champ fichier reste présent (pour recevoir la photo via JS) mais masqué. #}
-  <div class="field mobile-only ticket-file-hidden">
-    {{ form.fichier }}
     {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
   </div>
 

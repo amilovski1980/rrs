@@ -40,14 +40,28 @@
     </div>
     <div class="form-grid">
       <div>
-        <label>Montant HT</label>
-        {{ form.amount_ht }}
-        {% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}
+        <label>TVA intracommunautaire du client</label>
+        {{ form.client_tva_intra }}
+        {% if form.client_tva_intra.errors %}<p class="error">{{ form.client_tva_intra.errors.0 }}</p>{% endif %}
       </div>
       <div>
         <label>Taux de TVA (%)</label>
         {{ form.vat_rate }}
         {% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="card vat-reverse-card">
+      <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
+      <p class="micro">{{ form.reverse_charge.help_text }}</p>
+      <label>{{ form.vat_exemption_reason.label }}</label>
+      {{ form.vat_exemption_reason }}
+      {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-grid">
+      <div>
+        <label>Montant HT</label>
+        {{ form.amount_ht }}
+        {% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}
       </div>
     </div>
     <div class="form-actions-bar">

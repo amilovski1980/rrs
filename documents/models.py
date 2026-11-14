@@ -54,6 +54,9 @@ class Client(models.Model):
     )
     name = models.CharField(max_length=200, verbose_name="Nom")
     siren = models.CharField(max_length=9, blank=True, verbose_name="SIREN")
+    tva_intra = models.CharField(max_length=20, blank=True, verbose_name="TVA intracommunautaire")
+    legal_form = models.CharField(max_length=30, blank=True, verbose_name="Forme juridique")
+    rcs = models.CharField(max_length=40, blank=True, verbose_name="RCS")
     address = models.CharField(max_length=255, blank=True, verbose_name="Adresse")
     email = models.EmailField(blank=True, verbose_name="E-mail")
     phone = models.CharField(max_length=30, blank=True, verbose_name="Téléphone")
@@ -183,6 +186,9 @@ class Invoice(models.Model):
     )
     client_name = models.CharField(max_length=200)
     client_siren = models.CharField(max_length=9, blank=True)
+    client_tva_intra = models.CharField(
+        max_length=20, blank=True, verbose_name="TVA intracommunautaire du client"
+    )
     project = models.ForeignKey(
         Project,
         on_delete=models.SET_NULL,
@@ -193,6 +199,14 @@ class Invoice(models.Model):
     )
     amount_ht = models.DecimalField(max_digits=12, decimal_places=2)
     vat_rate = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    reverse_charge = models.BooleanField(
+        default=False,
+        verbose_name="Autoliquidation de la TVA (UE)",
+        help_text="Client professionnel établi dans un autre État membre : TVA due par le preneur.",
+    )
+    vat_exemption_reason = models.CharField(
+        max_length=255, blank=True, verbose_name="Mention d'exonération de TVA"
+    )
     status = models.CharField(max_length=12, choices=E_INVOICING_STATUSES, default="draft")
     file = models.FileField(upload_to="invoices/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -205,6 +219,8 @@ class Invoice(models.Model):
 
     @property
     def vat_amount(self):
+        if self.reverse_charge:
+            return Decimal("0.00")
         return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
 
     @property
@@ -353,6 +369,47 @@ class QuoteLine(models.Model):
     @property
     def amount_ht(self):
         return (self.quantity * self.unit_price).quantize(Decimal("0.01"))
+
+
+class EInvoicingSubmission(models.Model):
+    """Dépôt de facture électronique (Factur-X) vers une plateforme agréée."""
+
+    PROFILES = [
+        ("BASIC", "Factur-X BASIC"),
+        ("EN16931", "Factur-X EN 16931"),
+        ("EXTENDED", "Factur-X EXTENDED"),
+    ]
+    STATUSES = [
+        ("generated", "Généré"),
+        ("sent", "Transmis"),
+        ("accepted", "Accepté"),
+        ("rejected", "Refusé"),
+        ("error", "Erreur"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.CASCADE, related_name="einvoicing_submissions"
+    )
+    profile = models.CharField(max_length=12, choices=PROFILES, default="EN16931")
+    status = models.CharField(max_length=12, choices=STATUSES, default="generated")
+    reference = models.CharField(max_length=80, unique=True)
+    platform = models.CharField(max_length=80, blank=True, default="")
+    xml_payload = models.TextField()
+    checksum = models.CharField(max_length=64, blank=True, default="")
+    remote_id = models.CharField(max_length=120, blank=True, default="")
+    response_message = models.TextField(blank=True, default="")
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Facture électronique"
+        verbose_name_plural = "Factures électroniques"
+
+    def __str__(self):
+        return f"{self.invoice.number} — {self.get_status_display()}"
 
 
 class CreditNote(models.Model):

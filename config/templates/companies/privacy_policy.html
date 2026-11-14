@@ -1,0 +1,169 @@
+{% extends "companies/legal_base.html" %}
+{% block title %}Politique de confidentialité{% endblock %}
+{% block legal_heading %}Politique de confidentialité{% endblock %}
+{% block legal_sub %}Données collectées, finalités, sous-traitants et droits RGPD.{% endblock %}
+{% block legal_updated %}Dernière mise à jour : 14 novembre 2026{% endblock %}
+{% block legal_content %}
+<dl class="legal-facts legal-facts--compact">
+  <div><dt>Éditeur</dt><dd>ROAD RUNNER ONE, SAS à associé unique au capital de 1 000,00 €</dd></div>
+  <div><dt>Siège social</dt><dd>15 Rue de Paris, 93800 Épinay-sur-Seine, France</dd></div>
+  <div><dt>Immatriculation</dt><dd>RCS Bobigny 951 386 127 — TVA FR17100408517</dd></div>
+  <div><dt>Contact vie privée</dt><dd><a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a></dd></div>
+</dl>
+
+<h2>1. Qui sommes-nous ?</h2>
+<p>
+  Road Runner Solutions est une plateforme SaaS éditée par la société ROAD RUNNER ONE.
+  Elle permet aux entreprises de gérer leur facturation, leur CRM, leur comptabilité,
+  leurs relances et leur gestion administrative grâce à des agents IA personnalisés.
+  Le responsable de traitement des données est ROAD RUNNER ONE, SAS à associé unique
+  au capital de 1 000 €, domiciliée au 15 Rue de Paris, 93800 Épinay-sur-Seine
+  (RCS Bobigny 951 386 127 — TVA FR17100408517).
+</p>
+
+<h2>2. Quelles données collectons-nous ?</h2>
+<h3>Données personnelles</h3>
+<ul>
+  <li>Nom, prénom ;</li>
+  <li>Adresse e-mail ;</li>
+  <li>Numéro de téléphone ;</li>
+  <li>Photo de profil, si l'utilisateur en ajoute une.</li>
+</ul>
+<h3>Données professionnelles</h3>
+<ul>
+  <li>Nom d'entreprise, forme juridique et slogan ;</li>
+  <li>SIREN, SIRET, numéro de TVA, IBAN et coordonnées de facturation ;</li>
+  <li>Adresse postale professionnelle et informations de contact ;</li>
+  <li>Rôle dans l'entreprise ;</li>
+  <li>Factures, devis, avoirs, clients, contacts, projets et pièces justificatives.</li>
+</ul>
+<h3>Données techniques</h3>
+<ul>
+  <li>Données de session (cookies nécessaires) et préférences d'interface (langue, thème) ;</li>
+  <li>Journaux d'utilisation et de sécurité (connexion, erreurs, actions administratives) ;</li>
+  <li>Microphone : utilisé uniquement pour la dictée vocale lors de la création de documents. L'audio est traité en temps réel et n'est pas conservé sur nos serveurs ni transmis à des tiers à des fins de stockage ou d'analyse.</li>
+</ul>
+
+<h2>3. Pourquoi collectons-nous ces données ?</h2>
+<p>Nous collectons ces données pour les finalités suivantes :</p>
+<ul>
+  <li>Création et gestion des comptes utilisateurs ;</li>
+  <li>Génération de devis, factures, avoirs et documents comptables ;</li>
+  <li>Gestion des clients, des contacts et du suivi commercial ;</li>
+  <li>Envoi d'e-mails et de SMS transactionnels (devis, factures, relances, vérification) ;</li>
+  <li>Lecture OCR des tickets de caisse et import de factures PDF ;</li>
+  <li>Tableaux de bord, analyses et préparation de la facturation électronique ;</li>
+  <li>Personnalisation de l'expérience utilisateur via des agents IA (notamment Aminia) ;</li>
+  <li>Sécurité de la plateforme, prévention de la fraude et support.</li>
+</ul>
+<p class="legal-note">
+  Aucune donnée n'est utilisée à des fins publicitaires ou de prospection commerciale.
+</p>
+<h3>Bases légales (article 6 du RGPD)</h3>
+<ul>
+  <li>Consentement : accès au microphone, envoi de communications non nécessaires au service ;</li>
+  <li>Exécution du contrat : fourniture du service SaaS, facturation, support ;</li>
+  <li>Obligation légale : conservation des factures (10 ans, droit français) ;</li>
+  <li>Intérêt légitime : sécurité, prévention de la fraude, amélioration du service.</li>
+</ul>
+
+<h2>4. Partage des données</h2>
+<p>Nous ne vendons ni ne partageons vos données avec des tiers non autorisés.</p>
+<p>Accès limité aux sous-traitants suivants :</p>
+<ul>
+  <li>Hébergement et base de données : Google Cloud / Firebase (Europe) ;</li>
+  <li>Paiement web : Stripe (États-Unis, couvert par les clauses contractuelles types) ;</li>
+  <li>E-mail transactionnel : prestataire d'envoi (Union européenne ou États-Unis, couvert par les clauses contractuelles types) ;</li>
+  <li>SMS transactionnel : Twilio, Brevo ou OVH selon la configuration choisie ;</li>
+  <li>Vérification des entreprises : API Sirene (INSEE) et API Entreprise / INPI ;</li>
+  <li>Agents IA : fournisseur d'intelligence artificielle configuré par l'éditeur, sans utilisation des données à des fins publicitaires.</li>
+</ul>
+<h3>Partage interne</h3>
+<p>
+  Les données liées à chaque entreprise sont isolées techniquement. Les mécanismes
+  d'accès multi-utilisateur ne sont pas encore actifs ; nous travaillons à
+  l'implémentation d'une gestion fine des autorisations.
+</p>
+
+<h2>5. Où sont stockées vos données ?</h2>
+<p>
+  Les données sont hébergées sur Google Cloud / Firebase, dans des datacenters situés
+  en Europe (Belgique — europe-west1). Les prestataires établis hors Union européenne
+  sont encadrés par les clauses contractuelles types de la Commission européenne.
+</p>
+
+<h2>6. Sécurité</h2>
+<p>Nous mettons en œuvre des mesures de sécurité adaptées :</p>
+<ul>
+  <li>Connexions chiffrées (SSL/TLS) ;</li>
+  <li>Authentification sécurisée et mots de passe hachés ;</li>
+  <li>Isolation des données par entreprise (multi-tenant) ;</li>
+  <li>Accès restreint aux bases de données et aux fonctions d'administration ;</li>
+  <li>Journalisation des actions sensibles.</li>
+</ul>
+<p class="legal-note">
+  En cas de violation de données, nous informerons les utilisateurs concernés dans
+  les 72 heures conformément au RGPD.
+</p>
+
+<h2>7. Vos droits (RGPD)</h2>
+<p>Conformément au Règlement Général sur la Protection des Données, vous disposez des droits suivants :</p>
+<ul>
+  <li>Droit d'accès à vos données ;</li>
+  <li>Droit de rectification ou de suppression ;</li>
+  <li>Droit à la portabilité ;</li>
+  <li>Droit d'opposition à certains traitements ;</li>
+  <li>Droit à la limitation du traitement ;</li>
+  <li>Droit de suppression de votre compte.</li>
+</ul>
+<p>
+  Pour exercer ces droits : <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.
+  Délai de réponse : sous 72 heures, dans la limite légale de 30 jours.
+</p>
+<p>
+  Pour supprimer une société : espace « Configuration » puis « Supprimer la société ».
+  La suppression est immédiate et irréversible. Pour supprimer votre compte utilisateur,
+  adressez une demande à l'adresse ci-dessus.
+</p>
+
+<h2>8. Cookies et traçage</h2>
+<p>Seuls des cookies strictement nécessaires au bon fonctionnement de la plateforme sont utilisés :</p>
+<ul>
+  <li>Session utilisateur et protection CSRF ;</li>
+  <li>Préférences d'interface (thème, langue) ;</li>
+  <li>Aucune publicité ni suivi comportemental.</li>
+</ul>
+<p class="legal-note">
+  Aucun bandeau cookie n'est affiché car aucun cookie non essentiel n'est activé.
+</p>
+
+<h2>9. Durée de conservation</h2>
+<ul>
+  <li>Données utilisateurs : conservées tant que le compte est actif ;</li>
+  <li>Documents comptables et factures : conservés 10 ans conformément au droit français ;</li>
+  <li>Journaux techniques : conservés pour la durée nécessaire à la sécurité et au diagnostic ;</li>
+  <li>Demandes de suppression : traitées dans les meilleurs délais, sous réserve des obligations légales de conservation.</li>
+</ul>
+
+<h2>9 bis. Protection des mineurs</h2>
+<p>
+  Road Runner Solutions est une plateforme logicielle à destination exclusive des
+  professionnels et des entreprises. Elle n'est pas conçue pour, ni destinée aux
+  enfants de moins de 15 ans. Nous ne collectons pas sciemment et ne traitons pas de
+  données relatives à des mineurs.
+</p>
+
+<h2>10. Modification de la présente politique</h2>
+<p>
+  Nous nous réservons le droit de modifier la présente politique à tout moment. Les
+  utilisateurs seront informés via l'interface de la plateforme ou par e-mail en cas
+  de changement significatif.
+</p>
+
+<h2>11. Contact</h2>
+<p>
+  Pour toute question relative à la confidentialité ou à la gestion de vos données :
+  <a href="mailto:admin@road-runner-solutions.com">admin@road-runner-solutions.com</a>.
+</p>
+<p class="legal-copyright">© {% now "Y" %} ROAD RUNNER SOLUTIONS. Tous droits réservés.</p>
+{% endblock %}

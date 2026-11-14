@@ -1280,17 +1280,57 @@
   function initMobileNav() {
     var shell = document.querySelector("[data-app-shell]");
     if (!shell) return;
-    var toggle = shell.querySelector("[data-nav-toggle]");
+    var toggles = Array.prototype.slice.call(shell.querySelectorAll("[data-nav-toggle]"));
+    var desktopToggle = shell.querySelector(".nav-desktop-toggle");
     var drawer = shell.querySelector("[data-app-drawer]") || document.getElementById("app-drawer");
     var backdrop = shell.querySelector("[data-nav-backdrop]");
     var closeBtn = shell.querySelector("[data-nav-close]");
-    if (!toggle || !drawer) return;
+    if (!toggles.length || !drawer) return;
 
     var lastFocus = null;
+    var collapseKey = "rrs-sidebar-collapsed";
     var mq = window.matchMedia ? window.matchMedia("(max-width: 768px)") : null;
 
     function isMobile() {
       return !mq || mq.matches;
+    }
+
+    function readCollapsed() {
+      try {
+        return window.localStorage.getItem(collapseKey) === "1";
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function writeCollapsed(collapsed) {
+      try {
+        if (collapsed) window.localStorage.setItem(collapseKey, "1");
+        else window.localStorage.removeItem(collapseKey);
+      } catch (e) { /* stockage indisponible */ }
+    }
+
+    function syncToggles(open, collapsed) {
+      toggles.forEach(function (btn) {
+        if (btn === desktopToggle) {
+          btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+          btn.setAttribute("aria-label", collapsed ? "Afficher le menu" : "Masquer le menu");
+          btn.setAttribute("title", collapsed ? "Afficher le menu" : "Masquer le menu");
+        } else {
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+          btn.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+        }
+      });
+    }
+
+    function setCollapsed(collapsed) {
+      collapsed = !!collapsed && !isMobile();
+      document.body.classList.toggle("sidebar-collapsed", collapsed);
+      writeCollapsed(collapsed);
+      syncToggles(document.body.classList.contains("nav-open"), collapsed);
+      if (isMobile()) return;
+      if (collapsed) drawer.setAttribute("aria-hidden", "true");
+      else drawer.removeAttribute("aria-hidden");
     }
 
     function getFocusable() {
@@ -1307,9 +1347,9 @@
       if (!isMobile() && open) {
         open = false;
       }
+      if (open) document.body.classList.remove("sidebar-collapsed");
       document.body.classList.toggle("nav-open", !!open);
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      toggle.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+      syncToggles(!!open, document.body.classList.contains("sidebar-collapsed"));
       drawer.setAttribute("aria-hidden", open ? "false" : "true");
       if (backdrop) {
         if (open) {
@@ -1333,15 +1373,23 @@
       }
     }
 
-    // État initial : drawer hors flux mobile → aria-hidden
+    // État initial : drawer hors flux mobile → aria-hidden.
+    // Sur desktop, le bouton de la barre supérieure replie la colonne.
     if (isMobile()) {
       drawer.setAttribute("aria-hidden", "true");
+      syncToggles(false, false);
     } else {
-      drawer.removeAttribute("aria-hidden");
+      setCollapsed(readCollapsed());
     }
 
-    toggle.addEventListener("click", function () {
-      setOpen(!document.body.classList.contains("nav-open"));
+    toggles.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (isMobile()) {
+          setOpen(!document.body.classList.contains("nav-open"));
+        } else {
+          setCollapsed(!document.body.classList.contains("sidebar-collapsed"));
+        }
+      });
     });
     if (closeBtn) {
       closeBtn.addEventListener("click", function () { setOpen(false); });
@@ -1369,11 +1417,16 @@
       }
     });
 
-    // Fermer si on passe en desktop
+    // Synchroniser au changement de format.
     function onMq() {
-      if (!isMobile()) setOpen(false);
-      if (isMobile()) drawer.setAttribute("aria-hidden", document.body.classList.contains("nav-open") ? "false" : "true");
-      else drawer.removeAttribute("aria-hidden");
+      if (!isMobile()) {
+        setOpen(false);
+        setCollapsed(readCollapsed());
+      } else {
+        document.body.classList.remove("sidebar-collapsed");
+        drawer.setAttribute("aria-hidden", document.body.classList.contains("nav-open") ? "false" : "true");
+        syncToggles(document.body.classList.contains("nav-open"), false);
+      }
     }
     if (mq) {
       if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);

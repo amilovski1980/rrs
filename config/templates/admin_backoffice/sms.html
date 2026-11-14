@@ -5,7 +5,7 @@
 <div class="page-head">
   <div>
     <h1>SMS</h1>
-    <p class="sub">OVH, Brevo et Twilio se configurent ici. L'envoi réel n'est pas branché : le bouton Tester ne contacte pas le fournisseur, et le journal passe par le hook <code>dispatch_sms</code>.</p>
+    <p class="sub">OVH, Brevo et Twilio se configurent ici. Le bouton Tester envoie un vrai SMS si un numéro est renseigné ; sinon il vérifie seulement les identifiants. Chaque tentative est journalisée.</p>
   </div>
 </div>
 
@@ -14,7 +14,7 @@
   <input type="hidden" name="action" value="config">
   <div class="card admin-form">
     <h2 style="margin-top:0;font-family:var(--font-head)">Fournisseur utilisé pour l'envoi</h2>
-    <label for="active_provider">Celui qui sera appelé par le hook quand l'API sera branchée.</label>
+    <label for="active_provider">Celui qui sera appelé par <code>dispatch_sms</code> pour les envois applicatifs.</label>
     <select id="active_provider" name="active_provider">
       <option value="">Aucun</option>
       {% for provider in providers %}
@@ -55,8 +55,10 @@
 
 <div class="provider-grid" style="margin-top:16px">
   {% for provider in providers %}
-  <form method="post" action="{% url 'admin_backoffice:sms_test' provider.code %}">
+  <form method="post" action="{% url 'admin_backoffice:sms_test' provider.code %}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     {% csrf_token %}
+    <label class="sr-only" for="test-{{ provider.code }}">Numéro de test {{ provider.label }}</label>
+    <input id="test-{{ provider.code }}" type="tel" name="recipient" placeholder="+33 6 12 34 56 78" style="flex:1 1 170px;margin:0">
     <button class="btn btn-ghost" type="submit">Tester {{ provider.label }}</button>
   </form>
   {% endfor %}

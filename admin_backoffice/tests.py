@@ -436,13 +436,141 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.assertEqual(kept.status_code, 302)
         stored.refresh_from_db()
         self.assertEqual(stored.credentials["api_key"], secret)
-        tested = self.client.post(reverse("admin_backoffice:sms_test", kwargs={"code": "brevo"}), follow=True)
-        self.assertContains(tested, "pas encore branché")
+        from unittest import mock
+
+        with mock.patch("admin_backoffice.sms.httpx.post") as posted:
+            posted.return_value.status_code = 201
+            tested = self.client.post(
+                reverse("admin_backoffice:sms_test", kwargs={"code": "brevo"}),
+                {"recipient": "+33601020304"},
+                follow=True,
+            )
+        self.assertContains(tested, "SMS envoyé")
         self.assertNotContains(tested, secret)
-        entry = dispatch_sms(recipient="+33601020304", body="Bonjour", actor=self.admin)
-        self.assertEqual(entry.status, "skipped")
+        _, kwargs = posted.call_args
+        self.assertEqual(kwargs["headers"]["api-key"], secret)
+        self.assertEqual(kwargs["json"]["recipient"], "+33601020304")
+
+        with mock.patch("admin_backoffice.sms.httpx.post") as sent:
+            sent.return_value.status_code = 201
+            entry = dispatch_sms(recipient="+33601020304", body="Bonjour", actor=self.admin)
+        self.assertEqual(entry.status, "sent")
         self.assertIn("Brevo", entry.detail)
         self.assertTrue(SmsMessage.objects.filter(pk=entry.pk).exists())
+
+    def test_twilio_test_button_sends_a_real_request(self):
+        from unittest import mock
+
+        from admin_backoffice.models import SmsMessage, SmsProviderConfig
+
+        self.client.login(email="boss@rrs.fr", password="password123")
+        SmsProviderConfig.objects.update_or_create(
+            code="twilio",
+            defaults={
+                "enabled": True,
+                "sender_name": "RRS",
+                "credentials": {
+                    "account_sid": "AC123",
+                    "auth_token": "token-secret-123",
+                    "from_number": "+33600000000",
+                },
+            },
+        )
+        with mock.patch("admin_backoffice.sms.httpx.post") as posted:
+            posted.return_value.status_code = 201
+            response = self.client.post(reverse("admin_backoffice:settings_test"), {
+                "action": "sms",
+                "provider": "twilio",
+                "recipient": "+33612345678",
+            })
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("#sms", response["Location"])
+        args, kwargs = posted.call_args
+        self.assertIn("/Accounts/AC123/Messages.json", args[0])
+        self.assertEqual(kwargs["auth"], ("AC123", "token-secret-123"))
+        self.assertEqual(kwargs["data"]["To"], "+33612345678")
+        self.assertEqual(kwargs["data"]["From"], "+33600000000")
+        message = SmsMessage.objects.latest("created_at")
+        self.assertEqual(message.status, "sent")
+        self.assertEqual(message.provider, "twilio")
+
+    def test_settings_test_route_covers_smtp_stripe_and_einvoicing(self):
+        from unittest import mock
+
+        self.client.login(email="boss@rrs.fr", password="password123")
+        with mock.patch(
+            "admin_backoffice.views.probe_smtp",
+            return_value={"ok": True, "message": "SMTP : email de test envoyé."},
+        ) as smtp:
+            response = self.client.post(reverse("admin_backoffice:settings_test"), {
+                "action": "smtp",
+                "recipient": "test@example.fr",
+            })
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("#email", response["Location"])
+        smtp.assert_called_once_with("test@example.fr")
+
+        with mock.patch(
+            "admin_backoffice.views.probe",
+            return_value={"ok": True, "message": "Stripe : connexion établie."},
+        ):
+            stripe = self.client.post(
+                reverse("admin_backoffice:settings_test"),
+                {"action": "stripe"},
+                follow=True,
+            )
+        self.assertContains(stripe, "Stripe : connexion établie.")
+
+        with mock.patch(
+            "admin_backoffice.views.send_test_sms",
+            return_value={"ok": True, "message": "SMS envoyé."},
+        ) as sms:
+            self.client.post(reverse("admin_backoffice:settings_test"), {
+                "action": "sms",
+                "provider": "twilio",
+                "recipient": "+33612345678",
+            })
+        sms.assert_called_once()
+        self.assertEqual(sms.call_args.args[:2], ("twilio", "+33612345678"))
+
+    def test_settings_page_shows_configuration_center_and_einvoicing(self):
+        self.client.login(email="boss@rrs.fr", password="password123")
+        page = self.client.get(reverse("admin_backoffice:settings"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Centre de configuration")
+        self.assertContains(page, "Facturation électronique")
+        self.assertContains(page, "Factur-X")
+        self.assertContains(page, "Tester l'envoi")
+        self.assertContains(page, "Tester Stripe")
+        self.assertContains(page, "Tester Twilio")
+
+    def test_probe_smtp_uses_the_saved_configuration(self):
+        from unittest import mock
+
+        from admin_backoffice.integrations import probe_smtp
+        from admin_backoffice.models import SiteConfiguration
+
+        config, _ = SiteConfiguration.objects.get_or_create(pk=1)
+        config.smtp_host = "smtp.example.fr"
+        config.smtp_port = 587
+        config.smtp_user = "mailer@example.fr"
+        config.smtp_password = "smtp-secret-123"
+        config.email_from = "no-reply@example.fr"
+        config.save()
+        with mock.patch("admin_backoffice.integrations.get_connection") as get_connection:
+            connection = mock.Mock()
+            get_connection.return_value = connection
+            result = probe_smtp("test@example.fr")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["message"], "SMTP : email de test envoyé à test@example.fr.")
+        _, kwargs = get_connection.call_args
+        self.assertEqual(kwargs["host"], "smtp.example.fr")
+        self.assertEqual(kwargs["port"], 587)
+        self.assertEqual(kwargs["username"], "mailer@example.fr")
+        self.assertEqual(kwargs["password"], "smtp-secret-123")
+        self.assertTrue(kwargs["use_tls"])
+        self.assertTrue(connection.send_messages.called)
+        self.assertNotIn("smtp-secret-123", result["message"])
 
     def test_prompt_editor_saves_global_and_plan_layers(self):
         from admin_backoffice.agent_prompts import layers_for_user
@@ -631,6 +759,7 @@ class EveryAdminPageTests(TestCase):
             ("impersonate_stop", {}, {}),
             ("integrations_test", {"code": "insee"}, {}),
             ("sms_test", {"code": "ovh"}, {}),
+            ("settings_test", {}, {"action": "einvoicing"}),
         ]
 
 

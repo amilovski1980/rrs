@@ -2,10 +2,15 @@
 from __future__ import annotations
 
 import logging
+import smtplib
+import socket
 from urllib.parse import urlparse
 
 import httpx
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.mail import EmailMessage, get_connection
+from django.core.validators import validate_email
 
 from .sms import mask_secret
 
@@ -114,6 +119,91 @@ def stripe_material():
         "webhook": webhook,
         "configured": bool(secret),
     }
+
+
+def smtp_material():
+    """Réglages SMTP effectifs : la base prime sur l'environnement."""
+    config = _config()
+    host = _overlay(getattr(settings, "EMAIL_HOST", ""), getattr(config, "smtp_host", "") if config else "")
+    port = getattr(config, "smtp_port", None) if config else None
+    if not port:
+        port = getattr(settings, "EMAIL_PORT", 587) or 587
+    user = _overlay(
+        getattr(settings, "EMAIL_HOST_USER", ""),
+        getattr(config, "smtp_user", "") if config else "",
+    )
+    password = _overlay(
+        getattr(settings, "EMAIL_HOST_PASSWORD", ""),
+        getattr(config, "smtp_password", "") if config else "",
+    )
+    from_email = _overlay(
+        getattr(settings, "DEFAULT_FROM_EMAIL", ""),
+        getattr(config, "email_from", "") if config else "",
+    )
+    use_ssl = int(port) == 465
+    use_tls = int(port) == 587
+    return {
+        "host": host,
+        "port": int(port),
+        "user": user,
+        "password": password,
+        "from_email": from_email,
+        "use_tls": use_tls,
+        "use_ssl": use_ssl,
+        "configured": bool(host and (user or password)),
+    }
+
+
+def probe_smtp(recipient: str) -> dict:
+    """Envoie un vrai email de test avec la configuration SMTP enregistrée."""
+    material = smtp_material()
+    recipient = (recipient or "").strip()
+    if not recipient:
+        return {"ok": False, "message": "SMTP : indiquez une adresse de test."}
+    try:
+        validate_email(recipient)
+    except ValidationError:
+        return {"ok": False, "message": "SMTP : adresse de test invalide."}
+    if not material["host"]:
+        return {"ok": False, "message": "SMTP : aucun hôte configuré."}
+    if not (material["user"] or material["password"]):
+        return {
+            "ok": False,
+            "message": "SMTP : renseignez un utilisateur ou un mot de passe avant le test.",
+        }
+    subject = "Test SMTP — Road Runner Solutions"
+    body = (
+        "Ce message confirme que l'envoi d'emails est correctement configuré.\n\n"
+        "Vous pouvez ignorer cet email.\n"
+        "— Road Runner Solutions"
+    )
+    secrets = [material["password"]]
+    try:
+        connection = get_connection(
+            backend="django.core.mail.backends.smtp.EmailBackend",
+            host=material["host"],
+            port=material["port"],
+            username=material["user"],
+            password=material["password"],
+            use_tls=material["use_tls"],
+            use_ssl=material["use_ssl"],
+            timeout=15,
+        )
+        message = EmailMessage(
+            subject=subject,
+            body=body,
+            from_email=material["from_email"] or material["user"],
+            to=[recipient],
+            connection=connection,
+        )
+        message.send(fail_silently=False)
+    except smtplib.SMTPAuthenticationError:
+        return {"ok": False, "message": "SMTP : authentification refusée. Vérifiez l'utilisateur et le mot de passe."}
+    except (smtplib.SMTPException, socket.timeout, TimeoutError, OSError) as exc:
+        return {"ok": False, "message": "SMTP : envoi impossible. " + _safe(exc, secrets)}
+    except Exception as exc:
+        return {"ok": False, "message": "SMTP : envoi impossible. " + _safe(exc, secrets)}
+    return {"ok": True, "message": f"SMTP : email de test envoyé à {recipient}."}
 
 
 def integration_cards() -> list[dict]:

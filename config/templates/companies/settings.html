@@ -34,9 +34,22 @@
       </div>
       <label>{{ form.address.label }}</label>
       {{ form.address }}
-      <label>{{ form.email.label }}</label>
-      {{ form.email }}
-      {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+      <div class="form-grid">
+        <div>
+          <label>{{ form.tva_intra.label }}</label>
+          {{ form.tva_intra }}
+          <p class="micro">{{ form.tva_intra.help_text }}</p>
+          {% if form.tva_intra.errors %}<p class="error">{{ form.tva_intra.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label>{{ form.email.label }}</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <label>{{ form.slogan.label }}</label>
+      {{ form.slogan }}
+      {% if form.slogan.errors %}<p class="error">{{ form.slogan.errors.0 }}</p>{% endif %}
       <label>Logo</label>
       {% if company.logo %}
       <p><img src="{% url 'company_logo' %}?societe={{ company.id }}" alt="Logo" style="max-height:64px;max-width:180px"></p>
@@ -75,4 +88,17 @@
     </div>
   </div>
 </div>
+
+<section class="card settings-danger">
+  <h2>Supprimer la société</h2>
+  <p class="muted">Cette action supprime définitivement {{ company.denomination }} et toutes ses données : factures, clients, contacts, comptabilité et documents.</p>
+  <details>
+    <summary class="btn btn-danger">Supprimer cette société</summary>
+    <form class="form-stack" method="post" action="{% url 'company_delete' %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer définitivement cette société et toutes ses données ?')" style="margin-top:12px">
+      {% csrf_token %}
+      <label class="micro"><input type="checkbox" name="confirm" value="supprimer" required> Je comprends que la suppression est définitive.</label>
+      <button class="btn btn-danger" type="submit">Supprimer définitivement</button>
+    </form>
+  </details>
+</section>
 {% endblock %}
