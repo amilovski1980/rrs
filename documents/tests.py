@@ -982,6 +982,7 @@ class TicketCameraUploadTests(TestCase):
         self.assertContains(r, 'accept="image/*"')
         self.assertContains(r, "mobile-only")
         self.assertContains(r, 'data-ticket-upload-form')
+        self.assertContains(r, "ticket-upload-form")
         self.assertContains(r, 'id="id_fichier"', count=1)
         self.assertContains(r, 'name="fichier"', count=1)
 

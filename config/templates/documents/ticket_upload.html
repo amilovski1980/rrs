@@ -11,7 +11,7 @@
   <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Retour</a>
 </div>
 
-<form class="card card-tight form-stack" method="post" enctype="multipart/form-data" data-ticket-upload-form style="max-width:560px">
+<form class="card card-tight form-stack ticket-upload-form" method="post" enctype="multipart/form-data" data-ticket-upload-form>
   {% csrf_token %}
 
   <div class="field mobile-only ticket-camera-block">
