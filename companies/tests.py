@@ -309,6 +309,15 @@ class MobileNavChromeTests(TestCase):
         self.assertIn("/societe/", body)
         self.assertIn("/aide/", body)
         self.assertIn("/mentions-legales/", body)
+        self.assertIn("mobile-tables.js", body)
+
+        from pathlib import Path
+
+        css = (
+            Path(__file__).resolve().parents[1] / "static" / "css" / "app.css"
+        ).read_text(encoding="utf-8")
+        self.assertIn(".card-tight.mobile-cards", css)
+        self.assertIn(".page-head div.page-actions", css)
         # Page courante mise en avant
         self.assertIn('side-link active', body)
 
