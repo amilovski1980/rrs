@@ -1,7 +1,9 @@
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -55,6 +57,41 @@ class PurchaseTestCase(TestCase):
         }
         data.update(overrides)
         return PurchaseInvoice.objects.create(**data)
+
+    def test_pdf_import_creates_purchase_draft_and_keeps_file(self):
+        self.client.force_login(self.user)
+        payload = b"%PDF-1.4 facture fournisseur"
+        upload = SimpleUploadedFile(
+            "facture-fournisseur.pdf", payload, content_type="application/pdf"
+        )
+        parsed = {
+            "client_name": "Plomberie Martin",
+            "invoice_number": "FM-2026-009",
+            "invoice_date": "10/03/2026",
+            "amount_ht": Decimal("1000.00"),
+            "amount_ttc": Decimal("1200.00"),
+            "vat_rate": Decimal("20.00"),
+        }
+        with patch("purchases.views.extract_pdf_text", return_value="Facture"), patch(
+            "purchases.views.parse_invoice_text", return_value=parsed
+        ):
+            response = self.client.post(
+                reverse("purchases:import_pdf") + f"?societe={self.company.id}",
+                {"pdf_file": upload},
+            )
+        self.assertEqual(response.status_code, 302)
+        invoice = PurchaseInvoice.objects.get(
+            company=self.company, number="FM-2026-009"
+        )
+        self.assertEqual(invoice.amount_ht, Decimal("1000.00"))
+        self.assertEqual(invoice.amount_vat, Decimal("200.00"))
+        self.assertEqual(bytes(invoice.attachment_data), payload)
+        download = self.client.get(
+            reverse("purchases:attachment", args=[invoice.id])
+            + f"?societe={self.company.id}"
+        )
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(download.content, payload)
 
     def test_post_purchase_creates_balanced_entry(self):
         invoice = self._invoice()

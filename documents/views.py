@@ -15,7 +15,7 @@ from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
 from billing.access import UPGRADE_MESSAGE, feature_on
-from companies.models import INVOICE_THEMES
+from companies.models import INVOICE_LAYOUTS, INVOICE_THEMES
 from core.context import resolve_company
 
 from .emailing import send_document_email
@@ -282,6 +282,7 @@ def invoice_detail(request, pk):
         "company": company,
         "invoice": invoice,
         "themes": INVOICE_THEMES,
+        "layouts": INVOICE_LAYOUTS,
         "payments": invoice.payments.all(),
         "credit_notes": invoice.credit_notes.all(),
         "lines": invoice.lines.all(),

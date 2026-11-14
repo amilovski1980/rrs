@@ -195,6 +195,46 @@
   <div>
     <h2 style="margin:0 0 12px;font-size:18px">Modèle de facture</h2>
     <div class="model-grid">
+      <form method="post" class="model-pick">
+        {% csrf_token %}
+        <input type="hidden" name="layout" value="">
+        <button class="model-card {% if not company.invoice_layout %}is-on{% endif %}" type="submit" aria-label="Automatique" aria-pressed="{% if not company.invoice_layout %}true{% else %}false{% endif %}">
+          <span class="model-preview model-layout-auto" aria-hidden="true">
+            <span class="mp-top">
+              <span class="mp-logo"></span>
+              <span class="mp-id"><i></i><i></i></span>
+            </span>
+            <span class="mp-who"><i></i><i></i></span>
+            <span class="mp-row"></span>
+            <span class="mp-row short"></span>
+            <span class="mp-due"><i></i><b></b></span>
+          </span>
+          <span class="model-label">Automatique</span>
+        </button>
+      </form>
+      {% for code, label in layouts %}
+      <form method="post" class="model-pick">
+        {% csrf_token %}
+        <input type="hidden" name="layout" value="{{ code }}">
+        <button class="model-card {% if company.invoice_layout == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}" aria-pressed="{% if company.invoice_layout == code %}true{% else %}false{% endif %}">
+          <span class="model-preview model-layout-{{ code }}" aria-hidden="true">
+            <span class="mp-top">
+              <span class="mp-logo"></span>
+              <span class="mp-id"><i></i><i></i></span>
+            </span>
+            <span class="mp-who"><i></i><i></i></span>
+            <span class="mp-row"></span>
+            <span class="mp-row short"></span>
+            <span class="mp-due"><i></i><b></b></span>
+          </span>
+          <span class="model-label">{{ label }}</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+
+    <h2 style="margin:22px 0 12px;font-size:18px">Couleur de facture</h2>
+    <div class="model-grid">
       {% for code, label in themes %}
       <form method="post" class="model-pick">
         {% csrf_token %}

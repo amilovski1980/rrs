@@ -105,6 +105,13 @@ class PurchaseInvoice(models.Model):
         blank=True,
         verbose_name="Justificatif",
     )
+    attachment_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Justificatif en base",
+    )
+    attachment_type = models.CharField(max_length=80, blank=True)
     attachment_name = models.CharField(max_length=255, blank=True)
 
     notes = models.TextField(blank=True, verbose_name="Notes")

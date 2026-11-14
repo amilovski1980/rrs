@@ -1024,7 +1024,10 @@ def _draw_totals(pdf, document, kind, rows):
 
 def render_document_pdf(document, company, kind: str = "invoice") -> bytes:
     theme = company.invoice_theme if company.invoice_theme in PALETTES else "azur"
-    palette = PALETTES[theme]
+    palette = dict(PALETTES[theme])
+    layout = (getattr(company, "invoice_layout", "") or "").strip()
+    if layout in ("royal", "emerald", "imperial", "bordeaux", "sapphire"):
+        palette["layout"] = layout
     kind_title = KIND_TITLES.get(kind, "FACTURE")
     rows = _line_items(document)
     left = 16

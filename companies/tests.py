@@ -78,6 +78,15 @@ class CompanySettingsTests(TestCase):
         for label in ("Graphite", "Indigo", "Terra"):
             self.assertContains(page, label)
 
+    def test_invoice_layout_switch(self):
+        response = self.client.post("/societe/", {
+            "layout": "emerald",
+            "next": "/cockpit/",
+        })
+        self.assertRedirects(response, "/cockpit/", fetch_redirect_response=False)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_layout, "emerald")
+
     def test_accepts_graphite_theme(self):
         response = self.client.post("/societe/", {
             "theme": "graphite",

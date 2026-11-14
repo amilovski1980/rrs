@@ -8,9 +8,12 @@
     <h1>Factures fournisseurs</h1>
     <p class="sub">{{ company.denomination }} — registre des achats et échéances.</p>
   </div>
-  <a class="btn btn-primary page-actions" href="{% url 'purchases:create' %}?societe={{ company.id }}">
-    {% include "partials/icon.html" with name="plus" %} Nouvelle facture
-  </a>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'purchases:import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+    <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+    </a>
+  </div>
 </div>
 
 <form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">

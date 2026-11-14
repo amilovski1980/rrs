@@ -15,6 +15,7 @@
     <a class="btn btn-ghost" href="{% url 'suppliers:list' %}?societe={{ company.id }}">
       {% include "partials/icon.html" with name="building" %} Fournisseurs
     </a>
+    <a class="btn btn-ghost" href="{% url 'purchases:import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
     <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">
       {% include "partials/icon.html" with name="plus" %} Nouvelle facture
     </a>

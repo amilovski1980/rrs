@@ -18,7 +18,7 @@ from core.context import resolve_company
 
 from django.http import HttpResponse
 
-from .models import INVOICE_THEMES, SMTP_PROVIDERS, Company
+from .models import INVOICE_LAYOUTS, INVOICE_THEMES, SMTP_PROVIDERS, Company
 from .rib_scan import RibScanError, scan_rib_upload
 
 SMTP_PRESETS = {
@@ -540,6 +540,7 @@ def _settings_extra_context(company):
     linked = bool(mailbox and mailbox.has_tokens)
     return {
         "smtp_presets": SMTP_PRESETS,
+        "layouts": INVOICE_LAYOUTS,
         "google_mail_linked": linked,
         "google_mail_connected": linked and "gmail.send" in scopes,
         "google_mail_email": getattr(mailbox, "email_address", "") if mailbox else "",
@@ -552,6 +553,15 @@ def company_settings(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
+    if request.method == "POST" and "layout" in request.POST and "denomination" not in request.POST:
+        layout = request.POST.get("layout") or ""
+        if layout == "" or layout in dict(INVOICE_LAYOUTS):
+            company.invoice_layout = layout
+            company.save(update_fields=["invoice_layout"])
+        nxt = request.POST.get("next") or ""
+        if not nxt.startswith("/") or nxt.startswith("//"):
+            nxt = reverse("company_settings") + f"?societe={company.id}"
+        return redirect(nxt)
     if request.method == "POST" and request.POST.get("theme") and "denomination" not in request.POST:
         theme = request.POST.get("theme")
         from billing.access import UPGRADE_MESSAGE, theme_allowed
