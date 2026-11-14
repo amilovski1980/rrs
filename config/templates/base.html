@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.7">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.7">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.8">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.8">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -275,12 +275,12 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="receipt" %}</span>
       <span>Achats</span>
     </a>
-    <a class="m-footer-btn {% if request.resolver_match.namespace == 'banking' %}active{% endif %}"
-       href="{% if forfait.locks.banking %}{% url 'plan_upgrade' %}{% else %}{% url 'banking:dashboard' %}{% endif %}"
-       {% if forfait.locks.banking %}title="Mettre à jour le forfait"{% endif %}
-       {% if request.resolver_match.namespace == 'banking' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
-      <span>Banque</span>
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' %}active{% endif %}"
+       href="{% if forfait.can_invoice %}{% url 'invoice_create' %}{% else %}{% url 'plan_upgrade' %}{% endif %}"
+       {% if not forfait.can_invoice %}title="Mettre à jour le forfait"{% endif %}
+       {% if request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' %} aria-current="page"{% endif %}>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="pencil" %}</span>
+      <span>Facturer</span>
     </a>
     <a class="m-footer-btn {% if request.resolver_match.namespace == 'treasury' %}active{% endif %}"
        href="{% if forfait.locks.treasury %}{% url 'plan_upgrade' %}{% else %}{% url 'treasury:dashboard' %}{% endif %}"

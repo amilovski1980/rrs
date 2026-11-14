@@ -1,26 +1,26 @@
 <tr class="invoice-line-row" data-line-form>
   {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
-  <td class="line-product">
+  <td class="line-product" data-label="Produit">
     {{ line_form.product }}
     {% if line_form.product.errors %}<p class="error">{{ line_form.product.errors.0 }}</p>{% endif %}
   </td>
-  <td class="line-description">
+  <td class="line-description" data-label="Désignation">
     {{ line_form.description }}
     {% if line_form.description.errors %}<p class="error">{{ line_form.description.errors.0 }}</p>{% endif %}
   </td>
-  <td class="line-qty">
+  <td class="line-qty" data-label="Qté">
     {{ line_form.quantity }}
     {% if line_form.quantity.errors %}<p class="error">{{ line_form.quantity.errors.0 }}</p>{% endif %}
   </td>
-  <td class="line-price">
+  <td class="line-price" data-label="PU HT">
     {{ line_form.unit_price }}
     {% if line_form.unit_price.errors %}<p class="error">{{ line_form.unit_price.errors.0 }}</p>{% endif %}
   </td>
-  <td class="line-vat">
+  <td class="line-vat" data-label="TVA %">
     {{ line_form.vat_rate }}
     {% if line_form.vat_rate.errors %}<p class="error">{{ line_form.vat_rate.errors.0 }}</p>{% endif %}
   </td>
-  <td class="num line-total" data-line-total>0,00 €</td>
+  <td class="num line-total" data-line-total data-label="Total HT">0,00 €</td>
   <td class="line-remove">
     {% if not line_form.is_new %}
     <label class="line-delete" title="Supprimer cette ligne">

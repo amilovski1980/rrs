@@ -38,6 +38,16 @@
     var previewHt = root.querySelector("[data-preview-ht]");
     var previewVat = root.querySelector("[data-preview-vat]");
     var previewTtc = root.querySelector("[data-preview-ttc]");
+    var advanced = root.querySelector("[data-invoice-advanced]");
+
+    // Mobile : replier les options secondaires, sauf si une erreur doit être vue.
+    if (
+      advanced &&
+      window.matchMedia("(max-width: 768px)").matches &&
+      !advanced.querySelector(".error")
+    ) {
+      advanced.open = false;
+    }
 
     function rowDeleted(row) {
       var checkbox = row.querySelector('input[name$="-DELETE"]');
@@ -126,6 +136,9 @@
       totalForms.value = index + 1;
       var description = rowField(row, "description");
       if (description) description.focus();
+      if (window.matchMedia("(max-width: 768px)").matches && row.scrollIntoView) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       updateTotals();
     }
 
