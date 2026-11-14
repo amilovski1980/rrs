@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Contrôle facture{% endblock %}
+{% block crumbs %}Société / Connecteur e-mail / Contrôle{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .split-review { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(360px, .9fr); gap: 18px; align-items: start; }
+  .pdf-frame { width: 100%; height: calc(100vh - 215px); min-height: 520px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .preview-fallback { max-height: calc(100vh - 215px); min-height: 260px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.5; background: #fbfbfd; border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .amount-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .review-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .review-actions .btn { width: 100%; }
+  .review-actions .btn-danger { background: #fff; }
+  .review-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .review-head h2 { margin: 0; font-size: 17px; }
+  .review-file { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); word-break: break-all; }
+  .review-note { margin: 10px 0 0; }
+  @media (max-width: 980px) {
+    .split-review { grid-template-columns: 1fr; }
+    .pdf-frame { height: 58vh; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Contrôle de la facture</h1>
+    <p class="sub">
+      Vérifiez l'aperçu et les montants. La validation crée une écriture définitive
+      dans le journal d'achats et archive le justificatif.
+    </p>
+  </div>
+  <div class="mail-actions" style="display:flex;gap:10px">
+    <a class="btn btn-ghost" href="{% url 'mailsync:drafts' %}">Retour à la liste</a>
+  </div>
+</div>
+
+<div class="split-review">
+  <section class="card">
+    <div class="review-head">
+      <h2>Justificatif</h2>
+      <span class="badge draft-source">{{ draft.get_source_display }}</span>
+      {% if draft.status == "validated" %}<span class="badge badge-green">Validée</span>{% elif draft.status == "ignored" %}<span class="badge">Ignorée</span>{% endif %}
+    </div>
+    <p class="review-file">
+      {{ draft.attachment_name|default:"Sans pièce jointe" }}
+      {% if has_attachment %}
+        — <a href="{% url 'mailsync:draft_pdf' draft.pk %}" target="_blank" rel="noopener">ouvrir dans un onglet</a>
+      {% endif %}
+    </p>
+
+    {% if has_attachment and draft.is_pdf %}
+      <iframe class="pdf-frame" src="{% url 'mailsync:draft_pdf' draft.pk %}" title="Aperçu du justificatif"></iframe>
+    {% elif draft.raw_text %}
+      <pre class="preview-fallback">{{ draft.raw_text }}</pre>
+    {% else %}
+      <ul class="form-errors"><li>Aucun aperçu disponible pour ce justificatif.</li></ul>
+    {% endif %}
+
+    {% if draft.source_emails.first %}
+      <p class="micro review-note">
+        Source : {{ draft.source_emails.first.from_email }} —
+        {{ draft.source_emails.first.subject }}
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 style="margin:0 0 12px;font-size:17px">Écriture proposée</h2>
+
+    {% if draft.status == "pending" %}
+      {% if form.non_field_errors %}
+        <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if draft.supplier %}
+        <p class="micro" style="margin-top:0">Fournisseur reconnu : <strong>{{ draft.supplier.name }}</strong></p>
+      {% else %}
+        <p class="micro" style="margin-top:0">Nouveau fournisseur : il sera créé à la validation.</p>
+      {% endif %}
+
+      <form class="form-stack" method="post" action="{% url 'mailsync:draft_validate' draft.pk %}">
+        {% csrf_token %}
+
+        <div>
+          <label for="{{ form.supplier_name.id_for_label }}">{{ form.supplier_name.label }}</label>
+          {{ form.supplier_name }}
+          {% if form.supplier_name.errors %}<p class="error">{{ form.supplier_name.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.invoice_number.id_for_label }}">{{ form.invoice_number.label }}</label>
+            {{ form.invoice_number }}
+          </div>
+          <div>
+            <label for="{{ form.invoice_date.id_for_label }}">{{ form.invoice_date.label }}</label>
+            {{ form.invoice_date }}
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.journal.id_for_label }}">{{ form.journal.label }}</label>
+            {{ form.journal }}
+          </div>
+          <div>
+            <label for="{{ form.vat_rate.id_for_label }}">{{ form.vat_rate.label }}</label>
+            {{ form.vat_rate }}
+          </div>
+        </div>
+
+        <div class="amount-grid">
+          <div>
+            <label for="{{ form.amount_ht.id_for_label }}">{{ form.amount_ht.label }}</label>
+            {{ form.amount_ht }}
+          </div>
+          <div>
+            <label for="{{ form.amount_vat.id_for_label }}">{{ form.amount_vat.label }}</label>
+            {{ form.amount_vat }}
+          </div>
+          <div>
+            <label for="{{ form.amount_ttc.id_for_label }}">{{ form.amount_ttc.label }}</label>
+            {{ form.amount_ttc }}
+          </div>
+          <div>
+            <label for="{{ form.charge_account_code.id_for_label }}">{{ form.charge_account_code.label }}</label>
+            {{ form.charge_account_code }}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+          {{ form.vat_account_code }}
+          <p class="micro">Ignoré si la société est en franchise de TVA.</p>
+        </div>
+
+        {% if draft.supplier_siret or draft.supplier_vat %}
+          <p class="micro" style="margin:0">
+            Identifiants extraits :
+            {% if draft.supplier_siret %}SIRET {{ draft.supplier_siret }}{% endif %}
+            {% if draft.supplier_vat %} · TVA {{ draft.supplier_vat }}{% endif %}
+          </p>
+        {% endif %}
+
+        <div class="review-actions">
+          <button class="btn btn-primary btn-lg" type="submit">Valider en journal ACH</button>
+        </div>
+      </form>
+
+      <form method="post" action="{% url 'mailsync:draft_ignore' draft.pk %}"
+            onsubmit="return confirm('Ignorer cette facture ? Le message ne sera pas réimporté.');">
+        {% csrf_token %}
+        <div class="review-actions">
+          <button class="btn btn-danger" type="submit">Ignorer</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="micro">
+        Ce brouillon a déjà été traité.
+        {% if draft.entry %}Écriture liée : {{ draft.entry.journal.code }} du {{ draft.entry.date|date:"d/m/Y" }}.{% endif %}
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="{% url 'mailsync:drafts' %}">Retour à la liste</a>
+        {% if draft.purchase_invoices.first %}
+        <a class="btn btn-primary" href="{% url 'purchases:detail' draft.purchase_invoices.first.pk %}?societe={{ company.id }}">Voir dans Achats</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

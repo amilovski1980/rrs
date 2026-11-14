@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Créer l'écriture bancaire{% endblock %}
+{% block crumbs %}Banque / Nouvelle écriture{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Créer l'écriture</h1>
+    <p class="sub">
+      {{ transaction.label }} · {{ transaction.date|date:"d/m/Y" }} ·
+      {{ transaction.amount|floatformat:2 }} €
+    </p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Retour</a>
+</div>
+
+<form method="post" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+      {{ form.date }}
+    </div>
+    <div>
+      <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+      {{ form.reference }}
+    </div>
+  </div>
+  <div>
+    <label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>
+    {{ form.label }}
+    {% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.counterpart_code.id_for_label }}">{{ form.counterpart_code.label }}</label>
+      {{ form.counterpart_code }}
+      <p class="micro">{{ form.counterpart_code.help_text }}</p>
+      {% if form.counterpart_code.errors %}<p class="error">{{ form.counterpart_code.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+      {{ form.vat_account_code }}
+    </div>
+    <div>
+      <label for="{{ form.vat_amount.id_for_label }}">{{ form.vat_amount.label }}</label>
+      {{ form.vat_amount }}
+      <p class="micro">Laissez 0 pour une opération sans TVA. Le crédit bancaire reste le montant TTC.</p>
+      {% if form.vat_amount.errors %}<p class="error">{{ form.vat_amount.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+  {% if rule %}
+  <p class="micro">Règle appliquée : {{ rule.name }}{% if rule.counterpart_account %} → {{ rule.counterpart_account.code }} {{ rule.counterpart_account.label }}{% endif %}.</p>
+  {% endif %}
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Créer et rapprocher</button>
+  </div>
+</form>
+{% endblock %}

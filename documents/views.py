@@ -4,6 +4,8 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.files.base import ContentFile
+from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
@@ -21,11 +23,13 @@ from .forms import (
     ClientForm,
     CreditNoteForm,
     InvoiceForm,
+    InvoiceLineFormSet,
     PaymentForm,
     PdfImportForm,
     ProductForm,
     ProjectForm,
     QuoteForm,
+    QuoteLineFormSet,
     TicketDeCaisseForm,
     TicketUploadForm,
 )
@@ -52,10 +56,13 @@ from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
 from .pdf_import import PdfImportError, import_invoice_pdf
 from .services import (
     convert_quote_to_invoice,
+    delete_payment,
     issue_credit_note,
     issue_invoice,
     issue_quote_number,
     pay_invoice,
+    recompute_invoice_totals_from_lines,
+    recompute_quote_totals_from_lines,
     register_payment,
     sync_sale,
 )
@@ -86,6 +93,29 @@ def _pdf_response(request, number, payload):
 
 def _qs(company):
     return f"?societe={company.id}"
+
+
+def _store_ticket_image(ticket, upload):
+    """Stocke l'image sur disque, ou en base si le système de fichiers est read-only.
+
+    Les fonctions Vercel ont un système de fichiers en lecture seule : sans ce
+    repli, la sauvegarde d'un ticket importé par OCR renvoie une erreur 500.
+    """
+    if not upload:
+        return
+    content = upload.read()
+    content_type = getattr(upload, "content_type", "") or ""
+    try:
+        upload.seek(0)
+        ticket.image.save(upload.name or "ticket", ContentFile(content), save=False)
+        ticket.image_data = None
+        ticket.image_type = content_type
+        ticket.save(update_fields=["image", "image_type", "image_data"])
+    except OSError:
+        ticket.image = ""
+        ticket.image_data = content
+        ticket.image_type = content_type
+        ticket.save(update_fields=["image", "image_data", "image_type"])
 
 
 # ---------------------------------------------------------------------------
@@ -172,22 +202,40 @@ def invoice_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
-    form = InvoiceForm(request.POST or None, company=company)
-    if request.method == "POST" and form.is_valid():
+    if request.method == "POST":
         from billing.access import invoice_create_block
 
         blocked = invoice_create_block(request.user)
         if blocked:
             messages.info(request, blocked)
             return redirect("plan_upgrade")
-        invoice = form.save(commit=False)
-        invoice.company = company
-        invoice.status = "draft"
-        invoice.number = f"BR-{uuid.uuid4().hex[:10]}"
-        invoice.save()
+    invoice = Invoice(company=company)
+    form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    formset = InvoiceLineFormSet(
+        request.POST or None,
+        instance=invoice,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            invoice = form.save(commit=False)
+            invoice.company = company
+            invoice.status = "draft"
+            invoice.number = f"BR-{uuid.uuid4().hex[:10]}"
+            invoice.amount_ht = Decimal("0.00")
+            invoice.save()
+            formset.instance = invoice
+            formset.save()
+            recompute_invoice_totals_from_lines(invoice)
         messages.success(request, "Brouillon enregistré. Émettez la facture pour la numéroter.")
         return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
-    return render(request, "documents/invoice_form.html", {"company": company, "form": form})
+    return render(request, "documents/invoice_form.html", {
+        "company": company,
+        "form": form,
+        "formset": formset,
+        "invoice": None,
+    })
 
 
 @login_required
@@ -197,8 +245,18 @@ def invoice_edit(request, pk):
         return bounce
     invoice = _scoped(Invoice, company, pk)
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    formset = InvoiceLineFormSet(
+        request.POST or None,
+        instance=invoice,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            invoice = form.save()
+            formset.instance = invoice
+            formset.save()
+            recompute_invoice_totals_from_lines(invoice)
         if invoice.status != "draft":
             sync_sale(invoice)
             messages.success(request, "Facture mise à jour. Les écritures liées ont été recalculées.")
@@ -208,6 +266,7 @@ def invoice_edit(request, pk):
     return render(request, "documents/invoice_form.html", {
         "company": company,
         "form": form,
+        "formset": formset,
         "invoice": invoice,
     })
 
@@ -683,16 +742,34 @@ def quote_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
-    form = QuoteForm(request.POST or None, company=company)
-    if request.method == "POST" and form.is_valid():
-        quote = form.save(commit=False)
-        quote.company = company
-        quote.status = "draft"
-        quote.number = f"BR-{uuid.uuid4().hex[:10]}"
-        quote.save()
+    quote = Quote(company=company)
+    form = QuoteForm(request.POST or None, instance=quote, company=company)
+    formset = QuoteLineFormSet(
+        request.POST or None,
+        instance=quote,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            quote = form.save(commit=False)
+            quote.company = company
+            quote.status = "draft"
+            quote.number = f"BR-{uuid.uuid4().hex[:10]}"
+            quote.amount_ht = Decimal("0.00")
+            quote.vat_rate = Decimal("0.00")
+            quote.save()
+            formset.instance = quote
+            formset.save()
+            recompute_quote_totals_from_lines(quote)
         messages.success(request, "Devis enregistré en brouillon.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
-    return render(request, "documents/quote_form.html", {"company": company, "form": form})
+    return render(request, "documents/quote_form.html", {
+        "company": company,
+        "form": form,
+        "formset": formset,
+        "quote": None,
+    })
 
 
 @login_required
@@ -705,12 +782,22 @@ def quote_edit(request, pk):
         messages.error(request, "Un devis converti ne peut plus être modifié.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
     form = QuoteForm(request.POST or None, instance=quote, company=company)
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    formset = QuoteLineFormSet(
+        request.POST or None,
+        instance=quote,
+        prefix="lines",
+        form_kwargs={"company": company},
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        with transaction.atomic():
+            quote = form.save()
+            formset.instance = quote
+            formset.save()
+            recompute_quote_totals_from_lines(quote)
         messages.success(request, "Devis mis à jour.")
         return redirect(reverse("quote_detail", args=[quote.id]) + _qs(company))
     return render(request, "documents/quote_form.html", {
-        "company": company, "form": form, "quote": quote,
+        "company": company, "form": form, "formset": formset, "quote": quote,
     })
 
 
@@ -949,10 +1036,8 @@ def payment_delete(request, pk):
     if bounce:
         return bounce
     payment = _scoped(Payment, company, pk)
-    invoice = payment.invoice
-    payment.delete()
-    invoice.refresh_payment_status()
-    messages.success(request, "Paiement supprimé.")
+    delete_payment(payment)
+    messages.success(request, "Paiement supprimé et écriture de banque annulée.")
     return redirect(reverse("payments") + _qs(company))
 
 
@@ -1104,8 +1189,8 @@ def ticket_upload(request):
             ocr_text=text,
             line_items=parsed.get("line_items") or [],
         )
-        ticket.image = upload
         ticket.save()
+        _store_ticket_image(ticket, upload)
         # Propose draft entry (still brouillon / unvalidated)
         try:
             propose_ticket_entry(ticket)
@@ -1136,11 +1221,15 @@ def ticket_create(request):
         return bounce
     form = TicketDeCaisseForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data.get("image")
         ticket = form.save(commit=False)
         ticket.company = company
         if not ticket.statut:
             ticket.statut = "brouillon"
+        if upload:
+            ticket.image = None
         ticket.save()
+        _store_ticket_image(ticket, upload)
         try:
             propose_ticket_entry(ticket)
         except ValueError:
@@ -1167,6 +1256,25 @@ def ticket_detail(request, pk):
 
 
 @login_required
+def ticket_image(request, pk):
+    """Sert l'image du ticket, y compris quand elle est stockée en base."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    if ticket.image_data:
+        response = HttpResponse(
+            bytes(ticket.image_data),
+            content_type=ticket.image_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'inline; filename="ticket-{ticket.id}"'
+        return response
+    if ticket.image:
+        return redirect(ticket.image.url)
+    raise Http404("Aucune image pour ce ticket.")
+
+
+@login_required
 def ticket_edit(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -1174,7 +1282,11 @@ def ticket_edit(request, pk):
     ticket = _scoped(TicketDeCaisse, company, pk)
     form = TicketDeCaisseForm(request.POST or None, request.FILES or None, instance=ticket)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        upload = form.cleaned_data.get("image")
+        if upload:
+            form.instance.image = None
+        ticket = form.save()
+        _store_ticket_image(ticket, upload)
         if ticket.statut == "brouillon":
             try:
                 # Recréer le brouillon si montants changés et ancienne non validée
@@ -1211,6 +1323,26 @@ def ticket_validate(request, pk):
         "Ticket validé. Une écriture brouillon a été proposée — confirmez-la "
         "dans la comptabilité avant passage au grand livre.",
     )
+    return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+
+
+@login_required
+@require_POST
+def ticket_post_entry(request, pk):
+    """Valide au grand livre l'écriture brouillon proposée pour un ticket."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    entry = ticket.journal_entry
+    if entry is None:
+        messages.error(request, "Aucune écriture proposée pour ce ticket.")
+    elif entry.validated:
+        messages.info(request, "L'écriture est déjà validée.")
+    else:
+        entry.validated = True
+        entry.save(update_fields=["validated"])
+        messages.success(request, "Écriture validée au grand livre.")
     return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
 
 

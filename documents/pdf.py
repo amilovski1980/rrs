@@ -228,9 +228,9 @@ def _line_items(document):
     label = "Avoir" if hasattr(document, "invoice") and not hasattr(document, "client_name") else "Prestation"
     return [
         {
-            "title": f"{label} — {client_name}",
-            "details": "",
-            "description": f"{label} — {client_name}",
+            "title": f"{label} — montant global",
+            "details": "Prestation facturée au montant global, sans détail de lignes.",
+            "description": f"{label} — montant global",
             "quantity": Decimal("1"),
             "unit": "unité",
             "unit_price": document.amount_ht,
@@ -258,7 +258,9 @@ def _client_number(document) -> str:
 
 
 def _meta_rows(document, kind: str, when: str):
-    due = timezone.localtime(document.created_at) + timedelta(days=30)
+    due = getattr(document, "effective_due_date", None)
+    if due is None:
+        due = timezone.localtime(document.created_at) + timedelta(days=30)
     if kind == "credit_note":
         invoice = getattr(document, "invoice", None)
         return [
@@ -269,7 +271,7 @@ def _meta_rows(document, kind: str, when: str):
     if kind == "quote":
         return [
             ("Date du devis", when),
-            ("Valable jusqu'au", due.strftime("%d/%m/%Y")),
+            ("Valable jusqu'au", (document.valid_until or due).strftime("%d/%m/%Y")),
             ("N° client", _client_number(document)),
         ]
     return [
@@ -529,6 +531,16 @@ def render_document_pdf(document, company, kind: str = "invoice") -> bytes:
         pdf.cell(content_w, 5, note)
 
     legal = list(vat_mentions(document, company))
+    bank_iban = (getattr(company, "bank_iban", "") or "").strip()
+    if bank_iban and kind in ("invoice", "quote"):
+        bank_line = f"Règlement par virement : IBAN {bank_iban}"
+        bank_bic = (getattr(company, "bank_bic", "") or "").strip()
+        bank_name = (getattr(company, "bank_name", "") or "").strip()
+        if bank_bic:
+            bank_line += f" - BIC {bank_bic}"
+        if bank_name:
+            bank_line += f" - {bank_name}"
+        legal.append(bank_line)
     if kind == "invoice":
         legal.append(
             "En cas de retard de paiement : pénalités de trois fois le taux d'intérêt légal "

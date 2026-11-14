@@ -50,6 +50,11 @@ INSTALLED_APPS = [
     "contacts",
     "ai",
     "integrations",
+    "mailsync",
+    "suppliers",
+    "purchases",
+    "banking",
+    "treasury",
     "billing",
     "admin_backoffice",
 ]
@@ -83,6 +88,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "billing.context.forfait",
+                "companies.context.company_switcher",
             ],
         },
     },
@@ -204,6 +210,13 @@ INSEE_API_KEY = env.get("INSEE_API_KEY", "")
 INSEE_CLIENT_ID = env.get("INSEE_CLIENT_ID", "")
 INSEE_CLIENT_SECRET = env.get("INSEE_CLIENT_SECRET", "")
 INSEE_TOKEN = env.get("INSEE_TOKEN", "")  # jeton direct (dev/tests)
+
+# --- Connecteur e-mail comptable (mailsync) ---
+# Client OAuth2 Google (Console Google Cloud → API Gmail activée).
+GOOGLE_CLIENT_ID = env.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = env.get("GOOGLE_CLIENT_SECRET", "")
+# Clé dédiée au chiffrement des jetons. Vide = dérivée de DJANGO_SECRET_KEY.
+MAILSYNC_ENCRYPTION_KEY = env.get("MAILSYNC_ENCRYPTION_KEY", "")
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",

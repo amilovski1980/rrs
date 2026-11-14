@@ -1,0 +1,24 @@
+# Fichiers locaux qui ne doivent jamais partir dans un déploiement Vercel.
+.git
+.gitignore
+.venv
+.vercel
+__pycache__
+*.py[cod]
+*.sqlite3
+db.sqlite3
+server.log
+email_outbox
+media
+staticfiles
+.env
+.env.*
+local_dev.py
+temp_test_agent_config.py
+opencode
+screenshots
+rrs
+presentation-aminia.html
+presentation-aminia.pdf
+tests_insee_flow.py
+tests_smoke_compta.py

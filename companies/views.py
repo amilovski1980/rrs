@@ -18,7 +18,49 @@ from core.context import resolve_company
 
 from django.http import HttpResponse
 
-from .models import INVOICE_THEMES, Company
+from .models import INVOICE_THEMES, SMTP_PROVIDERS, Company
+from .rib_scan import RibScanError, scan_rib_upload
+
+SMTP_PRESETS = {
+    "gmail": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@gmail.com",
+        "password_hint": (
+            "Mot de passe d'application Google (16 caractères), ou connexion "
+            "Google ci-dessus."
+        ),
+    },
+    "outlook": {
+        "host": "smtp-mail.outlook.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@outlook.fr ou @hotmail.fr",
+        "password_hint": "Mot de passe du compte Microsoft (ou mot de passe d'application).",
+    },
+    "yahoo": {
+        "host": "smtp.mail.yahoo.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@yahoo.fr",
+        "password_hint": "Mot de passe d'application Yahoo généré dans la sécurité du compte.",
+    },
+    "icloud": {
+        "host": "smtp.mail.me.com",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@icloud.com",
+        "password_hint": "Mot de passe d'application Apple (sécurité du compte Apple).",
+    },
+    "custom": {
+        "host": "",
+        "port": 587,
+        "use_tls": True,
+        "username_hint": "adresse@votre-domaine.fr",
+        "password_hint": "Mot de passe fourni par votre hébergeur ou votre domaine.",
+    },
+}
 
 ACTIVITIES_CHOICES = [
     ("btp", "BTP"),
@@ -280,10 +322,58 @@ def onboarding_confirm(request):
 
 class CompanySettingsForm(forms.ModelForm):
     logo = forms.FileField(label="Logo", required=False)
+    rib_scan = forms.FileField(
+        label="Importer un RIB ou prendre une photo",
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "accept": ".pdf,.jpg,.jpeg,.png,.webp",
+                "data-rib-scan": "1",
+            }
+        ),
+        help_text="PDF, JPG, PNG ou WEBP. L'IBAN et le BIC sont lus automatiquement.",
+    )
+    smtp_password = forms.CharField(
+        label="Mot de passe SMTP",
+        required=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        help_text="Laisser vide pour conserver le mot de passe déjà enregistré.",
+    )
+    payment_terms_days = forms.IntegerField(
+        label="Délai de paiement (jours)",
+        required=False,
+        min_value=0,
+        max_value=365,
+        initial=30,
+        help_text="Échéance par défaut des factures clients et fournisseurs.",
+    )
 
     class Meta:
         model = Company
-        fields = ("denomination", "forme", "address", "phone", "email", "slogan", "tva_intra", "invoice_theme")
+        fields = (
+            "denomination",
+            "forme",
+            "address",
+            "phone",
+            "email",
+            "slogan",
+            "tva_intra",
+            "invoice_theme",
+            "regime",
+            "tva",
+            "exercice_debut",
+            "payment_terms_days",
+            "bank_name",
+            "bank_iban",
+            "bank_bic",
+            "smtp_provider",
+            "smtp_host",
+            "smtp_port",
+            "smtp_username",
+            "smtp_password",
+            "smtp_use_tls",
+            "smtp_from_email",
+        )
         labels = {
             "denomination": "Dénomination",
             "forme": "Forme juridique",
@@ -293,11 +383,32 @@ class CompanySettingsForm(forms.ModelForm):
             "slogan": "Slogan (facultatif)",
             "tva_intra": "TVA intracommunautaire",
             "invoice_theme": "Modèle de facture",
+            "regime": "Régime fiscal",
+            "tva": "Régime de TVA",
+            "exercice_debut": "Début d'exercice",
+            "payment_terms_days": "Délai de paiement (jours)",
+            "bank_name": "Banque",
+            "bank_iban": "IBAN",
+            "bank_bic": "BIC",
+            "smtp_provider": "Fournisseur e-mail",
+            "smtp_host": "Serveur SMTP",
+            "smtp_port": "Port SMTP",
+            "smtp_username": "Utilisateur SMTP",
+            "smtp_password": "Mot de passe SMTP",
+            "smtp_use_tls": "Connexion SMTP sécurisée (TLS)",
+            "smtp_from_email": "Expéditeur des documents",
+        }
+        widgets = {
+            "exercice_debut": forms.DateInput(attrs={"type": "date"}),
+            "smtp_port": forms.NumberInput(attrs={"min": "1", "max": "65535"}),
+            "smtp_password": forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["forme"].widget = forms.Select(choices=FORME_CHOICES)
+        self.fields["regime"].widget = forms.Select(choices=REGIME_CHOICES)
+        self.fields["tva"].widget = forms.Select(choices=TVA_CHOICES)
         self.fields["phone"].widget.input_type = "tel"
         self.fields["phone"].widget.attrs.update(
             {"autocomplete": "tel", "inputmode": "tel"}
@@ -306,6 +417,93 @@ class CompanySettingsForm(forms.ModelForm):
         self.fields["email"].widget.attrs.update(
             {"autocomplete": "email", "inputmode": "email"}
         )
+        self.fields["smtp_from_email"].widget.input_type = "email"
+        self.fields["smtp_provider"].required = False
+        self.fields["smtp_provider"].widget.attrs.update(
+            {"data-smtp-provider": "1"}
+        )
+        # Les anciens formulaires ne postaient pas ce champ : on retombe sur
+        # le port déjà enregistré (ou 587) au lieu de bloquer l'enregistrement.
+        self.fields["smtp_port"].required = False
+        self.fields["bank_iban"].widget.attrs.update(
+            {
+                "placeholder": "FR76 1027 8060 4100 0206 3428 704",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            }
+        )
+        self.fields["bank_bic"].widget.attrs.update(
+            {
+                "placeholder": "CMCIFR2A",
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "style": "text-transform:uppercase",
+            }
+        )
+        self.fields["bank_name"].widget.attrs.update(
+            {"placeholder": "CIC Île-de-France"}
+        )
+
+    def clean_bank_iban(self):
+        from .rib_scan import _iban_is_plausible, _normalize_iban, format_iban
+
+        raw = (self.cleaned_data.get("bank_iban") or "").strip()
+        if not raw:
+            return ""
+        compact = _normalize_iban(raw)
+        if not _iban_is_plausible(compact):
+            raise forms.ValidationError(
+                "IBAN invalide : indiquez le pays, la clé et le numéro de compte."
+            )
+        return format_iban(compact)
+
+    def clean_bank_bic(self):
+        value = "".join(
+            char for char in (self.cleaned_data.get("bank_bic") or "").upper()
+            if char.isalnum()
+        )
+        if value and len(value) not in (8, 11):
+            raise forms.ValidationError("Le BIC doit contenir 8 ou 11 caractères.")
+        return value
+
+    def clean_smtp_port(self):
+        port = self.cleaned_data.get("smtp_port")
+        if port in (None, ""):
+            return getattr(self.instance, "smtp_port", None) or 587
+        if not 1 <= int(port) <= 65535:
+            raise forms.ValidationError("Le port SMTP doit être compris entre 1 et 65535.")
+        return int(port)
+
+    def clean_smtp_password(self):
+        value = (self.cleaned_data.get("smtp_password") or "").strip()
+        if not value and self.instance.pk:
+            return self.instance.smtp_password
+        return value
+
+    def clean_payment_terms_days(self):
+        value = self.cleaned_data.get("payment_terms_days")
+        return 30 if value is None else value
+
+    def clean(self):
+        cleaned = super().clean()
+        provider = (
+            cleaned.get("smtp_provider")
+            or getattr(self.instance, "smtp_provider", "")
+            or "custom"
+        )
+        cleaned["smtp_provider"] = provider
+        preset = SMTP_PRESETS.get(provider)
+        if preset and provider != "custom":
+            previous = getattr(self.instance, "smtp_provider", "")
+            if provider != previous or not (cleaned.get("smtp_host") or "").strip():
+                cleaned["smtp_host"] = preset["host"]
+                cleaned["smtp_port"] = preset["port"]
+                cleaned["smtp_use_tls"] = preset["use_tls"]
+        if not cleaned.get("smtp_from_email"):
+            username = (cleaned.get("smtp_username") or "").strip()
+            if "@" in username:
+                cleaned["smtp_from_email"] = username
+        return cleaned
 
     def clean_logo(self):
         upload = self.cleaned_data.get("logo")
@@ -336,6 +534,18 @@ def _company_or_redirect(request):
     return company, None
 
 
+def _settings_extra_context(company):
+    mailbox = getattr(company, "mailbox_config", None)
+    scopes = (getattr(mailbox, "granted_scopes", "") or "") if mailbox else ""
+    linked = bool(mailbox and mailbox.has_tokens)
+    return {
+        "smtp_presets": SMTP_PRESETS,
+        "google_mail_linked": linked,
+        "google_mail_connected": linked and "gmail.send" in scopes,
+        "google_mail_email": getattr(mailbox, "email_address", "") if mailbox else "",
+    }
+
+
 @login_required
 def company_settings(request):
     """Logo, coordonnées et modèle de facture."""
@@ -356,6 +566,32 @@ def company_settings(request):
         if not nxt.startswith("/") or nxt.startswith("//"):
             nxt = reverse("company_settings") + f"?societe={company.id}"
         return redirect(nxt)
+    if request.method == "POST" and request.POST.get("scan_rib"):
+        form = CompanySettingsForm(request.POST, request.FILES, instance=company)
+        try:
+            details = scan_rib_upload(request.FILES.get("rib_scan"))
+        except RibScanError as exc:
+            messages.error(request, str(exc))
+        else:
+            data = request.POST.copy()
+            if details.iban:
+                data["bank_iban"] = details.iban
+            if details.bic:
+                data["bank_bic"] = details.bic
+            if details.bank_name:
+                data["bank_name"] = details.bank_name
+            form = CompanySettingsForm(data, instance=company)
+            messages.success(
+                request,
+                "RIB lu. Vérifiez l'IBAN, le BIC et la banque puis cliquez sur Enregistrer.",
+            )
+        return render(request, "companies/settings.html", {
+            "company": company,
+            "form": form,
+            "themes": INVOICE_THEMES,
+            **_settings_extra_context(company),
+        })
+
     form = CompanySettingsForm(request.POST or None, request.FILES or None, instance=company)
     if request.method == "POST" and form.is_valid():
         from billing.access import UPGRADE_MESSAGE, theme_allowed
@@ -379,6 +615,7 @@ def company_settings(request):
         "company": company,
         "form": form,
         "themes": INVOICE_THEMES,
+        **_settings_extra_context(company),
     })
 
 
@@ -440,6 +677,11 @@ def legal_notice(request):
 def terms_of_use(request):
     """Conditions générales d'utilisation."""
     return render(request, "companies/terms_of_use.html")
+
+
+def terms_of_sale(request):
+    """Conditions générales de vente (abonnements B2B)."""
+    return render(request, "companies/terms_of_sale.html")
 
 
 def privacy_policy(request):

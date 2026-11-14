@@ -8,9 +8,15 @@
     <h1>Balance générale</h1>
     <p class="sub">{{ company.denomination }} — soldes par compte, exercice en cours.</p>
   </div>
-  <span class="badge {% if ok %}badge-green{% else %}badge-red{% endif %}" style="padding:8px 13px">
-    {% if ok %}Balance équilibrée{% else %}Déséquilibre détecté{% endif %}
-  </span>
+  <div class="page-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span class="badge {% if ok %}badge-green{% else %}badge-red{% endif %}" style="padding:8px 13px">
+      {% if ok %}Balance équilibrée{% else %}Déséquilibre détecté{% endif %}
+    </span>
+    <a class="btn btn-ghost btn-sm"
+       href="{% url 'export_fec' %}?societe={{ company.id }}&debut={{ fec_start|date:'Y-m-d' }}&fin={{ fec_end|date:'Y-m-d' }}">
+      Exporter le FEC
+    </a>
+  </div>
 </div>
 
 <div class="card card-tight">
@@ -46,7 +52,7 @@
 
 {% if rows %}
 <p class="muted" style="font-size:12.5px;margin-top:14px">
-  Export FEC et déclaration TVA bientôt disponibles. Les montants sont calculés en Decimal, sans erreur d'arrondi.
+  Export FEC disponible ci-dessus. Déclaration TVA : prochain module prévu.
 </p>
 {% endif %}
 {% endblock %}

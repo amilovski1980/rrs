@@ -110,7 +110,7 @@ def _invoice_lines(invoice):
         return rows
     return [
         {
-            "description": f"Prestation — {invoice.client_name}",
+            "description": "Prestation - montant global",
             "quantity": Decimal("1"),
             "unit_price": invoice.amount_ht,
             "vat_rate": Decimal("0.00") if reverse else invoice.vat_rate,
@@ -177,7 +177,9 @@ def build_facturx_xml(invoice, company, profile: str = DEFAULT_PROFILE) -> bytes
     total_ttc = invoice.amount_ttc
     paid = invoice.amount_paid
     remaining = invoice.amount_remaining
-    due_date = timezone.localtime(invoice.created_at) + timedelta(days=30)
+    due_date = invoice.effective_due_date or (
+        timezone.localtime(invoice.created_at) + timedelta(days=30)
+    )
     issue_date = _date_102(invoice.created_at)
     buyer_vat = invoice.client_tva_intra or getattr(invoice.client, "tva_intra", "")
     buyer_siren = invoice.client_siren or getattr(invoice.client, "siren", "")

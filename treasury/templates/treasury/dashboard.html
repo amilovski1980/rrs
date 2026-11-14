@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Trésorerie{% endblock %}
+{% block crumbs %}Trésorerie / Tableau de bord{% endblock %}
+{% block nav_treasury %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Trésorerie</h1>
+    <p class="sub">{{ company.denomination }} — position, encaissements et décaissements.</p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'banking:dashboard' %}?societe={{ company.id }}">Banque</a>
+    <a class="btn btn-primary" href="{% url 'treasury:export' %}?societe={{ company.id }}">Exporter le prévisionnel</a>
+  </div>
+</div>
+
+<div class="grid g3" style="margin-bottom:20px">
+  <div class="kpi">
+    <div class="l">Position de trésorerie</div>
+    <div class="v">{{ snapshot.position|floatformat:2 }} €</div>
+    <div class="d">Banque comptable + caisse</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Encaissements attendus</div>
+    <div class="v">{{ snapshot.receivables_total|floatformat:2 }} €</div>
+    <div class="d">{{ snapshot.receivables|length }} facture{{ snapshot.receivables|length|pluralize }} en cours</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Décaissements attendus</div>
+    <div class="v">{{ snapshot.payables_total|floatformat:2 }} €</div>
+    <div class="d">{{ snapshot.payables|length }} facture{{ snapshot.payables|length|pluralize }} fournisseur</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div>
+    <b>Position nette prévisionnelle</b>
+    <p class="micro" style="margin:2px 0 0">Position + encaissements − décaissements</p>
+  </div>
+  <div class="v" style="font-size:26px;font-weight:800;color:{% if snapshot.net_position < 0 %}var(--red){% else %}var(--green){% endif %}">
+    {{ snapshot.net_position|floatformat:2 }} €
+  </div>
+</div>
+
+{% if snapshot.overdue_receivables or snapshot.overdue_payables or snapshot.unmatched_bank %}
+<div class="card" style="margin-bottom:18px">
+  <b>Points d'attention</b>
+  <ul style="margin:8px 0 0 20px">
+    {% if snapshot.overdue_receivables %}<li>{{ snapshot.overdue_receivables }} facture{{ snapshot.overdue_receivables|pluralize }} client en retard d'encaissement.</li>{% endif %}
+    {% if snapshot.overdue_payables %}<li>{{ snapshot.overdue_payables }} facture{{ snapshot.overdue_payables|pluralize }} fournisseur en retard de paiement.</li>{% endif %}
+    {% if snapshot.unmatched_bank %}<li>{{ snapshot.unmatched_bank }} opération{{ snapshot.unmatched_bank|pluralize }} bancaire{{ snapshot.unmatched_bank|pluralize }} à rapprocher.</li>{% endif %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="grid g2" style="align-items:start;margin-bottom:18px">
+  <section class="card card-tight">
+    <div class="card-head"><h3>Prévisionnel 13 semaines</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Semaine</th><th class="num">Encaissements</th><th class="num">Décaissements</th><th class="num">Solde</th></tr></thead>
+        <tbody>
+          {% for week in snapshot.forecast.weeks %}
+          <tr>
+            <td>{{ week.label }}</td>
+            <td class="num" style="color:var(--green)">{{ week.inflow|floatformat:2 }} €</td>
+            <td class="num" style="color:var(--red)">{{ week.outflow|floatformat:2 }} €</td>
+            <td class="num"><b>{{ week.balance|floatformat:2 }} €</b></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if snapshot.forecast.beyond_in or snapshot.forecast.beyond_out %}
+      <p class="micro" style="margin:10px 0 0">
+        Au-delà de 13 semaines :
+        encaissements {{ snapshot.forecast.beyond_in|floatformat:2 }} € ·
+        décaissements {{ snapshot.forecast.beyond_out|floatformat:2 }} €.
+      </p>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="grid" style="gap:18px">
+    <section class="card">
+      <h3 style="margin-top:0">Comptes</h3>
+      <table>
+        <thead><tr><th>Compte</th><th class="num">Relevés</th><th class="num">Comptable</th></tr></thead>
+        <tbody>
+          {% for row in snapshot.accounts %}
+          <tr>
+            <td>{{ row.account.label }}</td>
+            <td class="num">{{ row.statement_balance|floatformat:2 }} €</td>
+            <td class="num">{{ row.accounting_balance|floatformat:2 }} €</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">Aucun compte bancaire.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="micro" style="margin-bottom:0">Caisse : {{ snapshot.cash_balance|floatformat:2 }} €</p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0">Balance âgée</h3>
+      <table>
+        <thead><tr><th></th><th class="num">À échoir</th><th class="num">1-30 j</th><th class="num">31-60 j</th><th class="num">60+ j</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Clients</td>
+            <td class="num">{{ snapshot.receivables_aging.current|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.receivables_aging.d1_30|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.receivables_aging.d31_60|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.receivables_aging.d60|floatformat:2 }} €</td>
+          </tr>
+          <tr>
+            <td>Fournisseurs</td>
+            <td class="num">{{ snapshot.payables_aging.current|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.payables_aging.d1_30|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.payables_aging.d31_60|floatformat:2 }} €</td>
+            <td class="num">{{ snapshot.payables_aging.d60|floatformat:2 }} €</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card card-tight">
+    <div class="card-head"><h3>À encaisser</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Échéance</th><th>Client</th><th>Facture</th><th class="num">Reste</th></tr></thead>
+        <tbody>
+          {% for invoice in snapshot.receivables %}
+          <tr>
+            <td>{{ invoice.effective_due_date|date:"d/m/Y"|default:"—" }}</td>
+            <td>{{ invoice.client_name }}</td>
+            <td><a href="{% url 'invoice_detail' invoice.pk %}?societe={{ company.id }}">{{ invoice.number }}</a></td>
+            <td class="num">{{ invoice.amount_remaining|floatformat:2 }} €</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucune facture client en attente.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card card-tight">
+    <div class="card-head"><h3>À décaisser</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Échéance</th><th>Fournisseur</th><th>Facture</th><th class="num">Reste</th></tr></thead>
+        <tbody>
+          {% for invoice in snapshot.payables %}
+          <tr>
+            <td>{{ invoice.effective_due_date|date:"d/m/Y"|default:"—" }}</td>
+            <td>{{ invoice.supplier_name }}</td>
+            <td><a href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">{{ invoice.number|default:"—" }}</a></td>
+            <td class="num">{{ invoice.amount_remaining|floatformat:2 }} €</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucune facture fournisseur à payer.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

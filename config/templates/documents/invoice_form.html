@@ -1,73 +1,123 @@
 {% extends "base.html" %}
-{% block title %}Nouvelle facture{% endblock %}
-{% block crumbs %}Facturation / Nouvelle facture{% endblock %}
+{% load static %}
+{% block title %}{% if invoice %}Modifier {{ invoice.number }}{% else %}Nouvelle facture{% endif %}{% endblock %}
+{% block crumbs %}Facturation / {% if invoice %}Modifier{% else %}Nouvelle facture{% endif %}{% endblock %}
 {% block nav_invoices %}active{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% if invoice %}Modifier {{ invoice.number }}{% else %}Nouvelle facture{% endif %}</h1>
-    <p class="sub">{{ company.denomination }} — {% if invoice %}les montants déjà au journal sont recalculés.{% else %}le numéro définitif est attribué à l'émission.{% endif %}</p>
+    <p class="sub">{{ company.denomination }} — {% if invoice %}les montants et écritures liés sont recalculés depuis les lignes.{% else %}le numéro définitif est attribué à l'émission.{% endif %}</p>
   </div>
 </div>
 <div class="card">
-  <form class="form-stack" method="post">
+  <form class="form-stack" method="post" data-invoice-form>
     {% csrf_token %}
     {% if form.non_field_errors %}
     <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
     {% endif %}
     <div class="form-grid">
       <div>
-        <label>Fiche client</label>
+        <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
         {{ form.client }}
+        <p class="micro">{{ form.client.help_text }}</p>
         {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
       </div>
       <div>
-        <label>Projet</label>
+        <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
         {{ form.project }}
+        {% if form.project.errors %}<p class="error">{{ form.project.errors.0 }}</p>{% endif %}
       </div>
     </div>
     <div class="form-grid">
       <div>
-        <label>Nom client (affiché)</label>
+        <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
         {{ form.client_name }}
+        <p class="micro">{{ form.client_name.help_text }}</p>
         {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
       </div>
       <div>
-        <label>SIREN client</label>
+        <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
         {{ form.client_siren }}
+        <p class="micro">{{ form.client_siren.help_text }}</p>
         {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
       </div>
     </div>
     <div class="form-grid">
       <div>
-        <label>TVA intracommunautaire du client</label>
+        <label for="{{ form.client_tva_intra.id_for_label }}">{{ form.client_tva_intra.label }}</label>
         {{ form.client_tva_intra }}
+        <p class="micro">{{ form.client_tva_intra.help_text }}</p>
         {% if form.client_tva_intra.errors %}<p class="error">{{ form.client_tva_intra.errors.0 }}</p>{% endif %}
       </div>
-      <div>
-        <label>Taux de TVA (%)</label>
-        {{ form.vat_rate }}
-        {% if form.vat_rate.errors %}<p class="error">{{ form.vat_rate.errors.0 }}</p>{% endif %}
-      </div>
     </div>
+
     <div class="card vat-reverse-card">
       <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
       <p class="micro">{{ form.reverse_charge.help_text }}</p>
-      <label>{{ form.vat_exemption_reason.label }}</label>
+      <label for="{{ form.vat_exemption_reason.id_for_label }}">{{ form.vat_exemption_reason.label }}</label>
       {{ form.vat_exemption_reason }}
       {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
     </div>
-    <div class="form-grid">
-      <div>
-        <label>Montant HT</label>
-        {{ form.amount_ht }}
-        {% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}
-      </div>
+
+    <div class="card">
+      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+      {{ form.due_date }}
+      <p class="micro">{{ form.due_date.help_text }}</p>
+      {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
     </div>
+
+    <section class="card invoice-lines-card">
+      <div class="invoice-lines-head">
+        <div>
+          <h2>Lignes de facture</h2>
+          <p class="sub">Choisissez un produit du catalogue pour préremplir la désignation, le prix et la TVA. Une ligne sans produit reste libre.</p>
+        </div>
+      </div>
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}
+      <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      {% endif %}
+      <div class="invoice-lines-scroll">
+        <table class="invoice-lines-table">
+          <thead>
+            <tr>
+              <th>Produit / service</th>
+              <th>Désignation</th>
+              <th class="num">Qté</th>
+              <th class="num">PU HT</th>
+              <th class="num">TVA %</th>
+              <th class="num">Montant HT</th>
+              <th><span class="sr-only">Action</span></th>
+            </tr>
+          </thead>
+          <tbody data-line-rows>
+            {% for line_form in formset %}
+            {% include "documents/_invoice_line_row.html" with line_form=line_form %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <template data-empty-form>
+        {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
+      </template>
+      <div class="invoice-lines-toolbar">
+        <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter une ligne</button>
+        <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
+          <span>Total HT <b data-preview-ht>0,00 €</b></span>
+          <span>TVA <b data-preview-vat>0,00 €</b></span>
+          <span class="invoice-preview-ttc">Total TTC <b data-preview-ttc>0,00 €</b></span>
+        </div>
+      </div>
+    </section>
+
     <div class="form-actions-bar">
       <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
       <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
     </div>
   </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.14.6" defer></script>
 {% endblock %}

@@ -141,6 +141,15 @@ html[data-theme="dark"] tbody tr:hover { background: rgba(255, 255, 255, 0.04); 
 html[data-theme="dark"] .card table td:first-child,
 html[data-theme="dark"] .card table td:first-child a { color: var(--ink); }
 
+html[data-theme="dark"] .line-remove-btn {
+  background: #0c0c0e;
+  border-color: var(--line-2);
+  color: var(--red);
+}
+html[data-theme="dark"] .line-remove-btn:hover { background: rgba(255, 61, 120, 0.12); }
+html[data-theme="dark"] .invoice-line-row.is-deleted td { background: rgba(255, 61, 120, 0.08); }
+html[data-theme="dark"] .invoice-preview-ttc { border-left-color: var(--line); }
+
 html[data-theme="dark"] .badge { border-color: transparent; }
 html[data-theme="dark"] .badge-blue { background: rgba(122, 60, 255, 0.25); color: #fff; }
 html[data-theme="dark"] .badge-green { background: rgba(61, 220, 106, 0.16); color: #c6ffb1; }
@@ -298,3 +307,85 @@ html[data-theme="dark"] .signature-preview {
 html[data-theme="dark"] .actions-list form .btn {
   color: var(--ink);
 }
+
+/* Aminia et recherche sous /dark : le bleu clair du thème rendait le micro
+   blanc sur fond blanc. On repasse sur le vert signature. */
+html[data-theme="dark"] .agent-mic {
+  background: linear-gradient(135deg, #14b86a, #62d99a);
+  color: #07140c;
+  box-shadow: 0 10px 22px -12px rgba(61, 220, 106, .75);
+}
+html[data-theme="dark"] .agent-mic:hover {
+  background: linear-gradient(135deg, #3ddc6a, #c6ffb1);
+  color: #07140c;
+}
+html[data-theme="dark"] .agent-mic.is-listening {
+  background: linear-gradient(135deg, #ff4d8d, #ff9abf);
+  color: #2a0714;
+}
+html[data-theme="dark"] .agent-ring,
+html[data-theme="dark"] .agent-ring.r1,
+html[data-theme="dark"] .agent-ring.r2,
+html[data-theme="dark"] .agent-ring.r3 {
+  border-color: rgba(61, 220, 106, .42);
+}
+html[data-theme="dark"] .agent-core {
+  background: radial-gradient(circle at 34% 28%, #7cf5a8, #18c26a 62%, #07532b);
+  box-shadow: 0 10px 20px -12px rgba(61, 220, 106, .8);
+}
+html[data-theme="dark"] .agent-status { color: #c6ffb1; }
+html[data-theme="dark"] .agent-note { color: var(--muted); }
+
+html[data-theme="dark"] .search-hit {
+  background: #121214;
+  color: var(--ink);
+  border-color: var(--line);
+  border-left-color: #3ddc6a;
+}
+html[data-theme="dark"] .search-hit:hover {
+  color: var(--ink);
+  border-color: #3ddc6a;
+}
+html[data-theme="dark"] .search-hit strong { color: var(--ink); }
+html[data-theme="dark"] .search-meta { color: var(--muted); }
+
+html[data-theme="dark"] .company-switch-btn.is-on {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #121214 inset;
+}
+html[data-theme="dark"] .kpi-spark i {
+  background: linear-gradient(180deg, #d8ff86, #14b86a);
+}
+html[data-theme="dark"] .kpi-spark-clients i {
+  background: linear-gradient(180deg, #c6ffb1, #3ddc6a);
+}
+html[data-theme="dark"] .kpi-spark-vat i {
+  background: linear-gradient(180deg, #ffe7b0, #ff9a1a);
+}
+html[data-theme="dark"] .tag-late {
+  background: rgba(255, 61, 120, .16);
+  color: #ff8aa0;
+  border-color: rgba(255, 61, 120, .35);
+}
+html[data-theme="dark"] .mail-google-box {
+  background: rgba(61, 220, 106, .08);
+  border-color: rgba(61, 220, 106, .28);
+}
+html[data-theme="dark"] .ticket-upload-hero,
+html[data-theme="dark"] .ticket-mini-stats > div,
+html[data-theme="dark"] .ticket-dropzone {
+  background: #0f0f11;
+  border-color: var(--line);
+}
+html[data-theme="dark"] .ticket-upload-icon,
+html[data-theme="dark"] .ticket-dropzone input[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #14b86a, #62d99a);
+  color: #07140c;
+}
+html[data-theme="dark"] .ticket-category {
+  background: rgba(61, 220, 106, .14);
+  color: #c6ffb1;
+}
+html[data-theme="dark"] .ticket-image-preview { background: #fff; border-color: var(--line); }
+html[data-theme="dark"] .inv-mobile-card { background: #121214; }
+html[data-theme="dark"] .inv-mobile-card:hover { border-color: #3ddc6a; }

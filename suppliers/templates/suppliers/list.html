@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Fournisseurs{% endblock %}
+{% block crumbs %}Achats / Fournisseurs{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Fournisseurs</h1>
+    <p class="sub">{{ company.denomination }} — fiches, encours et échéances.</p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'purchases:dashboard' %}?societe={{ company.id }}">Achats</a>
+    <a class="btn btn-primary" href="{% url 'suppliers:create' %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="plus" %} Nouveau fournisseur
+    </a>
+  </div>
+</div>
+
+<form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <div class="form-grid">
+    <div>
+      <label for="q">Recherche</label>
+      <input id="q" name="q" value="{{ query }}" placeholder="Nom, SIRET, TVA ou e-mail">
+    </div>
+    <div>
+      <label for="actif">Statut</label>
+      <select id="actif" name="actif">
+        <option value="">Tous</option>
+        <option value="1" {% if active == "1" %}selected{% endif %}>Actifs</option>
+        <option value="0" {% if active == "0" %}selected{% endif %}>Inactifs</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+    </div>
+  </div>
+</form>
+
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Nom</th><th>SIRET / TVA</th><th>Contact</th><th>Délai</th><th class="num">Reste à payer</th><th>Statut</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for supplier in suppliers %}
+        <tr>
+          <td><b>{{ supplier.name }}</b></td>
+          <td>
+            {{ supplier.siret|default:"—" }}
+            {% if supplier.tva_intra %}<br><small>{{ supplier.tva_intra }}</small>{% endif %}
+          </td>
+          <td>
+            {{ supplier.contact_name|default:"—" }}
+            {% if supplier.email %}<br><small>{{ supplier.email }}</small>{% endif %}
+          </td>
+          <td>{{ supplier.payment_terms_days }} j</td>
+          <td class="num">{{ supplier.unpaid|floatformat:2 }} €</td>
+          <td>
+            {% if supplier.is_active %}<span class="badge badge-green">Actif</span>
+            {% else %}<span class="badge">Inactif</span>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'suppliers:detail' supplier.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">Aucun fournisseur. Le connecteur e-mail en crée automatiquement à la validation.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,11 @@
 from decimal import Decimal
 
+from datetime import timedelta
+
 from django import forms
+from django.forms import inlineformset_factory
+from django.forms.models import BaseInlineFormSet
+from django.utils import timezone
 
 from .models import (
     Client,
@@ -15,6 +20,38 @@ from .models import (
     TicketDeCaisse,
     TICKET_CATEGORIES,
 )
+
+
+class ClientSelect(forms.Select):
+    """Select de fiche client avec les coordonnées en data-attributes."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        client = getattr(value, "instance", None)
+        if client is not None:
+            option["attrs"].update({
+                "data-client-name": client.name or "",
+                "data-client-siren": client.siren or "",
+                "data-client-tva": client.tva_intra or "",
+            })
+        return option
+
+
+class ProductSelect(forms.Select):
+    """Select catalogue avec les valeurs nécessaires au préremplissage."""
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        product = getattr(value, "instance", None)
+        if product is not None:
+            option["attrs"].update({
+                "data-product-label": product.label or "",
+                "data-product-description": product.description or "",
+                "data-product-unit-price": str(product.unit_price),
+                "data-product-vat-rate": str(product.vat_rate),
+                "data-product-unit": product.unit or "",
+            })
+        return option
 
 
 class ClientForm(forms.ModelForm):
@@ -139,23 +176,36 @@ class InvoiceForm(forms.ModelForm):
             "client_siren",
             "client_tva_intra",
             "project",
-            "amount_ht",
-            "vat_rate",
             "reverse_charge",
             "vat_exemption_reason",
+            "due_date",
         )
+        widgets = {
+            "client": ClientSelect,
+            "due_date": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.company = company
         self.fields["client"].label = "Fiche client"
         self.fields["client"].required = False
+        self.fields["client"].help_text = (
+            "Sélectionnez une fiche pour préremplir le nom, le SIREN et la TVA. "
+            "Sans fiche, les champs restent libres."
+        )
+        self.fields["client"].widget.attrs.update({"data-client-select": "1"})
         self.fields["client_name"].label = "Nom client (affiché)"
+        self.fields["client_name"].required = False
+        self.fields["client_name"].help_text = "Prérempli depuis la fiche client, modifiable librement."
         self.fields["client_siren"].label = "SIREN client"
         self.fields["client_siren"].required = False
+        self.fields["client_siren"].help_text = "9 chiffres, ou vide."
         self.fields["client_tva_intra"].label = "TVA intracommunautaire du client"
         self.fields["client_tva_intra"].required = False
-        self.fields["client_tva_intra"].help_text = "Renseigne automatiquement la fiche client."
+        self.fields["client_tva_intra"].help_text = (
+            "Préremplie depuis la fiche client. Laissez vide si le client n'est pas assujetti."
+        )
         self.fields["reverse_charge"].label = "Autoliquidation de la TVA (client UE)"
         self.fields["reverse_charge"].help_text = (
             "Cochez pour un client professionnel établi dans un autre État membre : "
@@ -165,16 +215,20 @@ class InvoiceForm(forms.ModelForm):
         self.fields["vat_exemption_reason"].required = False
         self.fields["project"].label = "Projet"
         self.fields["project"].required = False
-        self.fields["amount_ht"].label = "Montant HT"
-        self.fields["vat_rate"].label = "Taux de TVA (%)"
-        self.fields["amount_ht"].widget.attrs.update({"inputmode": "decimal"})
-        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
+        self.fields["due_date"].label = "Date d'échéance"
+        self.fields["due_date"].required = False
+        self.fields["due_date"].help_text = (
+            "Vide = date de facturation + délai de paiement de la société."
+        )
         self.fields["client_siren"].widget.attrs.update({"inputmode": "numeric", "pattern": "[0-9]*"})
+        self.fields["client_tva_intra"].widget.attrs.update({"autocomplete": "off"})
         if company is not None:
             self.fields["client"].queryset = Client.objects.filter(company=company)
             self.fields["project"].queryset = Project.objects.filter(company=company)
-            if company.tva != "reel" and not self.is_bound:
-                self.fields["vat_rate"].initial = Decimal("0.00")
+            if not self.is_bound and self.instance._state.adding:
+                self.fields["due_date"].initial = timezone.localdate() + timedelta(
+                    days=company.payment_terms_days or 30
+                )
 
     def clean_client_siren(self):
         raw = "".join(c for c in (self.cleaned_data.get("client_siren") or "") if c.isdigit())
@@ -192,31 +246,34 @@ class InvoiceForm(forms.ModelForm):
             )
         return value
 
-    def clean_amount_ht(self):
-        amount = self.cleaned_data["amount_ht"]
-        if amount <= 0:
-            raise forms.ValidationError("Le montant HT doit être positif.")
-        return amount
-
-    def clean_vat_rate(self):
-        rate = self.cleaned_data["vat_rate"]
-        if rate < 0 or rate > 100:
-            raise forms.ValidationError("Taux de TVA invalide.")
-        return rate
+    def _get_validation_exclusions(self):
+        # Le nom est prérempli depuis la fiche client dans clean() : on évite
+        # que la validation du modèle ne le déclare obligatoire avant ce remplissage.
+        exclude = super()._get_validation_exclusions()
+        exclude.add("client_name")
+        return exclude
 
     def clean(self):
         cleaned = super().clean()
         client = cleaned.get("client")
-        if client and not cleaned.get("client_name"):
-            cleaned["client_name"] = client.name
-        if client and client.siren and not cleaned.get("client_siren"):
-            cleaned["client_siren"] = client.siren
-        if client and getattr(client, "tva_intra", "") and not cleaned.get("client_tva_intra"):
-            cleaned["client_tva_intra"] = client.tva_intra
+        if client:
+            if not cleaned.get("client_name"):
+                cleaned["client_name"] = client.name
+            if client.siren and not cleaned.get("client_siren"):
+                cleaned["client_siren"] = client.siren
+            if getattr(client, "tva_intra", "") and not cleaned.get("client_tva_intra"):
+                cleaned["client_tva_intra"] = client.tva_intra
+        if not (cleaned.get("client_name") or "").strip():
+            self.add_error(
+                "client_name",
+                "Saisissez le nom du client, ou sélectionnez une fiche client.",
+            )
         if cleaned.get("reverse_charge"):
             from .vat import REVERSE_CHARGE_MENTION
 
-            cleaned["vat_rate"] = Decimal("0.00")
+            # Le taux global est calculé depuis les lignes ; en autoliquidation
+            # la TVA collectée reste à 0 quel que soit le taux des prestations.
+            self.instance.vat_rate = Decimal("0.00")
             if not (cleaned.get("vat_exemption_reason") or "").strip():
                 cleaned["vat_exemption_reason"] = REVERSE_CHARGE_MENTION
         return cleaned
@@ -226,17 +283,106 @@ class InvoiceLineForm(forms.ModelForm):
     class Meta:
         model = InvoiceLine
         fields = ("product", "description", "quantity", "unit_price", "vat_rate")
+        widgets = {"product": ProductSelect}
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["product"].label = "Catalogue"
+        self.fields["product"].label = "Produit du catalogue"
         self.fields["product"].required = False
+        self.fields["product"].help_text = "Vide = ligne libre."
+        self.fields["product"].widget.attrs.update({
+            "data-product-select": "1",
+            "aria-label": "Produit du catalogue",
+        })
         self.fields["description"].label = "Désignation"
+        self.fields["description"].widget.attrs.update({
+            "placeholder": "Prestation, produit ou service facturé",
+            "autocomplete": "off",
+        })
         self.fields["quantity"].label = "Quantité"
+        self.fields["quantity"].widget.attrs.update({
+            "inputmode": "decimal",
+            "step": "0.001",
+            "min": "0.001",
+            "data-line-quantity": "1",
+        })
         self.fields["unit_price"].label = "Prix unitaire HT"
+        self.fields["unit_price"].widget.attrs.update({
+            "inputmode": "decimal",
+            "step": "0.01",
+            "min": "0",
+            "data-line-unit-price": "1",
+        })
         self.fields["vat_rate"].label = "TVA (%)"
+        self.fields["vat_rate"].widget.attrs.update({
+            "inputmode": "decimal",
+            "step": "0.01",
+            "min": "0",
+            "max": "100",
+            "data-line-vat-rate": "1",
+        })
         if company is not None:
             self.fields["product"].queryset = Product.objects.filter(company=company, active=True)
+            if company.tva != "reel" and not self.is_bound and not self.instance.pk:
+                self.fields["vat_rate"].initial = Decimal("0.00")
+
+    @property
+    def is_new(self):
+        """Vrai pour une ligne ajoutée à l'écran (pas encore enregistrée)."""
+        return self.instance._state.adding
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get("quantity")
+        if quantity is None or quantity <= 0:
+            raise forms.ValidationError("La quantité doit être supérieure à 0.")
+        return quantity
+
+    def clean_unit_price(self):
+        price = self.cleaned_data.get("unit_price")
+        if price is None or price < 0:
+            raise forms.ValidationError("Le prix unitaire ne peut pas être négatif.")
+        return price
+
+    def clean_vat_rate(self):
+        rate = self.cleaned_data.get("vat_rate")
+        if rate is None or rate < 0 or rate > 100:
+            raise forms.ValidationError("Le taux de TVA doit être compris entre 0 et 100.")
+        return rate
+
+
+class BaseInvoiceLineFormSet(BaseInlineFormSet):
+    """Exige au moins une ligne, sauf sur une ancienne facture sans détail."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        kept = [
+            form for form in self.forms
+            if getattr(form, "cleaned_data", None) and not form.cleaned_data.get("DELETE")
+        ]
+        has_line = any(
+            form.cleaned_data.get("description") or form.cleaned_data.get("product")
+            for form in kept
+        )
+        if has_line:
+            return
+        # Une facture historique sans lignes peut encore être modifiée (client,
+        # projet...) sans être bloquée ; une nouvelle facture doit avoir du détail.
+        if not self.instance.pk or self.initial_form_count() > 0:
+            raise forms.ValidationError(
+                "Ajoutez au moins une ligne : produit du catalogue ou désignation libre."
+            )
+
+
+InvoiceLineFormSet = inlineformset_factory(
+    Invoice,
+    InvoiceLine,
+    form=InvoiceLineForm,
+    formset=BaseInvoiceLineFormSet,
+    extra=2,
+    can_delete=True,
+)
 
 
 class QuoteForm(forms.ModelForm):
@@ -247,26 +393,28 @@ class QuoteForm(forms.ModelForm):
             "client_name",
             "client_siren",
             "project",
-            "amount_ht",
-            "vat_rate",
             "valid_until",
             "notes",
         )
-        widgets = {"valid_until": forms.DateInput(attrs={"type": "date"})}
+        widgets = {
+            "client": ClientSelect,
+            "valid_until": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["client"].label = "Fiche client"
         self.fields["client"].required = False
+        self.fields["client"].help_text = (
+            "Sélectionnez une fiche pour préremplir le nom et le SIREN."
+        )
+        self.fields["client"].widget.attrs.update({"data-client-select": "1"})
         self.fields["client_name"].label = "Nom client"
+        self.fields["client_name"].required = False
         self.fields["client_siren"].label = "SIREN"
         self.fields["client_siren"].required = False
         self.fields["project"].label = "Projet"
         self.fields["project"].required = False
-        self.fields["amount_ht"].label = "Montant HT"
-        self.fields["vat_rate"].label = "Taux de TVA (%)"
-        self.fields["amount_ht"].widget.attrs.update({"inputmode": "decimal"})
-        self.fields["vat_rate"].widget.attrs.update({"inputmode": "decimal"})
         self.fields["valid_until"].label = "Valable jusqu'au"
         self.fields["valid_until"].required = False
         self.fields["notes"].label = "Notes"
@@ -281,12 +429,6 @@ class QuoteForm(forms.ModelForm):
             raise forms.ValidationError("Le SIREN doit contenir 9 chiffres, ou rester vide.")
         return raw
 
-    def clean_amount_ht(self):
-        amount = self.cleaned_data["amount_ht"]
-        if amount <= 0:
-            raise forms.ValidationError("Le montant HT doit être positif.")
-        return amount
-
     def clean(self):
         cleaned = super().clean()
         client = cleaned.get("client")
@@ -294,19 +436,52 @@ class QuoteForm(forms.ModelForm):
             cleaned["client_name"] = client.name
         if client and client.siren and not cleaned.get("client_siren"):
             cleaned["client_siren"] = client.siren
+        if not (cleaned.get("client_name") or "").strip():
+            self.add_error(
+                "client_name",
+                "Saisissez le nom du client, ou sélectionnez une fiche client.",
+            )
         return cleaned
 
 
-class QuoteLineForm(forms.ModelForm):
-    class Meta:
-        model = QuoteLine
-        fields = ("product", "description", "quantity", "unit_price", "vat_rate")
+class QuoteLineForm(InvoiceLineForm):
+    """Même comportement d'édition que les lignes de facture."""
 
-    def __init__(self, *args, company=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields["product"].required = False
-        if company is not None:
-            self.fields["product"].queryset = Product.objects.filter(company=company, active=True)
+    class Meta(InvoiceLineForm.Meta):
+        model = QuoteLine
+
+
+class BaseQuoteLineFormSet(BaseInlineFormSet):
+    """Exige au moins une ligne pour un nouveau devis, comme une facture."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        kept = [
+            form for form in self.forms
+            if getattr(form, "cleaned_data", None) and not form.cleaned_data.get("DELETE")
+        ]
+        has_line = any(
+            form.cleaned_data.get("description") or form.cleaned_data.get("product")
+            for form in kept
+        )
+        if has_line:
+            return
+        if not self.instance.pk or self.initial_form_count() > 0:
+            raise forms.ValidationError(
+                "Ajoutez au moins une ligne : produit du catalogue ou désignation libre."
+            )
+
+
+QuoteLineFormSet = inlineformset_factory(
+    Quote,
+    QuoteLine,
+    form=QuoteLineForm,
+    formset=BaseQuoteLineFormSet,
+    extra=2,
+    can_delete=True,
+)
 
 
 class CreditNoteForm(forms.ModelForm):

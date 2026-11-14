@@ -32,6 +32,8 @@ class CompanySettingsTests(TestCase):
             "phone": "06 12 34 56 78",
             "email": "compta@atelier.fr",
             "invoice_theme": "carmin",
+            "regime": "reel_simple",
+            "tva": "reel",
         })
         self.assertEqual(saved.status_code, 302)
         self.company.refresh_from_db()
@@ -48,6 +50,8 @@ class CompanySettingsTests(TestCase):
             "email": "",
             "slogan": "L'artisan qui avance.",
             "invoice_theme": "azur",
+            "regime": "reel_simple",
+            "tva": "reel",
         })
         self.assertEqual(response.status_code, 302)
         self.company.refresh_from_db()
@@ -291,11 +295,16 @@ class MobileNavChromeTests(TestCase):
             "Balance",
         ):
             self.assertIn(label, body)
-        # Footer
-        self.assertIn("Mon compte", body)
-        self.assertIn("Paramètres", body)
+        # Footer mobile : raccourcis internes vers les modules
+        for label in ("Cockpit", "Achats", "Banque", "Trésorerie"):
+            self.assertIn(label, body)
+        for href in ("/cockpit/", "/achats/", "/banque/", "/tresorerie/"):
+            self.assertIn(href, body)
+        # Compte, paramètres, aide et mentions restent accessibles dans le drawer
+        self.assertIn("Mon profil", body)
+        self.assertIn("Configuration", body)
         self.assertIn("Aide", body)
-        self.assertIn("Mentions", body)
+        self.assertIn("Mentions légales", body)
         self.assertIn("/compte/profil/", body)
         self.assertIn("/societe/", body)
         self.assertIn("/aide/", body)
@@ -331,15 +340,30 @@ class MobileNavChromeTests(TestCase):
         self.assertContains(cgu, "1 000,00 €")
         self.assertContains(cgu, "page d'offres")
 
+        cgv = anon.get("/conditions-generales-de-vente/")
+        self.assertEqual(cgv.status_code, 200)
+        self.assertContains(cgv, "Conditions générales de vente")
+        self.assertContains(cgv, "Stripe")
+        self.assertContains(cgv, "autoliquidation")
+        self.assertContains(cgv, "951 386 127")
+
         privacy = anon.get("/confidentialite/")
         self.assertEqual(privacy.status_code, 200)
         self.assertContains(privacy, "Politique de confidentialité")
         self.assertContains(privacy, "RGPD")
         self.assertContains(privacy, "admin@road-runner-solutions.com")
 
+    def test_home_page_links_all_legal_documents(self):
+        response = self.client.get("/")
+        self.assertContains(response, "/conditions-generales-de-vente/")
+        self.assertContains(response, "/conditions-generales/")
+        self.assertContains(response, "/mentions-legales/")
+        self.assertContains(response, "/confidentialite/")
+
     def test_legal_pages_cross_link_each_other(self):
         page = self.client.get("/mentions-legales/")
         self.assertContains(page, "/conditions-generales/")
+        self.assertContains(page, "/conditions-generales-de-vente/")
         self.assertContains(page, "/confidentialite/")
         self.assertContains(page, 'aria-current="page"')
 

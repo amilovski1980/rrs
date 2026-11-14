@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Configuration{% endblock %}
 {% block crumbs %}Société / Configuration{% endblock %}
 {% block nav_settings %}active{% endblock %}
@@ -8,6 +9,14 @@
     <h1>Configuration</h1>
     <p class="sub">{{ company.denomination }} — SIREN {{ company.siren }}. L'adresse vient de l'API Sirene si elle a été trouvée. Le téléphone se saisit ici.</p>
   </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div>
+    <strong>Connecteur e-mail / Pré-comptabilité</strong>
+    <p class="micro" style="margin:2px 0 0">Importez les factures fournisseurs (PDF / XML Factur-X) depuis Gmail et validez-les en brouillons avant écriture.</p>
+  </div>
+  <a class="btn btn-ghost btn-sm" href="{% url 'mailsync:settings' %}">Ouvrir le connecteur</a>
 </div>
 
 <div class="grid g2" style="align-items:start">
@@ -50,6 +59,127 @@
       <label>{{ form.slogan.label }}</label>
       {{ form.slogan }}
       {% if form.slogan.errors %}<p class="error">{{ form.slogan.errors.0 }}</p>{% endif %}
+
+      <div class="card card-tight" style="margin-top:16px">
+        <h2 style="margin:0 0 6px;font-size:17px">Coordonnées bancaires</h2>
+        <p class="micro" style="margin-top:0">Ces informations apparaissent sur les factures et les devis pour le règlement par virement. Importez un RIB ou photographiez-le : l'IBAN et le BIC sont lus automatiquement.</p>
+        <div class="form-grid">
+          <div>
+            <label>{{ form.bank_name.label }}</label>
+            {{ form.bank_name }}
+            {% if form.bank_name.errors %}<p class="error">{{ form.bank_name.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.bank_bic.label }}</label>
+            {{ form.bank_bic }}
+            {% if form.bank_bic.errors %}<p class="error">{{ form.bank_bic.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div>
+          <label>{{ form.bank_iban.label }}</label>
+          {{ form.bank_iban }}
+          {% if form.bank_iban.errors %}<p class="error">{{ form.bank_iban.errors.0 }}</p>{% endif %}
+        </div>
+        <label>{{ form.rib_scan.label }}</label>
+        {{ form.rib_scan }}
+        <p class="micro">{{ form.rib_scan.help_text }}</p>
+        {% if form.rib_scan.errors %}<p class="error">{{ form.rib_scan.errors.0 }}</p>{% endif %}
+        <button class="btn btn-ghost btn-sm" type="submit" name="scan_rib" value="1" formnovalidate>Scanner le RIB</button>
+      </div>
+
+      <div class="card card-tight" style="margin-top:16px">
+        <h2 style="margin:0 0 12px;font-size:17px">Configuration fiscale</h2>
+        <div class="form-grid">
+          <div>
+            <label>{{ form.regime.label }}</label>
+            {{ form.regime }}
+            {% if form.regime.errors %}<p class="error">{{ form.regime.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.tva.label }}</label>
+            {{ form.tva }}
+            {% if form.tva.errors %}<p class="error">{{ form.tva.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.exercice_debut.label }}</label>
+            {{ form.exercice_debut }}
+            {% if form.exercice_debut.errors %}<p class="error">{{ form.exercice_debut.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.payment_terms_days.label }}</label>
+            {{ form.payment_terms_days }}
+            <p class="micro">{{ form.payment_terms_days.help_text }}</p>
+            {% if form.payment_terms_days.errors %}<p class="error">{{ form.payment_terms_days.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-tight" style="margin-top:16px" data-smtp-card>
+        <h2 style="margin:0 0 6px;font-size:17px">Envoi des factures par email</h2>
+        <p class="micro" style="margin-top:0">Choisissez votre fournisseur : Gmail, Outlook/Hotmail, Yahoo, iCloud ou le SMTP de votre nom de domaine. Les factures partent depuis la boîte de cette société.</p>
+
+        <div>
+          <label>{{ form.smtp_provider.label }}</label>
+          {{ form.smtp_provider }}
+          <p class="micro">Le serveur, le port et le chiffrement se remplissent automatiquement. Choisissez « Nom de domaine personnel » pour OVH, Ionos, Gandi, etc.</p>
+          {% if form.smtp_provider.errors %}<p class="error">{{ form.smtp_provider.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="mail-google-box" data-google-mail-box {% if company.smtp_provider != "gmail" %}hidden{% endif %}>
+          <div>
+            <b>Connexion Google</b>
+            {% if google_mail_connected %}
+            <p>Gmail est connecté{% if google_mail_email %} ({{ google_mail_email }}){% endif %}. Les factures partent directement depuis Gmail, sans mot de passe SMTP.</p>
+            <a class="btn btn-ghost btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Reconnecter Gmail</a>
+            {% elif google_mail_linked %}
+            <p>Un compte Google est déjà lié pour la lecture des factures. Autorisez l'envoi pour utiliser Gmail comme expéditeur.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Autoriser l'envoi Gmail</a>
+            {% else %}
+            <p>Connectez Gmail en un clic, sans saisir de serveur ni de mot de passe.</p>
+            <a class="btn btn-primary btn-sm" href="{% url 'mailsync:connect' 'gmail' %}?next={{ request.get_full_path|urlencode }}">Se connecter avec Google</a>
+            {% endif %}
+            <p class="micro" style="margin:8px 0 0">Si GOOGLE_CLIENT_ID n'est pas configuré, utilisez un mot de passe d'application Google ci-dessous.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label>{{ form.smtp_host.label }}</label>
+            {{ form.smtp_host }}
+            {% if form.smtp_host.errors %}<p class="error">{{ form.smtp_host.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.smtp_port.label }}</label>
+            {{ form.smtp_port }}
+            {% if form.smtp_port.errors %}<p class="error">{{ form.smtp_port.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>{{ form.smtp_username.label }}</label>
+            {{ form.smtp_username }}
+            {% if form.smtp_username.errors %}<p class="error">{{ form.smtp_username.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label>{{ form.smtp_password.label }}</label>
+            {{ form.smtp_password }}
+            <p class="micro">{{ form.smtp_password.help_text }}</p>
+            {% if form.smtp_password.errors %}<p class="error">{{ form.smtp_password.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label>{{ form.smtp_from_email.label }}</label>
+            {{ form.smtp_from_email }}
+            {% if form.smtp_from_email.errors %}<p class="error">{{ form.smtp_from_email.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="check-row">{{ form.smtp_use_tls }} <span>{{ form.smtp_use_tls.label }}</span></label>
+            {% if form.smtp_use_tls.errors %}<p class="error">{{ form.smtp_use_tls.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+
       <label>Logo</label>
       {% if company.logo %}
       <p><img src="{% url 'company_logo' %}?societe={{ company.id }}" alt="Logo" style="max-height:64px;max-width:180px"></p>
@@ -101,4 +231,8 @@
     </form>
   </details>
 </section>
+{{ smtp_presets|json_script:"smtp-presets" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/smtp-settings.js' %}?v=2026.11.14.7" defer></script>
 {% endblock %}

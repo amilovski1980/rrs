@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Comptes bancaires{% endblock %}
+{% block crumbs %}Banque / Comptes{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Comptes bancaires</h1>
+    <p class="sub">{{ company.denomination }} — comptes rattachés au journal BQ et au compte 512.</p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'banking:dashboard' %}?societe={{ company.id }}">Tableau de bord</a>
+    <a class="btn btn-primary" href="{% url 'banking:account_create' %}?societe={{ company.id }}">Nouveau compte</a>
+  </div>
+</div>
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Libellé</th><th>Banque</th><th>IBAN</th><th class="num">Solde d'ouverture</th><th class="num">Solde relevés</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {% for account in accounts %}
+        <tr>
+          <td><b>{{ account.label }}</b></td>
+          <td>{{ account.bank_name|default:"—" }}</td>
+          <td>{{ account.iban|default:"—" }}</td>
+          <td class="num">{{ account.opening_balance|floatformat:2 }} €</td>
+          <td class="num">{{ account.balance|floatformat:2 }} €</td>
+          <td>{% if account.is_active %}<span class="badge badge-green">Actif</span>{% else %}<span class="badge">Inactif</span>{% endif %}</td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'banking:account_detail' account.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">Aucun compte bancaire.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -69,8 +69,8 @@
         {% for err in form.image.errors %}
         <p class="form-error" id="err_image" role="alert">{{ err }}</p>
         {% endfor %}
-        {% if ticket and ticket.image %}
-        <p class="sub">Fichier actuel : <a href="{{ ticket.image.url }}" target="_blank" rel="noopener">voir le justificatif</a></p>
+        {% if ticket.image_data or ticket.image %}
+        <p class="sub">Fichier actuel : <a href="{% url 'ticket_image' ticket.id %}?societe={{ company.id }}" target="_blank" rel="noopener">voir le justificatif</a></p>
         {% endif %}
       </div>
     </section>

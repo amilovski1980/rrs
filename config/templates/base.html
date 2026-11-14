@@ -1,4 +1,4 @@
-{% load static %}<!DOCTYPE html>
+{% load static company_colors %}<!DOCTYPE html>
 <html lang="fr"{% if request.dark_ui %} data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.2">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.2">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.7">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.7">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -156,9 +156,28 @@
       <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Tickets de caisse
       {% if forfait.locks.tickets %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
+    <a class="side-link {% block nav_purchases %}{% endblock %}{% if forfait.locks.purchases %} is-locked{% endif %}" href="{% if forfait.locks.purchases %}{% url 'plan_upgrade' %}{% else %}{% url 'purchases:dashboard' %}{% endif %}" {% if forfait.locks.purchases %}title="Mettre à jour le forfait"{% endif %}>
+      <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Achats et dépenses
+      {% if forfait.locks.purchases %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
+    </a>
+    <a class="side-link {% block nav_suppliers %}{% endblock %}{% if forfait.locks.suppliers %} is-locked{% endif %}" href="{% if forfait.locks.suppliers %}{% url 'plan_upgrade' %}{% else %}{% url 'suppliers:list' %}{% endif %}" {% if forfait.locks.suppliers %}title="Mettre à jour le forfait"{% endif %}>
+      <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Fournisseurs
+      {% if forfait.locks.suppliers %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
+    </a>
+    <a class="side-link {% block nav_banking %}{% endblock %}{% if forfait.locks.banking %} is-locked{% endif %}" href="{% if forfait.locks.banking %}{% url 'plan_upgrade' %}{% else %}{% url 'banking:dashboard' %}{% endif %}" {% if forfait.locks.banking %}title="Mettre à jour le forfait"{% endif %}>
+      <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Banque
+      {% if forfait.locks.banking %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
+    </a>
+    <a class="side-link {% block nav_treasury %}{% endblock %}{% if forfait.locks.treasury %} is-locked{% endif %}" href="{% if forfait.locks.treasury %}{% url 'plan_upgrade' %}{% else %}{% url 'treasury:dashboard' %}{% endif %}" {% if forfait.locks.treasury %}title="Mettre à jour le forfait"{% endif %}>
+      <span class="side-ico">{% include "partials/icon.html" with name="receipt" %}</span> Trésorerie
+      {% if forfait.locks.treasury %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
+    </a>
     <a class="side-link {% block nav_ai_drafts %}{% endblock %}{% if forfait.locks.ai_drafts %} is-locked{% endif %}" href="{% if forfait.locks.ai_drafts %}{% url 'plan_upgrade' %}{% else %}{% url 'ai_drafts' %}{% endif %}" {% if forfait.locks.ai_drafts %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
       {% if forfait.locks.ai_drafts %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
+    </a>
+    <a class="side-link {% block nav_mail %}{% endblock %}" href="{% url 'mailsync:drafts' %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="mail" %}</span> Factures e-mail
     </a>
     </div>{# /.sidebar-nav-scroll #}
 
@@ -181,6 +200,12 @@
       </a>
       <a class="side-link" href="{% url 'profile' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="user" %}</span> Mon profil
+      </a>
+      <a class="side-link" href="{% url 'help' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Aide
+      </a>
+      <a class="side-link" href="{% url 'legal_notice' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Mentions légales
       </a>
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
@@ -206,6 +231,14 @@
         {% include "partials/icon.html" with name="list" %}
       </button>
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
+      {% if top_companies|length > 1 %}
+      <nav class="company-switch" aria-label="Changer de société">
+        {% for c in top_companies %}
+        {% company_color_class c top_companies as co_cls %}
+        <a class="company-switch-btn {{ co_cls }}{% if top_company and top_company.id == c.id %} is-on{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}" title="{{ c.denomination }}" aria-label="Passer à {{ c.denomination }}"{% if top_company and top_company.id == c.id %} aria-current="true"{% endif %}>{{ c|company_initial }}</a>
+        {% endfor %}
+      </nav>
+      {% endif %}
       <div class="top-actions">
         {% if request.user.is_authenticated %}
         <span class="badge top-mail" title="{{ request.user.email|default:'' }}">{{ request.user.email|default:'' }}</span>
@@ -214,7 +247,7 @@
           <button class="btn btn-ghost btn-sm" type="submit">Déconnexion</button>
         </form>
         {% endif %}
-        <a class="btn btn-ghost btn-sm top-site" href="{% url 'landing' %}">Site vitrine</a>
+        <a class="btn btn-ghost btn-sm top-site" href="{% url 'landing' %}" aria-label="Site vitrine" title="Site vitrine">{% include "partials/icon.html" with name="house" %}</a>
       </div>
     </header>
     <main class="content">
@@ -229,29 +262,39 @@
     </main>
   </div>
 
-  {# —— Footer mobile (≤768px) —— #}
+  {# —— Footer mobile (≤768px) : raccourcis vers les modules internes —— #}
   <nav class="m-footer" data-m-footer aria-label="Raccourcis">
-    <a class="m-footer-btn {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}"{% if request.resolver_match.url_name == 'profile' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="user" %}</span>
-      <span>Mon compte</span>
+    <a class="m-footer-btn {% if request.resolver_match.url_name == 'cockpit' %}active{% endif %}" href="{% url 'cockpit' %}"{% if request.resolver_match.url_name == 'cockpit' %} aria-current="page"{% endif %}>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="grid" %}</span>
+      <span>Cockpit</span>
     </a>
-    <a class="m-footer-btn {% if request.resolver_match.url_name == 'company_settings' %}active{% endif %}" href="{% url 'company_settings' %}"{% if request.resolver_match.url_name == 'company_settings' %} aria-current="page"{% endif %}>
+    <a class="m-footer-btn {% if request.resolver_match.namespace == 'purchases' %}active{% endif %}"
+       href="{% if forfait.locks.purchases %}{% url 'plan_upgrade' %}{% else %}{% url 'purchases:dashboard' %}{% endif %}"
+       {% if forfait.locks.purchases %}title="Mettre à jour le forfait"{% endif %}
+       {% if request.resolver_match.namespace == 'purchases' %} aria-current="page"{% endif %}>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="receipt" %}</span>
+      <span>Achats</span>
+    </a>
+    <a class="m-footer-btn {% if request.resolver_match.namespace == 'banking' %}active{% endif %}"
+       href="{% if forfait.locks.banking %}{% url 'plan_upgrade' %}{% else %}{% url 'banking:dashboard' %}{% endif %}"
+       {% if forfait.locks.banking %}title="Mettre à jour le forfait"{% endif %}
+       {% if request.resolver_match.namespace == 'banking' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="building" %}</span>
-      <span>Paramètres</span>
+      <span>Banque</span>
     </a>
-    <a class="m-footer-btn {% if request.resolver_match.url_name == 'help' %}active{% endif %}" href="{% url 'help' %}"{% if request.resolver_match.url_name == 'help' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
-      <span>Aide</span>
-    </a>
-    <a class="m-footer-btn {% if request.resolver_match.url_name == 'legal_notice' %}active{% endif %}" href="{% url 'legal_notice' %}"{% if request.resolver_match.url_name == 'legal_notice' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="scales" %}</span>
-      <span>Mentions</span>
+    <a class="m-footer-btn {% if request.resolver_match.namespace == 'treasury' %}active{% endif %}"
+       href="{% if forfait.locks.treasury %}{% url 'plan_upgrade' %}{% else %}{% url 'treasury:dashboard' %}{% endif %}"
+       {% if forfait.locks.treasury %}title="Mettre à jour le forfait"{% endif %}
+       {% if request.resolver_match.namespace == 'treasury' %} aria-current="page"{% endif %}>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="chart" %}</span>
+      <span>Trésorerie</span>
     </a>
   </nav>
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.14.2" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.14.5" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

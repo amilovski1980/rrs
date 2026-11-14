@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block crumbs %}Fournisseurs / {{ supplier.name }}{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ supplier.name }}</h1>
+    <p class="sub">
+      {% if supplier.is_active %}<span class="badge badge-green">Actif</span>{% else %}<span class="badge">Inactif</span>{% endif %}
+      {% if supplier.siret %} · SIRET {{ supplier.siret }}{% endif %}
+      {% if supplier.tva_intra %} · TVA {{ supplier.tva_intra }}{% endif %}
+    </p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'suppliers:edit' supplier.pk %}?societe={{ company.id }}">Modifier</a>
+    <form method="post" action="{% url 'suppliers:toggle' supplier.pk %}?societe={{ company.id }}" style="display:inline">
+      {% csrf_token %}
+      <button class="btn btn-ghost" type="submit">{% if supplier.is_active %}Désactiver{% else %}Activer{% endif %}</button>
+    </form>
+    <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}&fournisseur={{ supplier.pk }}">Nouvelle facture</a>
+  </div>
+</div>
+
+<div class="grid g3" style="margin-bottom:18px">
+  <div class="kpi"><div class="l">Achats cumulés</div><div class="v">{{ total|floatformat:2 }} €</div><div class="d">TTC, toutes factures</div></div>
+  <div class="kpi"><div class="l">Reste à payer</div><div class="v">{{ unpaid|floatformat:2 }} €</div><div class="d">Factures validées</div></div>
+  <div class="kpi"><div class="l">Délai de paiement</div><div class="v">{{ supplier.payment_terms_days }} j</div><div class="d">Échéance par défaut</div></div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card">
+    <h3 style="margin-top:0">Coordonnées</h3>
+    <p><b>Contact</b> {{ supplier.contact_name|default:"—" }}</p>
+    <p><b>E-mail</b> {{ supplier.email|default:"—" }}</p>
+    <p><b>Téléphone</b> {{ supplier.phone|default:"—" }}</p>
+    <p><b>Adresse</b> {{ supplier.address|default:"—" }}</p>
+    <p><b>IBAN</b> {{ supplier.iban|default:"—" }}</p>
+    <p><b>Compte de charge préféré</b> {{ supplier.default_charge_code|default:"—" }}</p>
+    {% if supplier.notes %}<p class="sub">{{ supplier.notes }}</p>{% endif %}
+  </section>
+
+  <section class="card card-tight">
+    <div class="card-head"><h3>Factures</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>N°</th><th class="num">TTC</th><th>État</th></tr></thead>
+        <tbody>
+          {% for invoice in invoices %}
+          <tr>
+            <td>{{ invoice.invoice_date|date:"d/m/Y"|default:"—" }}</td>
+            <td><a href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">{{ invoice.number|default:"—" }}</a></td>
+            <td class="num">{{ invoice.amount_ttc|floatformat:2 }} €</td>
+            <td>
+              {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
+              {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+              {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
+              {% else %}<span class="badge">Brouillon</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucune facture rattachée.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

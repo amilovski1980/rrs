@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ account.label }}{% endblock %}
+{% block crumbs %}Banque / {{ account.label }}{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ account.label }}</h1>
+    <p class="sub">
+      {{ account.bank_name|default:"Banque" }}{% if account.iban %} · {{ account.iban }}{% endif %}
+      · <a href="{% url 'banking:account_edit' account.pk %}?societe={{ company.id }}">modifier</a>
+    </p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'banking:transactions' %}?societe={{ company.id }}&compte={{ account.pk }}">Opérations</a>
+    <a class="btn btn-primary" href="{% url 'banking:import' %}?societe={{ company.id }}">Importer</a>
+  </div>
+</div>
+
+<div class="grid g3" style="margin-bottom:18px">
+  <div class="kpi"><div class="l">Solde des relevés</div><div class="v">{{ account.balance|floatformat:2 }} €</div><div class="d">Ouverture + mouvements</div></div>
+  <div class="kpi"><div class="l">Solde comptable 512</div><div class="v">{{ accounting_balance|floatformat:2 }} €</div><div class="d">Écritures validées</div></div>
+  <div class="kpi"><div class="l">À rapprocher</div><div class="v">{{ unmatched }}</div><div class="d">Opérations en attente</div></div>
+</div>
+
+<section class="card">
+  <div class="card-head" style="padding-left:0;padding-right:0">
+    <h3>Opérations</h3>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Libellé</th><th class="num">Montant</th><th>État</th><th></th></tr></thead>
+      <tbody>
+        {% for transaction in transactions %}
+        <tr>
+          <td>{{ transaction.date|date:"d/m/Y" }}</td>
+          <td>{{ transaction.label|truncatechars:60 }}</td>
+          <td class="num">{{ transaction.amount|floatformat:2 }} €</td>
+          <td>
+            {% if transaction.status == "matched" %}<span class="badge badge-green">Rapproché</span>
+            {% elif transaction.status == "ignored" %}<span class="badge">Ignoré</span>
+            {% else %}<span class="badge badge-blue">À rapprocher</span>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucune opération.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if statements %}
+<section class="card" style="margin-top:18px">
+  <h3 style="margin-top:0">Relevés importés</h3>
+  <table>
+    <thead><tr><th>Importé le</th><th>Période</th><th>Format</th><th class="num">Lignes</th><th></th></tr></thead>
+    <tbody>
+      {% for statement in statements %}
+      <tr>
+        <td>{{ statement.imported_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ statement.date_start|date:"d/m/Y"|default:"—" }} → {{ statement.date_end|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ statement.get_source_format_display }}</td>
+        <td class="num">{{ statement.row_count }}</td>
+        <td><a class="btn btn-ghost btn-sm" href="{% url 'banking:statement_file' statement.pk %}?societe={{ company.id }}">Fichier</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}

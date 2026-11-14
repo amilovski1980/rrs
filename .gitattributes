@@ -1,0 +1,2 @@
+# Les scripts shell doivent rester en LF, y compris pour les déploiements CLI.
+*.sh text eol=lf

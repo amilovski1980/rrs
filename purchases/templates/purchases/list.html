@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Factures fournisseurs{% endblock %}
+{% block crumbs %}Achats / Factures fournisseurs{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Factures fournisseurs</h1>
+    <p class="sub">{{ company.denomination }} — registre des achats et échéances.</p>
+  </div>
+  <a class="btn btn-primary page-actions" href="{% url 'purchases:create' %}?societe={{ company.id }}">
+    {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+  </a>
+</div>
+
+<form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <div class="form-grid">
+    <div>
+      <label for="q">Recherche</label>
+      <input id="q" name="q" value="{{ query }}" placeholder="Fournisseur ou n° de facture">
+    </div>
+    <div>
+      <label for="statut">État</label>
+      <select id="statut" name="statut">
+        <option value="">Tous</option>
+        {% for code, label in statuses %}
+        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="fournisseur">Fournisseur</label>
+      <select id="fournisseur" name="fournisseur">
+        <option value="">Tous</option>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier.id }}" {% if supplier_id == supplier.id|stringformat:"s" %}selected{% endif %}>{{ supplier.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+    </div>
+  </div>
+</form>
+
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Fournisseur</th>
+          <th>N°</th>
+          <th>Échéance</th>
+          <th class="num">HT</th>
+          <th class="num">TVA</th>
+          <th class="num">TTC</th>
+          <th>État</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in invoices %}
+        <tr>
+          <td>{{ invoice.invoice_date|date:"d/m/Y"|default:"—" }}</td>
+          <td>{{ invoice.supplier_name|default:"—" }}</td>
+          <td>{{ invoice.number|default:"—" }}</td>
+          <td>
+            {{ invoice.effective_due_date|date:"d/m/Y"|default:"—" }}
+            {% if invoice.is_late %}<span class="badge badge-red">Retard</span>{% endif %}
+          </td>
+          <td class="num">{{ invoice.amount_ht|floatformat:2 }} €</td>
+          <td class="num">{{ invoice.amount_vat|floatformat:2 }} €</td>
+          <td class="num"><b>{{ invoice.amount_ttc|floatformat:2 }} €</b></td>
+          <td>
+            {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
+            {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+            {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
+            {% else %}<span class="badge">Brouillon</span>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty">Aucune facture ne correspond.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

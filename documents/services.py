@@ -1,5 +1,6 @@
 """Émission, encaissement, conversion devis et avoirs."""
 from decimal import Decimal
+from datetime import timedelta
 import uuid
 
 from django.db import transaction
@@ -23,8 +24,11 @@ def _account(company, code):
 
 
 def _entry(company, journal_code, label, reference, lines, on_date):
-    if JournalEntry.objects.filter(company=company, reference=reference).exists():
-        return None
+    existing = JournalEntry.objects.filter(
+        company=company, reference=reference
+    ).first()
+    if existing:
+        return existing
     journal = company.journals.filter(code=journal_code).first()
     if journal is None or any(account is None for account, _, _ in lines):
         return None
@@ -103,10 +107,18 @@ def issue_invoice(invoice):
         post_sale(invoice)
         return invoice
     today = timezone.localdate()
-    invoice.number = next_invoice_number(invoice.company, today.year)
-    invoice.status = "issued"
-    invoice.save(update_fields=["number", "status"])
-    post_sale(invoice, today)
+    # Numéro + statut + écriture dans une même transaction : un échec ne
+    # consomme pas de numéro et ne laisse pas la facture à moitié émise.
+    with transaction.atomic():
+        invoice.number = next_invoice_number(invoice.company, today.year)
+        invoice.status = "issued"
+        if not invoice.due_date:
+            base = invoice.created_at.date() if invoice.created_at else today
+            invoice.due_date = base + timedelta(
+                days=invoice.company.payment_terms_days or 30
+            )
+        invoice.save(update_fields=["number", "status", "due_date"])
+        post_sale(invoice, today)
     return invoice
 
 
@@ -162,7 +174,7 @@ def register_payment(
         )
         if post_accounting:
             ref = (reference or f"{invoice.number}-P{payment.id.hex[:6]}")[:50]
-            _entry(
+            entry = _entry(
                 company,
                 "BQ",
                 f"Encaissement {invoice.number} — {invoice.client_name}",
@@ -173,8 +185,25 @@ def register_payment(
                 ],
                 paid_at,
             )
+            if entry is not None:
+                payment.journal_entry = entry
+                payment.save(update_fields=["journal_entry"])
         invoice.refresh_payment_status()
     return payment
+
+
+@transaction.atomic
+def delete_payment(payment):
+    """Supprime un encaissement et l'écriture BQ liée (pas d'orphelin)."""
+    invoice = payment.invoice
+    entry = payment.journal_entry
+    payment.delete()
+    if entry is not None:
+        entry.delete()
+    invoice.refresh_payment_status()
+    if invoice.status == "paid" and invoice.amount_paid < invoice.amount_ttc:
+        invoice.status = "issued"
+        invoice.save(update_fields=["status"])
 
 
 def convert_quote_to_invoice(quote):
@@ -207,6 +236,7 @@ def convert_quote_to_invoice(quote):
                 vat_rate=line.vat_rate,
                 position=line.position,
             )
+        recompute_invoice_totals_from_lines(invoice)
         quote.converted_invoice = invoice
         quote.status = "converted"
         quote.save(update_fields=["converted_invoice", "status", "updated_at"])
@@ -242,9 +272,36 @@ def recompute_invoice_totals_from_lines(invoice):
     lines = list(invoice.lines.all())
     if not lines:
         return invoice
-    total_ht = sum((line.amount_ht for line in lines), Decimal("0.00"))
-    # Taux dominant (première ligne) — le modèle Invoice n'a qu'un taux global.
+    total_ht = sum((line.amount_ht for line in lines), Decimal("0.00")).quantize(
+        Decimal("0.01")
+    )
+    bases: dict[Decimal, Decimal] = {}
+    for line in lines:
+        rate = Decimal(str(line.vat_rate)).quantize(Decimal("0.01"))
+        bases[rate] = bases.get(rate, Decimal("0.00")) + line.amount_ht
+    # Le modèle Invoice ne porte qu'un taux global : on conserve le taux
+    # dominant pour l'affichage, la TVA réelle étant calculée ligne par ligne.
     invoice.amount_ht = total_ht
-    invoice.vat_rate = lines[0].vat_rate
+    invoice.vat_rate = (
+        Decimal("0.00") if invoice.reverse_charge else max(bases, key=bases.get)
+    )
     invoice.save(update_fields=["amount_ht", "vat_rate"])
     return invoice
+
+
+def recompute_quote_totals_from_lines(quote):
+    """Recalcule amount_ht / vat_rate d'un devis depuis ses lignes."""
+    lines = list(quote.lines.all())
+    if not lines:
+        return quote
+    total_ht = sum((line.amount_ht for line in lines), Decimal("0.00")).quantize(
+        Decimal("0.01")
+    )
+    bases: dict[Decimal, Decimal] = {}
+    for line in lines:
+        rate = Decimal(str(line.vat_rate)).quantize(Decimal("0.01"))
+        bases[rate] = bases.get(rate, Decimal("0.00")) + line.amount_ht
+    quote.amount_ht = total_ht
+    quote.vat_rate = max(bases, key=bases.get)
+    quote.save(update_fields=["amount_ht", "vat_rate", "updated_at"])
+    return quote

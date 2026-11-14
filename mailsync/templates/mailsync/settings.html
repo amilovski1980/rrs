@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Connecteur e-mail{% endblock %}
+{% block crumbs %}Société / Configuration / Connecteur e-mail{% endblock %}
+{% block nav_settings %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .mail-state { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .mail-meta { margin: 0 0 6px; font-size: 14px; color: var(--ink-2); }
+  .mail-meta strong { color: var(--ink); }
+  .mail-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .mail-actions form { margin: 0; }
+  .mail-help { margin: 12px 0 0; }
+  .mail-recent td small { display: block; color: var(--ink-3); }
+  .mail-connect { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Connecteur e-mail</h1>
+    <p class="sub">
+      Importez automatiquement vos factures fournisseurs (PDF / XML Factur-X) depuis
+      une boîte dédiée. Chaque facture devient un <strong>brouillon</strong> : rien
+      n'entre en comptabilité sans votre validation.
+    </p>
+  </div>
+  <div class="mail-actions">
+    <a class="btn btn-ghost" href="{% url 'mailsync:drafts' %}">
+      Factures à valider{% if drafts_count %} <span class="badge badge-blue">{{ drafts_count }}</span>{% endif %}
+    </a>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card">
+    <h2 style="margin:0 0 6px;font-size:17px">Connexion</h2>
+    <div class="mail-state">
+      {% if config.status == "connected" %}
+        <span class="badge badge-green">Connecté</span>
+      {% elif config.status == "error" %}
+        <span class="badge badge-red">Erreur</span>
+      {% else %}
+        <span class="badge">Non connecté</span>
+      {% endif %}
+      {% if config.has_tokens %}<span class="badge">{{ config.get_provider_display }}</span>{% endif %}
+    </div>
+
+    {% if config.has_tokens %}
+      <p class="mail-meta">Boîte : <strong>{{ config.email_address|default:"adresse inconnue" }}</strong></p>
+      <p class="mail-meta">Dernière vérification :
+        <strong>{% if config.last_sync_at %}{{ config.last_sync_at|date:"d/m/Y à H:i" }}{% else %}jamais{% endif %}</strong>
+      </p>
+      {% if config.last_error %}
+        <ul class="form-errors"><li>{{ config.last_error }}</li></ul>
+      {% endif %}
+      <div class="mail-actions">
+        <form method="post" action="{% url 'mailsync:sync_now' %}">
+          {% csrf_token %}
+          <button class="btn btn-primary" type="submit">Vérifier maintenant</button>
+        </form>
+        <form method="post" action="{% url 'mailsync:disconnect' %}"
+              onsubmit="return confirm('Déconnecter cette boîte ? Les brouillons déjà importés sont conservés.');">
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit">Déconnecter</button>
+        </form>
+      </div>
+      <p class="micro mail-help">
+        Accès en lecture seule (<code>gmail.readonly</code>). Le connecteur ne
+        modifie ni ne supprime jamais aucun message.
+      </p>
+    {% else %}
+      <div class="mail-connect">
+        <p class="micro" style="margin:0">
+          Un clic sur Google, un consentement, et c'est terminé. Vous pourrez
+          révoquer l'accès à tout moment depuis votre compte Google ou ici.
+        </p>
+        <a class="btn btn-primary" href="{% url 'mailsync:connect' 'gmail' %}">
+          Connecter mon compte Gmail
+        </a>
+        <button class="btn btn-ghost" type="button" disabled title="Disponible prochainement">
+          Outlook — bientôt
+        </button>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 style="margin:0 0 6px;font-size:17px">Réglages de collecte</h2>
+    <p class="micro" style="margin-top:0">
+      Ces valeurs pré-remplissent chaque brouillon. Elles restent modifiables
+      facture par facture à l'écran de contrôle.
+    </p>
+    <form class="form-stack" method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.frequency_minutes.id_for_label }}">{{ form.frequency_minutes.label }}</label>
+          {{ form.frequency_minutes }}
+          {% if form.frequency_minutes.errors %}<p class="error">{{ form.frequency_minutes.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.folder_label.id_for_label }}">{{ form.folder_label.label }}</label>
+          {{ form.folder_label }}
+          {% if form.folder_label.errors %}<p class="error">{{ form.folder_label.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label for="{{ form.journal.id_for_label }}">{{ form.journal.label }}</label>
+        {{ form.journal }}
+        <p class="micro">Par défaut : le journal d'achats ACH de la société.</p>
+        {% if form.journal.errors %}<p class="error">{{ form.journal.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label for="{{ form.charge_account_code.id_for_label }}">{{ form.charge_account_code.label }}</label>
+          {{ form.charge_account_code }}
+          <p class="micro">Créé automatiquement s'il n'existe pas encore.</p>
+          {% if form.charge_account_code.errors %}<p class="error">{{ form.charge_account_code.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+          {{ form.vat_account_code }}
+          <p class="micro">À la validation, le compte existant le plus proche est utilisé.</p>
+          {% if form.vat_account_code.errors %}<p class="error">{{ form.vat_account_code.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label for="{{ form.supplier_account_root.id_for_label }}">{{ form.supplier_account_root.label }}</label>
+        {{ form.supplier_account_root }}
+        <p class="micro">Racine du compte de tiers crédité (401 = Fournisseurs).</p>
+        {% if form.supplier_account_root.errors %}<p class="error">{{ form.supplier_account_root.errors.0 }}</p>{% endif %}
+      </div>
+
+      <button class="btn btn-primary" type="submit">Enregistrer les réglages</button>
+    </form>
+  </section>
+</div>
+
+<section class="card" style="margin-top:18px">
+  <h2 style="margin:0 0 12px;font-size:17px">Derniers messages examinés</h2>
+  {% if recent_emails %}
+    <div class="table-wrap">
+      <table class="mail-recent">
+        <thead>
+          <tr>
+            <th>Reçu</th>
+            <th>Sujet</th>
+            <th>Expéditeur</th>
+            <th>Résultat</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for email in recent_emails %}
+          <tr>
+            <td>{{ email.received_at|date:"d/m/Y H:i"|default:"—" }}</td>
+            <td>{{ email.subject|default:"(sans sujet)"|truncatechars:60 }}
+              {% if email.detail %}<small>{{ email.detail }}</small>{% endif %}
+            </td>
+            <td>{{ email.from_email|default:"—" }}</td>
+            <td>
+              {% if email.status == "imported" %}
+                <span class="badge badge-green">Importé</span>
+              {% elif email.status == "error" %}
+                <span class="badge badge-red">Erreur</span>
+              {% else %}
+                <span class="badge">Ignoré</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="micro">Aucun message examiné pour l'instant. Lancez une vérification après la connexion.</p>
+  {% endif %}
+</section>
+{% endblock %}

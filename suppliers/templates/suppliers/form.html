@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{% if supplier %}Modifier le fournisseur{% else %}Nouveau fournisseur{% endif %}{% endblock %}
+{% block crumbs %}Fournisseurs / {% if supplier %}Modifier{% else %}Nouveau{% endif %}{% endblock %}
+{% block nav_suppliers %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if supplier %}Modifier {{ supplier.name }}{% else %}Nouveau fournisseur{% endif %}</h1>
+    <p class="sub">Ces informations servent au rapprochement des factures et des règlements.</p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'suppliers:list' %}?societe={{ company.id }}">Retour</a>
+</div>
+
+<form method="post" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+      {{ form.name }}
+      {% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.contact_name.id_for_label }}">{{ form.contact_name.label }}</label>
+      {{ form.contact_name }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.siret.id_for_label }}">{{ form.siret.label }}</label>
+      {{ form.siret }}
+      {% if form.siret.errors %}<p class="error">{{ form.siret.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.tva_intra.id_for_label }}">{{ form.tva_intra.label }}</label>
+      {{ form.tva_intra }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+    </div>
+    <div>
+      <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+      {{ form.phone }}
+    </div>
+  </div>
+  <div>
+    <label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>
+    {{ form.address }}
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.iban.id_for_label }}">{{ form.iban.label }}</label>
+      {{ form.iban }}
+    </div>
+    <div>
+      <label for="{{ form.payment_terms_days.id_for_label }}">{{ form.payment_terms_days.label }}</label>
+      {{ form.payment_terms_days }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.default_charge_code.id_for_label }}">{{ form.default_charge_code.label }}</label>
+      {{ form.default_charge_code }}
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <label class="check-row">{{ form.is_active }} <span>{{ form.is_active.label }}</span></label>
+    </div>
+  </div>
+  <div>
+    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+    {{ form.notes }}
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+  </div>
+</form>
+{% endblock %}
