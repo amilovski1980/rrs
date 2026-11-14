@@ -24,10 +24,7 @@
       </form>
       {% endif %}
       {% if ticket.journal_entry and not ticket.journal_entry.validated %}
-      <form method="post" action="{% url 'ticket_post_entry' ticket.id %}?societe={{ company.id }}" style="display:inline">
-        {% csrf_token %}
-        <button class="btn btn-primary" type="submit">Valider l'écriture au grand livre</button>
-      </form>
+      <a class="btn btn-primary" href="{% url 'ledger' %}?societe={{ company.id }}&q={{ ticket.journal_entry.label|urlencode }}">Valider l'écriture au grand livre</a>
       {% endif %}
       <form method="post" action="{% url 'ticket_delete' ticket.id %}?societe={{ company.id }}" style="display:inline" onsubmit="return confirm('Supprimer ce ticket ?');">
         {% csrf_token %}
