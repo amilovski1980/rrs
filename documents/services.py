@@ -1,5 +1,6 @@
 """Émission, encaissement, conversion devis et avoirs."""
 from decimal import Decimal
+from datetime import timedelta
 import uuid
 
 from django.db import transaction
@@ -23,8 +24,11 @@ def _account(company, code):
 
 
 def _entry(company, journal_code, label, reference, lines, on_date):
-    if JournalEntry.objects.filter(company=company, reference=reference).exists():
-        return None
+    existing = JournalEntry.objects.filter(
+        company=company, reference=reference
+    ).first()
+    if existing:
+        return existing
     journal = company.journals.filter(code=journal_code).first()
     if journal is None or any(account is None for account, _, _ in lines):
         return None
@@ -108,7 +112,12 @@ def issue_invoice(invoice):
     with transaction.atomic():
         invoice.number = next_invoice_number(invoice.company, today.year)
         invoice.status = "issued"
-        invoice.save(update_fields=["number", "status"])
+        if not invoice.due_date:
+            base = invoice.created_at.date() if invoice.created_at else today
+            invoice.due_date = base + timedelta(
+                days=invoice.company.payment_terms_days or 30
+            )
+        invoice.save(update_fields=["number", "status", "due_date"])
         post_sale(invoice, today)
     return invoice
 
@@ -165,7 +174,7 @@ def register_payment(
         )
         if post_accounting:
             ref = (reference or f"{invoice.number}-P{payment.id.hex[:6]}")[:50]
-            _entry(
+            entry = _entry(
                 company,
                 "BQ",
                 f"Encaissement {invoice.number} — {invoice.client_name}",
@@ -176,8 +185,25 @@ def register_payment(
                 ],
                 paid_at,
             )
+            if entry is not None:
+                payment.journal_entry = entry
+                payment.save(update_fields=["journal_entry"])
         invoice.refresh_payment_status()
     return payment
+
+
+@transaction.atomic
+def delete_payment(payment):
+    """Supprime un encaissement et l'écriture BQ liée (pas d'orphelin)."""
+    invoice = payment.invoice
+    entry = payment.journal_entry
+    payment.delete()
+    if entry is not None:
+        entry.delete()
+    invoice.refresh_payment_status()
+    if invoice.status == "paid" and invoice.amount_paid < invoice.amount_ttc:
+        invoice.status = "issued"
+        invoice.save(update_fields=["status"])
 
 
 def convert_quote_to_invoice(quote):

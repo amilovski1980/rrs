@@ -1,8 +1,11 @@
 from decimal import Decimal
 
+from datetime import timedelta
+
 from django import forms
 from django.forms import inlineformset_factory
 from django.forms.models import BaseInlineFormSet
+from django.utils import timezone
 
 from .models import (
     Client,
@@ -175,8 +178,12 @@ class InvoiceForm(forms.ModelForm):
             "project",
             "reverse_charge",
             "vat_exemption_reason",
+            "due_date",
         )
-        widgets = {"client": ClientSelect}
+        widgets = {
+            "client": ClientSelect,
+            "due_date": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -208,11 +215,20 @@ class InvoiceForm(forms.ModelForm):
         self.fields["vat_exemption_reason"].required = False
         self.fields["project"].label = "Projet"
         self.fields["project"].required = False
+        self.fields["due_date"].label = "Date d'échéance"
+        self.fields["due_date"].required = False
+        self.fields["due_date"].help_text = (
+            "Vide = date de facturation + délai de paiement de la société."
+        )
         self.fields["client_siren"].widget.attrs.update({"inputmode": "numeric", "pattern": "[0-9]*"})
         self.fields["client_tva_intra"].widget.attrs.update({"autocomplete": "off"})
         if company is not None:
             self.fields["client"].queryset = Client.objects.filter(company=company)
             self.fields["project"].queryset = Project.objects.filter(company=company)
+            if not self.is_bound and self.instance._state.adding:
+                self.fields["due_date"].initial = timezone.localdate() + timedelta(
+                    days=company.payment_terms_days or 30
+                )
 
     def clean_client_siren(self):
         raw = "".join(c for c in (self.cleaned_data.get("client_siren") or "") if c.isdigit())

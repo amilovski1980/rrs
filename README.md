@@ -103,6 +103,48 @@ MAILSYNC_ENCRYPTION_KEY=...
 - Aucune écriture comptable avant validation humaine ; l'écriture créée est
   équilibrée (débit charge + TVA = crédit fournisseur).
 
+## Achats et fournisseurs
+
+- `/achats/` : tableau de bord, factures fournisseurs, échéances et règlements.
+- `/fournisseurs/` : fiches fournisseurs, encours et historique.
+- Cycle : brouillon → **validation** (écriture ACH équilibrée `606000` + TVA `44566` /
+  crédit `401`) → **règlement** (écriture BQ `401` / `512`). Supprimer un règlement
+  supprime aussi son écriture.
+- Les brouillons `mailsync` validés créent automatiquement leur fiche dans le
+  registre achats. Un doublon fournisseur + n° de facture est refusé.
+- Export FEC : `/compta/export-fec/` (écritures validées, format tabulé DGFiP).
+
+## Banque
+
+- `/banque/` : comptes, soldes, relevés importés et opérations à rapprocher.
+- Import **CSV** ou **OFX/QFX** : dates FR, montants `1 234,56 €`, colonnes
+  débit/crédit ou montant signé. Les doublons sont écartés par empreinte
+  `(compte, date, montant, libellé, référence)`.
+- Rapprochement automatique : même montant sur le compte `512`, date à ±7 jours,
+  score libellé/référence ; en dessous du seuil, l'opération reste à rapprocher.
+- Rapprochement manuel, dé-rapprochement, ou création de l'écriture manquante
+  (frais bancaires, virement, encaissement) avec TVA optionnelle.
+- Règles bancaires : pré-remplissent le compte de contrepartie (ex. « frais » → 627000).
+- Limite v1 : le rapprochement compare au premier compte `512` de la société ;
+  le multi-comptes avec comptes 512 distincts sera affiné ensuite.
+
+## Trésorerie
+
+- `/tresorerie/` : position de trésorerie, encaissements clients, décaissements
+  fournisseurs, balance âgée et prévisionnel **13 semaines**.
+- Position = solde comptable des comptes `512` + caisse `530` (écritures validées).
+- Encaissements = factures clients `issued/late/received` non soldées ;
+  décaissements = factures fournisseurs `approved` non soldées.
+- Export CSV du prévisionnel ; alerte sur les retards et les opérations
+  bancaires non rapprochées.
+- Limite v1 : la TVA à payer n'est pas encore intégrée au prévisionnel (module
+  TVA à venir), et les éléments au-delà de 13 semaines sont signalés à part.
+
+## TVA — à faire
+
+Le module TVA/CA3/CA12 n'est pas encore implémenté. Le cahier des charges
+détaillé et la checklist sont dans [`docs/TODO-TVA.md`](docs/TODO-TVA.md).
+
 ## Tests
 
 ```bash
@@ -151,6 +193,10 @@ Render : GitHub Pages et Vercel ne servent que la page publique.
 - `integrations/` : INSEE Sirene, INPI.
 - `ai/` : client Qwen, brouillons d'écritures.
 - `mailsync/` : connecteur e-mail comptable (Gmail, adapter Outlook à venir).
+- `purchases/` : registre des achats (factures fournisseurs, règlements).
+- `suppliers/` : fiches fournisseurs et encours.
+- `banking/` : comptes, import de relevés et rapprochement bancaire.
+- `treasury/` : position de trésorerie et prévisionnel.
 - `billing/` : plans, abonnements, webhooks Stripe.
 - `core/` : isolation multi-tenant.
 - `static/css/app.css` : design system inspiré de Santé publique France, modernisé.

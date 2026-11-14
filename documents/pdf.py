@@ -258,7 +258,9 @@ def _client_number(document) -> str:
 
 
 def _meta_rows(document, kind: str, when: str):
-    due = timezone.localtime(document.created_at) + timedelta(days=30)
+    due = getattr(document, "effective_due_date", None)
+    if due is None:
+        due = timezone.localtime(document.created_at) + timedelta(days=30)
     if kind == "credit_note":
         invoice = getattr(document, "invoice", None)
         return [
@@ -269,7 +271,7 @@ def _meta_rows(document, kind: str, when: str):
     if kind == "quote":
         return [
             ("Date du devis", when),
-            ("Valable jusqu'au", due.strftime("%d/%m/%Y")),
+            ("Valable jusqu'au", (document.valid_until or due).strftime("%d/%m/%Y")),
             ("N° client", _client_number(document)),
         ]
     return [

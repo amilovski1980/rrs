@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Achats et dépenses{% endblock %}
+{% block crumbs %}Achats / Tableau de bord{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Achats et dépenses</h1>
+    <p class="sub">
+      Factures fournisseurs, échéances et règlements. Les brouillons importés
+      par e-mail arrivent ici après validation.
+    </p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'suppliers:list' %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="building" %} Fournisseurs
+    </a>
+    <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+    </a>
+  </div>
+</div>
+
+{% if mailsync_pending %}
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <p class="sub" style="margin:0">
+    <strong>{{ mailsync_pending }}</strong> facture{{ mailsync_pending|pluralize }} extraite{{ mailsync_pending|pluralize }}
+    par le connecteur e-mail attend{{ mailsync_pending|pluralize:"ent" }} une validation.
+  </p>
+  <a class="btn btn-primary btn-sm" href="{% url 'mailsync:drafts' %}">Ouvrir la boîte de réception</a>
+</div>
+{% endif %}
+
+{% if tickets_pending %}
+<div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <p class="sub" style="margin:0">
+    <strong>{{ tickets_pending }}</strong> ticket{{ tickets_pending|pluralize }} de caisse en brouillon
+    à contrôler avant écriture.
+  </p>
+  <a class="btn btn-ghost btn-sm" href="{% url 'tickets' %}?societe={{ company.id }}">Voir les tickets</a>
+</div>
+{% endif %}
+
+<div class="grid g3" style="margin-bottom:20px">
+  <div class="kpi">
+    <div class="l">Achats du mois (TTC)</div>
+    <div class="v">{{ month_ttc|floatformat:2 }} €</div>
+    <div class="d">HT {{ month_ht|floatformat:2 }} € · TVA {{ month_vat|floatformat:2 }} €</div>
+  </div>
+  <div class="kpi">
+    <div class="l">À payer</div>
+    <div class="v">{{ unpaid|floatformat:2 }} €</div>
+    <div class="d">Factures validées, non soldées</div>
+  </div>
+  <div class="kpi">
+    <div class="l">En retard</div>
+    <div class="v">{{ overdue|length }}</div>
+    <div class="d">Échéance dépassée</div>
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card card-tight">
+    <div class="card-head">
+      <h3>Dernières factures</h3>
+      <a class="btn btn-ghost btn-sm" href="{% url 'purchases:list' %}?societe={{ company.id }}">Tout voir</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Fournisseur</th><th class="num">TTC</th><th>État</th></tr></thead>
+        <tbody>
+          {% for invoice in recent %}
+          <tr>
+            <td>{{ invoice.invoice_date|date:"d/m/Y"|default:"—" }}</td>
+            <td><a href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">{{ invoice.supplier_name|default:"Fournisseur" }}</a></td>
+            <td class="num">{{ invoice.amount_ttc|floatformat:2 }} €</td>
+            <td>
+              {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
+              {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+              {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
+              {% else %}<span class="badge">Brouillon</span>{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucune facture fournisseur pour l'instant.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid" style="gap:16px">
+    <section class="card">
+      <h3 style="margin-top:0">Top fournisseurs</h3>
+      <table>
+        <tbody>
+          {% for row in top_suppliers %}
+          <tr>
+            <td>{{ row.supplier_name|default:"—" }}</td>
+            <td class="num">{{ row.total|floatformat:2 }} €</td>
+          </tr>
+          {% empty %}
+          <tr><td class="empty">Aucun achat enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="micro" style="margin-bottom:0">{{ supplier_count }} fournisseur{{ supplier_count|pluralize }} actif{{ supplier_count|pluralize }}.</p>
+    </section>
+
+    {% if overdue %}
+    <section class="card">
+      <h3 style="margin-top:0">Échéances dépassées</h3>
+      <table>
+        <tbody>
+          {% for invoice in overdue %}
+          <tr>
+            <td><a href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">{{ invoice.supplier_name }}</a></td>
+            <td>{{ invoice.effective_due_date|date:"d/m/Y" }}</td>
+            <td class="num">{{ invoice.amount_remaining|floatformat:2 }} €</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -56,6 +56,7 @@ from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
 from .pdf_import import PdfImportError, import_invoice_pdf
 from .services import (
     convert_quote_to_invoice,
+    delete_payment,
     issue_credit_note,
     issue_invoice,
     issue_quote_number,
@@ -1035,10 +1036,8 @@ def payment_delete(request, pk):
     if bounce:
         return bounce
     payment = _scoped(Payment, company, pk)
-    invoice = payment.invoice
-    payment.delete()
-    invoice.refresh_payment_status()
-    messages.success(request, "Paiement supprimé.")
+    delete_payment(payment)
+    messages.success(request, "Paiement supprimé et écriture de banque annulée.")
     return redirect(reverse("payments") + _qs(company))
 
 
@@ -1324,6 +1323,26 @@ def ticket_validate(request, pk):
         "Ticket validé. Une écriture brouillon a été proposée — confirmez-la "
         "dans la comptabilité avant passage au grand livre.",
     )
+    return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
+
+
+@login_required
+@require_POST
+def ticket_post_entry(request, pk):
+    """Valide au grand livre l'écriture brouillon proposée pour un ticket."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    ticket = _scoped(TicketDeCaisse, company, pk)
+    entry = ticket.journal_entry
+    if entry is None:
+        messages.error(request, "Aucune écriture proposée pour ce ticket.")
+    elif entry.validated:
+        messages.info(request, "L'écriture est déjà validée.")
+    else:
+        entry.validated = True
+        entry.save(update_fields=["validated"])
+        messages.success(request, "Écriture validée au grand livre.")
     return redirect(reverse("ticket_detail", args=[ticket.id]) + _qs(company))
 
 

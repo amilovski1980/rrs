@@ -223,6 +223,14 @@ class Supplier(models.Model):
         blank=True,
         help_text="Domaine de l'expéditeur, utilisé pour le rapprochement.",
     )
+    phone = models.CharField(max_length=30, blank=True, verbose_name="Téléphone")
+    contact_name = models.CharField(max_length=120, blank=True, verbose_name="Contact")
+    address = models.CharField(max_length=255, blank=True, verbose_name="Adresse")
+    iban = models.CharField(max_length=34, blank=True, verbose_name="IBAN")
+    payment_terms_days = models.PositiveIntegerField(
+        default=30, verbose_name="Délai de paiement (jours)"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
     default_charge_code = models.CharField(
         max_length=10,
         blank=True,

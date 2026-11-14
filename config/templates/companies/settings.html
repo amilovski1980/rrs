@@ -105,6 +105,12 @@
             {{ form.exercice_debut }}
             {% if form.exercice_debut.errors %}<p class="error">{{ form.exercice_debut.errors.0 }}</p>{% endif %}
           </div>
+          <div>
+            <label>{{ form.payment_terms_days.label }}</label>
+            {{ form.payment_terms_days }}
+            <p class="micro">{{ form.payment_terms_days.help_text }}</p>
+            {% if form.payment_terms_days.errors %}<p class="error">{{ form.payment_terms_days.errors.0 }}</p>{% endif %}
+          </div>
         </div>
       </div>
 

@@ -69,5 +69,6 @@ urlpatterns = [
     path("tickets/<uuid:pk>/image/", views.ticket_image, name="ticket_image"),
     path("tickets/<uuid:pk>/modifier/", views.ticket_edit, name="ticket_edit"),
     path("tickets/<uuid:pk>/valider/", views.ticket_validate, name="ticket_validate"),
+    path("tickets/<uuid:pk>/ecriture/", views.ticket_post_entry, name="ticket_post_entry"),
     path("tickets/<uuid:pk>/supprimer/", views.ticket_delete, name="ticket_delete"),
 ]

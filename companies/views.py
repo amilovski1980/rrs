@@ -339,6 +339,14 @@ class CompanySettingsForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text="Laisser vide pour conserver le mot de passe déjà enregistré.",
     )
+    payment_terms_days = forms.IntegerField(
+        label="Délai de paiement (jours)",
+        required=False,
+        min_value=0,
+        max_value=365,
+        initial=30,
+        help_text="Échéance par défaut des factures clients et fournisseurs.",
+    )
 
     class Meta:
         model = Company
@@ -354,6 +362,7 @@ class CompanySettingsForm(forms.ModelForm):
             "regime",
             "tva",
             "exercice_debut",
+            "payment_terms_days",
             "bank_name",
             "bank_iban",
             "bank_bic",
@@ -377,6 +386,7 @@ class CompanySettingsForm(forms.ModelForm):
             "regime": "Régime fiscal",
             "tva": "Régime de TVA",
             "exercice_debut": "Début d'exercice",
+            "payment_terms_days": "Délai de paiement (jours)",
             "bank_name": "Banque",
             "bank_iban": "IBAN",
             "bank_bic": "BIC",
@@ -469,6 +479,10 @@ class CompanySettingsForm(forms.ModelForm):
         if not value and self.instance.pk:
             return self.instance.smtp_password
         return value
+
+    def clean_payment_terms_days(self):
+        value = self.cleaned_data.get("payment_terms_days")
+        return 30 if value is None else value
 
     def clean(self):
         cleaned = super().clean()

@@ -51,6 +51,10 @@ INSTALLED_APPS = [
     "ai",
     "integrations",
     "mailsync",
+    "suppliers",
+    "purchases",
+    "banking",
+    "treasury",
     "billing",
     "admin_backoffice",
 ]

@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import models
@@ -220,6 +221,7 @@ class Invoice(models.Model):
         max_length=255, blank=True, verbose_name="Mention d'exonération de TVA"
     )
     status = models.CharField(max_length=12, choices=E_INVOICING_STATUSES, default="draft")
+    due_date = models.DateField(null=True, blank=True, verbose_name="Date d'échéance")
     file = models.FileField(upload_to="invoices/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -264,17 +266,29 @@ class Invoice(models.Model):
         return rem.quantize(Decimal("0.01"))
 
     @property
-    def is_late(self):
-        """Facture ouverte dont l'échéance usuelle (30 jours) est dépassée.
+    def effective_due_date(self):
+        """Échéance contractuelle, ou échéance usuelle à 30 jours pour l'existant."""
+        if self.due_date:
+            return self.due_date
+        if self.created_at:
+            return self.created_at.date() + timedelta(days=30)
+        return None
 
-        Le statut ``late`` reste prioritaire ; à défaut, une facture émise
-        depuis plus de 30 jours est signalée « Dépassé » dans les listes.
+    @property
+    def is_late(self):
+        """Facture ouverte dont l'échéance est dépassée.
+
+        Le statut ``late`` reste prioritaire ; à défaut, l'échéance explicite
+        (ou l'échéance usuelle à 30 jours) fait foi.
         """
         if self.status == "late":
             return True
-        if self.status not in ("issued", "received") or not self.created_at:
+        if self.status not in ("issued", "received"):
             return False
-        return (timezone.localdate() - self.created_at.date()).days > 30
+        due = self.effective_due_date
+        if due is None:
+            return False
+        return timezone.localdate() > due
 
     def refresh_payment_status(self):
         """Met à jour le statut payé / émis selon les paiements enregistrés."""
@@ -514,6 +528,14 @@ class Payment(models.Model):
     paid_at = models.DateField(default=timezone.localdate, verbose_name="Date")
     reference = models.CharField(max_length=100, blank=True, verbose_name="Référence")
     notes = models.CharField(max_length=255, blank=True)
+    journal_entry = models.ForeignKey(
+        "accounting.JournalEntry",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="customer_payments",
+        verbose_name="Écriture comptable",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

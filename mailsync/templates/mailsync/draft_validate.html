@@ -159,7 +159,12 @@
         Ce brouillon a déjà été traité.
         {% if draft.entry %}Écriture liée : {{ draft.entry.journal.code }} du {{ draft.entry.date|date:"d/m/Y" }}.{% endif %}
       </p>
-      <a class="btn btn-ghost" href="{% url 'mailsync:drafts' %}">Retour à la liste</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="{% url 'mailsync:drafts' %}">Retour à la liste</a>
+        {% if draft.purchase_invoices.first %}
+        <a class="btn btn-primary" href="{% url 'purchases:detail' draft.purchase_invoices.first.pk %}?societe={{ company.id }}">Voir dans Achats</a>
+        {% endif %}
+      </div>
     {% endif %}
   </section>
 </div>

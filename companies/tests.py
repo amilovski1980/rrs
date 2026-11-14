@@ -295,11 +295,16 @@ class MobileNavChromeTests(TestCase):
             "Balance",
         ):
             self.assertIn(label, body)
-        # Footer
-        self.assertIn("Mon compte", body)
-        self.assertIn("Paramètres", body)
+        # Footer mobile : raccourcis internes vers les modules
+        for label in ("Cockpit", "Achats", "Banque", "Trésorerie"):
+            self.assertIn(label, body)
+        for href in ("/cockpit/", "/achats/", "/banque/", "/tresorerie/"):
+            self.assertIn(href, body)
+        # Compte, paramètres, aide et mentions restent accessibles dans le drawer
+        self.assertIn("Mon profil", body)
+        self.assertIn("Configuration", body)
         self.assertIn("Aide", body)
-        self.assertIn("Mentions", body)
+        self.assertIn("Mentions légales", body)
         self.assertIn("/compte/profil/", body)
         self.assertIn("/societe/", body)
         self.assertIn("/aide/", body)

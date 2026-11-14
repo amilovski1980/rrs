@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{% if invoice %}Modifier l'achat{% else %}Nouvelle facture fournisseur{% endif %}{% endblock %}
+{% block crumbs %}Achats / {% if invoice %}Modifier{% else %}Nouvelle facture{% endif %}{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if invoice %}Modifier la facture{% else %}Nouvelle facture fournisseur{% endif %}</h1>
+    <p class="sub">Saisissez les montants TTC. La validation créera l'écriture ACH équilibrée.</p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'purchases:list' %}?societe={{ company.id }}">Retour</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}</label>
+      {{ form.supplier }}
+      <p class="micro">{{ form.supplier.help_text }}</p>
+      {% if form.supplier.errors %}<p class="error">{{ form.supplier.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.supplier_name.id_for_label }}">{{ form.supplier_name.label }}</label>
+      {{ form.supplier_name }}
+      {% if form.supplier_name.errors %}<p class="error">{{ form.supplier_name.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.number.id_for_label }}">{{ form.number.label }}</label>
+      {{ form.number }}
+    </div>
+    <div>
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+      {{ form.description }}
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.invoice_date.id_for_label }}">{{ form.invoice_date.label }}</label>
+      {{ form.invoice_date }}
+    </div>
+    <div>
+      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+      {{ form.due_date }}
+      <p class="micro">{{ form.due_date.help_text }}</p>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.amount_ht.id_for_label }}">{{ form.amount_ht.label }}</label>
+      {{ form.amount_ht }}
+    </div>
+    <div>
+      <label for="{{ form.amount_vat.id_for_label }}">{{ form.amount_vat.label }}</label>
+      {{ form.amount_vat }}
+    </div>
+    <div>
+      <label for="{{ form.amount_ttc.id_for_label }}">{{ form.amount_ttc.label }}</label>
+      {{ form.amount_ttc }}
+    </div>
+    <div>
+      <label for="{{ form.vat_rate.id_for_label }}">{{ form.vat_rate.label }}</label>
+      {{ form.vat_rate }}
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.charge_account_code.id_for_label }}">{{ form.charge_account_code.label }}</label>
+      {{ form.charge_account_code }}
+    </div>
+    <div>
+      <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+      {{ form.vat_account_code }}
+    </div>
+  </div>
+
+  <div>
+    <label for="{{ form.supplier_account_root.id_for_label }}">{{ form.supplier_account_root.label }}</label>
+    {{ form.supplier_account_root }}
+  </div>
+
+  <div>
+    <label for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
+    {{ form.attachment }}
+  </div>
+
+  <div>
+    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+    {{ form.notes }}
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer le brouillon</button>
+  </div>
+</form>
+{% endblock %}

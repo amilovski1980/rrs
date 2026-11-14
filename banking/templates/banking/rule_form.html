@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{% if rule %}Modifier la règle{% else %}Nouvelle règle bancaire{% endif %}{% endblock %}
+{% block crumbs %}Banque / Règles{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if rule %}Modifier {{ rule.name }}{% else %}Nouvelle règle bancaire{% endif %}</h1>
+    <p class="sub">Une règle propose le compte de contrepartie quand le libellé ou le tiers correspond.</p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'banking:rules' %}?societe={{ company.id }}">Retour</a>
+</div>
+<form method="post" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+      {{ form.name }}
+      {% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.counterpart_account.id_for_label }}">{{ form.counterpart_account.label }}</label>
+      {{ form.counterpart_account }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.label_contains.id_for_label }}">{{ form.label_contains.label }}</label>
+      {{ form.label_contains }}
+    </div>
+    <div>
+      <label for="{{ form.counterparty_contains.id_for_label }}">{{ form.counterparty_contains.label }}</label>
+      {{ form.counterparty_contains }}
+    </div>
+  </div>
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.min_amount.id_for_label }}">{{ form.min_amount.label }}</label>
+      {{ form.min_amount }}
+    </div>
+    <div>
+      <label for="{{ form.max_amount.id_for_label }}">{{ form.max_amount.label }}</label>
+      {{ form.max_amount }}
+    </div>
+    <div>
+      <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+      {{ form.priority }}
+    </div>
+  </div>
+  <div>
+    <label for="{{ form.entry_label.id_for_label }}">{{ form.entry_label.label }}</label>
+    {{ form.entry_label }}
+  </div>
+  <label class="check-row">{{ form.is_active }} <span>{{ form.is_active.label }}</span></label>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+  </div>
+</form>
+{% endblock %}

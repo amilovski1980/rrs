@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Opération · {{ transaction.label|truncatechars:40 }}{% endblock %}
+{% block crumbs %}Banque / Opération{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ transaction.label|truncatechars:70 }}</h1>
+    <p class="sub">
+      {{ transaction.date|date:"d/m/Y" }} · {{ transaction.account.label }} ·
+      <span class="badge {% if transaction.status == 'matched' %}badge-green{% elif transaction.status == 'ignored' %}{% else %}badge-blue{% endif %}">
+        {{ transaction.get_status_display }}
+      </span>
+      {% if transaction.match_type %}<span class="badge">{{ transaction.get_match_type_display }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'banking:transactions' %}?societe={{ company.id }}">Liste</a>
+    {% if transaction.status != "matched" %}
+    <a class="btn btn-primary" href="{% url 'banking:transaction_entry' transaction.pk %}?societe={{ company.id }}">Créer l'écriture</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid g2" style="align-items:start;margin-bottom:18px">
+  <section class="card">
+    <h3 style="margin-top:0">Opération bancaire</h3>
+    <p><b>Montant</b>
+      <span style="color:{% if transaction.amount < 0 %}var(--red){% else %}var(--green){% endif %}">
+        {{ transaction.amount|floatformat:2 }} €
+      </span>
+    </p>
+    <p><b>Tiers</b> {{ transaction.counterparty|default:"—" }}</p>
+    <p><b>Référence</b> {{ transaction.reference|default:"—" }}</p>
+    <p><b>Compte</b> {{ transaction.account.label }}{% if transaction.account.iban %} · {{ transaction.account.iban }}{% endif %}</p>
+    {% if transaction.note %}<p class="sub">{{ transaction.note }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h3 style="margin-top:0">Rapprochement</h3>
+    {% if transaction.status == "matched" %}
+      <p><b>Écriture liée</b> : {{ transaction.matched_entry.journal.code }} du {{ transaction.matched_entry.date|date:"d/m/Y" }}</p>
+      <p class="sub">{{ transaction.matched_entry.label }}{% if transaction.matched_entry.reference %} · {{ transaction.matched_entry.reference }}{% endif %}</p>
+      <form method="post" action="{% url 'banking:transaction_unmatch' transaction.pk %}?societe={{ company.id }}">
+        {% csrf_token %}
+        <button class="btn btn-ghost btn-sm" type="submit">Dé-rapprocher</button>
+      </form>
+    {% elif transaction.status == "ignored" %}
+      <p class="micro">Cette opération est ignorée. Elle ne sera pas comptabilisée.</p>
+    {% else %}
+      <p class="micro">
+        Choisissez une écriture existante ci-dessous, ou créez l'écriture manquante
+        (frais bancaires, virement, encaissement).
+      </p>
+      {% if rule %}
+      <p class="sub">
+        Règle détectée : <strong>{{ rule.name }}</strong>
+        {% if rule.counterpart_account %} → compte {{ rule.counterpart_account.code }}{% endif %}
+      </p>
+      {% endif %}
+      <form method="post" action="{% url 'banking:transaction_ignore' transaction.pk %}?societe={{ company.id }}">
+        {% csrf_token %}
+        <button class="btn btn-danger btn-sm" type="submit">Ignorer l'opération</button>
+      </form>
+    {% endif %}
+  </section>
+</div>
+
+{% if transaction.status == "unmatched" %}
+<section class="card">
+  <h3 style="margin-top:0">Écritures candidates</h3>
+  {% if candidates %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Journal</th><th>Libellé</th><th>Référence</th><th class="num">Score</th><th></th></tr></thead>
+      <tbody>
+        {% for entry, score in candidates %}
+        <tr>
+          <td>{{ entry.date|date:"d/m/Y" }}</td>
+          <td>{{ entry.journal.code }}</td>
+          <td>{{ entry.label|truncatechars:55 }}</td>
+          <td>{{ entry.reference|default:"—" }}</td>
+          <td class="num"><span class="badge {% if score >= 55 %}badge-green{% else %}badge-blue{% endif %}">{{ score }}</span></td>
+          <td>
+            <form method="post" action="{% url 'banking:transaction_match' transaction.pk %}?societe={{ company.id }}">
+              {% csrf_token %}
+              <input type="hidden" name="entry_id" value="{{ entry.pk }}">
+              <button class="btn btn-primary btn-sm" type="submit">Rapprocher</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="micro">Aucune écriture de banque avec ce montant sur les 7 jours autour de l'opération. Créez l'écriture.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

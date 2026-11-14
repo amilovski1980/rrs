@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Règlement fournisseur{% endblock %}
+{% block crumbs %}Achats / Règlement{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Règlement fournisseur</h1>
+    <p class="sub">{{ invoice.supplier_name }} · {{ invoice.number|default:"facture" }} · reste à payer {{ invoice.amount_remaining|floatformat:2 }} €</p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">Retour</a>
+</div>
+
+<form method="post" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="form-grid">
+    <div>
+      <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
+      {{ form.amount }}
+      {% if form.amount.errors %}<p class="error">{{ form.amount.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label for="{{ form.method.id_for_label }}">{{ form.method.label }}</label>
+      {{ form.method }}
+    </div>
+    <div>
+      <label for="{{ form.paid_at.id_for_label }}">{{ form.paid_at.label }}</label>
+      {{ form.paid_at }}
+    </div>
+    <div>
+      <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
+      {{ form.reference }}
+    </div>
+  </div>
+  <div>
+    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+    {{ form.notes }}
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer le règlement</button>
+  </div>
+</form>
+{% endblock %}

@@ -60,6 +60,13 @@
       {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
     </div>
 
+    <div class="card">
+      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+      {{ form.due_date }}
+      <p class="micro">{{ form.due_date.help_text }}</p>
+      {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
+    </div>
+
     <section class="card invoice-lines-card">
       <div class="invoice-lines-head">
         <div>

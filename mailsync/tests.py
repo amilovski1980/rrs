@@ -19,6 +19,7 @@ from .parsers.pdf_invoice import _extract_amounts, _find_date
 from .parsers.xml_invoice import parse_xml
 from .providers.base import MailAttachment, MailMessage
 from .services import sync_mailbox, validate_draft
+from purchases.models import PurchaseInvoice
 
 
 UBL_INVOICE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -273,6 +274,11 @@ class SyncAndValidateTests(TestCase):
         self.assertEqual(draft.status, "validated")
         self.assertEqual(draft.entry_id, entry.id)
         self.assertIsNotNone(draft.validated_at)
+
+        purchase = PurchaseInvoice.objects.get(mailsync_draft=draft)
+        self.assertEqual(purchase.status, "approved")
+        self.assertEqual(purchase.journal_entry_id, entry.id)
+        self.assertEqual(purchase.amount_ttc, Decimal("1200.00"))
 
     def test_validate_is_not_replayable(self):
         sync_mailbox(self.config, adapter=self.adapter)

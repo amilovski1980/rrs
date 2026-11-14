@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Opérations bancaires{% endblock %}
+{% block crumbs %}Banque / Opérations{% endblock %}
+{% block nav_banking %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Opérations bancaires</h1>
+    <p class="sub">{{ company.denomination }} — rapprochement des mouvements importés.</p>
+  </div>
+  <a class="btn btn-primary page-actions" href="{% url 'banking:import' %}?societe={{ company.id }}">Importer un relevé</a>
+</div>
+
+<form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">
+  <input type="hidden" name="societe" value="{{ company.id }}">
+  <div class="form-grid">
+    <div>
+      <label for="q">Recherche</label>
+      <input id="q" name="q" value="{{ query }}" placeholder="Libellé, tiers, référence">
+    </div>
+    <div>
+      <label for="compte">Compte</label>
+      <select id="compte" name="compte">
+        <option value="">Tous</option>
+        {% for account in accounts %}
+        <option value="{{ account.id }}" {% if account_id == account.id|stringformat:"s" %}selected{% endif %}>{{ account.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="statut">État</label>
+      <select id="statut" name="statut">
+        <option value="">Tous</option>
+        {% for code, label in statuses %}
+        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn btn-ghost" type="submit">Filtrer</button>
+    </div>
+  </div>
+</form>
+
+<div class="card card-tight">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Compte</th><th>Libellé</th><th>Tiers</th><th class="num">Montant</th><th>État</th><th></th></tr></thead>
+      <tbody>
+        {% for transaction in transactions %}
+        <tr>
+          <td>{{ transaction.date|date:"d/m/Y" }}</td>
+          <td>{{ transaction.account.label }}</td>
+          <td>{{ transaction.label|truncatechars:55 }}</td>
+          <td>{{ transaction.counterparty|default:"—"|truncatechars:30 }}</td>
+          <td class="num">{{ transaction.amount|floatformat:2 }} €</td>
+          <td>
+            {% if transaction.status == "matched" %}<span class="badge badge-green">Rapproché</span>
+            {% elif transaction.status == "ignored" %}<span class="badge">Ignoré</span>
+            {% else %}<span class="badge badge-blue">À rapprocher</span>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty">Aucune opération.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

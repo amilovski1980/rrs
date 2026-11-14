@@ -354,6 +354,25 @@ def validate_draft(
                 charge_code=locked.charge_account_code,
             )
 
+    # Anti-doublon métier : une même facture fournisseur ne doit pas être
+    # enregistrée deux fois, même si elle arrive dans deux e-mails distincts.
+    if locked.invoice_number:
+        from purchases.models import PurchaseInvoice
+
+        duplicate = (
+            PurchaseInvoice.objects.filter(
+                company=company,
+                supplier=supplier,
+                number=locked.invoice_number,
+            )
+            .exclude(mailsync_draft=locked)
+            .exists()
+        )
+        if duplicate:
+            raise DraftValidationError(
+                f"La facture {locked.invoice_number} est déjà enregistrée dans les achats."
+            )
+
     charge_account = resolve_account(
         company, locked.charge_account_code, label="Achats", roots=("606", "60")
     )
@@ -439,6 +458,10 @@ def validate_draft(
             "validated_at",
         ]
     )
+    # Le registre achats reprend la facture validée (une seule écriture).
+    from purchases.services import record_mailsync_purchase
+
+    record_mailsync_purchase(locked, entry, supplier)
     return entry
 
 

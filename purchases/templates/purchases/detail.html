@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Achat · {{ invoice.supplier_name }}{% endblock %}
+{% block crumbs %}Achats / Facture fournisseur{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ invoice.supplier_name|default:"Fournisseur" }}{% if invoice.number %} · {{ invoice.number }}{% endif %}</h1>
+    <p class="sub">
+      {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
+      {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+      {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
+      {% else %}<span class="badge">Brouillon</span>{% endif %}
+      {% if invoice.is_late %}<span class="badge badge-red">En retard</span>{% endif %}
+      · {{ invoice.get_source_display }}
+    </p>
+  </div>
+  <details class="page-actions">
+    <summary class="btn btn-primary actions-summary">Actions</summary>
+    <div class="actions-list">
+      <a class="btn btn-ghost" href="{% url 'purchases:list' %}?societe={{ company.id }}">Liste</a>
+      {% if invoice.supplier %}<a class="btn btn-ghost" href="{% url 'suppliers:detail' invoice.supplier.pk %}?societe={{ company.id }}">Fiche fournisseur</a>{% endif %}
+      {% if invoice.attachment %}
+      <a class="btn btn-ghost" href="{% url 'purchases:attachment' invoice.pk %}?societe={{ company.id }}">Justificatif</a>
+      {% endif %}
+      {% if invoice.status == "draft" %}
+      <form method="post" action="{% url 'purchases:approve' invoice.pk %}?societe={{ company.id }}" style="display:inline">
+        {% csrf_token %}<button class="btn btn-primary" type="submit">Valider l'achat</button>
+      </form>
+      <form method="post" action="{% url 'purchases:ignore' invoice.pk %}?societe={{ company.id }}" style="display:inline" onsubmit="return confirm('Ignorer cette facture ?');">
+        {% csrf_token %}<button class="btn btn-danger" type="submit">Ignorer</button>
+      </form>
+      {% endif %}
+      {% if invoice.status == "approved" %}
+      <a class="btn btn-primary" href="{% url 'purchases:pay' invoice.pk %}?societe={{ company.id }}">Enregistrer un règlement</a>
+      {% endif %}
+    </div>
+  </details>
+</div>
+
+<div class="grid g2" style="align-items:start">
+  <section class="card">
+    <h3 style="margin-top:0">Facture</h3>
+    <p><b>Fournisseur</b> {{ invoice.supplier_name|default:"—" }}</p>
+    <p><b>N°</b> {{ invoice.number|default:"—" }} · <b>Date</b> {{ invoice.invoice_date|date:"d/m/Y"|default:"—" }}</p>
+    <p><b>Échéance</b> {{ invoice.effective_due_date|date:"d/m/Y"|default:"—" }}</p>
+    <p><b>Libellé</b> {{ invoice.description|default:"—" }}</p>
+    {% if invoice.notes %}<p class="sub">{{ invoice.notes }}</p>{% endif %}
+    {% if invoice.journal_entry %}
+    <p class="sub">Écriture : {{ invoice.journal_entry.journal.code }} {{ invoice.journal_entry.date|date:"d/m/Y" }} · {{ invoice.journal_entry.label }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h3 style="margin-top:0">Montants</h3>
+    <table>
+      <tr><td>HT</td><td class="num">{{ invoice.amount_ht|floatformat:2 }} €</td></tr>
+      <tr><td>TVA ({{ invoice.vat_rate }} %)</td><td class="num">{{ invoice.amount_vat|floatformat:2 }} €</td></tr>
+      <tr><td><b>TTC</b></td><td class="num"><b>{{ invoice.amount_ttc|floatformat:2 }} €</b></td></tr>
+      <tr><td>Réglé</td><td class="num">{{ invoice.amount_paid|floatformat:2 }} €</td></tr>
+      <tr><td><b>Reste à payer</b></td><td class="num"><b>{{ invoice.amount_remaining|floatformat:2 }} €</b></td></tr>
+    </table>
+  </section>
+</div>
+
+<section class="card" style="margin-top:18px">
+  <div class="card-head">
+    <h3>Règlements</h3>
+    {% if invoice.status == "approved" %}
+    <a class="btn btn-ghost btn-sm" href="{% url 'purchases:pay' invoice.pk %}?societe={{ company.id }}">Ajouter</a>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Montant</th><th>Mode</th><th>Référence</th><th></th></tr></thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td>{{ payment.paid_at|date:"d/m/Y" }}</td>
+          <td class="num">{{ payment.amount|floatformat:2 }} €</td>
+          <td>{{ payment.get_method_display }}</td>
+          <td>{{ payment.reference|default:"—" }}</td>
+          <td>
+            <form method="post" action="{% url 'purchases:payment_delete' payment.pk %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer ce règlement et son écriture ?');">
+              {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Supprimer</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty">Aucun règlement.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

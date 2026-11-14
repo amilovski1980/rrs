@@ -95,6 +95,11 @@ class Company(models.Model):
     regime = models.CharField(max_length=20, choices=REGIMES)
     tva = models.CharField(max_length=20, choices=TVA_MODES, default="franchise")
     exercice_debut = models.DateField(null=True, blank=True)
+    payment_terms_days = models.PositiveIntegerField(
+        default=30,
+        verbose_name="Délai de paiement (jours)",
+        help_text="Échéance par défaut des factures clients et fournisseurs.",
+    )
 
     source_data = models.JSONField(
         default=dict, help_text="extrait RNE / KBIS importé brut, versionné"
