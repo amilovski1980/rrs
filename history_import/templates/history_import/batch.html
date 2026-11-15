@@ -31,11 +31,21 @@
          data-process-url="{% url 'history_import:batch_process' batch.pk %}?societe={{ company.id }}"
          data-pending="{{ stats.pending }}">
   <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
-    <strong>Analyse en cours…</strong>
+    <strong><span class="import-agent-dot" aria-hidden="true"></span> <span data-import-status>Aminia analyse vos documents…</span></strong>
     <span class="micro"><span data-import-done>{{ batch.processed_count }}</span> / {{ stats.total }} traités</span>
   </div>
   <div class="import-progress-bar"><i data-import-bar style="width: {{ batch.progress_percent }}%"></i></div>
   <p class="micro" data-import-note>Vous pouvez quitter la page : l'analyse reprend à votre retour.</p>
+  <ul class="import-activity" data-import-activity aria-live="polite">
+    {% for event in activities %}
+    <li>
+      <span class="import-activity-time">{{ event.time }}</span>
+      <span><b>{{ event.label }}</b>{% if event.document %} · {{ event.document }}{% endif %}{% if event.detail %} <small>{{ event.detail }}</small>{% endif %}</span>
+    </li>
+    {% empty %}
+    <li><span class="import-activity-time">—</span><span>Aucune activité pour le moment.</span></li>
+    {% endfor %}
+  </ul>
   <form method="post" action="{% url 'history_import:batch_process' batch.pk %}?societe={{ company.id }}">
     {% csrf_token %}
     <button class="btn btn-ghost btn-sm" type="submit">Continuer maintenant</button>

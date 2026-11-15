@@ -113,6 +113,12 @@ class ImportDocument(models.Model):
         "companies.Company", on_delete=models.CASCADE, related_name="import_documents"
     )
     file = models.FileField(upload_to=document_upload_path, max_length=255)
+    file_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Fichier en base",
+    )
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=120, blank=True)
     size = models.PositiveIntegerField(default=0)

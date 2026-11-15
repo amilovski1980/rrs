@@ -3872,6 +3872,42 @@ body.voice-shell-active .live-invoice { z-index: 125 !important; }
   background: linear-gradient(90deg, var(--blue), #4f8dff);
   transition: width .3s var(--ease);
 }
+.import-agent-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(61, 220, 106, .16);
+  animation: pulse 1.6s infinite;
+}
+.import-activity {
+  list-style: none;
+  margin: 12px 0 14px;
+  padding: 10px 12px;
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.import-activity li {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.import-activity li:last-child { border-bottom: 0; }
+.import-activity-time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.import-activity small { color: var(--muted); }
 
 .import-tabs {
   display: flex; gap: 6px; overflow-x: auto; margin: 18px 0 12px;

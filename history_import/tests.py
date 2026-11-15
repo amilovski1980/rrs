@@ -95,6 +95,34 @@ class HistoricalImportTestCase(TestCase):
             )
         return batch
 
+    def test_uploaded_document_is_kept_in_database_and_downloadable(self):
+        batch = self._batch(("vente.xml", self.sale_xml))
+        document = batch.documents.get()
+        self.assertEqual(bytes(document.file_data), self.sale_xml)
+        response = self.client.get(
+            reverse("history_import:document_file", args=[document.pk])
+            + f"?societe={self.company.id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, self.sale_xml)
+
+    def test_batch_process_json_exposes_activity_feed_and_progress(self):
+        batch = self._batch(("vente.xml", self.sale_xml))
+        response = self.client.post(
+            reverse("history_import:batch_process", args=[batch.pk])
+            + f"?societe={self.company.id}",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["total"], 1)
+        self.assertEqual(data["pending"], 0)
+        self.assertTrue(data["activities"])
+        self.assertIn(
+            "document_processed",
+            [event["action"] for event in data["activities"]],
+        )
+
     def test_sale_invoice_is_imported_as_archive_without_accounting_entry(self):
         batch = self._batch(("vente.xml", self.sale_xml))
         process_batch(batch, user=self.user)

@@ -200,9 +200,14 @@ def _create_document(batch, company, name, data, content_type, user=None):
         status="duplicate" if duplicate else "queued",
         duplicate_of=previous,
         duplicate_reason="Fichier identique déjà importé." if duplicate else "",
+        file_data=data,
     )
     filename = get_valid_filename(name or "document")
-    document.file.save(filename, ContentFile(data), save=False)
+    try:
+        document.file.save(filename, ContentFile(data), save=False)
+    except OSError:
+        # Le système de fichiers serverless est en lecture seule.
+        document.file = None
     document.save()
     audit(
         company,
@@ -261,7 +266,12 @@ def _serializable(invoice: ExtractedInvoice) -> dict:
 
 
 def _extract_document(document: ImportDocument) -> tuple[ExtractedInvoice | None, str, str]:
-    data = document.file.read()
+    if document.file_data:
+        data = bytes(document.file_data)
+    elif document.file:
+        data = document.file.read()
+    else:
+        raise HistoricalImportError("Fichier original introuvable.")
     name = document.original_name.lower()
     content_type = document.content_type
     if name.endswith(".xml"):

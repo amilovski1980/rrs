@@ -2,8 +2,9 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
@@ -23,6 +24,39 @@ from .services import (
     process_document,
     refresh_document_status,
 )
+
+ACTIVITY_LABELS = {
+    "batch_created": "Lot créé",
+    "document_uploaded": "Document ajouté",
+    "zip_extracted": "Archive décompressée",
+    "document_processed": "Analyse terminée",
+    "document_imported": "Document importé",
+    "document_rejected": "Document exclu",
+}
+
+
+def _activity_payload(batch, limit=12):
+    events = (
+        batch.audit_events.select_related("document")
+        .order_by("-created_at")[:limit]
+    )
+    payload = []
+    for event in events:
+        document = event.document.original_name if event.document_id else ""
+        detail = (event.detail or "").strip()
+        if event.action == "document_processed" and detail:
+            parts = [part.strip() for part in detail.split("/", 1)]
+            detail = " · ".join(part for part in parts if part)
+        payload.append(
+            {
+                "action": event.action,
+                "label": ACTIVITY_LABELS.get(event.action, event.action.replace("_", " ")),
+                "detail": detail[:180],
+                "document": document[:120],
+                "time": timezone.localtime(event.created_at).strftime("%H:%M:%S"),
+            }
+        )
+    return payload
 
 
 def _company_or_redirect(request):
@@ -132,6 +166,7 @@ def batch_detail(request, pk):
             "batch": batch,
             "documents": documents,
             "stats": stats,
+            "activities": _activity_payload(batch),
             "status_filter": status_filter,
         },
     )
@@ -149,7 +184,12 @@ def batch_process(request, pk):
     stats = batch_stats(batch)
     wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if wants_json:
-        return JsonResponse({"batch": str(batch.pk), **stats})
+        return JsonResponse({
+            "batch": str(batch.pk),
+            **stats,
+            "activities": _activity_payload(batch),
+            "status": batch.get_status_display(),
+        })
     return redirect("history_import:batch", pk=batch.pk)
 
 
@@ -265,11 +305,16 @@ def document_file(request, pk):
     if bounce:
         return bounce
     document = get_object_or_404(ImportDocument, pk=pk, company=company)
+    content_type = document.content_type or "application/octet-stream"
+    if document.file_data:
+        return HttpResponse(
+            bytes(document.file_data),
+            content_type=content_type,
+        )
     if not document.file:
         raise Http404("Fichier introuvable.")
     try:
         handle = document.file.open("rb")
     except FileNotFoundError as exc:
         raise Http404("Fichier introuvable sur le stockage.") from exc
-    content_type = document.content_type or "application/octet-stream"
     return FileResponse(handle, content_type=content_type)
