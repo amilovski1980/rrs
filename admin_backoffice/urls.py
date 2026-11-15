@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard_url"),
     path("settings/", views.SiteSettingsView.as_view(), name="settings"),
+    path("settings/ai/modeles/", views.settings_ai_models, name="settings_ai_models"),
     path("settings/tester/", views.settings_test, name="settings_test"),
     path("logs/", views.SystemLogsView.as_view(), name="logs"),
 

@@ -1,12 +1,13 @@
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -16,6 +17,7 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 from accounts.forms import FrenchPasswordResetForm
 from accounts.models import User
 from ai.models import AiDraftEntry, Conversation, Message
+from ai.providers import XAI_CHAT_BASE, list_ai_models, text_provider, voice_config
 from billing.models import Plan, Subscription
 from companies.models import Company
 
@@ -286,6 +288,16 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
             "insee_api_key": bool(config.insee_api_key),
             "einvoicing_api_key": bool(config.einvoicing_api_key),
         }
+        context["ai_defaults"] = {
+            "qwen": getattr(settings, "LLM_BASE_URL", "") or "http://localhost:8000/v1",
+            "ollama": getattr(settings, "OLLAMA_BASE_URL", "") or "http://localhost:11434/v1",
+            "xai": XAI_CHAT_BASE,
+        }
+        # État réel de la connexion (base de données > variables d'environnement).
+        context["ai_effective"] = {
+            "chat": text_provider(),
+            "voice": voice_config(),
+        }
         return context
 
     def post(self, request, *args, **kwargs):
@@ -346,6 +358,35 @@ def settings_test(request):
     else:
         messages.warning(request, result["message"])
     return redirect(reverse("admin_backoffice:settings") + f"#{anchors.get(action, 'top')}")
+
+
+@staff_required
+@require_POST
+def settings_ai_models(request):
+    """Liste réelle des modèles exposés par l'API choisie (sans envoyer de secret)."""
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    chosen = (request.POST.get("provider") or (config.ai_text_provider if config else "") or "qwen").strip()
+    if chosen not in ("qwen", "xai", "ollama"):
+        chosen = "qwen"
+    base = (request.POST.get("base") or "").strip()
+    if not base:
+        if chosen == "xai":
+            base = XAI_CHAT_BASE
+        elif chosen == "ollama":
+            base = getattr(settings, "OLLAMA_BASE_URL", "") or "http://localhost:11434/v1"
+        else:
+            base = (config.llm_base_url if config else "") or getattr(settings, "LLM_BASE_URL", "")
+    if chosen == "xai":
+        key = (config.xai_api_key if config else "") or getattr(settings, "XAI_API_KEY", "")
+    else:
+        key = (config.llm_api_key if config else "") or getattr(settings, "LLM_API_KEY", "")
+    try:
+        result = list_ai_models(base, key)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "provider": chosen, "base": base, "message": str(exc)})
+    except Exception as exc:  # réseau inattendu
+        return JsonResponse({"ok": False, "provider": chosen, "base": base, "message": f"Erreur : {exc}"})
+    return JsonResponse({"ok": True, "provider": chosen, **result})
 
 
 class CompanyListView(AdminStaffMixin, ListView):
