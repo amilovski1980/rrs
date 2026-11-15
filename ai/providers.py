@@ -537,6 +537,97 @@ def probe_models_tools(base: str, api_key: str, models: list[str], limit: int = 
     return results
 
 
+def probe_models_vision(base: str, api_key: str, models: list[str], limit: int = 12, timeout: float = 15.0) -> dict:
+    """Probe la lecture d'image de chaque modèle (concurrence 4, plafonné)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    targets = list(models)[:limit]
+    if not targets:
+        return {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(probe_chat_vision, base, api_key, m, timeout): m for m in targets}
+        results = {}
+        for future, model_name in futures.items():
+            try:
+                outcome = future.result()
+                results[model_name] = bool(outcome.get("vision"))
+            except Exception:
+                results[model_name] = False
+    return results
+
+
+_VISION_PROBE_PNG: bytes | None = None
+
+
+def _vision_probe_png() -> bytes:
+    """Mini image de test : cadre noir sur fond blanc, code « OCR 1734 »."""
+    global _VISION_PROBE_PNG
+    if _VISION_PROBE_PNG is None:
+        from io import BytesIO
+
+        from PIL import Image, ImageDraw
+
+        image = Image.new("RGB", (160, 64), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle([2, 2, 157, 61], outline="black", width=2)
+        draw.text((16, 24), "OCR 1734", fill="black")
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        _VISION_PROBE_PNG = buffer.getvalue()
+    return _VISION_PROBE_PNG
+
+
+def probe_chat_vision(base: str, api_key: str, model: str, timeout: float = 22.0) -> dict:
+    """Vérifie qu'un modèle lit réellement une image (vision) via chat/completions."""
+    import base64 as _base64
+
+    import httpx
+
+    encoded = _base64.b64encode(_vision_probe_png()).decode("ascii")
+    try:
+        response = httpx.post(
+            (base or "").rstrip("/") + "/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
+            json={
+                "model": model,
+                "temperature": 0,
+                "max_tokens": 60,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": "data:image/png;base64," + encoded},
+                            },
+                            {
+                                "type": "text",
+                                "text": "Quel code est écrit sur l'image ? Réponds uniquement le code.",
+                            },
+                        ],
+                    }
+                ],
+            },
+            timeout=timeout,
+        )
+    except Exception as exc:
+        return {"ok": False, "vision": False, "detail": f"Requête impossible : {exc}"}
+    try:
+        payload = response.json()
+    except Exception:
+        return {"ok": False, "vision": False, "status": response.status_code, "detail": f"Réponse HTTP {response.status_code} illisible."}
+    choice = (payload.get("choices") or [{}])[0] if isinstance(payload, dict) else {}
+    content = str((choice.get("message") or {}).get("content") or "")
+    if "1734" in content:
+        return {"ok": True, "vision": True, "detail": "Le modèle lit les images."}
+    return {
+        "ok": False,
+        "vision": False,
+        "status": response.status_code,
+        "detail": "Ne répond pas avec le code de l'image (vision absente).",
+    }
+
+
 def test_ai_connection(
     base: str, api_key: str = "", model: str = "", timeout: float = 20.0
 ) -> dict:

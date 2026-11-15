@@ -230,10 +230,11 @@
             <label class="check-row" for="ai-tools-filter">
               <input type="checkbox" id="ai-tools-filter"> <span>Afficher uniquement les modèles compatibles agent (outils)</span>
             </label>
-            <p class="secret-hint">Le filtre interroge chaque modèle (mini chat, plafonné à 24) pour vérifier le tool-calling.</p>
+            <p class="secret-hint">Le filtre interroge chaque modèle (mini chat, plafonné à 24) pour vérifier le tool-calling. L'OCR des tickets a besoin, en plus, d'un modèle « ✓ vision ».</p>
           </div>
           <div>
             <label for="ai-connection-status">&nbsp;</label>
+            <button class="btn btn-ghost btn-sm" type="button" id="ai-vision-button">Détecter les modèles vision (OCR)</button>
             <button class="btn btn-ghost btn-sm" type="button" id="ai-test-button">Tester la connexion</button>
           </div>
         </div>
@@ -354,6 +355,7 @@
           var xai = document.getElementById("ai-xai-fields");
           var button = document.getElementById("ai-models-button");
           var testButton = document.getElementById("ai-test-button");
+          var visionButton = document.getElementById("ai-vision-button");
           var toolsFilter = document.getElementById("ai-tools-filter");
           var listSelect = document.getElementById("ai-model-select");
           var status = document.getElementById("ai-models-status");
@@ -398,6 +400,14 @@
           var lastModels = [];
           var lastTools = null;
           var lastSource = "";
+          var lastVision = null;
+
+          function describeModel(name) {
+            var label = name;
+            if (lastTools) label += lastTools[name] ? "  ✓ outils" : "  ✗ sans outils";
+            if (lastVision) label += lastVision[name] ? "  ✓ vision" : "  ✗ sans vision";
+            return label;
+          }
 
           function applyToolsFilter() {
             if (!listSelect) return;
@@ -405,23 +415,20 @@
             Array.prototype.forEach.call(listSelect.options, function (option) {
               var compatible = lastTools ? lastTools[option.value] : null;
               option.hidden = filter && compatible === false;
-              option.textContent = lastTools
-                ? option.value + (compatible ? "  ✓ outils" : "  ✗ sans outils")
-                : option.value;
+              option.textContent = describeModel(option.value);
             });
           }
 
-          function fillList(models, toolsMap, source) {
+          function fillList(models, toolsMap, source, visionMap) {
             lastModels = models || [];
             lastTools = toolsMap || null;
             lastSource = source || "";
+            if (visionMap) lastVision = visionMap;
             listSelect.innerHTML = "";
             lastModels.forEach(function (name) {
               var option = document.createElement("option");
               option.value = name;
-              option.textContent = lastTools
-                ? name + (lastTools[name] ? "  ✓ outils" : "  ✗ sans outils")
-                : name;
+              option.textContent = describeModel(name);
               listSelect.appendChild(option);
             });
             applyToolsFilter();
@@ -450,6 +457,39 @@
               },
               body: new URLSearchParams(fields).toString(),
             }).then(function (response) { return response.json(); });
+          }
+
+          if (visionButton) {
+            visionButton.addEventListener("click", function () {
+              var value = (baseInput.value || "").trim() || (defaults[provider.value] || "");
+              if (!lastModels.length) {
+                if (status) status.textContent = "Listez d'abord les modèles, puis testez la vision.";
+                return;
+              }
+              if (status) status.textContent = "Test de lecture d'image par modèle… (~1 min, plafonné à 12)";
+              postForm(endpoint, {
+                provider: provider.value,
+                base: value,
+                probe_vision: "1",
+              })
+                .then(function (data) {
+                  if (data.ok && data.vision) {
+                    lastVision = data.vision;
+                    fillList(lastModels, lastTools, lastSource, lastVision);
+                    var ok = Object.keys(data.vision).filter(function (k) { return data.vision[k]; }).length;
+                    if (status) {
+                      status.textContent = ok
+                        ? ok + " modèle(s) lisent les images sur " + data.vision_tested + " testés. Choisissez-en un comme modèle de ticket."
+                        : "Aucun modèle ne lit les images sur " + data.vision_tested + " testés. L'OCR des scans restera indisponible.";
+                    }
+                  } else if (status) {
+                    status.textContent = "Vérification vision impossible.";
+                  }
+                })
+                .catch(function (error) {
+                  if (status) status.textContent = "Vérification vision impossible : " + error;
+                });
+            });
           }
 
           if (toolsFilter) {
