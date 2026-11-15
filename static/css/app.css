@@ -4322,3 +4322,30 @@ html[data-theme="dark"] .glass-panel {
 html[data-theme="dark"] .glass-panel::before {
   background: linear-gradient(180deg, var(--glass-rim), rgba(255, 255, 255, 0) 42%) !important;
 }
+
+/* Pied du panneau de recherche : même voile, pleine largeur. */
+.agent-results-actions {
+  border-top: 1px solid var(--glass-rim-line);
+  background: rgba(255, 255, 255, .38);
+  margin: 4px -14px -12px;
+  padding: 10px 14px 10px;
+  display: grid; gap: 6px; flex: 0 0 auto;
+}
+html[data-theme="dark"] .agent-results-actions { background: rgba(255, 255, 255, .05); }
+
+/* Boutons primaires : voile iOS léger (reflet + liseré + léger fond translucide). */
+.btn-primary {
+  background-color: color-mix(in srgb, var(--blue) 88%, transparent);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, 0) 58%);
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .22) inset,
+    0 10px 26px -14px rgba(0, 65, 146, .55);
+}
+html[data-theme="dark"] .btn-primary {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 58%);
+  border-color: rgba(255, 255, 255, .10);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .16) inset,
+    0 14px 30px -16px rgba(0, 0, 0, .55);
+}
