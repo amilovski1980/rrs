@@ -223,14 +223,19 @@ _PDF_MAX_PAGES = 50
 
 
 def _pdf_words(data: bytes) -> list[list[tuple[float, float, float, str]]]:
-    """Mots du PDF avec leurs coordonnées, page par page."""
+    """Mots du PDF avec leurs coordonnées, page par page.
+
+    PyMuPDF (précis) d'abord ; sinon pdfminer.six, purement Python, qui
+    donne des mots approchés — suffisant pour rejouer le layout colonnes.
+    """
     try:
         import pymupdf as fitz
     except ImportError:  # anciennes installations
         try:
             import fitz
         except ImportError:
-            return []
+            return _pdf_words_pdfminer(data)
+
     try:
         document = fitz.open(stream=data, filetype="pdf")
     except Exception as exc:
@@ -256,6 +261,56 @@ def _pdf_words(data: bytes) -> list[list[tuple[float, float, float, str]]]:
             pages.append(page_words)
     finally:
         document.close()
+    return pages
+
+
+def _pdf_words_pdfminer(data: bytes) -> list[list[tuple[float, float, float, str]]]:
+    """Repli sans PyMuPDF : mots approchés depuis les caractères pdfminer."""
+    from io import BytesIO
+
+    from pdfminer.high_level import extract_pages
+    from pdfminer.layout import LAParams, LTChar, LTTextContainer, LTTextLine
+
+    pages: list[list[tuple[float, float, float, str]]] = []
+    try:
+        layouts = extract_pages(
+            BytesIO(data), maxpages=_PDF_MAX_PAGES, laparams=LAParams()
+        )
+    except Exception:
+        return []  # PDF chiffré/illisible : le texte pur ou l'OCR prendra le relais.
+
+    for layout_page in layouts:
+        page_words: list[tuple[float, float, float, str]] = []
+
+        def flush(word_chars: list[tuple[float, float, str]], y: float) -> None:
+            if not word_chars:
+                return
+            page_words.append((
+                min(x0 for x0, _x1, _s in word_chars),
+                y,
+                max(x1 for _x0, x1, _s in word_chars),
+                "".join(symbol for _x0, _x1, symbol in word_chars),
+            ))
+
+        for element in layout_page:
+            if not isinstance(element, LTTextContainer):
+                continue
+            for line in element:
+                if not isinstance(line, LTTextLine):
+                    continue
+                y = float(line.y0)
+                word_chars: list[tuple[float, float, str]] = []
+                for char in line:
+                    if not isinstance(char, LTChar):
+                        continue
+                    symbol = char.get_text()
+                    if symbol.isspace():
+                        flush(word_chars, y)
+                        word_chars = []
+                        continue
+                    word_chars.append((float(char.x0), float(char.x1), symbol))
+                flush(word_chars, y)
+        pages.append(page_words)
     return pages
 
 
