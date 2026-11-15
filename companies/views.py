@@ -189,6 +189,245 @@ def cockpit(request):
 
 
 @login_required
+def cockpit_global(request):
+    """Vue inter-sociétés : chiffre d'affaires, TVA, achats et comparaisons
+    de tout le portefeuille de l'utilisateur, période par période."""
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from django.db.models import DecimalField, ExpressionWrapper, F, Q, Sum
+    from documents.models import Invoice, InvoiceLine
+    from purchases.models import PurchaseInvoice
+
+    period = (request.GET.get("periode") or "annee").lower()
+    if period not in ("semaine", "mois", "annee"):
+        period = "annee"
+    windows = {
+        "semaine": (timedelta(days=7), 7, "7 derniers jours"),
+        "mois": (timedelta(days=30), 30, "30 derniers jours"),
+        "annee": (timedelta(days=365), 365, "12 derniers mois"),
+    }
+    window, window_days, window_label = windows[period]
+    today = timezone.localdate()
+    start = today - window + timedelta(days=1)
+    prev_start = start - window
+    prev_end = start - timedelta(days=1)
+
+    companies = list(Company.objects.filter(owner=request.user).order_by("denomination"))
+    company_ids = [company.id for company in companies]
+    issue_statuses = ("issued", "received", "paid", "late", "archived")
+    purchase_statuses = ("approved", "paid", "archived")
+
+    def vat_map(invoices):
+        ids = [invoice.id for invoice in invoices]
+        if not ids:
+            return {}
+        rows = (
+            InvoiceLine.objects.filter(invoice_id__in=ids)
+            .values("invoice_id")
+            .annotate(vat=Sum(ExpressionWrapper(
+                F("unit_price") * F("quantity") * F("vat_rate") / Decimal("100"),
+                output_field=DecimalField(max_digits=15, decimal_places=2),
+            )))
+        )
+        return {
+            row["invoice_id"]: (row["vat"] or Decimal("0.00")).quantize(Decimal("0.01"))
+            for row in rows
+        }
+
+    def fetch_invoices(window_start, window_end):
+        return list(
+            Invoice.objects.filter(
+                company_id__in=company_ids,
+                status__in=issue_statuses,
+                created_at__date__gte=window_start,
+                created_at__date__lte=window_end,
+            ).only("id", "company_id", "client_name", "amount_ht")
+        )
+
+    def fetch_purchases(window_start, window_end):
+        return list(
+            PurchaseInvoice.objects.filter(
+                company_id__in=company_ids,
+                status__in=purchase_statuses,
+            ).filter(
+                Q(invoice_date__range=(window_start, window_end))
+                | Q(invoice_date__isnull=True, created_at__date__range=(window_start, window_end))
+            ).only("id", "company_id", "amount_ttc", "amount_vat")
+        )
+
+    def rollup(invoices, purchases, vats):
+        rows = {
+            company.id: {"ca": Decimal("0.00"), "vat": Decimal("0.00"),
+                         "achats": Decimal("0.00"), "count": 0}
+            for company in companies
+        }
+        for invoice in invoices:
+            row = rows.setdefault(invoice.company_id, {"ca": Decimal("0.00"), "vat": Decimal("0.00"), "achats": Decimal("0.00"), "count": 0})
+            vat = vats.get(invoice.id, Decimal("0.00"))
+            row["ca"] += (invoice.amount_ht or Decimal("0.00")) + vat
+            row["vat"] += vat
+            row["count"] += 1
+        for purchase in purchases:
+            row = rows.setdefault(purchase.company_id, {"ca": Decimal("0.00"), "vat": Decimal("0.00"), "achats": Decimal("0.00"), "count": 0})
+            row["achats"] += purchase.amount_ttc or Decimal("0.00")
+        return rows
+
+    invoices_current = fetch_invoices(start, today)
+    vat_current = vat_map(invoices_current)
+    purchases_current = fetch_purchases(start, today)
+    rows_current = rollup(invoices_current, purchases_current, vat_current)
+
+    invoices_prev = fetch_invoices(prev_start, prev_end)
+    vat_prev = vat_map(invoices_prev)
+    purchases_prev = fetch_purchases(prev_start, prev_end)
+    rows_prev = rollup(invoices_prev, purchases_prev, vat_prev)
+
+    totals = {
+        "ca": sum((row["ca"] for row in rows_current.values()), Decimal("0.00")),
+        "vat": sum((row["vat"] for row in rows_current.values()), Decimal("0.00")),
+        "achats": sum((row["achats"] for row in rows_current.values()), Decimal("0.00")),
+    }
+    purchases_vat = sum(
+        (purchase.amount_vat or Decimal("0.00") for purchase in purchases_current),
+        Decimal("0.00"),
+    )
+    totals["vat_net"] = totals["vat"] - purchases_vat
+    totals["count"] = len(invoices_current)
+
+    prev_totals = {
+        "ca": sum((row["ca"] for row in rows_prev.values()), Decimal("0.00")),
+        "vat": sum((row["vat"] for row in rows_prev.values()), Decimal("0.00")),
+        "achats": sum((row["achats"] for row in rows_prev.values()), Decimal("0.00")),
+    }
+
+    def delta(current, previous):
+        if previous and previous > 0:
+            value = (current - previous) / previous * Decimal("100")
+            return int(round(value))
+        return None
+
+    # Série : CA et achats, bucket par bucket, avec la période précédente.
+    buckets: list[dict] = []
+    if period == "semaine":
+        for offset in range(6, -1, -1):
+            day = today - timedelta(days=offset)
+            buckets.append({"label": day.strftime("%a").capitalize(), "start": day, "end": day})
+    elif period == "mois":
+        for offset in range(29, -1, -1):
+            day = today - timedelta(days=offset)
+            show_label = offset % 7 == 0 or offset == 0
+            buckets.append({"label": day.strftime("%d") if not show_label else day.strftime("%d/%m"), "start": day, "end": day})
+    else:
+        from datetime import date as date_type
+
+        month = today
+        months: list[date_type] = []
+        for _ in range(12):
+            months.append(date(month.year, month.month, 1))
+            year, month_num = month.year, month.month - 1
+            if month_num == 0:
+                year, month_num = year - 1, 12
+            month = date(year, month_num, 1)
+        for first_day in reversed(months):
+            next_first = (first_day.replace(day=28) + timedelta(days=4)).replace(day=1)
+            label = first_day.strftime("%b").capitalize()
+            buckets.append({"label": label, "start": first_day, "end": min(next_first - timedelta(days=1), today)})
+    current_by_bucket = [
+        {"label": bucket["label"], "start": bucket["start"], "end": bucket["end"]}
+        for bucket in buckets
+    ]
+    series = []
+    for index, bucket in enumerate(buckets):
+        ca = achats = ca_prev = Decimal("0.00")
+        start_b, end_b = bucket["start"], bucket["end"]
+        for invoice in invoices_current:
+            day = timezone.localdate(invoice.created_at)
+            if start_b <= day <= end_b:
+                ca += (invoice.amount_ht or Decimal("0.00")) + vat_current.get(invoice.id, Decimal("0.00"))
+        for purchase in purchases_current:
+            day = purchase.invoice_date or timezone.localdate(purchase.created_at)
+            if start_b <= day <= end_b:
+                achats += purchase.amount_ttc or Decimal("0.00")
+        for invoice in invoices_prev:
+            day = timezone.localdate(invoice.created_at)
+            if start_b <= day <= end_b:
+                ca_prev += (invoice.amount_ht or Decimal("0.00")) + vat_prev.get(invoice.id, Decimal("0.00"))
+        series.append({
+            "label": bucket["label"],
+            "ca": float(ca.quantize(Decimal("0.01"))),
+            "achats": float(achats.quantize(Decimal("0.01"))),
+            "ca_prev": float(ca_prev.quantize(Decimal("0.01"))),
+        })
+
+    company_rows = []
+    for company in companies:
+        row = rows_current.get(company.id, {"ca": Decimal("0.00"), "vat": Decimal("0.00"), "achats": Decimal("0.00"), "count": 0})
+        previous = rows_prev.get(company.id, {"ca": Decimal("0.00")})
+        company_rows.append({
+            "company": company,
+            "ca": row["ca"],
+            "vat_net": row["vat"] - sum(
+                (purchase.amount_vat or Decimal("0.00") for purchase in purchases_current if purchase.company_id == company.id),
+                Decimal("0.00"),
+            ),
+            "achats": row["achats"],
+            "count": row["count"],
+            "delta": delta(row["ca"], previous["ca"]),
+        })
+    total_ca = totals["ca"] or Decimal("0.00")
+    for row in company_rows:
+        row["share"] = int(round(float(row["ca"] / total_ca * 100))) if total_ca > 0 else 0
+        if row["delta"] is None:
+            row["delta_display"] = "sans historique"
+            row["delta_tone"] = "flat"
+        elif row["delta"] >= 0:
+            row["delta_display"] = f"▲ {row['delta']} % vs précédent"
+            row["delta_tone"] = "up"
+        else:
+            row["delta_display"] = f"▼ {abs(row['delta'])} % vs précédent"
+            row["delta_tone"] = "down"
+
+    def delta_display(value, current=None, previous=None):
+        if value is None or previous is None or previous == 0:
+            return "—"
+        sign = "▲" if value >= 0 else "▼"
+        return f"{sign} {abs(int(value))} % vs précédente"
+
+    chart_max = 1.0
+    for point in series:
+        chart_max = max(chart_max, float(point["ca"]), float(point["ca_prev"]))
+    bucket_width = 720 / max(len(series), 1)
+    for index, point in enumerate(series):
+        point["x"] = int(round(index * bucket_width) + 2)
+        point["w"] = max(6, int(round(bucket_width)) - 16)
+        ca_height = int(round(point["ca"] / chart_max * 138))
+        prev_height = int(round(point["ca_prev"] / chart_max * 138))
+        point["ca_h"] = ca_height
+        point["prev_h"] = prev_height
+        point["ca_y"] = 148 - ca_height
+        point["prev_y"] = 148 - prev_height
+
+    return render(request, "companies/cockpit_global.html", {
+        "companies_count": len(companies),
+        "period": period,
+        "window_label": window_label,
+        "start": start,
+        "prev_start": prev_start,
+        "today": today,
+        "totals": totals,
+        "deltas": {
+            "ca": delta_display(delta(totals["ca"], prev_totals["ca"]), totals["ca"], prev_totals["ca"]),
+            "ca_up": (delta(totals["ca"], prev_totals["ca"]) or 0) >= 0 and totals["ca"] > 0,
+            "vat": delta_display(delta(totals["vat"], prev_totals["vat"]), totals["vat"], prev_totals["vat"]),
+            "achats": delta_display(delta(totals["achats"], prev_totals["achats"]), totals["achats"], prev_totals["achats"]),
+        },
+        "series": series,
+        "company_rows": company_rows,
+    })
+
+
+@login_required
 def onboarding(request):
     """Étape 1 : nom ou SIREN. Les données légales viennent de l'INSEE ou de l'annuaire."""
     form = SirenForm(request.POST or None)
