@@ -39,7 +39,12 @@
   {% endif %}
 </div>
 
-<section class="sheet-stage" style="margin-top:16px">
-  {% include "documents/credit_note_sheet.html" %}
+<section class="sheet-stage invoice-preview-live" style="margin-top:16px" data-invoice-preview>
+  <img class="invoice-preview-image"
+       src="{% url 'credit_note_preview_png' credit_note.id %}?societe={{ company.id }}"
+       data-preview-url="{% url 'credit_note_preview_png' credit_note.id %}?societe={{ company.id }}"
+       alt="Aperçu du PDF de l'avoir {{ credit_note.number }}"
+       onerror="this.closest('[data-invoice-preview]').classList.add('preview-failed')">
+  <div class="invoice-preview-fallback">{% include "documents/credit_note_sheet.html" %}</div>
 </section>
 {% endblock %}

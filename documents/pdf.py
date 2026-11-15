@@ -11,6 +11,7 @@ from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 import re
 
 from django.utils import timezone
@@ -133,6 +134,28 @@ def _mix(color, other, ratio: float = 0.5):
     return tuple(int(a * (1 - ratio) + b * ratio) for a, b in zip(color, other))
 
 
+def _luminance(color) -> float:
+    channels = []
+    for value in color:
+        channel = value / 255
+        channels.append(
+            channel / 12.92
+            if channel <= 0.03928
+            else ((channel + 0.055) / 1.055) ** 2.4
+        )
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+
+def _contrast(first, second) -> float:
+    high, low = sorted((_luminance(first), _luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def _readable_on(background, preferred, minimum: float = 3.0):
+    """Garde la couleur d'accent si elle reste lisible, sinon passe au blanc."""
+    return preferred if _contrast(background, preferred) >= minimum else WHITE
+
+
 def _siret(company) -> str:
     data = company.source_data if isinstance(getattr(company, "source_data", None), dict) else {}
     digits = "".join(ch for ch in str(data.get("siret") or "") if ch.isdigit())
@@ -188,7 +211,13 @@ def _columns(width: float):
 def _line_items(document):
     """Normalise les lignes (facture/devis) ou fabrique une ligne héritée."""
     reverse_charge = bool(getattr(document, "reverse_charge", False))
-    lines = list(getattr(document, "lines", None).all()) if hasattr(document, "lines") else []
+    manager = getattr(document, "lines", None)
+    if manager is not None and hasattr(manager, "all"):
+        lines = list(manager.all())
+    elif manager is not None:
+        lines = list(manager)
+    else:
+        lines = []
     if lines:
         rows = []
         for line in lines:
@@ -346,7 +375,7 @@ class DocumentPDF(FPDF):
 
     def _footer_text(self):
         if self.layout == "imperial":
-            return self.accent
+            return _readable_on(self.ink, self.accent)
         if self.layout in ("royal", "sapphire"):
             return WHITE
         return self.ink
@@ -354,7 +383,7 @@ class DocumentPDF(FPDF):
     def _table_header(self, y: float):
         header_fill = self.soft if self.layout == "sapphire" else self.ink
         if self.layout == "imperial":
-            header_text = self.accent
+            header_text = _readable_on(self.ink, self.accent)
         elif self.layout == "sapphire":
             header_text = self.ink
         else:
@@ -1127,3 +1156,73 @@ def render_quote_pdf(quote, company) -> bytes:
 
 def render_credit_note_pdf(credit_note, company) -> bytes:
     return render_document_pdf(credit_note, company, kind="credit_note")
+
+
+def first_page_png(payload: bytes, zoom: float = 1.6) -> bytes:
+    """Rend la première page du PDF en PNG, pour un aperçu fidèle à l'export."""
+    try:
+        import pymupdf as fitz
+    except ImportError:  # compatibilité anciennes installations
+        import fitz
+    document = fitz.open(stream=payload, filetype="pdf")
+    try:
+        page = document.load_page(0)
+        pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+        return pixmap.tobytes("png")
+    finally:
+        document.close()
+
+
+def preview_invoice(company):
+    """Document d'exemple pour l'aperçu de la configuration société."""
+    now = timezone.now()
+    client = SimpleNamespace(
+        name="Client Exemple",
+        siren="552100554",
+        address="8 rue des Lilas, 75011 Paris",
+        legal_form="SARL",
+        rcs="",
+        tva_intra="",
+    )
+    lines = [
+        SimpleNamespace(
+            description="Pose de fenêtre",
+            product=None,
+            quantity=Decimal("1.00"),
+            unit_price=Decimal("250.00"),
+            vat_rate=Decimal("20.00"),
+            amount_ht=Decimal("250.00"),
+            amount_ttc=Decimal("300.00"),
+        ),
+        SimpleNamespace(
+            description="Déplacement chantier",
+            product=None,
+            quantity=Decimal("1.00"),
+            unit_price=Decimal("45.00"),
+            vat_rate=Decimal("10.00"),
+            amount_ht=Decimal("45.00"),
+            amount_ttc=Decimal("49.50"),
+        ),
+    ]
+    return SimpleNamespace(
+        number="FAC-2026-0042",
+        client=client,
+        client_name=client.name,
+        client_siren=client.siren,
+        client_tva_intra="",
+        amount_ht=Decimal("295.00"),
+        vat_rate=Decimal("20.00"),
+        amount_ttc=Decimal("349.50"),
+        amount_paid=Decimal("0.00"),
+        amount_remaining=Decimal("349.50"),
+        reverse_charge=False,
+        vat_exemption_reason="",
+        created_at=now,
+        effective_due_date=(now + timedelta(days=30)).date(),
+        lines=lines,
+    )
+
+
+def render_sample_invoice_png(company, zoom: float = 1.6) -> bytes:
+    payload = render_document_pdf(preview_invoice(company), company, kind="invoice")
+    return first_page_png(payload, zoom=zoom)

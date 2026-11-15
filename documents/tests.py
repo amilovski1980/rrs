@@ -81,6 +81,12 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(self.invoice.amount_paid, Decimal("120.00"))
         self.assertEqual(self.invoice.amount_remaining, Decimal("0.00"))
 
+    def test_create_form_exposes_mobile_wizard_steps(self):
+        response = self.client.get("/factures/nouvelle/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-mobile-wizard")
+        self.assertContains(response, "data-wizard-step", count=3)
+
     def test_detail_and_edit_pages(self):
         detail = self.client.get(f"/factures/{self.invoice.id}/")
         self.assertEqual(detail.status_code, 200)
@@ -111,6 +117,12 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(self.client.get("/compta/balance/").status_code, 200)
         self.assertEqual(self.client.get("/factures/").status_code, 200)
         self.assertContains(self.client.get("/factures/"), "Client Modifié")
+
+    def test_png_preview_matches_export_endpoint(self):
+        response = self.client.get(f"/factures/{self.invoice.id}/apercu/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertTrue(response.content.startswith(b"\x89PNG"))
 
     def test_pdf_download(self):
         response = self.client.get(f"/factures/{self.invoice.id}/pdf/")
@@ -385,6 +397,12 @@ class QuoteConversionTests(TestCase):
             vat_rate=Decimal("20.00"),
             status="sent",
         )
+
+    def test_create_form_exposes_mobile_wizard_steps(self):
+        response = self.http.get("/factures/devis/nouveau/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-mobile-wizard")
+        self.assertContains(response, "data-wizard-step", count=3)
 
     def test_convert_quote_to_invoice_links_both_ways(self):
         invoice = convert_quote_to_invoice(self.quote)

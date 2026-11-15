@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -52,7 +53,13 @@ from .models import (
     TicketDeCaisse,
     TICKET_CATEGORIES,
 )
-from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
+from .pdf import (
+    first_page_png,
+    render_credit_note_pdf,
+    render_invoice_pdf,
+    render_quote_pdf,
+    render_sample_invoice_png,
+)
 from .pdf_import import PdfImportError, import_invoice_pdf
 from .suggestions import product_suggestions
 from .services import (
@@ -90,6 +97,25 @@ def _pdf_response(request, number, payload):
     response = HttpResponse(payload, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def _preview_png_response(payload):
+    response = HttpResponse(payload, content_type="image/png")
+    response["Cache-Control"] = "private, max-age=60"
+    return response
+
+
+def _cached_preview(key, renderer):
+    payload = cache.get(key)
+    if payload:
+        return payload
+    try:
+        payload = renderer()
+    except Exception:
+        logger.exception("Aperçu PDF indisponible (%s)", key)
+        raise Http404("Aperçu indisponible.")
+    cache.set(key, payload, 300)
+    return payload
 
 
 def _qs(company):
@@ -300,6 +326,36 @@ def invoice_pdf(request, pk):
 
 
 @login_required
+def invoice_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    key = (
+        f"invoice-preview:{invoice.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{invoice.status}:{invoice.amount_ht}:"
+        f"{invoice.lines.count()}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_invoice_pdf(invoice, company))
+    )
+    return _preview_png_response(payload)
+
+
+@login_required
+def invoice_sample_preview_png(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    key = (
+        f"invoice-sample-preview:{company.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(key, lambda: render_sample_invoice_png(company))
+    return _preview_png_response(payload)
+
+
+@login_required
 def invoice_einvoicing(request, pk):
     """Espace Factur-X : dernier dépôt, génération, transmission et téléchargements."""
     company, bounce = _company_or_redirect(request)
@@ -405,6 +461,23 @@ def quote_pdf(request, pk):
 
 
 @login_required
+def quote_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    quote = _scoped(Quote, company, pk)
+    key = (
+        f"quote-preview:{quote.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{quote.status}:{quote.amount_ht}:"
+        f"{quote.lines.count()}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_quote_pdf(quote, company))
+    )
+    return _preview_png_response(payload)
+
+
+@login_required
 def credit_note_pdf(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -412,6 +485,22 @@ def credit_note_pdf(request, pk):
     note = _scoped(CreditNote, company, pk)
     payload = render_credit_note_pdf(note, company)
     return _pdf_response(request, note.number, payload)
+
+
+@login_required
+def credit_note_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    note = _scoped(CreditNote, company, pk)
+    key = (
+        f"credit-note-preview:{note.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{note.amount_ht}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_credit_note_pdf(note, company))
+    )
+    return _preview_png_response(payload)
 
 
 def _email_document(request, company, document, kind: str, detail_name: str):
