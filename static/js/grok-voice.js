@@ -510,13 +510,21 @@
     function finishLive(output) {
       var invoice = output && output.invoice;
       var link = document.querySelector("[data-live-open]");
-      if (invoice) setDraft(invoice.url, invoice.number);
+      if (invoice) {
+        setDraft(invoice.url, invoice.number);
+        var liveBox = document.querySelector("[data-live-invoice]");
+        if (liveBox) {
+          liveBox.setAttribute("data-live-draft-id", String(invoice.id || ""));
+          liveTimer = window.setInterval(paintLive, 48);
+        }
+      }
       if (!invoice || !link) return;
       link.hidden = false;
       link.href = themePath(invoice.url);
       link.textContent = "Ouvrir " + invoice.number;
       var line = document.querySelector("[data-live-line]");
-      if (line) line.textContent = "Brouillon " + invoice.number + " enregistré.";
+      if (line) line.textContent = "Brouillon " + invoice.number + " enregistré — modifiable ici ou par Aminia.";
+      refreshLiveSheet();
     }
 
     /* ---- Panneau de recherche d'entreprises (annuaire officiel) ---- */
@@ -1071,6 +1079,144 @@
       if (ws && ws.readyState !== 1) setReconnect(true);
     });
     initCompanyResults(root);
+    bindLivePanel();
+    bindSheetPreviewForms();
+  }
+
+  /* Aperçu fidèle : facture et devis dans l'étape finale du wizard. */
+  function bindSheetPreviewForms() {
+    var forms = document.querySelectorAll("[data-wizard-sheet]");
+    for (var i = 0; i < forms.length; i++) {
+      bindSheetPreviewForm(forms[i]);
+    }
+  }
+
+  function bindSheetPreviewForm(form) {
+    if (!form || form.dataset.sheetPreviewWired === "1") return;
+    var holder = form.querySelector("[data-wizard-sheet]");
+    if (!holder) return;
+    form.dataset.sheetPreviewWired = "1";
+    var timer = null;
+    function load() {
+      fetch(holder.getAttribute("data-preview-url"), {
+        method: "POST",
+        body: new FormData(form),
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrfToken(),
+        },
+      })
+        .then(function (response) {
+          return response.ok ? response.json() : null;
+        })
+        .then(function (data) {
+          if (data && data.html) holder.innerHTML = data.html;
+        })
+        .catch(function () {});
+    }
+    form.addEventListener("wizard:final", load);
+    var refresh = form.querySelector("[data-sheet-refresh]");
+    if (refresh) refresh.addEventListener("click", load);
+  }
+
+  /* Aperçu du panneau live Aminia (mêmes données, rendu serveur). */
+  function refreshLiveSheet() {
+    var box = document.querySelector("[data-live-invoice]");
+    var sheetHolder = box ? box.querySelector("[data-live-sheet]") : null;
+    if (!box || !sheetHolder) return;
+    var fields = collectLiveFields();
+    var body = new FormData();
+    body.append("client_name", fields.client_name || "");
+    body.append("client_siren", (fields.client_siren || "").replace(/\D/g, ""));
+    body.append("amount_ht", fields.amount_ht || "0");
+    body.append("vat_rate", (fields.vat_rate || "").replace(/[^\d.,]/g, ""));
+    body.append("lines-TOTAL_FORMS", "1");
+    body.append("lines-INITIAL_FORMS", "0");
+    body.append("lines-MIN_NUM_FORMS", "0");
+    body.append("lines-MAX_NUM_FORMS", "1000");
+    body.append("lines-0-description", fields.designation || "Prestation");
+    body.append("lines-0-quantity", "1.000");
+    body.append("lines-0-unit_price", fields.amount_ht || "0");
+    body.append("lines-0-vat_rate", (fields.vat_rate || "").replace(/[^\d.,]/g, ""));
+    body.append("lines-0-id", "");
+    fetch(
+      sheetHolder.getAttribute("data-preview-url") || "/factures/apercu/",
+      {
+        method: "POST",
+        body: body,
+        credentials: "same-origin",
+        headers: { Accept: "application/json", "X-CSRFToken": csrfToken() },
+      }
+    )
+      .then(function (response) {
+        return response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (data && data.html) sheetHolder.innerHTML = data.html;
+      })
+      .catch(function () {});
+  }
+
+  /* Correction manuelle : bouton et mise à jour du brouillon. */
+  function bindLivePanel() {
+    var box = document.querySelector("[data-live-invoice]");
+    if (!box || box.dataset.liveWired === "1") return;
+    box.dataset.liveWired = "1";
+    var timer = null;
+    box.addEventListener("input", function () {
+      if (box.hidden) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(function () {
+        var draftId = box.getAttribute("data-live-draft-id");
+        if (!draftId) return;
+        var fields = collectLiveFields();
+        var body = new URLSearchParams();
+        body.set("invoice_id", draftId);
+        body.set("client_name", fields.client_name || "");
+        body.set("client_siren", (fields.client_siren || "").replace(/\D/g, ""));
+        body.set("amount_ht", fields.amount_ht || "");
+        body.set("vat_rate", (fields.vat_rate || "").replace(/[^\d.,]/g, ""));
+        body.set("designation", fields.designation || "");
+        fetch("/factures/live-update/", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+            "X-CSRFToken": csrfToken(),
+          },
+          body: body.toString(),
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, data: data };
+            });
+          })
+          .then(function (payload) {
+            var data = payload.data || {};
+            if (payload.ok && data.invoice) {
+              setStatus(
+                "Facture mise à jour : " + data.invoice.number +
+                " (TTC " + data.invoice.amount_ttc + " €)"
+              );
+            } else if (data.error) {
+              setStatus(data.error);
+            }
+          })
+          .catch(function () {});
+        refreshLiveSheet();
+      }, 700);
+    });
+    var refresh = box.querySelector("[data-live-sheet-refresh]");
+    if (refresh) refresh.addEventListener("click", refreshLiveSheet);
+    var openBtn = document.querySelector("[data-agent-open]");
+    if (openBtn) {
+      openBtn.addEventListener("click", function () {
+        window.setTimeout(refreshLiveSheet, 900);
+      });
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
