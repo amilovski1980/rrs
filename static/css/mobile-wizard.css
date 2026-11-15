@@ -277,6 +277,45 @@
   }
 }
 
+/* Étape Informations : chips d'échéance et champ date maîtrisés, jamais de
+   débordement (le sélecteur de date natif iOS dépasse souvent sa grille). */
+.wizard-mode .due-quick {
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.wizard-mode .due-chip {
+  padding: 7px 13px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.wizard-mode .wizard-step [name$="due_date"],
+.wizard-mode .wizard-step input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 8px 10px;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.wizard-mode .wizard-step .card {
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.wizard-mode .wizard-step .card label {
+  font-size: 12.5px;
+  margin-bottom: 4px;
+}
+.wizard-mode .wizard-step .wizard-step-title,
+.wizard-mode .wizard-step .micro {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 /* ---------- Style fintech : barre d'action pleine largeur fixée ----------
    Inspirée des apps bancaires : un seul grand bouton en bas, le retour en
    pastille flottante en haut, les échéances et fiches en cartes tapables. */
