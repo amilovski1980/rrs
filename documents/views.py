@@ -1,12 +1,13 @@
 import logging
 import uuid
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, JsonResponse
@@ -245,6 +246,112 @@ def _attach_or_autocreate_client(invoice, company, request):
     messages.success(
         request, f"Fiche client « {client.name} » créée automatiquement."
     )
+
+
+@login_required
+def invoice_preview_form(request):
+    """Aperçu du document au fil du wizard de facture : rien n'est enregistré.
+
+    Rend exactement le même article `.sheet` que la page finale, à partir des
+    valeurs saisies dans le formulaire (client, dates et lignes).
+    """
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return JsonResponse({"html": "", "error": "Aucune société."}, status=403)
+    invoice = Invoice(company=company)
+    form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    formset = InvoiceLineFormSet(
+        request.POST or None, instance=invoice, prefix="lines",
+        form_kwargs={"company": company},
+    )
+
+    if form.is_valid():
+        preview = form.save(commit=False)
+        preview.company = company
+    else:
+        preview = invoice
+    client_name = (preview.client_name or "").strip()
+    client_siren = (preview.client_siren or "").strip()
+
+    preview_lines = []
+    vat_total = Decimal("0.00")
+    ht_total = Decimal("0.00")
+    vat_rate_main = Decimal("0.00")
+    if formset.is_valid():
+        for line_form in formset:
+            cleaned = line_form.cleaned_data or {}
+            if cleaned.get("DELETE"):
+                continue
+            description = (cleaned.get("description") or "").strip()
+            if not description:
+                continue
+            quantity = cleaned.get("quantity")
+            unit_price = cleaned.get("unit_price")
+            vat_rate = cleaned.get("vat_rate")
+            if isinstance(quantity, str) or quantity is None:
+                try:
+                    quantity = Decimal(str(quantity or "1.000").replace(",", "."))
+                except InvalidOperation:
+                    quantity = Decimal("1.000")
+            if isinstance(unit_price, str) or unit_price is None:
+                try:
+                    unit_price = Decimal(str(unit_price or "0").replace(",", "."))
+                except InvalidOperation:
+                    unit_price = Decimal("0.00")
+            if isinstance(vat_rate, str) or vat_rate is None:
+                try:
+                    vat_rate = Decimal(str(vat_rate or "0").replace(",", "."))
+                except InvalidOperation:
+                    vat_rate = Decimal("0.00")
+            ht = (quantity * unit_price).quantize(Decimal("0.01"))
+            vat_amount = (
+                Decimal("0.00") if not vat_rate else (ht * vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+            )
+            preview_lines.append({
+                "description": description,
+                "quantity": str(quantity.quantize(Decimal("0.001"))),
+                "unit_price": unit_price,
+                "vat_rate": vat_rate,
+                "amount_ht": ht,
+                "amount_ttc": (ht + vat_amount).quantize(Decimal("0.01")),
+            })
+            ht_total += ht
+            vat_total += vat_amount
+            if vat_amount > 0 and vat_rate > 0 and vat_rate_main == 0:
+                vat_rate_main = vat_rate
+    if ht_total > 0 and vat_total <= 0:
+        vat_rate_main = Decimal("0.00")
+
+    try:
+        number = preview.number or f"BR-{uuid.uuid4().hex[:10]}"
+    except AttributeError:
+        number = f"BR-{uuid.uuid4().hex[:10]}"
+
+    html = render_to_string(
+        "documents/document_sheet.html",
+        {
+            "company": company,
+            "invoice": preview,
+            "kind_label": "Facture",
+            "number": number,
+            "status_label": "Brouillon",
+            "created_at": timezone.now(),
+            "client_name": client_name or "Client à préciser",
+            "client_siren": client_siren,
+            "amount_ht": ht_total.quantize(Decimal("0.01")),
+            "vat_rate": vat_rate_main,
+            "vat_amount": vat_total.quantize(Decimal("0.01")),
+            "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
+            "lines": preview_lines,
+            "client_kicker": "Facturé à",
+            "foot_note": (
+                f"Payable à {preview.due_date|date:'d/m/Y'}."
+                if preview.due_date else "Payable à réception."
+            ),
+        },
+        request=request,
+    )
+    return JsonResponse({"html": html})
 
 
 @login_required
@@ -900,6 +1007,103 @@ def quote_list(request):
         "company": company,
         "quotes": company.quotes.all(),
     })
+
+
+@login_required
+def quote_preview_form(request):
+    """Aperçu du devis au fil du wizard : rien n'est enregistré."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return JsonResponse({"html": "", "error": "Aucune société."}, status=403)
+    quote = Quote(company=company)
+    form = QuoteForm(request.POST or None, instance=quote, company=company)
+    formset = QuoteLineFormSet(
+        request.POST or None, instance=quote, prefix="lines",
+        form_kwargs={"company": company},
+    )
+
+    if form.is_valid():
+        preview = form.save(commit=False)
+        preview.company = company
+    else:
+        preview = quote
+    client_name = (preview.client_name or "").strip()
+    client_siren = (preview.client_siren or "").strip()
+
+    preview_lines = []
+    vat_total = Decimal("0.00")
+    ht_total = Decimal("0.00")
+    vat_rate_main = Decimal("0.00")
+    if formset.is_valid():
+        for line_form in formset:
+            cleaned = line_form.cleaned_data or {}
+            if cleaned.get("DELETE"):
+                continue
+            description = (cleaned.get("description") or "").strip()
+            if not description:
+                continue
+            quantity = cleaned.get("quantity")
+            unit_price = cleaned.get("unit_price")
+            vat_rate = cleaned.get("vat_rate")
+            if isinstance(quantity, str) or quantity is None:
+                try:
+                    quantity = Decimal(str(quantity or "1.000").replace(",", "."))
+                except InvalidOperation:
+                    quantity = Decimal("1.000")
+            if isinstance(unit_price, str) or unit_price is None:
+                try:
+                    unit_price = Decimal(str(unit_price or "0").replace(",", "."))
+                except InvalidOperation:
+                    unit_price = Decimal("0.00")
+            if isinstance(vat_rate, str) or vat_rate is None:
+                try:
+                    vat_rate = Decimal(str(vat_rate or "0").replace(",", "."))
+                except InvalidOperation:
+                    vat_rate = Decimal("0.00")
+            ht = (quantity * unit_price).quantize(Decimal("0.01"))
+            vat_amount = (
+                Decimal("0.00") if not vat_rate else (ht * vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+            )
+            preview_lines.append({
+                "description": description,
+                "quantity": str(quantity.quantize(Decimal("0.001"))),
+                "unit_price": unit_price,
+                "vat_rate": vat_rate,
+                "amount_ht": ht,
+                "amount_ttc": (ht + vat_amount).quantize(Decimal("0.01")),
+            })
+            ht_total += ht
+            vat_total += vat_amount
+            if vat_amount > 0 and vat_rate > 0 and vat_rate_main == 0:
+                vat_rate_main = vat_rate
+    if ht_total > 0 and vat_total <= 0:
+        vat_rate_main = Decimal("0.00")
+
+    html = render_to_string(
+        "documents/document_sheet.html",
+        {
+            "company": company,
+            "invoice": preview,
+            "kind_label": "Devis",
+            "number": getattr(preview, "number", "") or "DEV-………",
+            "status_label": "",
+            "created_at": timezone.now(),
+            "client_name": client_name or "Client à préciser",
+            "client_siren": client_siren,
+            "amount_ht": ht_total.quantize(Decimal("0.01")),
+            "vat_rate": vat_rate_main,
+            "vat_amount": vat_total.quantize(Decimal("0.01")),
+            "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
+            "lines": preview_lines,
+            "client_kicker": "Devis pour",
+            "foot_note": (
+                f"Devis valable jusqu'au {preview.due_date|date:'d/m/Y'}."
+                if preview.due_date else "Devis valable 30 jours."
+            ),
+        },
+        request=request,
+    )
+    return JsonResponse({"html": html})
 
 
 @login_required

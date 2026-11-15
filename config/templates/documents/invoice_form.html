@@ -169,6 +169,13 @@
       <h2 class="wizard-step-title">Aperçu de la facture</h2>
       <p class="micro">Vérifiez le client, les lignes et les totaux avant d'enregistrer le brouillon.</p>
       <div class="wizard-recap" data-wizard-recap></div>
+      <section class="card card-tight wizard-sheet-holder">
+        <div class="card-head">
+          <h3>Aperçu du document</h3>
+          <button type="button" class="btn btn-ghost btn-sm" data-sheet-refresh>Actualiser</button>
+        </div>
+        <div data-wizard-sheet data-preview-url="{% url 'invoice_preview_form' %}?societe={{ company.id }}"><p class="empty" style="padding:16px">L'aperçu complet apparaît ici.</p></div>
+      </section>
       <div class="form-actions-bar">
         <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
         <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>

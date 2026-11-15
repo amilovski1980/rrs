@@ -15,7 +15,18 @@ ALLOWED_PATHS = {
     "/compte/",
     "/compte/demo/",
     "/compte/logout/",
+    # Aperçu facture / devis : lecture pure, aucune écriture en base.
+    "/factures/apercu/",
+    "/devis/apercu/",
 }
+
+
+def _allowed(request) -> bool:
+    path = request.path or ""
+    for allowed in ALLOWED_PATHS:
+        if path == allowed or path == "/dark" + allowed:
+            return True
+    return False
 DEMO_READ_ONLY_MESSAGE = (
     "Mode démo en lecture seule : aucune modification n'est enregistrée."
 )
@@ -31,7 +42,7 @@ class DemoModeMiddleware:
             session is not None
             and session.get("demo_mode")
             and request.method not in SAFE_METHODS
-            and request.path not in ALLOWED_PATHS
+            and not _allowed(request)
         ):
             wants_json = (
                 "application/json" in (request.headers.get("Accept") or "")
