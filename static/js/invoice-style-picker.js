@@ -9,6 +9,17 @@
     });
   }
 
+  function refreshPreviews() {
+    document.querySelectorAll("[data-invoice-preview]").forEach(function (box) {
+      var image = box.querySelector("img[data-preview-url]");
+      if (!image) return;
+      var base = image.getAttribute("data-preview-url");
+      var separator = base.indexOf("?") >= 0 ? "&" : "?";
+      image.src = base + separator + "v=" + Date.now();
+      box.classList.remove("preview-failed");
+    });
+  }
+
   function applyStyle(data) {
     document.querySelectorAll(".sheet").forEach(function (sheet) {
       Array.prototype.forEach.call(Array.from(sheet.classList), function (name) {
@@ -36,6 +47,7 @@
     var themeField = document.querySelector('input[name="invoice_theme"]');
     if (themeField) themeField.value = data.theme || themeField.value;
 
+    refreshPreviews();
     status("Modèle enregistré.", false);
   }
 
