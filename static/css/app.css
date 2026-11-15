@@ -1293,6 +1293,30 @@ html[data-theme="dark"] .live-invoice .card { background: rgba(18, 18, 20, .74);
   .wizard-step-title { font-size: 17px; }
 }
 
+/* Ligne de facture : désignation en multiligne */
+.invoice-lines-table textarea[data-multiline] {
+  resize: vertical;
+  min-height: 44px;
+  line-height: 1.35;
+  border-radius: 10px;
+}
+@media (max-width: 768px) {
+  .invoice-lines-table td { padding: 8px 10px; }
+  .invoice-lines-table textarea[data-multiline] { width: 100%; }
+}
+
+/* Wizard mobile : la barre est collée au footer et le contenu passe dessous */
+@media (max-width: 768px) {
+  body.wizard-active .main .content {
+    padding-bottom: calc(var(--m-footer-h) + 92px + env(safe-area-inset-bottom, 0px));
+  }
+  .wizard-mode .wizard-nav {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
+
 /* ---------- Aminia : panneau de recherche d'entreprises ---------- */
 .agent-results {
   position: fixed; right: 16px; bottom: 84px; z-index: var(--z-agent-panel);
