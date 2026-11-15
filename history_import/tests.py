@@ -171,7 +171,9 @@ class HistoricalImportTestCase(TestCase):
         process_batch(batch, user=self.user)
         document = batch.documents.get()
         self.assertEqual(document.status, "duplicate")
-        self.assertIn("déjà présent", document.duplicate_reason.lower())
+        self.assertIn("déjà présente", document.duplicate_reason.lower())
+        self.assertEqual(document.kind, "sale_invoice")
+        self.assertEqual(document.imported_invoice.number, "HIST-SALE-1")
 
     def test_duplicate_file_is_not_processed_twice(self):
         batch = self._batch(
