@@ -276,12 +276,20 @@ def _vision_candidates():
     if xai_key and all(c.get("key") != xai_key for c in candidates):
         candidates.append({
             "code": "xai-vision",
+            "label": "xAI (vision)",
             "base": "https://api.x.ai/v1",
             "key": xai_key,
-            "model": getattr(settings, "XAI_VISION_MODEL", "") or "grok-2-vision-1212",
+            "model": getattr(settings, "XAI_VISION_MODEL", "") or _XAI_VISION_MODEL_FALLBACKS[0],
             "configured": True,
         })
     return candidates
+
+
+_XAI_VISION_MODEL_FALLBACKS = (
+    "grok-2-vision-1212",
+    "grok-4-vision",
+    "grok-vision-1212",
+)
 
 
 def _vision_call(candidate: dict, image_data: bytes) -> str:
@@ -316,11 +324,13 @@ def _vision_call(candidate: dict, image_data: bytes) -> str:
             timeout=_VISION_TIMEOUT_SECONDS,
         )
     except Exception as exc:
-        logger.warning("Transcription vision : fournisseur %s injoignable (%s)", candidate.get("code"), exc.__class__.__name__)
+        logger.warning(
+            "Transcription vision : fournisseur %s injoignable (%s)",
+            candidate.get("code"), exc.__class__.__name__,
+        )
         raise ReceiptOcrError(
-            f"L'agent IA ({candidate.get('model')}) est injoignable depuis le serveur "
-            f"({exc.__class__.__name__}). Vérifiez que l'adresse du moteur LLM est "
-            "publiquement accessible, ou configurez une clé xAI."
+            f"{candidate.get('label') or candidate.get('model')} : injoignable depuis le serveur "
+            f"({exc.__class__.__name__})."
         )
     if response.status_code == 429:
         raise ReceiptOcrError(
@@ -330,7 +340,8 @@ def _vision_call(candidate: dict, image_data: bytes) -> str:
     if response.status_code >= 400:
         detail = ""
         try:
-            detail = str(response.json().get("error", {}).get("msg", ""))[:160]
+            payload_error = response.json().get("error", {})
+            detail = str(payload_error.get("msg") or payload_error.get("message") or "")[:160]
         except Exception:
             detail = ""
         logger.warning(
@@ -338,9 +349,8 @@ def _vision_call(candidate: dict, image_data: bytes) -> str:
             candidate.get("code"), response.status_code, detail,
         )
         raise ReceiptOcrError(
-            f"L'agent IA ({candidate.get('model')}) a refusé ce document "
-            f"(HTTP {response.status_code}). Le modèle doit savoir lire les images : "
-            "adaptez-le dans Configuration → Aminia."
+            f"{candidate.get('label') or candidate.get('model')} : refus de lecture "
+            f"(HTTP {response.status_code}){(' — ' + detail) if detail else ''}."
         )
     try:
         text = response.json()["choices"][0]["message"]["content"] or ""
@@ -362,7 +372,16 @@ def transcribe_with_agent(data: bytes, filename: str = "") -> str:
     passe par l'agent, pas par un binaire OCR système.
     """
     candidates = _vision_candidates()
-    if not candidates:
+
+    # xAI : plusieurs modèles vision en cascade si l'un est absent (404).
+    extended = []
+    for candidate in candidates:
+        extended.append(candidate)
+        if candidate.get("code") == "xai-vision":
+            for fallback_model in _XAI_VISION_MODEL_FALLBACKS[1:]:
+                alternative = dict(candidate, model=fallback_model)
+                extended.append(alternative)
+    if not extended:
         raise ReceiptOcrError(
             "Aucun moteur d'analyse disponible : Tesseract est absent du serveur "
             "et l'agent IA n'est pas configuré. Configurez l'agent Aminia "
@@ -376,15 +395,20 @@ def transcribe_with_agent(data: bytes, filename: str = "") -> str:
     except Exception:
         image_data = data
 
-    last_error: ReceiptOcrError | None = None
-    for candidate in candidates:
+    failures: list[str] = []
+    for candidate in extended:
         try:
             return _vision_call(candidate, image_data)
         except ReceiptOcrError as exc:
-            last_error = exc
+            failures.append(str(exc))
             if "saturé" in str(exc):
                 raise
-    raise last_error or ReceiptOcrError("L'analyse du ticket a échoué. Réessayez.")
+    raise ReceiptOcrError(
+        "L'analyse par l'agent IA a échoué sur tous les fournisseurs essayés ("
+        + " ; ".join(failures)
+        + "). Ollama auto-hébergé doit être accessible publiquement depuis le "
+        "serveur (ou utilisez Ollama Cloud), et le modèle doit savoir lire les images."
+    )
 
 
 def _pdf_page_images(reader) -> list[tuple[str, bytes]]:

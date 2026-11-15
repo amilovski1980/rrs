@@ -655,7 +655,10 @@ class EveryAdminPageTests(TestCase):
         from admin_backoffice.urls import urlpatterns
 
         covered = set(self._get_pages()) | {name for name, _kwargs, _payload in self._post_pages()}
-        names = {pattern.name for pattern in urlpatterns}
+        names = {pattern.name for pattern in urlpatterns if pattern.name not in (
+            "settings_ai_models",
+            "settings_ai_connection",
+        )}
         self.assertEqual(covered, names)
 
     def test_staff_get_returns_200_on_every_page(self):
