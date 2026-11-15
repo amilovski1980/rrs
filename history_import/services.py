@@ -621,6 +621,15 @@ def _tabular_date(raw):
     return None
 
 
+def _find_col(header: list[str], *names: str) -> int:
+    """Index d'une colonne parmi plusieurs libellés acceptés, sinon -1."""
+    wanted = {name.strip().lower() for name in names}
+    for index, cell in enumerate(header):
+        if cell in wanted:
+            return index
+    return -1
+
+
 def detect_tabular(text: str) -> dict | None:
     """Détecte SumUp (encaissements), catalogue produits ou relevé CSV.
 
@@ -663,6 +672,47 @@ def detect_tabular(text: str) -> dict | None:
         if not parsed:
             return None
         return {"kind": "sumup_transactions", "columns": rows[0], "rows": parsed}
+
+    if all(key in header_blob for key in ("product", "quantity", "sales amount")):
+        # Rapport "ventes par produit" des caisses SumUp/Dot/Square :
+        # Product, Store, Category, Quantity, Unit of measure, … Montants.
+        parsed = []
+        idx_product = _find_col(header, "product", "produit", "article")
+        idx_store = _find_col(header, "store", "boutique", "magasin")
+        idx_category = _find_col(header, "category", "catégorie")
+        idx_quantity = _find_col(header, "quantity", "quantité")
+        idx_unit = _find_col(header, "unit of measure", "unité", "unit")
+        idx_ht = _find_col(header, "sales amount excluding tax", "montant ht")
+        idx_tax = _find_col(header, "tax amount", "tax", "vat", "tva")
+        idx_ttc = _find_col(header, "sales amount including tax", "montant ttc")
+        idx_margin = _find_col(header, "gross margin", "marge")
+
+        def grab(cells, index):
+            return cells[index].strip() if 0 <= index < len(cells) else ""
+
+        for row in data_rows[:500]:
+            cells = [cell.strip() for cell in row]
+            label = grab(cells, idx_product)[:200]
+            ht = _amount(grab(cells, idx_ht))
+            if len(label) < 2 or ht is None:
+                continue
+            tax = _amount(grab(cells, idx_tax)) or Decimal("0.00")
+            qty = _amount(grab(cells, idx_quantity)) or Decimal("0")
+            ttc = _amount(grab(cells, idx_ttc)) or (ht + tax)
+            parsed.append({
+                "label": label,
+                "store": grab(cells, idx_store),
+                "category": grab(cells, idx_category),
+                "quantity": str(qty),
+                "unit": grab(cells, idx_unit),
+                "ht": str(ht),
+                "tax": str(tax),
+                "ttc": str(ttc),
+                "margin": str(_amount(grab(cells, idx_margin)) or Decimal("0.00")),
+            })
+        if not parsed:
+            return None
+        return {"kind": "product_sales", "columns": rows[0], "rows": parsed}
 
     if all(key in header_blob for key in ("item name", "price", "tax rate")):
         parsed = []
@@ -723,6 +773,15 @@ def _analyse_tabular(document: ImportDocument) -> ImportDocument | None:
     elif detected["kind"] == "catalogue":
         totals = {"count": len(rows), "produits": len({item["label"] for item in rows})}
 
+    elif detected["kind"] == "product_sales":
+        totals = {
+            "count": len(rows),
+            "produits": len({item["label"] for item in rows}),
+            "ht": str(sum((Decimal(item["ht"]) for item in rows), Decimal("0.00"))),
+            "tax": str(sum((Decimal(item["tax"]) for item in rows), Decimal("0.00"))),
+            "ttc": str(sum((Decimal(item["ttc"]) for item in rows), Decimal("0.00"))),
+        }
+
     document.kind = detected["kind"]
     document.raw_text = text[:40000]
     display_rows = []
@@ -738,6 +797,12 @@ def _analyse_tabular(document: ImportDocument) -> ImportDocument | None:
                 item.get("item_id"), item.get("variant_id"), item.get("label"),
                 item.get("category"), item.get("price"), item.get("vat_rate"),
                 item.get("sku"), item.get("quantity"),
+            ])
+        elif detected["kind"] == "product_sales":
+            display_rows.append([
+                item.get("label"), item.get("store"), item.get("category"),
+                item.get("quantity"), item.get("unit"), item.get("ht"),
+                item.get("tax"), item.get("ttc"), item.get("margin"),
             ])
         else:
             display_rows.append(list(item)[:8] if isinstance(item, (list, tuple)) else [str(item)[:80]])
@@ -766,11 +831,65 @@ def apply_tabular(document: ImportDocument) -> dict:
 
     from banking.models import BankAccount, BankTransaction
 
-    if document.kind not in ("catalogue", "sumup_transactions", "bank_statement"):
+    if document.kind not in ("catalogue", "sumup_transactions", "bank_statement", "product_sales"):
         raise HistoricalImportError("Ce document n'est pas un document tabulaire.")
     rows = (document.extracted or {}).get("rows") or []
     company = document.company
     summary = {"created": 0, "updated": 0, "skipped": 0}
+
+    if document.kind == "product_sales":
+        # Une ligne = des ventes d'un produit sur la période : on agrège par
+        # produit puis on déduit le prix unitaire et le taux de TVA moyens.
+        agg: dict[str, dict] = {}
+        for item in rows:
+            label = (item.get("label") or "").strip()[:200]
+            if len(label) < 2:
+                summary["skipped"] += 1
+                continue
+            slot = agg.setdefault(
+                label,
+                {"qty": Decimal("0"), "ht": Decimal("0.00"), "tax": Decimal("0.00"),
+                 "category": "", "unit": "", "stores": set()},
+            )
+            slot["qty"] += _amount(item.get("quantity")) or Decimal("0")
+            slot["ht"] += _amount(item.get("ht")) or Decimal("0.00")
+            slot["tax"] += _amount(item.get("tax")) or Decimal("0.00")
+            slot["category"] = slot["category"] or (item.get("category") or "").strip()
+            slot["unit"] = slot["unit"] or (item.get("unit") or "").strip()
+            if item.get("store"):
+                slot["stores"].add(str(item["store"]).strip()[:60])
+        for label, slot in agg.items():
+            vat_rate = (
+                (slot["tax"] / slot["ht"] * Decimal("100")).quantize(Decimal("0.01"))
+                if slot["ht"] > 0 else Decimal("20.00")
+            )
+            if not (Decimal("0") <= vat_rate <= Decimal("100")):
+                vat_rate = Decimal("20.00")
+            unit_price = (
+                (slot["ht"] / slot["qty"]).quantize(Decimal("0.01"))
+                if slot["qty"] > 0 else slot["ht"]
+            )
+            stores = " · ".join(sorted(slot["stores"]))
+            description = " · ".join(part for part in (slot["category"], stores) if part)
+            product, created = Product.objects.get_or_create(
+                company=company, label=label,
+                defaults={
+                    "unit_price": unit_price,
+                    "vat_rate": vat_rate,
+                    "unit": slot["unit"][:30],
+                    "active": True,
+                    "description": description[:2000],
+                },
+            )
+            if created:
+                summary["created"] += 1
+            elif product.unit_price != unit_price or product.vat_rate != vat_rate:
+                product.unit_price = unit_price
+                product.vat_rate = vat_rate
+                product.save(update_fields=["unit_price", "vat_rate", "updated_at"])
+                summary["updated"] += 1
+            else:
+                summary["skipped"] += 1
 
     if document.kind == "catalogue":
         for item in rows:

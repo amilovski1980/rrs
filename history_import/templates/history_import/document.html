@@ -96,6 +96,37 @@
           {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
         </form>
       </div>
+    {% elif document.status == "ready" and document.kind == "product_sales" %}
+      <h2 style="margin-top:0">
+        Ventes par produit détectées — {{ document.extracted.totals.count }} lignes ·
+        {{ document.extracted.totals.produits }} produits
+      </h2>
+      <p class="micro">
+        HT {{ document.extracted.totals.ht }} · TVA {{ document.extracted.totals.tax }} ·
+        TTC <b>{{ document.extracted.totals.ttc }}</b>.
+        La création ajoute (ou met à jour) les produits du catalogue : prix unitaire
+        moyen et taux de TVA recalculés depuis les quantités vendues.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>{% for column in document.extracted.columns|slice:":9" %}<th>{{ column }}</th>{% endfor %}</tr>
+          </thead>
+          <tbody>
+            {% for row in document.extracted.display_rows %}
+            <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="import-doc-actions" style="margin-top:12px">
+        <form method="post" action="{% url 'history_import:document_apply' document.pk %}?societe={{ company.id }}">
+          {% csrf_token %}<button class="btn btn-primary" type="submit">Créer / mettre à jour le catalogue produits</button>
+        </form>
+        <form method="post" action="{% url 'history_import:document_reject' document.pk %}?societe={{ company.id }}" onsubmit="return confirm('Exclure ce document du lot ?');">
+          {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
+        </form>
+      </div>
     {% elif document.status == "ready" and document.kind == "sumup_transactions" %}
       <h2 style="margin-top:0">Encaissements SUMUP détectés — {{ document.extracted.totals.count }} opérations</h2>
       <p class="micro">
