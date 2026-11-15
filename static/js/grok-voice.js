@@ -202,6 +202,9 @@
         });
       } catch (error) {
         wakeLock = null;
+        if (wakeEl) {
+          wakeEl.title = "Le navigateur n'autorise pas le maintien de l'écran.";
+        }
       }
     }
 
