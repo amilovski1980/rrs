@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Road Runner Solutions — 5 modèles de facture A4</title>
+<style>
+  @page { size: A4; margin: 0; }
+
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #dfe4ea;
+    color: #1b1b1b;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+
+  /* ============================================================
+     THEMES EXISTANTS - appliques a tous les styles
+     ============================================================ */
+  .page {
+    --ink-2: color-mix(in srgb, var(--ink) 80%, #000);
+    --ink-3: color-mix(in srgb, var(--ink) 72%, var(--accent));
+    --accent-deep: color-mix(in srgb, var(--accent) 74%, #000);
+    --accent-mid: color-mix(in srgb, var(--accent) 48%, #fff);
+    --accent-light: color-mix(in srgb, var(--accent) 34%, #fff);
+    --accent-pale: color-mix(in srgb, var(--accent) 18%, #fff);
+    --muted: color-mix(in srgb, var(--ink) 45%, #7b8794);
+    --text-soft: color-mix(in srgb, var(--ink) 62%, #6b7280);
+    --tint: color-mix(in srgb, var(--soft) 52%, #fff);
+    --tint-2: color-mix(in srgb, var(--soft) 32%, #fff);
+    --white-blue: color-mix(in srgb, var(--accent) 10%, #fff);
+  }
+  .theme-azur     { --ink: #0b3d91; --accent: #00a8e8; --soft: #eef6ff; --border: #cfe0f7; }
+  .theme-carmin   { --ink: #b42318; --accent: #eab308; --soft: #fff5f3; --border: #f1d4cf; }
+  .theme-encre    { --ink: #161616; --accent: #d4af37; --soft: #f8f6f0; --border: #e6dfcf; }
+  .theme-sauge    { --ink: #1f7a4d; --accent: #0e7490; --soft: #effaf4; --border: #cfe9dc; }
+  .theme-graphite { --ink: #2d3440; --accent: #94a3b8; --soft: #f4f6f8; --border: #d8dee6; }
+  .theme-indigo   { --ink: #4f46e5; --accent: #3b82f6; --soft: #eef2ff; --border: #d6d9fb; }
+  .theme-terra    { --ink: #b45331; --accent: #eab308; --soft: #fdf5ef; --border: #f0d9c9; }
+
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px 22px;
+    color: #fff;
+    background: #0f172a;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, .24);
+  }
+  .toolbar-title strong { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .toolbar-title span { color: #94a3b8; font-size: 12px; }
+  .toolbar button {
+    appearance: none;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 18px;
+    color: #0f172a;
+    background: #fff;
+    font: 700 12px/1 "Segoe UI", Arial, sans-serif;
+    letter-spacing: .06em;
+    cursor: pointer;
+  }
+  .toolbar button:hover { background: #e2e8f0; }
+  .theme-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .16);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .toolbar .theme-btn:hover { background: rgba(255, 255, 255, .16); }
+  .toolbar .theme-btn i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sw);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .25);
+  }
+  .toolbar .theme-btn.active {
+    color: #0f172a;
+    background: #fff;
+  }
+  .toolbar .print-btn { white-space: nowrap; }
+
+  .page {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    margin: 12mm auto;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 38px rgba(15, 23, 42, .24);
+    break-after: page;
+    page-break-after: always;
+  }
+  .page:last-of-type { break-after: auto; page-break-after: auto; }
+
+  .page, .page * { font-kerning: normal; }
+  .label {
+    margin: 0 0 2.2mm;
+    font-size: 7.2pt;
+    font-weight: 800;
+    letter-spacing: .18em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .party-name {
+    margin: 0 0 1.5mm;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 12.5pt;
+    line-height: 1.15;
+    letter-spacing: .01em;
+  }
+  .party p, .party-line {
+    margin: 0;
+    font-size: 8.1pt;
+    line-height: 1.55;
+  }
+  .party .sub { color: var(--muted); }
+  .meta-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6mm;
+    padding: 2.2mm 0;
+    border-bottom: .2mm solid rgba(100, 116, 139, .22);
+    font-size: 8.2pt;
+  }
+  .meta-row span { color: var(--muted); }
+  .meta-row strong { font-size: 8.6pt; text-align: right; }
+
+  .items {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .items th {
+    padding: 2.9mm 3mm;
+    font-size: 7pt;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+  .items th.num, .items td.num { text-align: right; }
+  .items td {
+    padding: 2.9mm 3mm;
+    font-size: 8.6pt;
+    line-height: 1.35;
+    vertical-align: top;
+  }
+  .items td.desc strong {
+    display: block;
+    font-size: 9.1pt;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  .items td.desc span {
+    display: block;
+    margin-top: 1mm;
+    font-size: 7.4pt;
+    line-height: 1.35;
+    color: var(--muted);
+  }
+  .items td.num { white-space: nowrap; }
+  .items .qty { width: 15mm; }
+  .items .unit { width: 32mm; }
+  .items .amount { width: 34mm; }
+
+  .totals { width: 82mm; margin-left: auto; }
+  .t-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6mm;
+    padding: 2.1mm 0;
+    font-size: 8.8pt;
+  }
+  .t-row span { color: var(--muted); }
+  .t-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6mm;
+    margin-top: 2.5mm;
+    padding: 4.2mm 4.5mm;
+    border-radius: 3mm;
+    font-size: 10.2pt;
+    font-weight: 800;
+    letter-spacing: .01em;
+  }
+  .t-total span { font-size: 7.4pt; letter-spacing: .14em; text-transform: uppercase; }
+
+  .legal {
+    font-size: 6.35pt;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+  .legal p { margin: 0 0 1.2mm; }
+
+  .contact-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2.5mm 6mm;
+    font-size: 7.5pt;
+  }
+  .contact-line span { display: inline-flex; align-items: center; gap: 1.65mm; white-space: nowrap; }
+  .contact-line svg { width: 3.2mm; height: 3.2mm; flex: 0 0 auto; }
+
+  .mini-title {
+    margin: 0 0 2.4mm;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 11.2pt;
+    line-height: 1.1;
+  }
+
+  /* =====================================================================
+     MODÈLE 1 — ROYAL WAVE
+     Bleu nuit var(--navy) · Cyan var(--cyan)
+     ===================================================================== */
+  .d1 { --navy: var(--ink); --navy-2: var(--ink-2); --navy-3: var(--ink-3); --cyan: var(--accent); --cyan-deep: var(--accent-deep); --cyan-2: var(--accent-mid); --cyan-3: var(--accent-light); --cyan-4: var(--accent-pale); --ice: var(--soft); --line: var(--border); }
+  .d1-hero {
+    position: absolute; inset: 0 0 auto 0;
+    height: 62mm;
+    background: var(--navy);
+  }
+  .d1-waves {
+    position: absolute; left: 0; bottom: 0;
+    width: 210mm; height: 31mm;
+  }
+  .d1-brand {
+    position: absolute; top: 12.5mm; left: 15mm;
+    display: flex; align-items: center; gap: 4.5mm;
+    color: #fff;
+  }
+  .d1-logo { width: 17mm; height: 17mm; flex: 0 0 auto; }
+  .d1-brand-name {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15.5pt;
+    line-height: 1.05;
+    letter-spacing: .055em;
+  }
+  .d1-brand-sub {
+    margin: 1.4mm 0 0;
+    color: var(--cyan-3);
+    font-size: 7.1pt;
+    font-weight: 700;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+  }
+  .d1-badge {
+    position: absolute; top: 15mm; right: 15mm;
+    display: inline-flex; align-items: center; gap: 2mm;
+    padding: 2.1mm 3.4mm;
+    border: .25mm solid rgba(126, 224, 255, .55);
+    border-radius: 99mm;
+    color: var(--cyan-4);
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+  }
+  .d1-badge i { width: 1.8mm; height: 1.8mm; border-radius: 50%; background: var(--cyan); }
+  .d1-title {
+    position: absolute; top: 69mm; left: 15mm;
+    margin: 0;
+    color: var(--navy);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 42pt;
+    font-weight: 700;
+    line-height: .95;
+    letter-spacing: .025em;
+  }
+  .d1-title-rule {
+    position: absolute; top: 83mm; left: 15mm;
+    width: 26mm; height: 1.2mm;
+    border-radius: 99mm;
+    background: linear-gradient(90deg, var(--cyan), var(--cyan-2));
+  }
+  .d1-meta {
+    position: absolute; top: 70mm; right: 15mm;
+    width: 76mm;
+  }
+  .d1-meta .meta-row { border-color: var(--line); }
+  .d1-meta .meta-row strong { color: var(--navy); }
+  .d1-cards {
+    position: absolute; top: 97mm; left: 15mm;
+    display: grid;
+    grid-template-columns: 96mm 78mm;
+    gap: 6mm;
+    width: 180mm;
+  }
+  .d1-card {
+    min-height: 39mm;
+    padding: 5.2mm 6mm;
+    border: .2mm solid var(--line);
+    border-radius: 4mm;
+    background: #fff;
+  }
+  .d1-card--from { background: linear-gradient(145deg, var(--tint), var(--ice)); }
+  .d1-card .label { color: var(--cyan); }
+  .d1-card .party-name { color: var(--navy); }
+  .d1-table {
+    position: absolute; top: 139mm; left: 15mm;
+    width: 180mm;
+  }
+  .d1-table .items th {
+    color: #fff;
+    background: var(--navy);
+  }
+  .d1-table .items th:first-child { border-radius: 3mm 0 0 0; }
+  .d1-table .items th:last-child { border-radius: 0 3mm 0 0; }
+  .d1-table .items tbody tr:nth-child(odd) { background: var(--tint); }
+  .d1-table .items tbody tr:nth-child(even) { background: #fff; }
+  .d1-table .items td { border-bottom: .18mm solid var(--line); }
+  .d1-table .items td.desc strong { color: var(--navy); }
+  .d1-payment {
+    position: absolute; top: 209mm; left: 15mm;
+    width: 84mm;
+  }
+  .d1-payment .label { color: var(--cyan); }
+  .d1-payment p { margin: 0 0 1.3mm; font-size: 8.1pt; line-height: 1.5; }
+  .d1-payment .iban { margin-top: 3mm; color: var(--navy); font-weight: 700; letter-spacing: .02em; }
+  .d1-totals { position: absolute; top: 209mm; right: 15mm; }
+  .d1-totals .t-row { border-bottom: .18mm solid var(--line); }
+  .d1-totals .t-total {
+    color: #fff;
+    background: linear-gradient(135deg, var(--navy), var(--navy-3) 55%, var(--cyan));
+    box-shadow: 0 2.5mm 7mm rgba(0, 168, 232, .18);
+  }
+  .d1-legal { position: absolute; top: 245mm; left: 15mm; width: 180mm; }
+  .d1-foot {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 39mm;
+    background: var(--navy);
+    overflow: hidden;
+  }
+  .d1-foot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .d1-foot-content {
+    position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm;
+    color: var(--cyan-4);
+  }
+  .d1-foot-content .foot-note { margin: 0; font-size: 7.2pt; line-height: 1.5; }
+  .d1-foot-content .foot-note b { color: #fff; }
+  .d1-foot-content .contact-line { justify-content: flex-end; max-width: 95mm; }
+  .d1-foot-content .contact-line svg { color: var(--cyan-2); }
+
+  /* =====================================================================
+     MODÈLE 2 — EMERALD PRESTIGE
+     Émeraude var(--emerald) · Bleu pétrole var(--petrol)
+     ===================================================================== */
+  .d2 { --emerald: var(--ink); --emerald-2: var(--ink-3); --emerald-deep: var(--ink-2); --petrol: var(--accent); --mint: var(--soft); --mint-2: var(--accent-mid); --mint-3: var(--accent-light); --line: var(--border); }
+  .d2-head {
+    position: absolute; inset: 0 0 auto 0;
+    height: 64mm;
+    background: #fff;
+    overflow: hidden;
+  }
+  .d2-head-shape { position: absolute; inset: 0; width: 210mm; height: 64mm; }
+  .d2-title {
+    position: absolute; top: 17mm; left: 16mm;
+    margin: 0;
+    color: #fff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 39pt;
+    font-weight: 700;
+    line-height: .95;
+    letter-spacing: .03em;
+  }
+  .d2-title-sub {
+    position: absolute; top: 34mm; left: 17mm;
+    margin: 0;
+    color: var(--mint-2);
+    font-size: 7.2pt;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+  }
+  .d2-brand {
+    position: absolute; top: 11.5mm; right: 15mm;
+    display: flex; align-items: center; gap: 3.5mm;
+    text-align: right;
+  }
+  .d2-logo { width: 15.5mm; height: 15.5mm; flex: 0 0 auto; }
+  .d2-brand-name {
+    margin: 0;
+    color: var(--emerald);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 12.4pt;
+    line-height: 1.05;
+    letter-spacing: .045em;
+  }
+  .d2-brand-sub {
+    margin: 1mm 0 0;
+    color: var(--petrol);
+    font-size: 6.6pt;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .d2-meta {
+    position: absolute; top: 72mm; left: 15mm; right: 15mm;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6mm;
+  }
+  .d2-meta-cell {
+    padding: 3.4mm 4mm;
+    border-top: .35mm solid var(--emerald);
+    background: linear-gradient(180deg, var(--tint), #fff);
+  }
+  .d2-meta-cell span {
+    display: block;
+    color: var(--petrol);
+    font-size: 6.7pt;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .d2-meta-cell strong {
+    display: block;
+    margin-top: 1.4mm;
+    color: var(--emerald-deep);
+    font-size: 9pt;
+  }
+  .d2-cards {
+    position: absolute; top: 98mm; left: 15mm;
+    display: grid;
+    grid-template-columns: 98mm 76mm;
+    gap: 6mm;
+    width: 180mm;
+  }
+  .d2-card {
+    min-height: 37mm;
+    padding: 5mm 6mm;
+    border: .2mm solid var(--line);
+    border-radius: 3mm;
+    background: #fff;
+  }
+  .d2-card--to { border-left: 1.2mm solid var(--emerald); }
+  .d2-card--from { background: linear-gradient(145deg, var(--mint), var(--tint)); }
+  .d2-card .label { color: var(--petrol); }
+  .d2-card .party-name { color: var(--emerald); }
+  .d2-table {
+    position: absolute; top: 143mm; left: 15mm;
+    width: 180mm;
+  }
+  .d2-table .items th {
+    color: #fff;
+    background: linear-gradient(90deg, var(--emerald), var(--petrol));
+  }
+  .d2-table .items th:first-child { border-radius: 3mm 0 0 0; }
+  .d2-table .items th:last-child { border-radius: 0 3mm 0 0; }
+  .d2-table .items tbody tr:nth-child(odd) { background: var(--tint); }
+  .d2-table .items td { border-bottom: .18mm solid var(--line); }
+  .d2-table .items td.desc strong { color: var(--emerald-deep); }
+  .d2-payment { position: absolute; top: 213mm; left: 15mm; width: 82mm; }
+  .d2-payment .label { color: var(--petrol); }
+  .d2-payment p { margin: 0 0 1.3mm; font-size: 8.1pt; line-height: 1.5; }
+  .d2-payment .iban { margin-top: 3mm; color: var(--emerald); font-weight: 700; }
+  .d2-totals { position: absolute; top: 213mm; right: 15mm; }
+  .d2-totals .t-row { border-bottom: .18mm solid var(--line); }
+  .d2-totals .t-total {
+    color: #fff;
+    background: linear-gradient(135deg, var(--emerald), var(--petrol));
+    box-shadow: 0 2.5mm 7mm rgba(6, 95, 70, .2);
+  }
+  .d2-legal { position: absolute; top: 249mm; left: 15mm; width: 180mm; }
+  .d2-foot {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 34mm;
+    overflow: hidden;
+    background: #fff;
+  }
+  .d2-foot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .d2-foot-content {
+    position: absolute; left: 15mm; right: 15mm; bottom: 7mm;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm;
+    color: var(--mint-2);
+  }
+  .d2-foot-content .foot-note { margin: 0; font-size: 7.1pt; line-height: 1.5; }
+  .d2-foot-content .foot-note b { color: #fff; }
+  .d2-foot-content .contact-line { justify-content: flex-end; max-width: 96mm; }
+  .d2-foot-content .contact-line svg { color: var(--mint-2); }
+
+  /* =====================================================================
+     MODÈLE 3 — NOIR & OR IMPÉRIAL
+     Noir var(--black) · Anthracite var(--anthracite) · Or var(--gold)
+     ===================================================================== */
+  .d3 { --black: var(--ink); --anthracite: var(--ink-2); --gold: var(--accent); --gold-deep: var(--accent-deep); --gold-mid: var(--accent-mid); --gold-light: var(--accent-light); --gold-pale: var(--accent-pale); --ivory: var(--soft); --line: var(--border); }
+  .d3-head {
+    position: absolute; inset: 0 0 auto 0;
+    height: 61mm;
+    background: var(--black);
+    overflow: hidden;
+  }
+  .d3-head > svg { position: absolute; inset: 0; width: 210mm; height: 61mm; }
+  .d3-brand {
+    position: absolute; top: 8.5mm; left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center;
+    color: #fff;
+    text-align: center;
+  }
+  .d3-logo { width: 14mm; height: 14mm; }
+  .d3-brand-name {
+    margin: 2.2mm 0 0;
+    color: var(--gold);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.8pt;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+  .d3-title {
+    position: absolute; top: 33.5mm; left: 0; right: 0;
+    margin: 0;
+    color: var(--gold);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 31pt;
+    font-weight: 400;
+    letter-spacing: .24em;
+    text-align: center;
+    text-indent: .24em;
+  }
+  .d3-title-sub {
+    position: absolute; top: 48.5mm; left: 0; right: 0;
+    margin: 0;
+    color: var(--gold-mid);
+    font-size: 6.6pt;
+    font-weight: 700;
+    letter-spacing: .28em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .d3-from {
+    position: absolute; top: 67mm; left: 15mm; right: 15mm;
+    padding-bottom: 3.5mm;
+    border-bottom: .2mm solid var(--gold);
+    text-align: center;
+  }
+  .d3-from .label { color: var(--gold-deep); }
+  .d3-from p { margin: 0; font-size: 8pt; line-height: 1.55; }
+  .d3-from .party-name { color: var(--black); font-size: 11.6pt; }
+  .d3-columns {
+    position: absolute; top: 97mm; left: 15mm;
+    display: grid;
+    grid-template-columns: 82mm 1.2mm 82mm;
+    gap: 7mm;
+    width: 180mm;
+  }
+  .d3-divider { background: linear-gradient(180deg, transparent, var(--gold), transparent); }
+  .d3-columns .label { color: var(--gold-deep); }
+  .d3-columns .party-name { color: var(--black); }
+  .d3-columns .meta-row { border-color: var(--line); }
+  .d3-columns .meta-row strong { color: var(--black); }
+  .d3-table {
+    position: absolute; top: 141mm; left: 15mm;
+    width: 180mm;
+  }
+  .d3-table .items th {
+    color: var(--gold);
+    background: var(--black);
+    border-bottom: .3mm solid var(--gold);
+  }
+  .d3-table .items td { border-bottom: .18mm solid var(--line); }
+  .d3-table .items tbody tr:nth-child(odd) { background: var(--tint); }
+  .d3-table .items td.desc strong { color: var(--black); }
+  .d3-table .items td.desc span { color: var(--muted); }
+  .d3-payment { position: absolute; top: 211mm; left: 15mm; width: 82mm; }
+  .d3-payment .label { color: var(--gold-deep); }
+  .d3-payment p { margin: 0 0 1.3mm; font-size: 8.1pt; line-height: 1.5; }
+  .d3-payment .iban { margin-top: 3mm; color: var(--black); font-weight: 700; }
+  .d3-totals { position: absolute; top: 211mm; right: 15mm; }
+  .d3-totals .t-row { border-bottom: .18mm solid var(--line); }
+  .d3-totals .t-total {
+    color: var(--gold);
+    background: var(--black);
+    border: .35mm solid var(--gold);
+    box-shadow: 0 2.5mm 7mm rgba(212, 175, 55, .16);
+  }
+  .d3-legal { position: absolute; top: 247mm; left: 15mm; width: 180mm; }
+  .d3-foot {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 39mm;
+    background: var(--black);
+    overflow: hidden;
+  }
+  .d3-foot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .d3-foot-content {
+    position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm;
+    color: var(--gold-pale);
+  }
+  .d3-foot-content .foot-note { margin: 0; font-size: 7.1pt; line-height: 1.5; }
+  .d3-foot-content .foot-note b { color: var(--gold); }
+  .d3-foot-content .contact-line { justify-content: flex-end; max-width: 96mm; }
+  .d3-foot-content .contact-line svg { color: var(--gold); }
+
+  /* =====================================================================
+     MODÈLE 4 — BORDEAUX & CHAMPAGNE
+     Bordeaux var(--bordeaux) · Prune var(--prune) · Or champagne var(--champagne)
+     ===================================================================== */
+  .d4 { --bordeaux: var(--ink); --prune: var(--ink-2); --champagne: var(--accent); --champagne-deep: var(--accent-deep); --champagne-light: var(--accent-light); --champagne-pale: var(--accent-pale); --cream: var(--soft); --line: var(--border); }
+  .d4-top {
+    position: absolute; inset: 0 0 auto 0;
+    height: 88mm;
+    background: linear-gradient(135deg, var(--cream), var(--cream));
+    overflow: hidden;
+  }
+  .d4-curve { position: absolute; top: 0; right: 0; width: 126mm; height: 88mm; }
+  .d4-from {
+    position: absolute; top: 14mm; left: 15mm;
+    width: 66mm;
+  }
+  .d4-from .label { color: var(--prune); }
+  .d4-from .party-name { color: var(--bordeaux); font-size: 14pt; }
+  .d4-from .party-line { color: var(--text-soft); }
+  .d4-title {
+    position: absolute; top: 31mm; right: 15mm;
+    width: 82mm;
+    color: #fff;
+    text-align: right;
+  }
+  .d4-title h1 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 34pt;
+    font-weight: 700;
+    line-height: .92;
+    letter-spacing: .05em;
+  }
+  .d4-title p {
+    margin: 3mm 0 0;
+    color: var(--champagne-light);
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: .16em;
+    line-height: 1.6;
+    text-transform: uppercase;
+  }
+  .d4-logo { position: absolute; top: 12mm; right: 15mm; width: 17mm; height: 17mm; }
+  .d4-meta {
+    position: absolute; top: 62mm; right: 15mm;
+    width: 82mm;
+    color: #fff;
+  }
+  .d4-meta .meta-row { border-color: rgba(255, 251, 240, .28); }
+  .d4-meta .meta-row span { color: var(--champagne-pale); }
+  .d4-meta .meta-row strong { color: #fff; }
+  .d4-to {
+    position: absolute; top: 95mm; left: 15mm;
+    width: 92mm;
+    padding: 5.5mm 6mm;
+    border: .2mm solid var(--line);
+    border-left: 1.4mm solid var(--bordeaux);
+    border-radius: 3mm;
+    background: #fff;
+  }
+  .d4-to .label { color: var(--prune); }
+  .d4-to .party-name { color: var(--bordeaux); }
+  .d4-note {
+    position: absolute; top: 95mm; right: 15mm;
+    width: 80mm;
+    padding: 5.5mm 6mm;
+    border-radius: 3mm;
+    background: linear-gradient(145deg, var(--tint), var(--tint-2));
+    border: .2mm solid var(--line);
+  }
+  .d4-note .label { color: var(--champagne-deep); }
+  .d4-note p { margin: 0 0 1.2mm; font-size: 8pt; line-height: 1.5; }
+  .d4-note .iban { margin-top: 2.4mm; color: var(--bordeaux); font-weight: 700; font-size: 7.4pt; white-space: nowrap; }
+  .d4-table {
+    position: absolute; top: 143mm; left: 15mm;
+    width: 180mm;
+  }
+  .d4-table .items th {
+    color: #fff;
+    background: linear-gradient(90deg, var(--bordeaux), var(--prune));
+  }
+  .d4-table .items th:first-child { border-radius: 3mm 0 0 0; }
+  .d4-table .items th:last-child { border-radius: 0 3mm 0 0; }
+  .d4-table .items td { border-bottom: .18mm solid var(--line); }
+  .d4-table .items tbody tr:nth-child(odd) { background: var(--tint); }
+  .d4-table .items td.desc strong { color: var(--bordeaux); }
+  .d4-totals { position: absolute; top: 213mm; right: 15mm; }
+  .d4-totals .t-row { border-bottom: .18mm solid var(--line); }
+  .d4-totals .t-total {
+    color: #fff;
+    background: linear-gradient(135deg, var(--bordeaux), var(--prune) 62%, var(--champagne-deep));
+    box-shadow: 0 2.5mm 7mm rgba(76, 5, 25, .2);
+  }
+  .d4-legal { position: absolute; top: 249mm; left: 15mm; width: 180mm; }
+  .d4-foot {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 37mm;
+    background: var(--cream);
+    overflow: hidden;
+  }
+  .d4-foot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .d4-foot-content {
+    position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm;
+    color: #fff;
+  }
+  .d4-foot-content .foot-note { margin: 0; font-size: 7.1pt; line-height: 1.5; }
+  .d4-foot-content .foot-note b { color: var(--champagne-light); }
+  .d4-foot-content .contact-line { justify-content: flex-end; max-width: 96mm; }
+  .d4-foot-content .contact-line svg { color: var(--champagne-light); }
+
+  /* =====================================================================
+     MODÈLE 5 — SAPHIR & ARGENT
+     Saphir var(--sapphire) · Bleu acier var(--steel) · Argent var(--silver)
+     ===================================================================== */
+  .d5 { --sapphire: var(--ink); --sapphire-2: var(--ink-3); --sapphire-deep: var(--ink-2); --steel: var(--accent); --steel-light: var(--accent-mid); --steel-pale: var(--accent-light); --steel-paler: var(--accent-pale); --silver: var(--soft); --line: var(--border); }
+  .d5-head {
+    position: absolute; inset: 0 0 auto 0;
+    height: 72mm;
+    background: var(--sapphire);
+    overflow: hidden;
+  }
+  .d5-head > svg { position: absolute; inset: 0; width: 210mm; height: 72mm; }
+  .d5-title {
+    position: absolute; top: 17mm; left: 16mm;
+    margin: 0;
+    color: #fff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 38pt;
+    font-weight: 700;
+    line-height: .92;
+    letter-spacing: .035em;
+  }
+  .d5-title-sub {
+    position: absolute; top: 33mm; left: 16.5mm;
+    margin: 0;
+    color: var(--steel-pale);
+    font-size: 7pt;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+  }
+  .d5-head-meta {
+    position: absolute; top: 47mm; left: 16mm;
+    display: flex; gap: 9mm;
+    color: var(--steel-paler);
+    font-size: 7.6pt;
+  }
+  .d5-head-meta span { display: block; color: var(--steel-light); font-size: 6.2pt; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  .d5-head-meta strong { display: block; margin-top: 1mm; color: #fff; font-size: 8.4pt; }
+  .d5-brand {
+    position: absolute; top: 12mm; right: 15mm;
+    width: 78mm;
+    padding: 4.5mm 5mm;
+    border: .25mm solid rgba(241, 245, 249, .5);
+    border-radius: 2mm;
+    background: rgba(15, 23, 42, .18);
+    color: var(--white-blue);
+    text-align: right;
+  }
+  .d5-brand .logo-row { display: flex; align-items: center; justify-content: flex-end; gap: 3mm; }
+  .d5-logo { width: 13mm; height: 13mm; }
+  .d5-brand-name {
+    margin: 2.2mm 0 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.2pt;
+    letter-spacing: .08em;
+  }
+  .d5-brand p { margin: 1.2mm 0 0; font-size: 7.2pt; line-height: 1.45; }
+  .d5-brand .label { margin: 0 0 1.6mm; color: var(--steel-light); font-size: 6.1pt; }
+  .d5-cards {
+    position: absolute; top: 84mm; left: 15mm;
+    display: grid;
+    grid-template-columns: 98mm 76mm;
+    gap: 6mm;
+    width: 180mm;
+  }
+  .d5-card {
+    min-height: 37mm;
+    padding: 5mm 6mm;
+    border: .2mm solid var(--line);
+    border-radius: 2mm;
+    background: #fff;
+  }
+  .d5-card--to { border-top: 1.1mm solid var(--sapphire); }
+  .d5-card--meta { background: linear-gradient(145deg, var(--silver), #fff); }
+  .d5-card .label { color: var(--steel); }
+  .d5-card .party-name { color: var(--sapphire); }
+  .d5-card .meta-row { border-color: var(--line); }
+  .d5-table {
+    position: absolute; top: 129mm; left: 15mm;
+    width: 180mm;
+  }
+  .d5-table .items { border: .2mm solid var(--line); }
+  .d5-table .items th {
+    color: var(--sapphire);
+    background: var(--silver);
+    border-bottom: .3mm solid var(--sapphire);
+  }
+  .d5-table .items td { border-bottom: .12mm solid var(--line); }
+  .d5-table .items tbody tr:nth-child(odd) { background: var(--white-blue); }
+  .d5-table .items td.desc strong { color: var(--sapphire); }
+  .d5-payment { position: absolute; top: 204mm; left: 15mm; width: 82mm; }
+  .d5-payment .label { color: var(--steel); }
+  .d5-payment p { margin: 0 0 1.3mm; font-size: 8.1pt; line-height: 1.5; }
+  .d5-payment .iban { margin-top: 3mm; color: var(--sapphire); font-weight: 700; }
+  .d5-totals { position: absolute; top: 201mm; right: 15mm; }
+  .d5-totals .t-row { border-bottom: .12mm solid var(--line); }
+  .d5-totals .t-total {
+    color: #fff;
+    background: linear-gradient(135deg, var(--sapphire), var(--steel));
+    border: .3mm solid var(--steel-light);
+    box-shadow: 0 2.5mm 7mm rgba(30, 58, 138, .2);
+  }
+  .d5-legal { position: absolute; top: 241mm; left: 15mm; width: 180mm; }
+  .d5-foot {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 39mm;
+    background: var(--sapphire);
+    overflow: hidden;
+  }
+  .d5-foot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .d5-foot-content {
+    position: absolute; left: 15mm; right: 15mm; bottom: 8mm;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12mm;
+    color: var(--steel-paler);
+  }
+  .d5-foot-content .foot-note { margin: 0; font-size: 7.1pt; line-height: 1.5; }
+  .d5-foot-content .foot-note b { color: #fff; }
+  .d5-foot-content .contact-line { justify-content: flex-end; max-width: 96mm; }
+  .d5-foot-content .contact-line svg { color: var(--steel-light); }
+
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none !important; }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      width: 210mm;
+      height: 297mm;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-title">
+    <strong>Road Runner Solutions · 5 styles de facture</strong><br>
+    <span>Couleurs issues des 7 thèmes existants — cliquez un thème pour prévisualiser les 5 styles</span>
+  </div>
+  <div class="theme-picker" role="group" aria-label="Thème de couleur">
+    <button type="button" class="theme-btn active" data-theme="default">Défaut</button>
+    <button type="button" class="theme-btn" data-theme="azur"><i style="--sw:#0b3d91"></i>Azur</button>
+    <button type="button" class="theme-btn" data-theme="carmin"><i style="--sw:#b42318"></i>Carmin</button>
+    <button type="button" class="theme-btn" data-theme="encre"><i style="--sw:#161616"></i>Encre</button>
+    <button type="button" class="theme-btn" data-theme="sauge"><i style="--sw:#1f7a4d"></i>Sauge</button>
+    <button type="button" class="theme-btn" data-theme="graphite"><i style="--sw:#2d3440"></i>Graphite</button>
+    <button type="button" class="theme-btn" data-theme="indigo"><i style="--sw:#4f46e5"></i>Indigo</button>
+    <button type="button" class="theme-btn" data-theme="terra"><i style="--sw:#b45331"></i>Terra</button>
+  </div>
+  <button type="button" class="print-btn" onclick="window.print()">Imprimer / PDF</button>
+</div>
+
+<!-- =====================================================================
+     MODÈLE 1 — ROYAL WAVE
+     ===================================================================== -->
+<section class="page d1 theme-azur" data-default-theme="azur">
+  <div class="d1-hero">
+    <svg class="d1-waves" viewBox="0 0 210 31" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d1wave" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--cyan)"/>
+          <stop offset=".55" stop-color="var(--cyan-deep)"/>
+          <stop offset="1" stop-color="var(--navy)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 17C30 1 58 29 92 15s62-20 118 2v14H0Z" fill="url(#d1wave)" opacity=".95"/>
+      <path d="M0 24C36 8 70 31 111 20s63-12 99-1v12H0Z" fill="var(--navy)" opacity=".62"/>
+      <path d="M0 21C42 5 72 35 118 18s64-11 92-3" fill="none" stroke="var(--cyan-2)" stroke-width=".65"/>
+    </svg>
+    <div class="d1-brand">
+      <svg class="d1-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="d1logo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--cyan)"/>
+            <stop offset="1" stop-color="var(--cyan-2)"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="url(#d1logo)" stroke-width="2"/>
+        <path d="M10 41c8-13 16-13 24 0s16 13 24 0" fill="none" stroke="url(#d1logo)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M10 30c8-13 16-13 24 0s16 13 24 0" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="50" cy="15" r="3.8" fill="var(--cyan)"/>
+      </svg>
+      <div>
+        <p class="d1-brand-name">ROAD RUNNER</p>
+        <p class="d1-brand-sub">Solutions · Comptabilité des bâtisseurs</p>
+      </div>
+    </div>
+    <div class="d1-badge"><i></i> Facture originale</div>
+  </div>
+
+  <h1 class="d1-title">FACTURE</h1>
+  <div class="d1-title-rule"></div>
+
+  <div class="d1-meta">
+    <div class="meta-row"><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+    <div class="meta-row"><span>Date</span><strong>14 / 11 / 2026</strong></div>
+    <div class="meta-row"><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+  </div>
+
+  <div class="d1-cards">
+    <div class="d1-card">
+      <p class="label">Facturer à</p>
+      <p class="party-name">SOLUTIONS GRUTAGES</p>
+      <div class="party">
+        <p>24 Avenue du Bâtiment<br>93100 Montreuil - France</p>
+        <p class="sub">SIREN 885 114 181 · TVA FR44885114181</p>
+        <p class="sub">Jean-Luc Martin · jean-luc.martin@solutions-grutages.fr</p>
+      </div>
+    </div>
+    <div class="d1-card d1-card--from">
+      <p class="label">De la part de</p>
+      <p class="party-name">ROAD RUNNER ONE</p>
+      <div class="party">
+        <p>15 Rue de Paris<br>93800 Épinay-sur-Seine - France</p>
+        <p class="sub">RCS Bobigny : 951 386 127</p>
+        <p class="sub">Forme juridique : Société par actions simplifiée</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="d1-table">
+    <table class="items">
+      <thead>
+        <tr><th>Description</th><th class="num qty">Quantité</th><th class="num unit">Prix unitaire</th><th class="num amount">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="desc"><strong>Audit et structuration comptable</strong><span>Diagnostic, plan de comptes et procédures internes</span></td>
+          <td class="num">1</td><td class="num">1 450,00 €</td><td class="num">1 450,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Accompagnement TVA et déclarations</strong><span>Préparation CA3, contrôle de cohérence et dépôt</span></td>
+          <td class="num">3</td><td class="num">320,00 €</td><td class="num">960,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Tableau de bord et pilotage mensuel</strong><span>Indicateurs de marge, trésorerie et point mensuel</span></td>
+          <td class="num">6</td><td class="num">180,00 €</td><td class="num">1 080,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Optimisation des flux et prévisionnel</strong><span>Plan de trésorerie 12 mois et scénarios de croissance</span></td>
+          <td class="num">2</td><td class="num">420,00 €</td><td class="num">840,00 €</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d1-payment">
+    <p class="label">Règlement</p>
+    <p>Payable sous 30 jours — échéance le <strong>14 / 12 / 2026</strong>.</p>
+    <p class="iban">IBAN FR76 1027 8060 4100 0206 3428 704</p>
+    <p>BIC CMCIFR2A · CIC Île-de-France</p>
+  </div>
+
+  <div class="d1-totals totals">
+    <div class="t-row"><span>Sous-total HT</span><strong>4 330,00 €</strong></div>
+    <div class="t-row"><span>TVA 20 %</span><strong>866,00 €</strong></div>
+    <div class="t-total"><span>Total TTC</span><strong>5 196,00 €</strong></div>
+  </div>
+
+  <div class="d1-legal legal">
+    <p>Pénalités de retard : trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce). Escompte pour paiement anticipé : néant.</p>
+    <p>Road Runner One, Société par actions simplifiée au capital de 1 000 € · RCS Bobigny : 951 386 127 · TVA FR17100408517.</p>
+  </div>
+
+  <div class="d1-foot">
+    <svg viewBox="0 0 210 39" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 15C34 0 65 25 104 12s68-14 106-2v29H0Z" fill="var(--navy-2)"/>
+      <path d="M0 20C38 5 68 30 108 16s66-9 102-1" fill="none" stroke="var(--cyan)" stroke-width=".55" opacity=".8"/>
+    </svg>
+    <div class="d1-foot-content">
+      <p class="foot-note"><b>Merci de votre confiance.</b><br>Facture émise par ROAD RUNNER ONE · Paiement par virement.</p>
+      <div class="contact-line">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg> +33 1 84 80 00 00</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> facturation@road-runner-solutions.com</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg> road-runner-solutions.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODÈLE 2 — EMERALD PRESTIGE
+     ===================================================================== -->
+<section class="page d2 theme-sauge" data-default-theme="sauge">
+  <div class="d2-head">
+    <svg class="d2-head-shape" viewBox="0 0 210 64" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d2head" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--emerald)"/>
+          <stop offset=".58" stop-color="var(--emerald-2)"/>
+          <stop offset="1" stop-color="var(--petrol)"/>
+        </linearGradient>
+        <linearGradient id="d2line" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--mint-2)"/>
+          <stop offset="1" stop-color="var(--mint-3)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 0h137L112 64H0Z" fill="url(#d2head)"/>
+      <path d="M137 0h6L118 64h-6Z" fill="url(#d2line)" opacity=".9"/>
+      <path d="M0 55C30 42 57 65 88 56s55-18 86-7v15H0Z" fill="var(--emerald)" opacity=".14"/>
+    </svg>
+    <h1 class="d2-title">FACTURE</h1>
+    <p class="d2-title-sub">Conseil · Comptabilité · Croissance</p>
+    <div class="d2-brand">
+      <div>
+        <p class="d2-brand-name">ROAD RUNNER</p>
+        <p class="d2-brand-sub">Solutions</p>
+      </div>
+      <svg class="d2-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="d2logo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--emerald)"/>
+            <stop offset="1" stop-color="var(--petrol)"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 3 58 17v30L32 61 6 47V17Z" fill="url(#d2logo)"/>
+        <path d="M32 14 48 23v18L32 50 16 41V23Z" fill="none" stroke="var(--mint-3)" stroke-width="2"/>
+        <path d="M22 32h20M32 22v20" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="d2-meta">
+    <div class="d2-meta-cell"><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+    <div class="d2-meta-cell"><span>Date</span><strong>14 / 11 / 2026</strong></div>
+    <div class="d2-meta-cell"><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+  </div>
+
+  <div class="d2-cards">
+    <div class="d2-card d2-card--to">
+      <p class="label">Facturer à</p>
+      <p class="party-name">SOLUTIONS GRUTAGES</p>
+      <div class="party">
+        <p>24 Avenue du Bâtiment<br>93100 Montreuil - France</p>
+        <p class="sub">SIREN 885 114 181 · TVA FR44885114181</p>
+        <p class="sub">Jean-Luc Martin · jean-luc.martin@solutions-grutages.fr</p>
+      </div>
+    </div>
+    <div class="d2-card d2-card--from">
+      <p class="label">De la part de</p>
+      <p class="party-name">ROAD RUNNER ONE</p>
+      <div class="party">
+        <p>15 Rue de Paris<br>93800 Épinay-sur-Seine - France</p>
+        <p class="sub">RCS Bobigny : 951 386 127</p>
+        <p class="sub">Forme juridique : Société par actions simplifiée</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="d2-table">
+    <table class="items">
+      <thead>
+        <tr><th>Description</th><th class="num qty">Quantité</th><th class="num unit">Prix unitaire</th><th class="num amount">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="desc"><strong>Audit et structuration comptable</strong><span>Diagnostic, plan de comptes et procédures internes</span></td>
+          <td class="num">1</td><td class="num">1 450,00 €</td><td class="num">1 450,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Accompagnement TVA et déclarations</strong><span>Préparation CA3, contrôle de cohérence et dépôt</span></td>
+          <td class="num">3</td><td class="num">320,00 €</td><td class="num">960,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Tableau de bord et pilotage mensuel</strong><span>Indicateurs de marge, trésorerie et point mensuel</span></td>
+          <td class="num">6</td><td class="num">180,00 €</td><td class="num">1 080,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Optimisation des flux et prévisionnel</strong><span>Plan de trésorerie 12 mois et scénarios de croissance</span></td>
+          <td class="num">2</td><td class="num">420,00 €</td><td class="num">840,00 €</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d2-payment">
+    <p class="label">Règlement</p>
+    <p>Payable sous 30 jours — échéance le <strong>14 / 12 / 2026</strong>.</p>
+    <p class="iban">IBAN FR76 1027 8060 4100 0206 3428 704</p>
+    <p>BIC CMCIFR2A · CIC Île-de-France</p>
+  </div>
+
+  <div class="d2-totals totals">
+    <div class="t-row"><span>Sous-total HT</span><strong>4 330,00 €</strong></div>
+    <div class="t-row"><span>TVA 20 %</span><strong>866,00 €</strong></div>
+    <div class="t-total"><span>Total TTC</span><strong>5 196,00 €</strong></div>
+  </div>
+
+  <div class="d2-legal legal">
+    <p>Pénalités de retard : trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce). Escompte pour paiement anticipé : néant.</p>
+    <p>Road Runner One, Société par actions simplifiée au capital de 1 000 € · RCS Bobigny : 951 386 127 · TVA FR17100408517.</p>
+  </div>
+
+  <div class="d2-foot">
+    <svg viewBox="0 0 210 34" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d2foot" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--emerald)"/>
+          <stop offset="1" stop-color="var(--petrol)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 13 210 0v34H0Z" fill="url(#d2foot)"/>
+      <path d="M0 13 210 0" stroke="var(--mint-2)" stroke-width=".6" opacity=".8"/>
+      <path d="M0 20 210 7" stroke="var(--mint-3)" stroke-width=".4" opacity=".45"/>
+    </svg>
+    <div class="d2-foot-content">
+      <p class="foot-note"><b>Merci de votre confiance.</b><br>Facture émise par ROAD RUNNER ONE · Paiement par virement.</p>
+      <div class="contact-line">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg> +33 1 84 80 00 00</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> facturation@road-runner-solutions.com</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg> road-runner-solutions.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODÈLE 3 — NOIR & OR IMPÉRIAL
+     ===================================================================== -->
+<section class="page d3 theme-encre" data-default-theme="encre">
+  <div class="d3-head">
+    <svg viewBox="0 0 210 61" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d3gold" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--gold-deep)"/>
+          <stop offset=".5" stop-color="var(--gold-light)"/>
+          <stop offset="1" stop-color="var(--gold-deep)"/>
+        </linearGradient>
+      </defs>
+      <rect width="210" height="61" fill="var(--black)"/>
+      <path d="M0 8h210M0 53h210" stroke="url(#d3gold)" stroke-width=".35" opacity=".7"/>
+      <path d="M8 0v61M202 0v61" stroke="url(#d3gold)" stroke-width=".2" opacity=".35"/>
+      <path d="M16 14h178M16 47h178" stroke="var(--gold)" stroke-width=".12" opacity=".35"/>
+      <path d="M22 0 0 22M188 61l22-22" stroke="var(--gold)" stroke-width=".25" opacity=".3"/>
+      <path d="M105 4l3 3-3 3-3-3Z" fill="var(--gold)" opacity=".8"/>
+    </svg>
+    <div class="d3-brand">
+      <svg class="d3-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="d3logo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--gold-deep)"/>
+            <stop offset=".5" stop-color="var(--gold-light)"/>
+            <stop offset="1" stop-color="var(--gold)"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 2 58 12v22c0 14-11 24-26 28C17 58 6 48 6 34V12Z" fill="none" stroke="url(#d3logo)" stroke-width="2.3"/>
+        <path d="M32 12 48 19v15c0 9-7 16-16 19-9-3-16-10-16-19V19Z" fill="var(--black)" stroke="var(--gold)" stroke-width=".9"/>
+        <path d="M22 32l7 7 14-16" fill="none" stroke="var(--gold)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <p class="d3-brand-name">Road Runner One</p>
+    </div>
+    <h1 class="d3-title">FACTURE</h1>
+    <p class="d3-title-sub">Maison de conseil &amp; de comptabilité</p>
+  </div>
+
+  <div class="d3-from">
+    <p class="label">De la part de</p>
+    <p class="party-name">ROAD RUNNER ONE</p>
+    <p>15 Rue de Paris, 93800 Épinay-sur-Seine - France</p>
+    <p>RCS Bobigny : 951 386 127 · Forme juridique : Société par actions simplifiée</p>
+    <p>TVA FR17100408517 · contact@road-runner-solutions.com</p>
+  </div>
+
+  <div class="d3-columns">
+    <div>
+      <p class="label">Facturer à</p>
+      <p class="party-name">SOLUTIONS GRUTAGES</p>
+      <div class="party">
+        <p>24 Avenue du Bâtiment<br>93100 Montreuil - France</p>
+        <p class="sub">SIREN 885 114 181 · TVA FR44885114181</p>
+        <p class="sub">Jean-Luc Martin<br>jean-luc.martin@solutions-grutages.fr</p>
+      </div>
+    </div>
+    <div class="d3-divider"></div>
+    <div>
+      <p class="label">Détails de la facture</p>
+      <div class="meta-row"><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+      <div class="meta-row"><span>Date</span><strong>14 / 11 / 2026</strong></div>
+      <div class="meta-row"><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+    </div>
+  </div>
+
+  <div class="d3-table">
+    <table class="items">
+      <thead>
+        <tr><th>Description</th><th class="num qty">Quantité</th><th class="num unit">Prix unitaire</th><th class="num amount">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="desc"><strong>Audit et structuration comptable</strong><span>Diagnostic, plan de comptes et procédures internes</span></td>
+          <td class="num">1</td><td class="num">1 450,00 €</td><td class="num">1 450,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Accompagnement TVA et déclarations</strong><span>Préparation CA3, contrôle de cohérence et dépôt</span></td>
+          <td class="num">3</td><td class="num">320,00 €</td><td class="num">960,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Tableau de bord et pilotage mensuel</strong><span>Indicateurs de marge, trésorerie et point mensuel</span></td>
+          <td class="num">6</td><td class="num">180,00 €</td><td class="num">1 080,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Optimisation des flux et prévisionnel</strong><span>Plan de trésorerie 12 mois et scénarios de croissance</span></td>
+          <td class="num">2</td><td class="num">420,00 €</td><td class="num">840,00 €</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d3-payment">
+    <p class="label">Règlement</p>
+    <p>Payable sous 30 jours — échéance le <strong>14 / 12 / 2026</strong>.</p>
+    <p class="iban">IBAN FR76 1027 8060 4100 0206 3428 704</p>
+    <p>BIC CMCIFR2A · CIC Île-de-France</p>
+  </div>
+
+  <div class="d3-totals totals">
+    <div class="t-row"><span>Sous-total HT</span><strong>4 330,00 €</strong></div>
+    <div class="t-row"><span>TVA 20 %</span><strong>866,00 €</strong></div>
+    <div class="t-total"><span>Total TTC</span><strong>5 196,00 €</strong></div>
+  </div>
+
+  <div class="d3-legal legal">
+    <p>Pénalités de retard : trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce). Escompte pour paiement anticipé : néant.</p>
+    <p>Road Runner One, Société par actions simplifiée au capital de 1 000 € · RCS Bobigny : 951 386 127 · TVA FR17100408517.</p>
+  </div>
+
+  <div class="d3-foot">
+    <svg viewBox="0 0 210 39" preserveAspectRatio="none" aria-hidden="true">
+      <rect width="210" height="39" fill="var(--black)"/>
+      <path d="M0 5h210M0 33h210" stroke="var(--gold)" stroke-width=".3" opacity=".65"/>
+      <path d="M12 0v39M198 0v39" stroke="var(--gold)" stroke-width=".15" opacity=".3"/>
+      <path d="M105 2l3 3-3 3-3-3Z" fill="var(--gold)" opacity=".75"/>
+    </svg>
+    <div class="d3-foot-content">
+      <p class="foot-note"><b>Merci de votre confiance.</b><br>Facture émise par ROAD RUNNER ONE · Paiement par virement.</p>
+      <div class="contact-line">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg> +33 1 84 80 00 00</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> facturation@road-runner-solutions.com</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg> road-runner-solutions.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODÈLE 4 — BORDEAUX & CHAMPAGNE
+     ===================================================================== -->
+<section class="page d4 theme-carmin" data-default-theme="carmin">
+  <div class="d4-top">
+    <svg class="d4-curve" viewBox="0 0 126 88" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d4curve" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--bordeaux)"/>
+          <stop offset=".62" stop-color="var(--prune)"/>
+          <stop offset="1" stop-color="var(--champagne-deep)"/>
+        </linearGradient>
+      </defs>
+      <path d="M126 0H22C14 16 12 40 12 58c0 12-2 22-12 30h126Z" fill="url(#d4curve)"/>
+      <path d="M120 7H30C22 22 20 42 20 58c0 10-1 18-8 24" fill="none" stroke="var(--champagne)" stroke-width=".8" opacity=".9"/>
+      <path d="M124 14H36C28 27 26 44 26 58c0 8-1 14-6 19" fill="none" stroke="var(--champagne-light)" stroke-width=".35" opacity=".5"/>
+      <circle cx="103" cy="20" r="31" fill="none" stroke="var(--champagne)" stroke-width=".3" opacity=".38"/>
+      <circle cx="103" cy="20" r="23" fill="none" stroke="var(--champagne-light)" stroke-width=".2" opacity=".3"/>
+    </svg>
+    <div class="d4-from">
+      <p class="label">De la part de</p>
+      <p class="party-name">ROAD RUNNER ONE</p>
+      <p class="party-line">15 Rue de Paris<br>93800 Épinay-sur-Seine - France<br>RCS Bobigny : 951 386 127<br>Forme juridique : Société par actions simplifiée</p>
+    </div>
+    <svg class="d4-logo" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="d4logo" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--champagne-light)"/>
+          <stop offset=".55" stop-color="var(--champagne)"/>
+          <stop offset="1" stop-color="var(--champagne-deep)"/>
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="29" fill="none" stroke="url(#d4logo)" stroke-width="2"/>
+      <path d="M18 40c6-18 22-18 28 0" fill="none" stroke="var(--champagne)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M20 26l12-10 12 10" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="32" cy="28" r="3.4" fill="var(--champagne)"/>
+    </svg>
+    <div class="d4-title">
+      <h1>FACTURE</h1>
+      <p>Joaillerie financière<br>&amp; conseil d’exception</p>
+    </div>
+    <div class="d4-meta">
+      <div class="meta-row"><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+      <div class="meta-row"><span>Date</span><strong>14 / 11 / 2026</strong></div>
+      <div class="meta-row"><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+    </div>
+  </div>
+
+  <div class="d4-to">
+    <p class="label">Facturer à</p>
+    <p class="party-name">SOLUTIONS GRUTAGES</p>
+    <div class="party">
+      <p>24 Avenue du Bâtiment<br>93100 Montreuil - France</p>
+      <p class="sub">SIREN 885 114 181 · TVA FR44885114181</p>
+      <p class="sub">Jean-Luc Martin · jean-luc.martin@solutions-grutages.fr</p>
+    </div>
+  </div>
+
+  <div class="d4-note">
+    <p class="label">Règlement</p>
+    <p>Payable sous 30 jours.</p>
+    <p>Échéance le <strong>14 / 12 / 2026</strong>.</p>
+    <p class="iban">IBAN FR76 1027 8060 4100 0206 3428 704</p>
+    <p>BIC CMCIFR2A · CIC Île-de-France</p>
+  </div>
+
+  <div class="d4-table">
+    <table class="items">
+      <thead>
+        <tr><th>Description</th><th class="num qty">Quantité</th><th class="num unit">Prix unitaire</th><th class="num amount">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="desc"><strong>Audit et structuration comptable</strong><span>Diagnostic, plan de comptes et procédures internes</span></td>
+          <td class="num">1</td><td class="num">1 450,00 €</td><td class="num">1 450,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Accompagnement TVA et déclarations</strong><span>Préparation CA3, contrôle de cohérence et dépôt</span></td>
+          <td class="num">3</td><td class="num">320,00 €</td><td class="num">960,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Tableau de bord et pilotage mensuel</strong><span>Indicateurs de marge, trésorerie et point mensuel</span></td>
+          <td class="num">6</td><td class="num">180,00 €</td><td class="num">1 080,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Optimisation des flux et prévisionnel</strong><span>Plan de trésorerie 12 mois et scénarios de croissance</span></td>
+          <td class="num">2</td><td class="num">420,00 €</td><td class="num">840,00 €</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d4-totals totals">
+    <div class="t-row"><span>Sous-total HT</span><strong>4 330,00 €</strong></div>
+    <div class="t-row"><span>TVA 20 %</span><strong>866,00 €</strong></div>
+    <div class="t-total"><span>Total TTC</span><strong>5 196,00 €</strong></div>
+  </div>
+
+  <div class="d4-legal legal">
+    <p>Pénalités de retard : trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce). Escompte pour paiement anticipé : néant.</p>
+    <p>Road Runner One, Société par actions simplifiée au capital de 1 000 € · RCS Bobigny : 951 386 127 · TVA FR17100408517.</p>
+  </div>
+
+  <div class="d4-foot">
+    <svg viewBox="0 0 210 37" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d4foot" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--bordeaux)"/>
+          <stop offset=".7" stop-color="var(--prune)"/>
+          <stop offset="1" stop-color="var(--champagne-deep)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 10C42 0 64 20 105 14s70-14 105-4v27H0Z" fill="url(#d4foot)"/>
+      <path d="M0 10C42 0 64 20 105 14s70-14 105-4" fill="none" stroke="var(--champagne)" stroke-width=".65" opacity=".9"/>
+      <path d="M0 16C45 6 67 26 108 20s66-10 102-3" fill="none" stroke="var(--champagne-light)" stroke-width=".28" opacity=".45"/>
+    </svg>
+    <div class="d4-foot-content">
+      <p class="foot-note"><b>Merci de votre confiance.</b><br>Facture émise par ROAD RUNNER ONE · Paiement par virement.</p>
+      <div class="contact-line">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg> +33 1 84 80 00 00</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> facturation@road-runner-solutions.com</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg> road-runner-solutions.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     MODÈLE 5 — SAPHIR & ARGENT
+     ===================================================================== -->
+<section class="page d5 theme-indigo" data-default-theme="indigo">
+  <div class="d5-head">
+    <svg viewBox="0 0 210 72" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d5head" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--sapphire)"/>
+          <stop offset=".58" stop-color="var(--sapphire-2)"/>
+          <stop offset="1" stop-color="var(--steel)"/>
+        </linearGradient>
+        <linearGradient id="d5silver" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--white-blue)"/>
+          <stop offset="1" stop-color="var(--steel-paler)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 0h210v56l-22 16H0Z" fill="url(#d5head)"/>
+      <path d="M136 0h74v56l-22 16h-52Z" fill="url(#d5silver)" opacity=".12"/>
+      <path d="M136 0v72M158 0v64M180 0v56" stroke="var(--steel-pale)" stroke-width=".35" opacity=".35"/>
+      <path d="M0 61 210 46v26H0Z" fill="var(--sapphire-deep)" opacity=".45"/>
+      <path d="M0 61 210 46" stroke="var(--steel-light)" stroke-width=".45" opacity=".65"/>
+      <path d="M0 66 210 51" stroke="var(--steel-pale)" stroke-width=".2" opacity=".4"/>
+    </svg>
+    <h1 class="d5-title">FACTURE</h1>
+    <p class="d5-title-sub">Architecture financière · Pilotage</p>
+    <div class="d5-head-meta">
+      <div><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+      <div><span>Date</span><strong>14 / 11 / 2026</strong></div>
+      <div><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+    </div>
+    <div class="d5-brand">
+      <p class="label">De la part de</p>
+      <div class="logo-row">
+        <div>
+          <p class="d5-brand-name">ROAD RUNNER ONE</p>
+          <p>15 Rue de Paris</p>
+          <p>93800 Épinay-sur-Seine - France</p>
+        </div>
+        <svg class="d5-logo" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="d5logo" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="var(--white-blue)"/>
+              <stop offset="1" stop-color="var(--steel-light)"/>
+            </linearGradient>
+          </defs>
+          <path d="M8 8h48v48H8Z" fill="none" stroke="url(#d5logo)" stroke-width="1.8"/>
+          <path d="M8 56 56 8M8 40 40 8M24 56 56 24" stroke="var(--steel-light)" stroke-width="1.2" opacity=".7"/>
+          <path d="M20 44V22l12-8 12 8v22" fill="none" stroke="#fff" stroke-width="2.8" stroke-linejoin="round"/>
+          <path d="M27 44V32h10v12" fill="none" stroke="var(--steel-pale)" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <p>RCS Bobigny : 951 386 127</p>
+      <p>Forme juridique : Société par actions simplifiée</p>
+    </div>
+  </div>
+
+  <div class="d5-cards">
+    <div class="d5-card d5-card--to">
+      <p class="label">Facturer à</p>
+      <p class="party-name">SOLUTIONS GRUTAGES</p>
+      <div class="party">
+        <p>24 Avenue du Bâtiment<br>93100 Montreuil - France</p>
+        <p class="sub">SIREN 885 114 181 · TVA FR44885114181</p>
+        <p class="sub">Jean-Luc Martin · jean-luc.martin@solutions-grutages.fr</p>
+      </div>
+    </div>
+    <div class="d5-card d5-card--meta">
+      <p class="label">Détails de la facture</p>
+      <div class="meta-row"><span>N° de facture</span><strong>FAC-2026-0142</strong></div>
+      <div class="meta-row"><span>Date</span><strong>14 / 11 / 2026</strong></div>
+      <div class="meta-row"><span>Échéance</span><strong>14 / 12 / 2026</strong></div>
+    </div>
+  </div>
+
+  <div class="d5-table">
+    <table class="items">
+      <thead>
+        <tr><th>Description</th><th class="num qty">Quantité</th><th class="num unit">Prix unitaire</th><th class="num amount">Montant</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="desc"><strong>Audit et structuration comptable</strong><span>Diagnostic, plan de comptes et procédures internes</span></td>
+          <td class="num">1</td><td class="num">1 450,00 €</td><td class="num">1 450,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Accompagnement TVA et déclarations</strong><span>Préparation CA3, contrôle de cohérence et dépôt</span></td>
+          <td class="num">3</td><td class="num">320,00 €</td><td class="num">960,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Tableau de bord et pilotage mensuel</strong><span>Indicateurs de marge, trésorerie et point mensuel</span></td>
+          <td class="num">6</td><td class="num">180,00 €</td><td class="num">1 080,00 €</td>
+        </tr>
+        <tr>
+          <td class="desc"><strong>Optimisation des flux et prévisionnel</strong><span>Plan de trésorerie 12 mois et scénarios de croissance</span></td>
+          <td class="num">2</td><td class="num">420,00 €</td><td class="num">840,00 €</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d5-payment">
+    <p class="label">Règlement</p>
+    <p>Payable sous 30 jours — échéance le <strong>14 / 12 / 2026</strong>.</p>
+    <p class="iban">IBAN FR76 1027 8060 4100 0206 3428 704</p>
+    <p>BIC CMCIFR2A · CIC Île-de-France</p>
+  </div>
+
+  <div class="d5-totals totals">
+    <div class="t-row"><span>Sous-total HT</span><strong>4 330,00 €</strong></div>
+    <div class="t-row"><span>TVA 20 %</span><strong>866,00 €</strong></div>
+    <div class="t-total"><span>Total TTC</span><strong>5 196,00 €</strong></div>
+  </div>
+
+  <div class="d5-legal legal">
+    <p>Pénalités de retard : trois fois le taux d’intérêt légal et indemnité forfaitaire de 40 € (art. L441-10 du code de commerce). Escompte pour paiement anticipé : néant.</p>
+    <p>Road Runner One, Société par actions simplifiée au capital de 1 000 € · RCS Bobigny : 951 386 127 · TVA FR17100408517.</p>
+  </div>
+
+  <div class="d5-foot">
+    <svg viewBox="0 0 210 39" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="d5foot" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="var(--sapphire-deep)"/>
+          <stop offset=".55" stop-color="var(--sapphire)"/>
+          <stop offset="1" stop-color="var(--steel)"/>
+        </linearGradient>
+      </defs>
+      <path d="M0 8 210 0v39H0Z" fill="url(#d5foot)"/>
+      <path d="M0 8 210 0" stroke="var(--steel-pale)" stroke-width=".6" opacity=".8"/>
+      <path d="M0 15 210 7" stroke="var(--steel-light)" stroke-width=".3" opacity=".45"/>
+      <path d="M0 33h210" stroke="var(--steel-light)" stroke-width=".18" opacity=".35"/>
+    </svg>
+    <div class="d5-foot-content">
+      <p class="foot-note"><b>Merci de votre confiance.</b><br>Facture émise par ROAD RUNNER ONE · Paiement par virement.</p>
+      <div class="contact-line">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2Z"/></svg> +33 1 84 80 00 00</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg> facturation@road-runner-solutions.com</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg> road-runner-solutions.com</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const pages = [...document.querySelectorAll('.page')];
+    const defaults = pages.map((page) => page.dataset.defaultTheme);
+    const buttons = [...document.querySelectorAll('.theme-btn')];
+    const applyTheme = (theme) => {
+      pages.forEach((page, index) => {
+        [...page.classList]
+          .filter((name) => name.startsWith('theme-'))
+          .forEach((name) => page.classList.remove(name));
+        page.classList.add(`theme-${theme === 'default' ? defaults[index] : theme}`);
+      });
+      buttons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.theme === theme);
+      });
+    };
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => applyTheme(button.dataset.theme));
+    });
+  })();
+</script>
+
+</body>
+</html>

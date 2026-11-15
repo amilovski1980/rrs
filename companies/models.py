@@ -51,6 +51,16 @@ INVOICE_LAYOUTS = [
 
 INVOICE_LAYOUT_CODES = tuple(code for code, _label in INVOICE_LAYOUTS)
 
+# Palette signature de chaque modèle : sélectionner un modèle applique sa
+# couleur (l'utilisateur peut ensuite choisir une autre couleur librement).
+INVOICE_LAYOUT_THEMES = {
+    "royal": "azur",
+    "emerald": "sauge",
+    "imperial": "encre",
+    "bordeaux": "carmin",
+    "sapphire": "indigo",
+}
+
 
 class Company(models.Model):
     """Une société geree par un artisan. 1 tenant = 1 clientele = cette table."""

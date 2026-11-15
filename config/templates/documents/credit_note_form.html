@@ -5,17 +5,22 @@
 {% block content %}
 <div class="page-head"><div><h1>{% if credit_note %}Modifier {{ credit_note.number }}{% else %}Nouvel avoir{% endif %}</h1></div></div>
 <div class="card">
-  <form class="form-stack" method="post">{% csrf_token %}
+  <form class="form-stack" method="post" data-mobile-wizard>{% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="wizard-step" data-wizard-step data-step-label="Facture et montant">
     <div class="form-grid">
       <div><label>Facture</label>{{ form.invoice }}{% if form.invoice.errors %}<p class="error">{{ form.invoice.errors.0 }}</p>{% endif %}</div>
       <div><label>Montant HT</label>{{ form.amount_ht }}{% if form.amount_ht.errors %}<p class="error">{{ form.amount_ht.errors.0 }}</p>{% endif %}</div>
       <div><label>TVA (%)</label>{{ form.vat_rate }}</div>
     </div>
+    </div>
+    <div class="wizard-step" data-wizard-step data-step-label="Motif et validation">
+    <div class="wizard-recap" data-wizard-recap></div>
     <div><label>Motif</label>{{ form.reason }}</div>
-    <div style="margin-top:24px;display:flex;gap:10px">
+    <div class="form-actions-bar">
       <button class="btn btn-primary" type="submit">Enregistrer</button>
       <a class="btn btn-ghost" href="{% url 'credit_notes' %}?societe={{ company.id }}">Annuler</a>
+    </div>
     </div>
   </form>
 </div>

@@ -9,6 +9,7 @@ from .models import Company
 class CompanySettingsTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("atelier@exemple.fr")
+        self.user = user
         self.company = Company.objects.create(
             owner=user,
             siren="812345679",
@@ -98,6 +99,25 @@ class CompanySettingsTests(TestCase):
         self.assertRedirects(response, "/cockpit/", fetch_redirect_response=False)
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_layout, "emerald")
+        # Le modèle applique sa palette signature : la facture téléchargée
+        # doit ressembler à la vignette choisie.
+        self.assertEqual(self.company.invoice_theme, "sauge")
+
+    def test_mobile_header_lists_companies(self):
+        Company.objects.create(
+            owner=self.user,
+            siren="812345680",
+            denomination="Atelier Secondaire",
+            forme="EURL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        page = self.client.get("/cockpit/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "m-company-menu")
+        self.assertContains(page, "m-company-row", count=2)
+        self.assertContains(page, "Atelier Secondaire")
 
     def test_accepts_graphite_theme(self):
         response = self.client.post("/societe/", {

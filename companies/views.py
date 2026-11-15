@@ -18,7 +18,7 @@ from core.context import resolve_company
 
 from django.http import HttpResponse
 
-from .models import INVOICE_LAYOUTS, INVOICE_THEMES, SMTP_PROVIDERS, Company
+from .models import INVOICE_LAYOUTS, INVOICE_LAYOUT_THEMES, INVOICE_THEMES, SMTP_PROVIDERS, Company
 from .rib_scan import RibScanError, scan_rib_upload
 
 SMTP_PRESETS = {
@@ -582,7 +582,17 @@ def company_settings(request):
         layout = request.POST.get("layout") or ""
         if layout == "" or layout in dict(INVOICE_LAYOUTS):
             company.invoice_layout = layout
-            company.save(update_fields=["invoice_layout"])
+            fields = ["invoice_layout"]
+            # Un modèle a une palette signature : sans cela, le PDF ne
+            # ressemble pas à la vignette qui vient d'être choisie.
+            signature_theme = INVOICE_LAYOUT_THEMES.get(layout)
+            if signature_theme and signature_theme != company.invoice_theme:
+                from billing.access import theme_allowed
+
+                if theme_allowed(request.user, signature_theme):
+                    company.invoice_theme = signature_theme
+                    fields.append("invoice_theme")
+            company.save(update_fields=fields)
         if is_ajax:
             return JsonResponse({
                 "ok": True,

@@ -58,6 +58,15 @@ class PurchaseTestCase(TestCase):
         data.update(overrides)
         return PurchaseInvoice.objects.create(**data)
 
+    def test_purchase_form_exposes_mobile_wizard_steps(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("purchases:create") + f"?societe={self.company.id}"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-mobile-wizard")
+        self.assertContains(response, "data-wizard-step", count=4)
+
     def test_pdf_import_creates_purchase_draft_and_keeps_file(self):
         self.client.force_login(self.user)
         payload = b"%PDF-1.4 facture fournisseur"

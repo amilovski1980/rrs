@@ -1,0 +1,229 @@
+/* Assistant mobile par étapes — facture, devis, avoir, achat.
+   Le desktop conserve le formulaire complet : les étapes sont alors
+   transparentes dans le flux (display: contents). */
+
+.wizard-step {
+  display: contents;
+}
+
+/* La barre d'étapes n'existe que lorsque le JS a activé le mode mobile. */
+.wizard-head,
+.wizard-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .wizard-active .page-head .sub {
+    display: none;
+  }
+
+  .wizard-mode .wizard-step {
+    display: none;
+  }
+
+  .wizard-mode .wizard-step.is-active {
+    display: block;
+    animation: wizard-step-in 0.18s ease both;
+  }
+
+  .wizard-mode .form-actions-bar {
+    display: none;
+  }
+
+  .wizard-mode .wizard-head {
+    display: block;
+    margin: 0 0 16px;
+  }
+
+  .wizard-head-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .wizard-kicker {
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .wizard-label {
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .wizard-track {
+    height: 6px;
+    margin-top: 9px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--line);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .wizard-track i {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--blue), #4f8dff);
+    transition: width 0.25s var(--ease, ease);
+  }
+
+  .wizard-mode .wizard-nav {
+    position: static;
+    z-index: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line);
+    background: transparent;
+  }
+
+  .wizard-nav .btn {
+    min-height: 44px;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .wizard-nav .wizard-back {
+    justify-self: start;
+  }
+
+  .wizard-nav .wizard-next {
+    justify-self: end;
+  }
+
+  .wizard-nav .wizard-position {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wizard-nav .wizard-submit {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .wizard-nav .wizard-cancel {
+    grid-column: 1 / -1;
+    justify-self: center;
+    padding: 2px 8px;
+    color: var(--muted);
+    font-size: 12.5px;
+    text-decoration: underline;
+  }
+
+  .wizard-nav [hidden] {
+    display: none !important;
+  }
+
+  /* Les cartes imbriquées deviennent de simples blocs dans une étape. */
+  .wizard-mode .invoice-advanced {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .wizard-mode .invoice-advanced > summary {
+    display: none;
+  }
+
+  .wizard-mode .invoice-advanced-body {
+    padding: 0;
+  }
+
+  .wizard-mode .invoice-lines-card {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .wizard-mode .invoice-lines-head {
+    padding: 0 0 10px;
+  }
+
+  .wizard-mode .invoice-lines-head .sub {
+    display: none;
+  }
+
+  .wizard-mode .invoice-lines-toolbar {
+    padding: 12px 0 0;
+  }
+
+  .wizard-recap {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .wizard-recap-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  .wizard-recap-row span {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .wizard-recap-row strong {
+    min-width: 0;
+    color: var(--ink);
+    font-size: 13.5px;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .wizard-recap-total {
+    border-color: transparent;
+    background: var(--blue-pale);
+  }
+
+  .wizard-recap-total strong {
+    color: var(--blue);
+    font-size: 17px;
+  }
+}
+
+@keyframes wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .wizard-mode .wizard-step.is-active {
+    animation: none;
+  }
+}

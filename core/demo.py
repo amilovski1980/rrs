@@ -376,7 +376,6 @@ def demo_login(request):
     aucune donnée n'est créée par visiteur, et les écritures sont bloquées
     par DemoModeMiddleware. Les anciens bacs à sable sont purgés ici.
     """
-    from django.contrib import messages
     from django.contrib.auth import login, logout
     from django.shortcuts import redirect
     from django.urls import reverse
@@ -395,11 +394,8 @@ def demo_login(request):
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     request.session["societe_id"] = str(company.id)
     request.session["demo_mode"] = True
-    messages.info(
-        request,
-        "Mode démo en lecture seule : la navigation et les écrans sont "
-        "accessibles, mais aucune modification n'est enregistrée.",
-    )
+    # Pas de message flash : le bandeau "demo-readonly-banner" de base.html
+    # affiche déjà l'information en permanence (un flash doublait chaque page).
 
     nxt = request.GET.get("next") or reverse("cockpit")
     if not nxt.startswith("/") or nxt.startswith("//"):

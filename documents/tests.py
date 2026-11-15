@@ -92,6 +92,8 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "Client Démo")
         self.assertContains(detail, "Modifier")
+        self.assertContains(detail, "invoice-preview-image")
+        self.assertContains(detail, "model-pick")
         edit = self.client.post(f"/factures/{self.invoice.id}/modifier/", {
             "client": "",
             "client_name": "Client Modifié",
