@@ -1306,6 +1306,80 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   .btn-add-line-txt { display: none; }
 }
 
+/* ---------- Socle app bancaire : pilules, verre clair, skeletons, scanner ----------
+   Lot 1a : CTA en pilule (rayon 999px, hauteur --tap), chrome translucide en
+   clair (référence : pied sombre rgba(9,9,11,.66)), skeleton partagé, Scanner
+   central surélevé, CTA principal collé au-dessus de la barre d'onglets. */
+@media (max-width: 768px) {
+  .content .btn {
+    border-radius: 999px;
+  }
+  .content .btn-primary,
+  .content .btn-ghost,
+  .content .btn-danger {
+    min-height: var(--tap);
+  }
+  html:not([data-theme="dark"]) .m-footer,
+  html:not([data-theme="dark"]) .m-header {
+    background-color: var(--glass-bg, rgba(255, 255, 255, 0.72));
+    -webkit-backdrop-filter: var(--glass-blur, blur(20px) saturate(160%));
+    backdrop-filter: var(--glass-blur, blur(20px) saturate(160%));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      0 18px 40px -26px rgba(15, 23, 42, 0.45);
+  }
+  html:not([data-theme="dark"]) .m-footer-btn.active .m-footer-ico {
+    background: var(--blue-soft);
+    color: var(--blue);
+    border-color: transparent;
+  }
+  .m-footer-scan .m-footer-ico {
+    transform: translateY(-9px);
+    width: 46px; height: 46px;
+    background: linear-gradient(135deg, var(--blue), #4f8dff);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 12px 26px -12px rgba(0, 65, 146, 0.65);
+  }
+  .m-footer-scan .m-footer-ico .icon { width: 21px; height: 21px; }
+  .m-footer-scan.active .m-footer-ico {
+    background: linear-gradient(135deg, #e6244d, #9e0320);
+    box-shadow: 0 12px 26px -12px rgba(199, 4, 36, 0.6);
+  }
+  div.page-actions.m-dock-split,
+  div.page-actions.m-dock-single {
+    display: none !important;
+  }
+}
+
+/* Skeletons : états de chargement pour l'OCR, les listes et les KPI.
+   Aucune animation déclenchée par la saisie clavier (:focus sans effet). */
+.skeleton {
+  position: relative; overflow: hidden;
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 8px; color: transparent !important;
+  pointer-events: none; user-select: none;
+}
+.skeleton::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-wave 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-wave { to { transform: translateX(100%); } }
+html[data-theme="dark"] .skeleton { background: rgba(255, 255, 255, 0.08); }
+html[data-theme="dark"] .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+.skeleton-ocr {
+  max-width: 340px; margin: 14px auto 0;
+  display: grid; gap: 10px;
+}
+.skeleton-ocr > i { display: block; height: 46px; border-radius: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;

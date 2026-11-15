@@ -89,7 +89,7 @@ class MobileActionsAndWakeLockTests(TestCase):
         for marker in (
             "mobile-fixes.css",
             "mobile-actions.js",
-            "data-agent-footer-open",
+            "m-footer-scan",  # onglet Scanner (tickets OCR) au centre
         ):
             self.assertIn(marker, content)
 

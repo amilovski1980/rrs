@@ -41,9 +41,9 @@
     return null;
   }
 
-  function enhance(details) {
-    if (details.dataset.mDock) return;
-    var list = details.querySelector(".actions-list");
+  function enhance(container) {
+    if (container.dataset.mDock) return;
+    var list = container.querySelector(".actions-list") || container;
     if (!list) return;
 
     var primary = list.querySelector(".btn-primary");
@@ -58,10 +58,10 @@
     node.classList.add("m-dock-primary");
     if (single) node.classList.add("m-dock-primary--wide");
     node.removeAttribute("data-m-dock-primary");
-    details.dataset.mDock = single ? "single" : "split";
-    details.classList.add(single ? "m-dock-single" : "m-dock-split");
+    container.dataset.mDock = single ? "single" : "split";
+    container.classList.add(single ? "m-dock-single" : "m-dock-split");
     document.body.appendChild(node);
-    docks.push({ node: node, details: details });
+    docks.push({ node: node, details: container });
   }
 
   function teardown() {
@@ -93,12 +93,16 @@
     );
   }
 
+  function enhanceContainer(details) {
+    return enhance(details);
+  }
+
   function sync() {
     bindFooterAgent();
     teardown();
     if (!mql.matches) return;
     Array.prototype.forEach.call(
-      document.querySelectorAll("details.page-actions"),
+      document.querySelectorAll("details.page-actions, div.page-actions"),
       enhance
     );
   }

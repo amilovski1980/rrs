@@ -1512,7 +1512,12 @@
         camera.setAttribute("name", "fichier");
         fileInput.removeAttribute("name");
       }
-      if (submitBtn) submitBtn.textContent = "Analyse OCR…";
+      if (submitBtn) {
+        submitBtn.textContent = "Analyse OCR…";
+        submitBtn.setAttribute("aria-busy", "true");
+      }
+      var skeleton = form.querySelector("[data-ticket-skeleton]");
+      if (skeleton) skeleton.removeAttribute("hidden");
       if (typeof form.requestSubmit === "function") form.requestSubmit();
       else form.submit();
     });
