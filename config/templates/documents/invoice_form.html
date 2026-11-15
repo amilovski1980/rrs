@@ -44,8 +44,12 @@
           {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
         </div>
         <div>
-          <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
-          {{ form.client_name }}
+          <label for="{{ form.client_name.id_for_label }}">Nom du client (affiché)</label>
+          <div data-client-suggest>
+            {{ form.client_name }}
+            <p class="micro">Tapez le nom : vos clients enregistrés et l'annuaire INSEE apparaissent au fil de la saisie. La fiche client est créée automatiquement à l'enregistrement si elle n'existe pas.</p>
+          </div>
+          <input type="hidden" name="client_autocreate" value="1">
           {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
         </div>
       </div>

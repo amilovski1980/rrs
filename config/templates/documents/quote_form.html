@@ -42,8 +42,12 @@
       </div>
       <div class="form-grid" style="align-items:end">
         <div>
-          <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
-          {{ form.client_name }}
+          <label for="{{ form.client_name.id_for_label }}">Nom du client (affiché)</label>
+          <div data-client-suggest>
+            {{ form.client_name }}
+            <p class="micro">Tapez le nom : vos clients et l'annuaire INSEE apparaissent. La fiche client est créée à l'enregistrement du devis.</p>
+          </div>
+          <input type="hidden" name="client_autocreate" value="1">
         </div>
         <div>
           <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
