@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 
 from accounting.models import JournalEntry
 from accounting.services import generate_portal
@@ -74,3 +75,12 @@ class CustomerPaymentTests(TestCase):
         self.invoice.due_date = self.invoice.created_at.date() - timedelta(days=1)
         self.invoice.save(update_fields=["due_date"])
         self.assertTrue(self.invoice.is_late)
+
+    def test_invoice_form_has_mobile_hooks(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("invoice_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "invoice-form")
+        self.assertContains(response, "data-invoice-advanced")
+        self.assertContains(response, 'data-label="Produit"')
+        self.assertContains(response, "Lignes de facture")

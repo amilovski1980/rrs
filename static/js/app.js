@@ -302,16 +302,6 @@
       return String(siren || "").replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
     };
 
-    var displayName = function (item) {
-      return item.nom_complet || item.nom_raison_sociale || ("SIREN " + formatSiren(item.siren));
-    };
-
-    var displayAddress = function (item) {
-      var siege = item.siege || {};
-      if (siege.adresse) return siege.adresse;
-      return [siege.code_postal, siege.libelle_commune].filter(Boolean).join(" ");
-    };
-
     var setStatus = function (message, isError) {
       status.textContent = message || "";
       status.hidden = !message;
@@ -332,45 +322,48 @@
     var apply = function (item) {
       var siren = String(item.siren || "").replace(/\D/g, "").slice(0, 9);
       if (nameField) {
-        nameField.value = displayName(item);
+        nameField.value = item.denomination || "";
         notify(nameField);
       }
       if (sirenField && siren) {
         sirenField.value = siren;
         notify(sirenField);
       }
-      var address = displayAddress(item);
+      var address = [item.adresse, item.ville, item.code_postal].filter(Boolean).join(" ");
       if (addressField && address) {
         addressField.value = address;
         notify(addressField);
       }
       clearResults();
-      setStatus("Fiche remplie : " + displayName(item) + ". Vérifiez les champs avant d'enregistrer.");
+      setStatus("Fiche remplie : " + (item.denomination || "SIREN " + formatSiren(siren)) + ". Vérifiez les champs avant d'enregistrer.");
       input.value = "";
     };
 
     var render = function (items) {
       results.replaceChildren();
-      items.slice(0, 5).forEach(function (item) {
+      items.forEach(function (item) {
         var card = document.createElement("div");
         card.className = "client-lookup-card";
 
         var info = document.createElement("div");
         var kicker = document.createElement("span");
         kicker.className = "client-lookup-kicker";
-        kicker.textContent = "SIREN " + formatSiren(item.siren);
+        kicker.textContent = "SIREN " + formatSiren(item.siren) + (item.siret ? " · SIRET " + item.siret : "");
         var name = document.createElement("strong");
-        name.textContent = displayName(item);
+        name.textContent = item.denomination || "SIREN " + formatSiren(item.siren);
         var meta = document.createElement("span");
         meta.className = "client-lookup-meta";
-        var address = displayAddress(item);
-        meta.textContent = [address, item.activite_principale ? "Activité " + item.activite_principale : ""].filter(Boolean).join(" · ");
+        meta.textContent = [
+          item.deja_client ? "Déjà client de la société" : "",
+          item.adresse, item.ville, item.code_postal,
+          item.naf ? "Activité " + item.naf : "",
+        ].filter(Boolean).join(" · ");
         info.append(kicker, name, meta);
 
         var use = document.createElement("button");
         use.type = "button";
         use.className = "btn btn-ghost btn-sm";
-        use.textContent = "Utiliser cette fiche";
+        use.textContent = item.deja_client ? "Vérifier cette fiche" : "Utiliser cette fiche";
         use.addEventListener("click", function () { apply(item); });
 
         card.append(info, use);
@@ -381,7 +374,6 @@
 
     var search = function () {
       var query = (input.value || "").trim();
-      var digits = query.replace(/\D/g, "");
       if (query.length < 2) {
         setStatus("Saisissez un SIREN, un SIRET ou au moins deux caractères du nom.", true);
         input.focus();
@@ -393,23 +385,36 @@
       var currentId = ++requestId;
       button.disabled = true;
       clearResults();
-      setStatus("Recherche dans la base Sirene…", false);
+      setStatus("Recherche dans l'annuaire officiel…", false);
 
-      fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(query) + "&page=1&per_page=5", {
+      // La requête passe par le backend : anti-doublon et limites de débit
+      // (429/Retry-After) sont gérés côté serveur, pas par le navigateur.
+      fetch("/agent/recherche/?query=" + encodeURIComponent(query) + "&limit=5", {
         signal: controller.signal,
+        credentials: "same-origin",
         headers: { Accept: "application/json" }
       })
         .then(function (response) {
-          if (!response.ok) throw new Error("HTTP " + response.status);
-          return response.json();
+          return response.json().then(function (data) {
+            return { status: response.status, data: data };
+          });
         })
-        .then(function (data) {
-          var items = data.results || [];
-          if (digits.length === 9) {
-            items = items.filter(function (item) { return item.siren === digits; });
-          } else if (digits.length === 14) {
-            items = items.filter(function (item) { return item.siren === digits.slice(0, 9); });
+        .then(function (payload) {
+          var data = payload.data || {};
+          if (payload.status === 429) {
+            var wait = data.retry_after_seconds || 60;
+            setStatus("Annuaire momentanément saturé : réessayez dans environ " + wait + " s.", true);
+            return;
           }
+          if (payload.status === 401) {
+            setStatus("Connectez-vous au cockpit pour utiliser la recherche.", true);
+            return;
+          }
+          if (data.error) {
+            setStatus(data.error, true);
+            return;
+          }
+          var items = data.results || [];
           if (!items.length) {
             setStatus("Aucune entreprise trouvée. Vérifiez la saisie ou remplissez la fiche manuellement.", true);
             return;

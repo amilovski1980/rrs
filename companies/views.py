@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -18,7 +18,7 @@ from core.context import resolve_company
 
 from django.http import HttpResponse
 
-from .models import INVOICE_THEMES, SMTP_PROVIDERS, Company
+from .models import INVOICE_LAYOUTS, INVOICE_LAYOUT_THEMES, INVOICE_THEMES, SMTP_PROVIDERS, Company
 from .rib_scan import RibScanError, scan_rib_upload
 
 SMTP_PRESETS = {
@@ -535,14 +535,39 @@ def _company_or_redirect(request):
 
 
 def _settings_extra_context(company):
+    from decimal import Decimal
+
     mailbox = getattr(company, "mailbox_config", None)
     scopes = (getattr(mailbox, "granted_scopes", "") or "") if mailbox else ""
     linked = bool(mailbox and mailbox.has_tokens)
     return {
         "smtp_presets": SMTP_PRESETS,
+        "layouts": INVOICE_LAYOUTS,
         "google_mail_linked": linked,
         "google_mail_connected": linked and "gmail.send" in scopes,
         "google_mail_email": getattr(mailbox, "email_address", "") if mailbox else "",
+        "preview_date": timezone.localdate(),
+        "preview_amount_ht": Decimal("295.00"),
+        "preview_vat_amount": Decimal("54.50"),
+        "preview_amount_ttc": Decimal("349.50"),
+        "preview_lines": [
+            {
+                "description": "Pose de fenêtre",
+                "quantity": Decimal("1.00"),
+                "unit_price": Decimal("250.00"),
+                "vat_rate": Decimal("20.00"),
+                "amount_ht": Decimal("250.00"),
+                "amount_ttc": Decimal("300.00"),
+            },
+            {
+                "description": "Déplacement chantier",
+                "quantity": Decimal("1.00"),
+                "unit_price": Decimal("45.00"),
+                "vat_rate": Decimal("10.00"),
+                "amount_ht": Decimal("45.00"),
+                "amount_ttc": Decimal("49.50"),
+            },
+        ],
     }
 
 
@@ -552,16 +577,52 @@ def company_settings(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+    if request.method == "POST" and "layout" in request.POST and "denomination" not in request.POST:
+        layout = request.POST.get("layout") or ""
+        if layout == "" or layout in dict(INVOICE_LAYOUTS):
+            company.invoice_layout = layout
+            fields = ["invoice_layout"]
+            # Un modèle a une palette signature : sans cela, le PDF ne
+            # ressemble pas à la vignette qui vient d'être choisie.
+            signature_theme = INVOICE_LAYOUT_THEMES.get(layout)
+            if signature_theme and signature_theme != company.invoice_theme:
+                from billing.access import theme_allowed
+
+                if theme_allowed(request.user, signature_theme):
+                    company.invoice_theme = signature_theme
+                    fields.append("invoice_theme")
+            company.save(update_fields=fields)
+        if is_ajax:
+            return JsonResponse({
+                "ok": True,
+                "theme": company.invoice_theme,
+                "layout": company.invoice_layout,
+            })
+        nxt = request.POST.get("next") or ""
+        if not nxt.startswith("/") or nxt.startswith("//"):
+            nxt = reverse("company_settings") + f"?societe={company.id}"
+        return redirect(nxt)
     if request.method == "POST" and request.POST.get("theme") and "denomination" not in request.POST:
         theme = request.POST.get("theme")
         from billing.access import UPGRADE_MESSAGE, theme_allowed
 
         if theme in dict(INVOICE_THEMES) and not theme_allowed(request.user, theme):
+            if is_ajax:
+                return JsonResponse(
+                    {"ok": False, "error": UPGRADE_MESSAGE}, status=403
+                )
             messages.info(request, UPGRADE_MESSAGE)
             return redirect("plan_upgrade")
         if theme in dict(INVOICE_THEMES):
             company.invoice_theme = theme
             company.save(update_fields=["invoice_theme"])
+        if is_ajax:
+            return JsonResponse({
+                "ok": True,
+                "theme": company.invoice_theme,
+                "layout": company.invoice_layout,
+            })
         nxt = request.POST.get("next") or ""
         if not nxt.startswith("/") or nxt.startswith("//"):
             nxt = reverse("company_settings") + f"?societe={company.id}"

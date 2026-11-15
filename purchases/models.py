@@ -25,12 +25,14 @@ STATUSES = [
     ("approved", "À payer"),
     ("paid", "Payée"),
     ("ignored", "Ignorée"),
+    ("archived", "Archivée (import)"),
 ]
 
 SOURCES = [
     ("manual", "Saisie manuelle"),
     ("mailsync", "Connecteur e-mail"),
     ("ticket", "Ticket de caisse"),
+    ("historical_import", "Import d'historique"),
 ]
 
 
@@ -81,7 +83,7 @@ class PurchaseInvoice(models.Model):
 
     description = models.CharField(max_length=255, blank=True, verbose_name="Libellé")
     status = models.CharField(max_length=12, choices=STATUSES, default="draft")
-    source = models.CharField(max_length=12, choices=SOURCES, default="manual")
+    source = models.CharField(max_length=20, choices=SOURCES, default="manual")
 
     mailsync_draft = models.ForeignKey(
         "mailsync.SupplierInvoiceDraft",
@@ -105,6 +107,13 @@ class PurchaseInvoice(models.Model):
         blank=True,
         verbose_name="Justificatif",
     )
+    attachment_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Justificatif en base",
+    )
+    attachment_type = models.CharField(max_length=80, blank=True)
     attachment_name = models.CharField(max_length=255, blank=True)
 
     notes = models.TextField(blank=True, verbose_name="Notes")

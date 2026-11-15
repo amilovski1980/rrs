@@ -2,9 +2,11 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
 from core.context import resolve_company
@@ -21,11 +23,18 @@ from .services import (
     BankError,
     accounting_balance,
     candidate_entries,
-    create_entry_from_transaction,
     ensure_default_account,
     find_rule,
     import_statement,
     match_transaction,
+    reconcile_bank_fee,
+    reconcile_customer_receipt,
+    reconcile_expense,
+    reconcile_internal_transfer,
+    reconcile_loan_payment,
+    reconcile_other,
+    reconcile_supplier_payment,
+    reconcile_vat_payment,
     unmatch_transaction,
 )
 
@@ -260,24 +269,89 @@ def transaction_create_entry(request, pk):
     bank_transaction = _scoped(BankTransaction, company, pk)
     rule = find_rule(bank_transaction)
     form = TransactionEntryForm(
-        request.POST or None, bank_transaction=bank_transaction, rule=rule
+        request.POST or None,
+        bank_transaction=bank_transaction,
+        rule=rule,
+        company=company,
     )
     if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data
+        common = {
+            "label": data.get("label") or "",
+            "reference": data.get("reference") or "",
+            "entry_date": data.get("date"),
+        }
         try:
-            create_entry_from_transaction(
-                bank_transaction,
-                counterpart_code=form.cleaned_data["counterpart_code"],
-                vat_account_code=form.cleaned_data.get("vat_account_code") or "",
-                vat_amount=form.cleaned_data.get("vat_amount") or Decimal("0.00"),
-                label=form.cleaned_data["label"],
-                reference=form.cleaned_data.get("reference") or "",
-                entry_date=form.cleaned_data.get("date"),
-            )
+            if data["nature"] == "customer_receipt":
+                reconcile_customer_receipt(
+                    bank_transaction,
+                    invoice=data.get("customer_invoice"),
+                    gross_amount=data.get("gross_amount"),
+                    fee_amount=data.get("fee_amount"),
+                    fee_account_code=data.get("fee_account_code") or "627000",
+                    **common,
+                )
+            elif data["nature"] == "supplier_payment":
+                reconcile_supplier_payment(
+                    bank_transaction,
+                    invoice=data.get("supplier_invoice"),
+                    gross_amount=data.get("gross_amount"),
+                    fee_amount=data.get("fee_amount"),
+                    fee_account_code=data.get("fee_account_code") or "627000",
+                    **common,
+                )
+            elif data["nature"] == "expense":
+                reconcile_expense(
+                    bank_transaction,
+                    charge_account_code=data.get("charge_account_code"),
+                    vat_account_code=data.get("vat_account_code") or "",
+                    vat_amount=data.get("vat_amount") or Decimal("0.00"),
+                    **common,
+                )
+            elif data["nature"] == "bank_fee":
+                reconcile_bank_fee(bank_transaction, **common)
+            elif data["nature"] == "loan_payment":
+                reconcile_loan_payment(
+                    bank_transaction,
+                    principal=data.get("loan_principal") or Decimal("0.00"),
+                    interest=data.get("loan_interest") or Decimal("0.00"),
+                    **common,
+                )
+            elif data["nature"] == "internal_transfer":
+                reconcile_internal_transfer(
+                    bank_transaction,
+                    other_account=data.get("transfer_account"),
+                    **common,
+                )
+            elif data["nature"] == "vat_payment":
+                reconcile_vat_payment(
+                    bank_transaction,
+                    vat_account_code=data.get("vat_payment_account_code") or "44571",
+                    **common,
+                )
+            else:
+                reconcile_other(
+                    bank_transaction,
+                    counterpart_code=data.get("counterpart_code"),
+                    vat_account_code=data.get("vat_account_code") or "",
+                    vat_amount=data.get("vat_amount") or Decimal("0.00"),
+                    **common,
+                )
         except BankError as exc:
             messages.error(request, str(exc))
         else:
             messages.success(request, "Écriture créée et opération rapprochée.")
             return redirect("banking:transaction_detail", pk=bank_transaction.pk)
+
+    accounts = company.accounts.order_by("code")
+    bank_ledger = bank_transaction.account.ledger
+    reference_suggestions = list(
+        BankTransaction.objects.filter(company=company)
+        .exclude(reference="")
+        .order_by("-date")
+        .values_list("reference", flat=True)
+        .distinct()[:15]
+    )
     return render(
         request,
         "banking/transaction_entry.html",
@@ -286,6 +360,11 @@ def transaction_create_entry(request, pk):
             "transaction": bank_transaction,
             "form": form,
             "rule": rule,
+            "accounts": accounts,
+            "vat_accounts": accounts.filter(code__startswith="4456"),
+            "reference_suggestions": reference_suggestions,
+            "bank_code": bank_ledger.code if bank_ledger else "512",
+            "bank_label": bank_transaction.account.label,
         },
     )
 
@@ -300,6 +379,23 @@ def transaction_unmatch(request, pk):
     unmatch_transaction(bank_transaction)
     messages.info(request, "Rapprochement annulé.")
     return redirect("banking:transaction_detail", pk=bank_transaction.pk)
+
+
+@require_POST
+@login_required
+def transaction_delete(request, pk):
+    """Supprime une ligne importée, sans toucher à l'écriture comptable liée."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    bank_transaction = _scoped(BankTransaction, company, pk)
+    label = bank_transaction.label
+    bank_transaction.delete()
+    messages.success(request, f"Opération « {label[:80]} » supprimée.")
+    nxt = (request.POST.get("next") or "").strip()
+    if not nxt.startswith("/") or nxt.startswith("//"):
+        nxt = reverse("banking:transactions") + f"?societe={company.id}"
+    return redirect(nxt)
 
 
 @require_POST
@@ -388,6 +484,14 @@ def statement_file(request, pk):
     if bounce:
         return bounce
     statement = _scoped(BankStatement, company, pk)
+    filename = get_valid_filename(statement.original_filename or "releve") or "releve"
+    if statement.file_data:
+        response = HttpResponse(
+            bytes(statement.file_data),
+            content_type=statement.file_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
     if not statement.file:
         raise Http404("Aucun fichier de relevé.")
     try:
@@ -397,5 +501,5 @@ def statement_file(request, pk):
     return FileResponse(
         handle,
         as_attachment=True,
-        filename=statement.original_filename or "releve",
+        filename=filename,
     )

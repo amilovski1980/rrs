@@ -11,9 +11,10 @@
   </div>
 </div>
 <div class="card">
-  <form class="form-stack" method="post" data-invoice-form>
+  <form class="form-stack" method="post" data-invoice-form data-mobile-wizard>
     {% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="wizard-step" data-wizard-step data-step-label="Client">
     <div class="form-grid">
       <div>
         <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
@@ -44,7 +45,9 @@
         {% if form.valid_until.errors %}<p class="error">{{ form.valid_until.errors.0 }}</p>{% endif %}
       </div>
     </div>
+    </div>
 
+    <div class="wizard-step" data-wizard-step data-step-label="Lignes">
     <section class="card invoice-lines-card">
       <div class="invoice-lines-head">
         <div>
@@ -88,15 +91,19 @@
         </div>
       </div>
     </section>
-
-    <div>
-      <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-      {{ form.notes }}
-      {% if form.notes.errors %}<p class="error">{{ form.notes.errors.0 }}</p>{% endif %}
     </div>
-    <div class="form-actions-bar">
-      <button class="btn btn-primary" type="submit">Enregistrer</button>
-      <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Annuler</a>
+
+    <div class="wizard-step" data-wizard-step data-step-label="Validation">
+      <div class="wizard-recap" data-wizard-recap></div>
+      <div>
+        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<p class="error">{{ form.notes.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-actions-bar">
+        <button class="btn btn-primary" type="submit">Enregistrer</button>
+        <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Annuler</a>
+      </div>
     </div>
   </form>
 </div>

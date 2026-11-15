@@ -11,6 +11,21 @@
   <a class="btn btn-ghost page-actions" href="{% url 'suppliers:list' %}?societe={{ company.id }}">Retour</a>
 </div>
 
+{% if not supplier %}
+<div class="card card-tight supplier-lookup-card">
+  <div>
+    <h2>Rechercher par nom ou SIREN</h2>
+    <p class="sub">Préremplissez le nom, le SIRET, l'adresse et la TVA depuis l'annuaire officiel des entreprises.</p>
+  </div>
+  <form method="get" action="{% url 'suppliers:lookup' %}" class="supplier-lookup-row" role="search">
+    <input type="hidden" name="societe" value="{{ company.id }}">
+    <label class="sr-only" for="supplier-q">Nom de la société, SIREN ou SIRET</label>
+    <input id="supplier-q" name="q" maxlength="80" placeholder="Nom de la société, SIREN ou SIRET" autofocus>
+    <button class="btn btn-primary" type="submit">Rechercher</button>
+  </form>
+</div>
+{% endif %}
+
 <form method="post" class="card form-stack">
   {% csrf_token %}
   {% if form.non_field_errors %}

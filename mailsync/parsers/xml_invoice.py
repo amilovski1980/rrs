@@ -135,6 +135,8 @@ def _party_identity(party) -> tuple[str, str, str]:
 
 
 def _first_description(root) -> str:
+    if root is None:
+        return ""
     for node in root.iter():
         if _local(node.tag) in {"Description", "Name"}:
             text = _text(node)
@@ -151,6 +153,10 @@ def _parse_ubl(root) -> ExtractedInvoice:
     if supplier_party is None:
         supplier_party = _find_any(root, "SellerSupplierParty")
     supplier_name, siret, vat = _party_identity(supplier_party)
+    buyer_party = _path(root, "AccountingCustomerParty", "Party")
+    if buyer_party is None:
+        buyer_party = _find_any(root, "BuyerCustomerParty")
+    buyer_name, buyer_siret, buyer_vat = _party_identity(buyer_party)
 
     totals = _find_any(root, "LegalMonetaryTotal")
     amount_ht = _decimal(_text(_child(totals, "TaxExclusiveAmount")))
@@ -168,6 +174,9 @@ def _parse_ubl(root) -> ExtractedInvoice:
         supplier_name=supplier_name,
         supplier_siret=siret,
         supplier_vat=vat,
+        customer_name=buyer_name,
+        customer_siret=buyer_siret,
+        customer_vat=buyer_vat,
         invoice_number=_text(_child(root, "ID")),
         invoice_date=_parse_date(_text(_child(root, "IssueDate"))),
         amount_ht=amount_ht or Decimal("0.00"),
@@ -201,6 +210,8 @@ def _parse_cii(root) -> ExtractedInvoice:
 
     supplier_party = _find_any(root, "SellerTradeParty")
     supplier_name, siret, vat = _party_identity(supplier_party)
+    buyer_party = _find_any(root, "BuyerTradeParty")
+    buyer_name, buyer_siret, buyer_vat = _party_identity(buyer_party)
 
     settlement = _find_any(root, "SpecifiedTradeSettlementHeaderMonetarySummation")
     amount_ht = _decimal(_text(_child(settlement, "LineTotalAmount")))
@@ -230,6 +241,9 @@ def _parse_cii(root) -> ExtractedInvoice:
         supplier_name=supplier_name,
         supplier_siret=siret,
         supplier_vat=vat,
+        customer_name=buyer_name,
+        customer_siret=buyer_siret,
+        customer_vat=buyer_vat,
         invoice_number=invoice_number,
         invoice_date=invoice_date,
         amount_ht=amount_ht or Decimal("0.00"),

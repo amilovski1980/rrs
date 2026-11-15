@@ -10,7 +10,7 @@
   </div>
 </div>
 
-<div class="card">
+<div class="card entry-form-card">
   <form method="post">
     {% csrf_token %}
     {% if form.non_field_errors or formset.non_form_errors %}
@@ -45,25 +45,28 @@
       </div>
     </div>
 
-    <h2 style="margin:26px 0 8px;font-size:18px">Lignes d'écriture</h2>
+    <h2 class="entry-lines-title">Lignes d'écriture</h2>
+    <p class="micro entry-lines-hint">Le total des débits doit être égal au total des crédits. Laissez les lignes inutiles vides.</p>
     {{ formset.management_form }}
-    <table>
-      <thead><tr><th style="width:55%">Compte</th><th class="num">Débit (€)</th><th class="num">Crédit (€)</th></tr></thead>
-      <tbody>
-        {% for f in formset %}
-        <tr>
-          <td>
-            {{ f.account }}
-            {% if f.account.errors %}<p class="error">{{ f.account.errors.0 }}</p>{% endif %}
-          </td>
-          <td class="num">{{ f.debit }}</td>
-          <td class="num">{{ f.credit }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table class="entry-lines-table">
+        <thead><tr><th style="width:55%">Compte</th><th class="num">Débit (€)</th><th class="num">Crédit (€)</th></tr></thead>
+        <tbody>
+          {% for f in formset %}
+          <tr>
+            <td data-label="Compte">
+              {{ f.account }}
+              {% if f.account.errors %}<p class="error">{{ f.account.errors.0 }}</p>{% endif %}
+            </td>
+            <td class="num" data-label="Débit (€)">{{ f.debit }}</td>
+            <td class="num" data-label="Crédit (€)">{{ f.credit }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px;flex-wrap:wrap">
+    <div class="entry-form-actions">
       <a class="btn btn-ghost" href="{% url 'ledger' %}?societe={{ company.id }}">Annuler</a>
       <button class="btn btn-primary">Enregistrer l'écriture</button>
     </div>

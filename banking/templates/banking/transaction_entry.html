@@ -1,62 +1,220 @@
 {% extends "base.html" %}
-{% block title %}Créer l'écriture bancaire{% endblock %}
-{% block crumbs %}Banque / Nouvelle écriture{% endblock %}
+{% load static %}
+{% block title %}Rapprocher l'opération bancaire{% endblock %}
+{% block crumbs %}Banque / Rapprochement{% endblock %}
 {% block nav_banking %}active{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Créer l'écriture</h1>
+    <h1>Rapprocher l'opération</h1>
     <p class="sub">
       {{ transaction.label }} · {{ transaction.date|date:"d/m/Y" }} ·
-      {{ transaction.amount|floatformat:2 }} €
+      <strong>{{ transaction.amount|floatformat:2 }} €</strong>
     </p>
   </div>
   <a class="btn btn-ghost page-actions" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Retour</a>
 </div>
 
-<form method="post" class="card form-stack">
+<form method="post" class="card form-stack" data-banking-entry
+      data-amount="{{ transaction.amount }}"
+      data-bank-label="{{ bank_label }}"
+      data-bank-code="{{ bank_code }}">
   {% csrf_token %}
   {% if form.non_field_errors %}
   <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
   {% endif %}
+
+  <div>
+    <label for="{{ form.nature.id_for_label }}">{{ form.nature.label }}</label>
+    {{ form.nature }}
+    <p class="micro">La nature détermine l'écriture comptable. Une entrée n'est pas forcément une vente, une sortie n'est pas forcément une charge.</p>
+    {% if form.nature.errors %}<p class="error">{{ form.nature.errors.0 }}</p>{% endif %}
+  </div>
+
   <div class="form-grid">
     <div>
       <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
       {{ form.date }}
+      {% if form.date.errors %}<p class="error">{{ form.date.errors.0 }}</p>{% endif %}
     </div>
     <div>
       <label for="{{ form.reference.id_for_label }}">{{ form.reference.label }}</label>
       {{ form.reference }}
+      {% if transaction.reference %}
+      <button type="button" class="btn btn-ghost btn-sm" data-use-reference="{{ transaction.reference }}">
+        Utiliser la référence du relevé
+      </button>
+      {% endif %}
+      <p class="micro" data-reference-hint>Référence facultative.</p>
     </div>
   </div>
+
   <div>
     <label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>
     {{ form.label }}
     {% if form.label.errors %}<p class="error">{{ form.label.errors.0 }}</p>{% endif %}
   </div>
-  <div class="form-grid">
-    <div>
-      <label for="{{ form.counterpart_code.id_for_label }}">{{ form.counterpart_code.label }}</label>
-      {{ form.counterpart_code }}
-      <p class="micro">{{ form.counterpart_code.help_text }}</p>
-      {% if form.counterpart_code.errors %}<p class="error">{{ form.counterpart_code.errors.0 }}</p>{% endif %}
+
+  <div data-nature-section="customer_receipt">
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.customer_invoice.id_for_label }}">{{ form.customer_invoice.label }}</label>
+        {{ form.customer_invoice }}
+        <p class="micro">{{ form.customer_invoice.help_text }}</p>
+        {% if form.customer_invoice.errors %}<p class="error">{{ form.customer_invoice.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.gross_amount.id_for_label }}">{{ form.gross_amount.label }}</label>
+        {{ form.gross_amount }}
+        <p class="micro">Montant encaissé pour le client, avant déduction des frais.</p>
+        {% if form.gross_amount.errors %}<p class="error">{{ form.gross_amount.errors.0 }}</p>{% endif %}
+      </div>
     </div>
-    <div>
-      <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
-      {{ form.vat_account_code }}
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.fee_amount.id_for_label }}">{{ form.fee_amount.label }}</label>
+        {{ form.fee_amount }}
+        <p class="micro">Commission bancaire éventuelle : brut − frais = montant reçu sur le compte.</p>
+      </div>
+      <div>
+        <label for="{{ form.fee_account_code.id_for_label }}">{{ form.fee_account_code.label }}</label>
+        {{ form.fee_account_code }}
+      </div>
+    </div>
+  </div>
+
+  <div data-nature-section="supplier_payment">
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.supplier_invoice.id_for_label }}">{{ form.supplier_invoice.label }}</label>
+        {{ form.supplier_invoice }}
+        <p class="micro">{{ form.supplier_invoice.help_text }}</p>
+        {% if form.supplier_invoice.errors %}<p class="error">{{ form.supplier_invoice.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.gross_amount.id_for_label }}">{{ form.gross_amount.label }}</label>
+        {{ form.gross_amount }}
+        <p class="micro">Montant payé au fournisseur, hors frais bancaires.</p>
+        {% if form.gross_amount.errors %}<p class="error">{{ form.gross_amount.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.fee_amount.id_for_label }}">{{ form.fee_amount.label }}</label>
+        {{ form.fee_amount }}
+        <p class="micro">Frais éventuels : montant payé + frais = montant débité du compte.</p>
+      </div>
+      <div>
+        <label for="{{ form.fee_account_code.id_for_label }}">{{ form.fee_account_code.label }}</label>
+        {{ form.fee_account_code }}
+      </div>
+    </div>
+  </div>
+
+  <div data-nature-section="expense">
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.charge_account_code.id_for_label }}">{{ form.charge_account_code.label }}</label>
+        {{ form.charge_account_code }}
+        <p class="micro">Compte de charge : carburant, assurance, fournitures…</p>
+        {% if form.charge_account_code.errors %}<p class="error">{{ form.charge_account_code.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+        {{ form.vat_account_code }}
+        <p class="micro">TVA déductible, si la dépense en comporte.</p>
+      </div>
     </div>
     <div>
       <label for="{{ form.vat_amount.id_for_label }}">{{ form.vat_amount.label }}</label>
       {{ form.vat_amount }}
-      <p class="micro">Laissez 0 pour une opération sans TVA. Le crédit bancaire reste le montant TTC.</p>
+      <p class="micro">Montant de TVA inclus dans la dépense.</p>
       {% if form.vat_amount.errors %}<p class="error">{{ form.vat_amount.errors.0 }}</p>{% endif %}
     </div>
   </div>
-  {% if rule %}
-  <p class="micro">Règle appliquée : {{ rule.name }}{% if rule.counterpart_account %} → {{ rule.counterpart_account.code }} {{ rule.counterpart_account.label }}{% endif %}.</p>
-  {% endif %}
+
+  <div data-nature-section="bank_fee">
+    <div class="card card-tight" style="padding:14px 16px">
+      <p style="margin:0"><strong>Frais bancaires</strong> — le montant sera passé en charge au compte <strong>627000</strong>, sans produit ni TVA.</p>
+    </div>
+  </div>
+
+  <div data-nature-section="loan_payment">
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.loan_principal.id_for_label }}">{{ form.loan_principal.label }}</label>
+        {{ form.loan_principal }}
+        <p class="micro">Part du capital qui rembourse la dette (compte 164).</p>
+        {% if form.loan_principal.errors %}<p class="error">{{ form.loan_principal.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.loan_interest.id_for_label }}">{{ form.loan_interest.label }}</label>
+        {{ form.loan_interest }}
+        <p class="micro">Intérêts, en charge financière (compte 661).</p>
+      </div>
+    </div>
+  </div>
+
+  <div data-nature-section="internal_transfer">
+    <div>
+      <label for="{{ form.transfer_account.id_for_label }}">{{ form.transfer_account.label }}</label>
+      {{ form.transfer_account }}
+      <p class="micro">Virement entre deux comptes de la société : aucun produit, aucune charge.</p>
+      {% if form.transfer_account.errors %}<p class="error">{{ form.transfer_account.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div data-nature-section="vat_payment">
+    <div>
+      <label for="{{ form.vat_payment_account_code.id_for_label }}">{{ form.vat_payment_account_code.label }}</label>
+      {{ form.vat_payment_account_code }}
+      <p class="micro">TVA collectée (44571) ou déductible (44566) : règlement d'une dette fiscale.</p>
+      {% if form.vat_payment_account_code.errors %}<p class="error">{{ form.vat_payment_account_code.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div data-nature-section="other">
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.counterpart_code.id_for_label }}">{{ form.counterpart_code.label }}</label>
+        {{ form.counterpart_code }}
+        <p class="micro" data-counterpart-hint>Choisissez un compte du plan comptable.</p>
+        {% if form.counterpart_code.errors %}<p class="error">{{ form.counterpart_code.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label for="{{ form.vat_account_code.id_for_label }}">{{ form.vat_account_code.label }}</label>
+        {{ form.vat_account_code }}
+      </div>
+    </div>
+    <div>
+      <label for="{{ form.vat_amount.id_for_label }}">{{ form.vat_amount.label }}</label>
+      {{ form.vat_amount }}
+      <p class="micro">Laissez 0 pour une opération sans TVA.</p>
+      {% if form.vat_amount.errors %}<p class="error">{{ form.vat_amount.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <section class="card entry-preview" data-entry-preview>
+    <h3>Aperçu de l'écriture</h3>
+    <div class="entry-preview-lines" data-preview-lines></div>
+    <p class="micro entry-preview-status" data-preview-status>Renseignez la nature et les comptes.</p>
+  </section>
+
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">Créer et rapprocher</button>
   </div>
+
+  <datalist id="counterpart-accounts">
+    {% for account in accounts %}<option value="{{ account.code }}">{{ account.code }} — {{ account.label }}</option>{% endfor %}
+  </datalist>
+  <datalist id="vat-accounts">
+    {% for account in vat_accounts %}<option value="{{ account.code }}">{{ account.code }} — {{ account.label }}</option>{% endfor %}
+  </datalist>
+  <datalist id="reference-suggestions">
+    {% for reference in reference_suggestions %}<option value="{{ reference }}"></option>{% endfor %}
+  </datalist>
 </form>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/banking-entry.js' %}?v=2026.11.15.2" defer></script>
 {% endblock %}

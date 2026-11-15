@@ -8,9 +8,13 @@
     <h1>Factures fournisseurs</h1>
     <p class="sub">{{ company.denomination }} — registre des achats et échéances.</p>
   </div>
-  <a class="btn btn-primary page-actions" href="{% url 'purchases:create' %}?societe={{ company.id }}">
-    {% include "partials/icon.html" with name="plus" %} Nouvelle facture
-  </a>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'purchases:import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+    <a class="btn btn-ghost" href="{% if forfait.locks.history_import %}{% url 'plan_upgrade' %}{% else %}{% url 'history_import:upload' %}?type=purchases&societe={{ company.id }}{% endif %}">Importer des factures fournisseurs</a>
+    <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">
+      {% include "partials/icon.html" with name="plus" %} Nouvelle facture
+    </a>
+  </div>
 </div>
 
 <form method="get" class="card" style="padding:16px 18px;margin-bottom:16px">
@@ -76,8 +80,10 @@
           <td>
             {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
             {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+            {% elif invoice.status == "archived" %}<span class="badge">Archivée</span>
             {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
             {% else %}<span class="badge">Brouillon</span>{% endif %}
+            {% if invoice.source == "historical_import" %}<span class="badge">Historique</span>{% endif %}
           </td>
           <td><a class="btn btn-ghost btn-sm" href="{% url 'purchases:detail' invoice.pk %}?societe={{ company.id }}">Ouvrir</a></td>
         </tr>

@@ -13,7 +13,7 @@
   <details class="page-actions">
     <summary class="btn btn-primary actions-summary">Actions</summary>
     <div class="actions-list">
-      <a class="btn btn-ghost" href="{% url 'invoice_import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+      <a class="btn btn-ghost" href="{% if forfait.locks.history_import %}{% url 'plan_upgrade' %}{% else %}{% url 'history_import:upload' %}?type=sales&societe={{ company.id }}{% endif %}">Importer plusieurs factures</a>
       <a class="btn btn-primary" href="{% url 'invoice_create' %}?societe={{ company.id }}">
         {% include "partials/icon.html" with name="plus" %} Nouvelle facture
       </a>
@@ -43,6 +43,7 @@
           <span class="badge {% if inv.is_late %}badge-red{% elif inv.status == 'paid' %}badge-green{% elif inv.status == 'issued' %}badge-blue{% else %}badge-amber{% endif %}">
             {% if inv.is_late %}Dépassé{% else %}{{ inv.get_status_display }}{% endif %}
           </span>
+          {% if inv.source == "historical_import" %}<span class="badge">Historique</span>{% endif %}
         </td>
         <td>
           <a class="btn btn-ghost btn-sm" href="{% url 'invoice_detail' inv.id %}?societe={{ company.id }}">Voir</a>

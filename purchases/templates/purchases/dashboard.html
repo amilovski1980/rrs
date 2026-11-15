@@ -15,6 +15,8 @@
     <a class="btn btn-ghost" href="{% url 'suppliers:list' %}?societe={{ company.id }}">
       {% include "partials/icon.html" with name="building" %} Fournisseurs
     </a>
+    <a class="btn btn-ghost" href="{% url 'purchases:import_pdf' %}?societe={{ company.id }}">Importer un PDF</a>
+    <a class="btn btn-ghost" href="{% if forfait.locks.history_import %}{% url 'plan_upgrade' %}{% else %}{% url 'history_import:upload' %}?type=purchases&societe={{ company.id }}{% endif %}">Importer des factures fournisseurs</a>
     <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">
       {% include "partials/icon.html" with name="plus" %} Nouvelle facture
     </a>

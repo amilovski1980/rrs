@@ -117,8 +117,9 @@ MAILSYNC_ENCRYPTION_KEY=...
 ## Banque
 
 - `/banque/` : comptes, soldes, relevés importés et opérations à rapprocher.
-- Import **CSV** ou **OFX/QFX** : dates FR, montants `1 234,56 €`, colonnes
-  débit/crédit ou montant signé. Les doublons sont écartés par empreinte
+- Import **CSV**, **OFX/QFX** ou **PDF** : dates FR, montants `1 234,56 €`,
+  colonnes débit/crédit ou montant signé. Un PDF natif est lu par colonnes ;
+  un PDF scanné passe par l'OCR. Les doublons sont écartés par empreinte
   `(compte, date, montant, libellé, référence)`.
 - Rapprochement automatique : même montant sur le compte `512`, date à ±7 jours,
   score libellé/référence ; en dessous du seuil, l'opération reste à rapprocher.
@@ -139,6 +140,23 @@ MAILSYNC_ENCRYPTION_KEY=...
   bancaires non rapprochées.
 - Limite v1 : la TVA à payer n'est pas encore intégrée au prévisionnel (module
   TVA à venir), et les éléments au-delà de 13 semaines sont signalés à part.
+
+## Import intelligent d'historique
+
+Module `/migration/`, réservé au **forfait ultime** :
+
+- import multiple de photos, PDF, XML et archives ZIP ;
+- extraction Factur-X/UBL/PDF et OCR des documents scannés ;
+- classification vente / achat / avoir / ticket / autre ;
+- détection des doublons (empreinte du fichier et facture existante) ;
+- validation collective des documents prêts et correction des exceptions ;
+- factures historiques archivées (`source="historical_import"`), **sans aucune
+  écriture comptable** ;
+- reprise automatique de l'analyse après interruption.
+
+Worker optionnel : `python manage.py process_history_imports` (cron toutes les
+1 à 5 minutes). Voir [`docs/HISTORY_IMPORT.md`](docs/HISTORY_IMPORT.md) pour
+l'architecture, la sécurité et le retour arrière.
 
 ## TVA — à faire
 
@@ -197,6 +215,7 @@ Render : GitHub Pages et Vercel ne servent que la page publique.
 - `suppliers/` : fiches fournisseurs et encours.
 - `banking/` : comptes, import de relevés et rapprochement bancaire.
 - `treasury/` : position de trésorerie et prévisionnel.
+- `history_import/` : import intelligent d'historique (mobile, ZIP, OCR).
 - `billing/` : plans, abonnements, webhooks Stripe.
 - `core/` : isolation multi-tenant.
 - `static/css/app.css` : design system inspiré de Santé publique France, modernisé.

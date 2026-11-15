@@ -77,11 +77,12 @@ class BankAccount(models.Model):
 
 
 class BankStatement(models.Model):
-    """Relevé importé (CSV/OFX), conservé pour l'audit."""
+    """Relevé importé (CSV/OFX/PDF), conservé pour l'audit."""
 
     SOURCE_FORMATS = [
         ("csv", "CSV"),
         ("ofx", "OFX / QFX"),
+        ("pdf", "PDF"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -100,6 +101,15 @@ class BankStatement(models.Model):
         max_digits=12, decimal_places=2, null=True, blank=True
     )
     file = models.FileField(upload_to="banking/releves/", null=True, blank=True)
+    # Repli base de données : Vercel monte le code en lecture seule (/var/task),
+    # donc le stockage fichier local ne peut pas recevoir le relevé.
+    file_data = models.BinaryField(
+        null=True,
+        blank=True,
+        editable=False,
+        verbose_name="Fichier en base",
+    )
+    file_type = models.CharField(max_length=80, blank=True, verbose_name="Type MIME")
     original_filename = models.CharField(max_length=255, blank=True)
     source_format = models.CharField(max_length=8, choices=SOURCE_FORMATS, default="csv")
     row_count = models.PositiveIntegerField(default=0)
@@ -127,6 +137,17 @@ class BankTransaction(models.Model):
         ("auto", "Automatique"),
         ("manual", "Manuel"),
         ("entry", "Écriture créée"),
+    ]
+    NATURES = [
+        ("customer_receipt", "Encaissement client"),
+        ("supplier_payment", "Paiement fournisseur"),
+        ("expense", "Dépense / achat"),
+        ("bank_fee", "Frais bancaires"),
+        ("loan_payment", "Remboursement de prêt"),
+        ("internal_transfer", "Virement interne"),
+        ("vat_payment", "TVA payée à l'État"),
+        ("other", "Autre opération"),
+        ("existing", "Écriture existante"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -164,6 +185,9 @@ class BankTransaction(models.Model):
     )
     match_type = models.CharField(max_length=10, choices=MATCH_TYPES, blank=True)
     match_score = models.PositiveSmallIntegerField(default=0)
+    nature = models.CharField(
+        max_length=24, choices=NATURES, blank=True, default="", verbose_name="Nature"
+    )
     fingerprint = models.CharField(max_length=64)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

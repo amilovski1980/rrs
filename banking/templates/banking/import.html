@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Importer un relevé</h1>
-    <p class="sub">CSV ou OFX/QFX. Les doublons sont écartés par empreinte, et les écritures existantes sont rapprochées automatiquement.</p>
+    <p class="sub">CSV, OFX/QFX ou PDF. Les doublons sont écartés par empreinte, et les écritures existantes sont rapprochées automatiquement.</p>
   </div>
   <a class="btn btn-ghost page-actions" href="{% url 'banking:dashboard' %}?societe={{ company.id }}">Retour</a>
 </div>
@@ -32,6 +32,7 @@
 </form>
 <p class="micro" style="margin-top:12px">
   CSV reconnu : colonnes date, libellé, débit/crédit ou montant, référence. Les formats
-  français (1 234,56 €) et les dates JJ/MM/AAAA sont acceptés.
+  français (1 234,56 €) et les dates JJ/MM/AAAA sont acceptés. Un PDF natif est lu
+  colonne par colonne ; un PDF scanné est passé en OCR.
 </p>
 {% endblock %}

@@ -1,71 +1,80 @@
-from datetime import timedelta
-
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.utils import timezone
 
 from companies.models import Company
-from documents.models import Client as Customer
-from documents.models import Invoice, Product
+from documents.models import Invoice
 
 from .demo import (
+    DEMO_EMAIL,
     DEMO_SANDBOX_DOMAIN,
     DEMO_SANDBOX_PREFIX,
-    _cleanup_sandboxes,
+    DEMO_SIREN,
+    purge_demo_sandboxes,
 )
 
 
-class DemoSandboxTests(TestCase):
-    def test_demo_login_creates_a_real_isolated_workspace(self):
+class DemoReadOnlyTests(TestCase):
+    def test_demo_login_uses_one_shared_workspace(self):
         response = self.client.get(reverse("demo_login"))
         self.assertEqual(response.status_code, 302)
         self.assertIn("/cockpit/", response["Location"])
 
-        user = get_user_model().objects.get(
-            email__istartswith=DEMO_SANDBOX_PREFIX,
-            email__iendswith=DEMO_SANDBOX_DOMAIN,
-        )
-        company = Company.objects.get(owner=user)
-        self.assertTrue(company.denomination)
-        self.assertNotEqual(company.siren, "812345678")
-        self.assertGreaterEqual(company.invoices.count(), 2)
-        self.assertGreaterEqual(Customer.objects.filter(company=company).count(), 2)
-        self.assertGreaterEqual(Product.objects.filter(company=company).count(), 2)
-        self.assertTrue(
-            Invoice.objects.filter(company=company, number="FAC-2026-00043").exists()
-        )
-
-    def test_same_session_reuses_its_sandbox(self):
-        self.client.get(reverse("demo_login"))
-        first = Company.objects.get(owner__email__istartswith=DEMO_SANDBOX_PREFIX)
-        self.client.get(reverse("demo_login"))
-        companies = Company.objects.filter(
-            owner__email__istartswith=DEMO_SANDBOX_PREFIX
-        )
-        self.assertEqual(companies.count(), 1)
-        self.assertEqual(companies.first().pk, first.pk)
-
-    def test_two_visitors_get_two_separate_sandboxes(self):
-        first_client = Client()
-        first_client.get(reverse("demo_login"))
-        second_client = Client()
-        second_client.get(reverse("demo_login"))
-        companies = Company.objects.filter(
-            owner__email__istartswith=DEMO_SANDBOX_PREFIX
-        )
-        self.assertEqual(companies.count(), 2)
-        self.assertEqual(
-            companies.values_list("siren", flat=True).distinct().count(), 2
+        user = get_user_model().objects.get(email=DEMO_EMAIL)
+        company = Company.objects.get(owner=user, siren=DEMO_SIREN)
+        self.assertTrue(company.invoices.exists())
+        self.assertTrue(company.purchase_invoices.exists())
+        self.assertTrue(company.bank_accounts.exists())
+        self.assertFalse(
+            get_user_model()
+            .objects.filter(
+                email__istartswith=DEMO_SANDBOX_PREFIX,
+                email__iendswith=DEMO_SANDBOX_DOMAIN,
+            )
+            .exists()
         )
 
-    def test_stale_sandboxes_are_removed(self):
+    def test_two_visitors_share_the_fixed_demo(self):
+        first = Client()
+        second = Client()
+        first.get(reverse("demo_login"))
+        second.get(reverse("demo_login"))
+
+        self.assertEqual(Company.objects.filter(siren=DEMO_SIREN).count(), 1)
+        self.assertFalse(
+            get_user_model()
+            .objects.filter(email__istartswith=DEMO_SANDBOX_PREFIX)
+            .exists()
+        )
+
+    def test_demo_writes_are_blocked(self):
         self.client.get(reverse("demo_login"))
-        user = get_user_model().objects.get(
-            email__istartswith=DEMO_SANDBOX_PREFIX
+        before = Invoice.objects.count()
+        response = self.client.post(
+            reverse("invoice_create"),
+            {"client_name": "Tentative démo", "lines-TOTAL_FORMS": "0"},
         )
-        get_user_model().objects.filter(pk=user.pk).update(
-            created_at=timezone.now() - timedelta(days=2)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Invoice.objects.count(), before)
+        self.assertFalse(Invoice.objects.filter(client_name="Tentative démo").exists())
+
+    def test_demo_banner_is_visible(self):
+        self.client.get(reverse("demo_login"))
+        response = self.client.get(reverse("cockpit"), follow=True)
+        self.assertContains(response, "Mode démo")
+        self.assertContains(response, "lecture seule")
+
+    def test_purge_removes_legacy_sandboxes(self):
+        sandbox = get_user_model().objects.create_user(
+            email=f"{DEMO_SANDBOX_PREFIX}legacy{DEMO_SANDBOX_DOMAIN}"
         )
-        _cleanup_sandboxes()
-        self.assertFalse(get_user_model().objects.filter(pk=user.pk).exists())
+        company = Company.objects.create(
+            owner=sandbox,
+            siren="999888777",
+            denomination="Ancien bac à sable",
+            regime="reel_simple",
+        )
+        removed = purge_demo_sandboxes()
+        self.assertGreaterEqual(removed, 1)
+        self.assertFalse(get_user_model().objects.filter(pk=sandbox.pk).exists())
+        self.assertFalse(Company.objects.filter(pk=company.pk).exists())

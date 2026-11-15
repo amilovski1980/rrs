@@ -4,18 +4,20 @@
 {% block crumbs %}Facturation / {% if invoice %}Modifier{% else %}Nouvelle facture{% endif %}{% endblock %}
 {% block nav_invoices %}active{% endblock %}
 {% block content %}
-<div class="page-head">
+<div class="page-head invoice-page-head">
   <div>
     <h1>{% if invoice %}Modifier {{ invoice.number }}{% else %}Nouvelle facture{% endif %}</h1>
     <p class="sub">{{ company.denomination }} — {% if invoice %}les montants et écritures liés sont recalculés depuis les lignes.{% else %}le numéro définitif est attribué à l'émission.{% endif %}</p>
   </div>
 </div>
-<div class="card">
-  <form class="form-stack" method="post" data-invoice-form>
+<div class="card invoice-form-card">
+  <form class="form-stack invoice-form" method="post" data-invoice-form data-mobile-wizard>
     {% csrf_token %}
     {% if form.non_field_errors %}
     <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
     {% endif %}
+
+    <div class="wizard-step" data-wizard-step data-step-label="Client">
     <div class="form-grid">
       <div>
         <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
@@ -24,49 +26,59 @@
         {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
       </div>
       <div>
-        <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
-        {{ form.project }}
-        {% if form.project.errors %}<p class="error">{{ form.project.errors.0 }}</p>{% endif %}
-      </div>
-    </div>
-    <div class="form-grid">
-      <div>
         <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
         {{ form.client_name }}
         <p class="micro">{{ form.client_name.help_text }}</p>
         {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
       </div>
-      <div>
-        <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
-        {{ form.client_siren }}
-        <p class="micro">{{ form.client_siren.help_text }}</p>
-        {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
+    </div>
+
+    <details class="invoice-advanced card" data-invoice-advanced open>
+      <summary>
+        <span>Options de facturation</span>
+        <span class="micro">Projet · SIREN · TVA · échéance</span>
+      </summary>
+      <div class="invoice-advanced-body">
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
+            {{ form.project }}
+            {% if form.project.errors %}<p class="error">{{ form.project.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
+            {{ form.client_siren }}
+            <p class="micro">{{ form.client_siren.help_text }}</p>
+            {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.client_tva_intra.id_for_label }}">{{ form.client_tva_intra.label }}</label>
+          {{ form.client_tva_intra }}
+          <p class="micro">{{ form.client_tva_intra.help_text }}</p>
+          {% if form.client_tva_intra.errors %}<p class="error">{{ form.client_tva_intra.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="vat-reverse-card">
+          <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
+          <p class="micro">{{ form.reverse_charge.help_text }}</p>
+          <label for="{{ form.vat_exemption_reason.id_for_label }}">{{ form.vat_exemption_reason.label }}</label>
+          {{ form.vat_exemption_reason }}
+          {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+          {{ form.due_date }}
+          <p class="micro">{{ form.due_date.help_text }}</p>
+          {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
+        </div>
       </div>
-    </div>
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.client_tva_intra.id_for_label }}">{{ form.client_tva_intra.label }}</label>
-        {{ form.client_tva_intra }}
-        <p class="micro">{{ form.client_tva_intra.help_text }}</p>
-        {% if form.client_tva_intra.errors %}<p class="error">{{ form.client_tva_intra.errors.0 }}</p>{% endif %}
-      </div>
+    </details>
     </div>
 
-    <div class="card vat-reverse-card">
-      <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
-      <p class="micro">{{ form.reverse_charge.help_text }}</p>
-      <label for="{{ form.vat_exemption_reason.id_for_label }}">{{ form.vat_exemption_reason.label }}</label>
-      {{ form.vat_exemption_reason }}
-      {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
-    </div>
-
-    <div class="card">
-      <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
-      {{ form.due_date }}
-      <p class="micro">{{ form.due_date.help_text }}</p>
-      {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
-    </div>
-
+    <div class="wizard-step" data-wizard-step data-step-label="Lignes">
     <section class="card invoice-lines-card">
       <div class="invoice-lines-head">
         <div>
@@ -110,14 +122,18 @@
         </div>
       </div>
     </section>
+    </div>
 
-    <div class="form-actions-bar">
-      <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
-      <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+    <div class="wizard-step" data-wizard-step data-step-label="Validation">
+      <div class="wizard-recap" data-wizard-recap></div>
+      <div class="form-actions-bar">
+        <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
+        <a class="btn btn-ghost" href="{% url 'invoices' %}?societe={{ company.id }}">Annuler</a>
+      </div>
     </div>
   </form>
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.14.6" defer></script>
+<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.14.8" defer></script>
 {% endblock %}

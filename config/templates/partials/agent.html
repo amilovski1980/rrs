@@ -1,4 +1,5 @@
-{% load static %}<div class="agent" data-agent data-voice-agent>
+{% load static %}<script src="{% static 'js/voice-shell.js' %}?v=2026.11.16.4" defer></script>
+<div class="agent" data-agent data-voice-agent>
   {% csrf_token %}
   <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir Aminia" aria-expanded="false" aria-haspopup="dialog" aria-controls="agent-chooser">
     <span class="agent-fab-orb" aria-hidden="true">
@@ -17,6 +18,28 @@
     <p class="agent-plan-note"><a href="{% url 'plan_upgrade' %}">Mettre à jour le forfait</a> pour débloquer Aminia.</p>
     {% endif %}
     <button class="agent-chooser-close" type="button" data-agent-chooser-close aria-label="Fermer">×</button>
+  </div>
+
+  <div class="agent-results" id="agent-results" data-agent-results hidden role="region" aria-label="Résultats de recherche d'entreprises">
+    <div class="agent-results-card">
+      <header class="agent-results-head">
+        <div>
+          <h2 data-agent-results-title aria-live="polite">Recherche d'entreprise…</h2>
+          <p class="agent-results-sub" data-agent-results-sub aria-live="polite"></p>
+        </div>
+        <button class="agent-chooser-close" type="button" data-agent-results-close aria-label="Fermer le panneau de résultats">×</button>
+      </header>
+      <div class="agent-results-list" data-agent-results-list></div>
+      <footer class="agent-results-actions" data-agent-results-actions hidden>
+        <p class="agent-results-label" aria-live="polite">Entreprise sélectionnée — utiliser comme :</p>
+        <div class="agent-results-action-links">
+          <a class="btn btn-primary btn-sm" data-dest="client" href="#">Client</a>
+          <a class="btn btn-ghost btn-sm" data-dest="supplier" href="#">Fournisseur</a>
+          <a class="btn btn-ghost btn-sm" data-dest="invoice" href="#">Facture</a>
+          <a class="btn btn-ghost btn-sm" data-dest="quote" href="#">Devis</a>
+        </div>
+      </footer>
+    </div>
   </div>
 
   <div class="live-invoice" data-live-invoice hidden>
@@ -62,15 +85,20 @@
         <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
       </div>
       <div class="agent-copy">
-        <h2 id="agent-title">Aminia</h2>
+        <h2 id="agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
         <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
         <p class="agent-note" data-agent-transcript></p>
       </div>
       <div class="agent-actions">
-        <button class="agent-mic" type="button" data-agent-mic aria-label="Parler à Aminia">
+        <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
+        <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
+        <button class="agent-mic" type="button" data-agent-mic aria-label="Couper le microphone" title="Couper le microphone">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
         </button>
-        <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
+        <button class="btn btn-ghost agent-close" type="button" data-agent-close aria-label="Terminer l'appel">
+          <span class="agent-close-label">Terminer</span>
+          <span class="agent-close-x" aria-hidden="true">×</span>
+        </button>
       </div>
     </div>
   </div>

@@ -41,6 +41,26 @@ INVOICE_THEMES = [
     ("terra", "Terra"),
 ]
 
+INVOICE_LAYOUTS = [
+    ("royal", "Royal Wave"),
+    ("emerald", "Emerald Prestige"),
+    ("imperial", "Noir & Or Impérial"),
+    ("bordeaux", "Bordeaux & Champagne"),
+    ("sapphire", "Saphir & Argent"),
+]
+
+INVOICE_LAYOUT_CODES = tuple(code for code, _label in INVOICE_LAYOUTS)
+
+# Palette signature de chaque modèle : sélectionner un modèle applique sa
+# couleur (l'utilisateur peut ensuite choisir une autre couleur librement).
+INVOICE_LAYOUT_THEMES = {
+    "royal": "azur",
+    "emerald": "sauge",
+    "imperial": "encre",
+    "bordeaux": "carmin",
+    "sapphire": "indigo",
+}
+
 
 class Company(models.Model):
     """Une société geree par un artisan. 1 tenant = 1 clientele = cette table."""
@@ -74,7 +94,20 @@ class Company(models.Model):
         blank=True, verbose_name="Expéditeur des documents"
     )
     code_naf = models.CharField(max_length=10, blank=True)
-    invoice_theme = models.CharField(max_length=12, choices=INVOICE_THEMES, default="azur")
+    invoice_theme = models.CharField(
+        max_length=12,
+        choices=INVOICE_THEMES,
+        default="azur",
+        verbose_name="Couleur de facture",
+    )
+    invoice_layout = models.CharField(
+        max_length=12,
+        choices=INVOICE_LAYOUTS,
+        blank=True,
+        default="",
+        verbose_name="Modèle de facture",
+        help_text="Vide = mise en page automatique selon la couleur choisie.",
+    )
     logo = models.BinaryField(null=True, blank=True)
     logo_type = models.CharField(max_length=40, blank=True)
     slogan = models.CharField(max_length=120, blank=True)

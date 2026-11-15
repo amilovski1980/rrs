@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "purchases",
     "banking",
     "treasury",
+    "history_import",
     "billing",
     "admin_backoffice",
 ]
@@ -69,6 +70,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "admin_backoffice.middleware.DynamicConfigMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "core.middleware.DemoModeMiddleware",
     "billing.middleware.PlanGateMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "admin_backoffice.middleware.SchemaRetryMiddleware",
@@ -181,6 +183,8 @@ CSRF_TRUSTED_ORIGINS = [
     o.strip() for o in env.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()
 ]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# La coque vocale charge l'application dans une iframe de même origine.
+X_FRAME_OPTIONS = "SAMEORIGIN"
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -188,7 +192,6 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    X_FRAME_OPTIONS = "DENY"
     LOGGING = {
         "version": 1,
         "disable_existing_loggers": False,

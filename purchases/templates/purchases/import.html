@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Importer une facture fournisseur{% endblock %}
+{% block crumbs %}Achats / Import PDF{% endblock %}
+{% block nav_purchases %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Importer une facture fournisseur</h1>
+    <p class="sub">{{ company.denomination }} — le PDF est analysé et enregistré en brouillon dans les achats. Vérifiez le fournisseur avant validation.</p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'purchases:list' %}?societe={{ company.id }}">Liste des achats</a>
+    <a class="btn btn-primary" href="{% url 'purchases:create' %}?societe={{ company.id }}">Saisie manuelle</a>
+  </div>
+</div>
+
+<div class="card">
+  <form class="form-stack" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div>
+      <label for="{{ form.pdf_file.id_for_label }}">{{ form.pdf_file.label }}</label>
+      {{ form.pdf_file }}
+      <p class="micro">PDF avec texte sélectionnable, 5 Mo maximum. Le fournisseur et les montants restent modifiables après import.</p>
+      {% if form.pdf_file.errors %}<p class="error">{{ form.pdf_file.errors.0 }}</p>{% endif %}
+    </div>
+    <div class="form-actions-bar">
+      <button class="btn btn-primary" type="submit">Analyser et créer le brouillon d'achat</button>
+      <a class="btn btn-ghost" href="{% url 'purchases:list' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

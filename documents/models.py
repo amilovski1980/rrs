@@ -13,6 +13,12 @@ E_INVOICING_STATUSES = [
     ("received", "Réceptionnée (PA)"),
     ("paid", "Payée"),
     ("late", "Dépassé"),
+    ("archived", "Archivée (import)"),
+]
+
+INVOICE_SOURCES = [
+    ("native", "RRS Sandy"),
+    ("historical_import", "Import d'historique"),
 ]
 
 QUOTE_STATUSES = [
@@ -221,6 +227,12 @@ class Invoice(models.Model):
         max_length=255, blank=True, verbose_name="Mention d'exonération de TVA"
     )
     status = models.CharField(max_length=12, choices=E_INVOICING_STATUSES, default="draft")
+    source = models.CharField(
+        max_length=20,
+        choices=INVOICE_SOURCES,
+        default="native",
+        verbose_name="Provenance",
+    )
     due_date = models.DateField(null=True, blank=True, verbose_name="Date d'échéance")
     file = models.FileField(upload_to="invoices/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

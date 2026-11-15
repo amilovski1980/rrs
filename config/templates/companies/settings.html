@@ -4,6 +4,7 @@
 {% block crumbs %}Société / Configuration{% endblock %}
 {% block nav_settings %}active{% endblock %}
 {% block content %}
+<div class="settings-page">
 <div class="page-head">
   <div>
     <h1>Configuration</h1>
@@ -27,6 +28,9 @@
       {% if form.non_field_errors %}
       <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
+      <details class="form-section" data-mobile-collapse open>
+        <summary class="form-header">Informations de la société <span class="form-header-hint">Identité, adresse, contact</span></summary>
+        <div class="form-section-body">
       <label>{{ form.denomination.label }}</label>
       {{ form.denomination }}
       {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
@@ -59,9 +63,12 @@
       <label>{{ form.slogan.label }}</label>
       {{ form.slogan }}
       {% if form.slogan.errors %}<p class="error">{{ form.slogan.errors.0 }}</p>{% endif %}
+        </div>
+      </details>
 
-      <div class="card card-tight" style="margin-top:16px">
-        <h2 style="margin:0 0 6px;font-size:17px">Coordonnées bancaires</h2>
+      <details class="form-section" data-mobile-collapse open>
+        <summary class="form-header">Coordonnées bancaires <span class="form-header-hint">RIB, IBAN, BIC</span></summary>
+        <div class="form-section-body">
         <p class="micro" style="margin-top:0">Ces informations apparaissent sur les factures et les devis pour le règlement par virement. Importez un RIB ou photographiez-le : l'IBAN et le BIC sont lus automatiquement.</p>
         <div class="form-grid">
           <div>
@@ -85,10 +92,12 @@
         <p class="micro">{{ form.rib_scan.help_text }}</p>
         {% if form.rib_scan.errors %}<p class="error">{{ form.rib_scan.errors.0 }}</p>{% endif %}
         <button class="btn btn-ghost btn-sm" type="submit" name="scan_rib" value="1" formnovalidate>Scanner le RIB</button>
-      </div>
+        </div>
+      </details>
 
-      <div class="card card-tight" style="margin-top:16px">
-        <h2 style="margin:0 0 12px;font-size:17px">Configuration fiscale</h2>
+      <details class="form-section" data-mobile-collapse open>
+        <summary class="form-header">Configuration fiscale <span class="form-header-hint">TVA, exercice</span></summary>
+        <div class="form-section-body">
         <div class="form-grid">
           <div>
             <label>{{ form.regime.label }}</label>
@@ -112,10 +121,12 @@
             {% if form.payment_terms_days.errors %}<p class="error">{{ form.payment_terms_days.errors.0 }}</p>{% endif %}
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="card card-tight" style="margin-top:16px" data-smtp-card>
-        <h2 style="margin:0 0 6px;font-size:17px">Envoi des factures par email</h2>
+      <details class="form-section" data-mobile-collapse open data-smtp-card>
+        <summary class="form-header">Envoi des factures par email <span class="form-header-hint">SMTP, Gmail</span></summary>
+        <div class="form-section-body">
         <p class="micro" style="margin-top:0">Choisissez votre fournisseur : Gmail, Outlook/Hotmail, Yahoo, iCloud ou le SMTP de votre nom de domaine. Les factures partent depuis la boîte de cette société.</p>
 
         <div>
@@ -178,22 +189,70 @@
             {% if form.smtp_use_tls.errors %}<p class="error">{{ form.smtp_use_tls.errors.0 }}</p>{% endif %}
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <label>Logo</label>
-      {% if company.logo %}
-      <p><img src="{% url 'company_logo' %}?societe={{ company.id }}" alt="Logo" style="max-height:64px;max-width:180px"></p>
-      <label class="micro"><input type="checkbox" name="remove_logo" value="1"> Retirer le logo</label>
-      {% endif %}
-      {{ form.logo }}
-      {% if form.logo.errors %}<p class="error">{{ form.logo.errors.0 }}</p>{% endif %}
-      <p class="muted" style="font-size:12px">PNG, JPEG ou WebP, 800 Ko maximum.</p>
+      <details class="form-section" data-mobile-collapse open>
+        <summary class="form-header">Logo <span class="form-header-hint">Image de la facture</span></summary>
+        <div class="form-section-body">
+        {% if company.logo %}
+        <p><img src="{% url 'company_logo' %}?societe={{ company.id }}" alt="Logo" style="max-height:64px;max-width:180px"></p>
+        <label class="micro"><input type="checkbox" name="remove_logo" value="1"> Retirer le logo</label>
+        {% endif %}
+        {{ form.logo }}
+        {% if form.logo.errors %}<p class="error">{{ form.logo.errors.0 }}</p>{% endif %}
+        <p class="muted" style="font-size:12px">PNG, JPEG ou WebP, 800 Ko maximum.</p>
+        </div>
+      </details>
       <button class="btn btn-primary" type="submit" style="margin-top:12px">Enregistrer</button>
     </form>
   </div>
 
   <div>
+    <details class="form-section settings-picker-section" data-mobile-collapse open>
+      <summary class="form-header">Modèle et couleur de facture <span class="form-header-hint">Aperçu et PDF</span></summary>
+      <div class="form-section-body">
     <h2 style="margin:0 0 12px;font-size:18px">Modèle de facture</h2>
+    <div class="model-grid">
+      <form method="post" class="model-pick">
+        {% csrf_token %}
+        <input type="hidden" name="layout" value="">
+        <button class="model-card {% if not company.invoice_layout %}is-on{% endif %}" type="submit" aria-label="Automatique" aria-pressed="{% if not company.invoice_layout %}true{% else %}false{% endif %}">
+          <span class="model-preview model-layout-auto" aria-hidden="true">
+            <span class="mp-top">
+              <span class="mp-logo"></span>
+              <span class="mp-id"><i></i><i></i></span>
+            </span>
+            <span class="mp-who"><i></i><i></i></span>
+            <span class="mp-row"></span>
+            <span class="mp-row short"></span>
+            <span class="mp-due"><i></i><b></b></span>
+          </span>
+          <span class="model-label">Automatique</span>
+        </button>
+      </form>
+      {% for code, label in layouts %}
+      <form method="post" class="model-pick">
+        {% csrf_token %}
+        <input type="hidden" name="layout" value="{{ code }}">
+        <button class="model-card {% if company.invoice_layout == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}" aria-pressed="{% if company.invoice_layout == code %}true{% else %}false{% endif %}">
+          <span class="model-preview model-layout-{{ code }}" aria-hidden="true">
+            <span class="mp-top">
+              <span class="mp-logo"></span>
+              <span class="mp-id"><i></i><i></i></span>
+            </span>
+            <span class="mp-who"><i></i><i></i></span>
+            <span class="mp-row"></span>
+            <span class="mp-row short"></span>
+            <span class="mp-due"><i></i><b></b></span>
+          </span>
+          <span class="model-label">{{ label }}</span>
+        </button>
+      </form>
+      {% endfor %}
+    </div>
+
+    <h2 style="margin:22px 0 12px;font-size:18px">Couleur de facture</h2>
     <div class="model-grid">
       {% for code, label in themes %}
       <form method="post" class="model-pick">
@@ -216,8 +275,21 @@
       </form>
       {% endfor %}
     </div>
+      <p class="micro" data-style-status role="status" aria-live="polite"></p>
+      </div>
+    </details>
   </div>
 </div>
+
+<details class="form-section settings-preview-section" data-mobile-collapse open>
+  <summary class="form-header">Aperçu de la facture <span class="form-header-hint">Modèle et couleur sélectionnés</span></summary>
+  <div class="form-section-body">
+    <p class="sub" style="margin:0">L'aperçu utilise le même modèle et les mêmes couleurs que le PDF exporté.</p>
+    <section class="sheet-stage settings-sheet-preview">
+      {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
+    </section>
+  </div>
+</details>
 
 <section class="card settings-danger">
   <h2>Supprimer la société</h2>
@@ -231,8 +303,18 @@
     </form>
   </details>
 </section>
+</div>
 {{ smtp_presets|json_script:"smtp-presets" }}
 {% endblock %}
 {% block scripts %}
+<script src="{% static 'js/invoice-style-picker.js' %}?v=2026.11.15.1" defer></script>
 <script src="{% static 'js/smtp-settings.js' %}?v=2026.11.14.7" defer></script>
+<script>
+  (function () {
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    document.querySelectorAll("details.form-section[data-mobile-collapse]").forEach(function (section) {
+      section.open = false;
+    });
+  })();
+</script>
 {% endblock %}

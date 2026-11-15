@@ -206,6 +206,7 @@ class Supplier(models.Model):
     ID_SOURCES = [
         ("manual", "Saisie manuelle"),
         ("mailsync", "Connecteur e-mail"),
+        ("historical_import", "Import d'historique"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -239,7 +240,7 @@ class Supplier(models.Model):
     )
     notes = models.TextField(blank=True)
     created_from = models.CharField(
-        max_length=12, choices=ID_SOURCES, default="manual", verbose_name="Origine"
+        max_length=20, choices=ID_SOURCES, default="manual", verbose_name="Origine"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -435,3 +435,137 @@ def lookup_siren(siren: str) -> tuple[dict | None, str | None]:
         return None, "not_found"
     return data, None
 
+
+def _retry_after(response: httpx.Response) -> int:
+    """Secondes de délai conseillées après un 429, 60 par défaut."""
+    try:
+        return min(120, max(5, int(response.headers.get("Retry-After") or 60)))
+    except (TypeError, ValueError):
+        return 60
+
+
+def _siege_fields(hit: dict) -> tuple[str, str]:
+    """(ville, code_postal) lisibles depuis `siege` ou un établissement."""
+    siege = hit.get("siege") or {}
+    addr = " ".join(str(siege.get(key) or "") for key in ("adresse", "geo_adresse"))
+    commune = str(siege.get("commune") or "")
+    postal = str(siege.get("code_postal") or "")
+    if not postal:
+        postal = str((hit.get("matching_etablissements") or [{}])[0].get("code_postal") or "")
+    # `commune` est un code INSEE : la ville lisible se trouve dans l'adresse.
+    city = ""
+    if addr:
+        # « 12 rue X 75008 PARIS » -> dernier mot(s) alphabétiques.
+        tail = " ".join(word for word in addr.split() if not any(ch.isdigit() for ch in word))
+        city = tail[len(postal):].strip() if postal and tail.startswith(postal) else tail
+        city = city.title()[:80]
+    return city, postal
+
+
+def search_french_companies(
+    query: str,
+    *,
+    city: str = "",
+    postal_code: str = "",
+    limit: int = 5,
+) -> tuple[list[dict], str | None, int, bool]:
+    """Recherche orientée agent : nom / SIREN / SIRET + ville / CP facultatifs.
+
+    Retourne ``(fiches_numérotées, erreur, retry_after_s, geo_appliquée)``.
+    La ville et le code postal affinent le classement : quand la contrainte
+    géographique produit au moins un résultat, seuls ceux-ci sont renvoyés
+    (``geo_appliquée=True``) ; sinon le classement naturel de l'annuaire
+    est conservé, comme sur le site officiel. Ne lève jamais.
+    """
+    kind, normalized = parse_company_query(query)
+    if kind == "invalid":
+        return [], "invalid", 0, False
+    city = " ".join(str(city or "").split())[:64]
+    postal = "".join(ch for ch in str(postal_code or "") if ch.isdigit())[:5]
+    if kind == "name" and len(normalized) < 2 and not (city or postal):
+        return [], "invalid", 0, False
+
+    geo_wanted = kind == "name" and bool(city or postal)
+    free_text = " ".join(
+        part for part in (
+            normalized,
+            city.casefold() if geo_wanted and city else "",
+        ) if part
+    )
+
+    digest = hashlib.sha256(
+        ":".join((kind, normalized, city.casefold(), postal, str(limit))).encode()
+    ).hexdigest()
+    cache_key = f"annuaire-agent-{digest}"
+    cached = cache.get(cache_key)
+    if isinstance(cached, tuple):
+        return cached[0], cached[1], cached[2], cached[3]
+
+    try:
+        response = _annuaire_get({
+            "q": free_text,
+            "per_page": max(1, min(25, limit * 4)),
+            "page": 1,
+        })
+    except httpx.HTTPError:
+        logger.warning("Annuaire entreprises injoignable (agent) pour %r", query)
+        return [], "error", 0, False
+    if response.status_code == 429:
+        retry = _retry_after(response)
+        logger.warning("Annuaire entreprises : limite de débit (agent)")
+        return [], "rate_limit", retry, False
+    if response.status_code >= 400:
+        logger.warning("Annuaire entreprises : HTTP %s (agent)", response.status_code)
+        return [], "error", 0, False
+    try:
+        payload = response.json()
+    except ValueError:
+        return [], "error", 0, False
+
+    cards: list[dict] = []
+    seen: set[str] = set()
+    for hit in payload.get("results") or []:
+        if not isinstance(hit, dict):
+            continue
+        siret = str((hit.get("matching_etablissements") or [{}])[0].get("siret") or "")
+        card = slim_annuaire_hit(hit, siret=siret)
+        if not card.get("siren") or not card.get("denomination"):
+            continue
+        if kind == "siren" and card["siren"] != normalized:
+            continue
+        if kind == "siret" and card["siren"] != normalized[:9]:
+            continue
+        if card["siren"] in seen:
+            continue
+        seen.add(card["siren"])
+        ville, code_postal = _siege_fields(hit)
+        card.update(ville=ville, code_postal=code_postal)
+        cards.append(card)
+
+    filtered: list[dict] = []
+    applied = False
+    if geo_wanted and cards:
+        if postal:
+            candidates = [
+                card for card in cards
+                if (card.get("code_postal") or "").startswith(postal)
+            ]
+        else:
+            city_fold = city.casefold()
+            candidates = [
+                card for card in cards
+                if city_fold in " ".join((card.get("adresse") or "", card.get("ville") or "")).casefold()
+            ]
+        if candidates:
+            cards = candidates
+            applied = True
+
+    numbered = []
+    for index, card in enumerate(cards[:max(1, min(limit, 10))], start=1):
+        entry = {"index": index}
+        entry.update(card)
+        numbered.append(entry)
+
+    cache.set(cache_key, (numbered, None, 0, applied), _SEARCH_CACHE_SECONDS)
+    return numbered, None, 0, applied
+

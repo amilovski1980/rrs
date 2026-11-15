@@ -12,13 +12,19 @@
         {{ transaction.get_status_display }}
       </span>
       {% if transaction.match_type %}<span class="badge">{{ transaction.get_match_type_display }}</span>{% endif %}
+      {% if transaction.nature %}<span class="badge">{{ transaction.get_nature_display }}</span>{% endif %}
     </p>
   </div>
   <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn btn-ghost" href="{% url 'banking:transactions' %}?societe={{ company.id }}">Liste</a>
     {% if transaction.status != "matched" %}
-    <a class="btn btn-primary" href="{% url 'banking:transaction_entry' transaction.pk %}?societe={{ company.id }}">Créer l'écriture</a>
+    <a class="btn btn-primary" href="{% url 'banking:transaction_entry' transaction.pk %}?societe={{ company.id }}">Rapprocher / catégoriser</a>
     {% endif %}
+    <form method="post" action="{% url 'banking:transaction_delete' transaction.pk %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer cette opération importée ? L\'écriture comptable liée, si elle existe, sera conservée.');">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'banking:transactions' %}?societe={{ company.id }}">
+      <button class="btn btn-ghost" type="submit">Supprimer</button>
+    </form>
   </div>
 </div>
 
@@ -41,6 +47,7 @@
     {% if transaction.status == "matched" %}
       <p><b>Écriture liée</b> : {{ transaction.matched_entry.journal.code }} du {{ transaction.matched_entry.date|date:"d/m/Y" }}</p>
       <p class="sub">{{ transaction.matched_entry.label }}{% if transaction.matched_entry.reference %} · {{ transaction.matched_entry.reference }}{% endif %}</p>
+      {% if transaction.nature %}<p class="micro">Nature : {{ transaction.get_nature_display }}</p>{% endif %}
       <form method="post" action="{% url 'banking:transaction_unmatch' transaction.pk %}?societe={{ company.id }}">
         {% csrf_token %}
         <button class="btn btn-ghost btn-sm" type="submit">Dé-rapprocher</button>

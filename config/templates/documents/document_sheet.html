@@ -2,7 +2,7 @@
 Attendu : company, kind_label, number, status_label, created_at, client_name, client_siren,
 amount_ht, vat_rate, vat_amount, amount_ttc, lines (iterable optionnel), client_kicker
 {% endcomment %}
-<article class="sheet sheet-{{ company.invoice_theme|default:'azur' }}">
+<article class="sheet sheet-{{ company.invoice_theme|default:'azur' }}{% if company.invoice_layout %} layout-{{ company.invoice_layout }}{% endif %}">
   <header class="sheet-head">
     <div class="sheet-brand">
       {% if company.logo %}

@@ -42,5 +42,6 @@ vine==5.1.0
 wcwidth==0.9.4
 whitenoise==6.12.0
 pypdf==6.21.4
+PyMuPDF==2.1
 Pillow==13.0.0
 pytesseract==0.3.13

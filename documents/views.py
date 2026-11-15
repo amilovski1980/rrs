@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import transaction
@@ -15,7 +16,7 @@ from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
 from billing.access import UPGRADE_MESSAGE, feature_on
-from companies.models import INVOICE_THEMES
+from companies.models import INVOICE_LAYOUTS, INVOICE_THEMES
 from core.context import resolve_company
 
 from .emailing import send_document_email
@@ -52,8 +53,15 @@ from .models import (
     TicketDeCaisse,
     TICKET_CATEGORIES,
 )
-from .pdf import render_credit_note_pdf, render_invoice_pdf, render_quote_pdf
+from .pdf import (
+    first_page_png,
+    render_credit_note_pdf,
+    render_invoice_pdf,
+    render_quote_pdf,
+    render_sample_invoice_png,
+)
 from .pdf_import import PdfImportError, import_invoice_pdf
+from .suggestions import product_suggestions
 from .services import (
     convert_quote_to_invoice,
     delete_payment,
@@ -89,6 +97,25 @@ def _pdf_response(request, number, payload):
     response = HttpResponse(payload, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+def _preview_png_response(payload):
+    response = HttpResponse(payload, content_type="image/png")
+    response["Cache-Control"] = "private, max-age=60"
+    return response
+
+
+def _cached_preview(key, renderer):
+    payload = cache.get(key)
+    if payload:
+        return payload
+    try:
+        payload = renderer()
+    except Exception:
+        logger.exception("Aperçu PDF indisponible (%s)", key)
+        raise Http404("Aperçu indisponible.")
+    cache.set(key, payload, 300)
+    return payload
 
 
 def _qs(company):
@@ -211,6 +238,15 @@ def invoice_create(request):
             return redirect("plan_upgrade")
     invoice = Invoice(company=company)
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia.
+        initial = {
+            key: request.GET.get(key)
+            for key in ("client_name", "client_siren")
+            if request.GET.get(key)
+        }
+        if initial:
+            form = InvoiceForm(initial=initial, instance=invoice, company=company)
     formset = InvoiceLineFormSet(
         request.POST or None,
         instance=invoice,
@@ -281,6 +317,7 @@ def invoice_detail(request, pk):
         "company": company,
         "invoice": invoice,
         "themes": INVOICE_THEMES,
+        "layouts": INVOICE_LAYOUTS,
         "payments": invoice.payments.all(),
         "credit_notes": invoice.credit_notes.all(),
         "lines": invoice.lines.all(),
@@ -295,6 +332,36 @@ def invoice_pdf(request, pk):
     invoice = _scoped(Invoice, company, pk)
     payload = render_invoice_pdf(invoice, company)
     return _pdf_response(request, invoice.number, payload)
+
+
+@login_required
+def invoice_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    invoice = _scoped(Invoice, company, pk)
+    key = (
+        f"invoice-preview:{invoice.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{invoice.status}:{invoice.amount_ht}:"
+        f"{invoice.lines.count()}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_invoice_pdf(invoice, company))
+    )
+    return _preview_png_response(payload)
+
+
+@login_required
+def invoice_sample_preview_png(request):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    key = (
+        f"invoice-sample-preview:{company.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(key, lambda: render_sample_invoice_png(company))
+    return _preview_png_response(payload)
 
 
 @login_required
@@ -403,6 +470,23 @@ def quote_pdf(request, pk):
 
 
 @login_required
+def quote_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    quote = _scoped(Quote, company, pk)
+    key = (
+        f"quote-preview:{quote.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{quote.status}:{quote.amount_ht}:"
+        f"{quote.lines.count()}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_quote_pdf(quote, company))
+    )
+    return _preview_png_response(payload)
+
+
+@login_required
 def credit_note_pdf(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -410,6 +494,22 @@ def credit_note_pdf(request, pk):
     note = _scoped(CreditNote, company, pk)
     payload = render_credit_note_pdf(note, company)
     return _pdf_response(request, note.number, payload)
+
+
+@login_required
+def credit_note_preview_png(request, pk):
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    note = _scoped(CreditNote, company, pk)
+    key = (
+        f"credit-note-preview:{note.pk}:{company.invoice_theme}:"
+        f"{company.invoice_layout}:{note.amount_ht}:{bool(company.logo)}"
+    )
+    payload = _cached_preview(
+        key, lambda: first_page_png(render_credit_note_pdf(note, company))
+    )
+    return _preview_png_response(payload)
 
 
 def _email_document(request, company, document, kind: str, detail_name: str):
@@ -526,6 +626,24 @@ def client_create(request):
     if bounce:
         return bounce
     form = ClientForm(request.POST or None, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia :
+        # nom, SIREN, adresse, email et téléphone passés en query string.
+        try:
+            siren_digits = "".join(
+                ch for ch in str(request.GET.get("siren") or "") if ch.isdigit()
+            )[:9]
+            initial = {
+                key: request.GET.get(key)
+                for key in ("name", "email", "phone", "address")
+                if request.GET.get(key)
+            }
+            if siren_digits and len(siren_digits) == 9:
+                initial["siren"] = siren_digits
+            if initial:
+                form = ClientForm(initial=initial, company=company)
+        except Exception:
+            pass
     if request.method == "POST" and form.is_valid():
         client = form.save(commit=False)
         client.company = company
@@ -606,7 +724,11 @@ def product_create(request):
         product.save()
         messages.success(request, "Produit / service créé.")
         return redirect(reverse("product_detail", args=[product.id]) + _qs(company))
-    return render(request, "documents/product_form.html", {"company": company, "form": form})
+    return render(request, "documents/product_form.html", {
+        "company": company,
+        "form": form,
+        "product_suggestions": product_suggestions(company),
+    })
 
 
 @login_required
@@ -621,7 +743,10 @@ def product_edit(request, pk):
         messages.success(request, "Produit / service mis à jour.")
         return redirect(reverse("product_detail", args=[product.id]) + _qs(company))
     return render(request, "documents/product_form.html", {
-        "company": company, "form": form, "product": product,
+        "company": company,
+        "form": form,
+        "product": product,
+        "product_suggestions": product_suggestions(company),
     })
 
 
@@ -744,6 +869,15 @@ def quote_create(request):
         return bounce
     quote = Quote(company=company)
     form = QuoteForm(request.POST or None, instance=quote, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia.
+        initial = {
+            key: request.GET.get(key)
+            for key in ("client_name", "client_siren")
+            if request.GET.get(key)
+        }
+        if initial:
+            form = QuoteForm(initial=initial, instance=quote, company=company)
     formset = QuoteLineFormSet(
         request.POST or None,
         instance=quote,

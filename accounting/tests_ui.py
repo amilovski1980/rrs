@@ -27,6 +27,10 @@ class EntryUiTests(TestCase):
         self.journal = Journal.objects.get(company=self.company, code="ACH")
         self.client.force_login(user)
 
+    def test_journal_select_label_uses_code_and_name(self):
+        self.assertIn("ACH", str(self.journal))
+        self.assertIn(self.journal.name, str(self.journal))
+
     def test_entry_date_has_native_calendar_and_today_default(self):
         form = EntryForm(company=self.company)
         self.assertEqual(form.fields["date"].widget.input_type, "date")

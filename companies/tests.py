@@ -9,6 +9,7 @@ from .models import Company
 class CompanySettingsTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user("atelier@exemple.fr")
+        self.user = user
         self.company = Company.objects.create(
             owner=user,
             siren="812345679",
@@ -77,6 +78,46 @@ class CompanySettingsTests(TestCase):
         self.assertEqual(page.status_code, 200)
         for label in ("Graphite", "Indigo", "Terra"):
             self.assertContains(page, label)
+
+    def test_invoice_layout_ajax_switch_returns_json(self):
+        response = self.client.post(
+            "/societe/",
+            {"layout": "sapphire"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(response.json()["layout"], "sapphire")
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_layout, "sapphire")
+
+    def test_invoice_layout_switch(self):
+        response = self.client.post("/societe/", {
+            "layout": "emerald",
+            "next": "/cockpit/",
+        })
+        self.assertRedirects(response, "/cockpit/", fetch_redirect_response=False)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_layout, "emerald")
+        # Le modèle applique sa palette signature : la facture téléchargée
+        # doit ressembler à la vignette choisie.
+        self.assertEqual(self.company.invoice_theme, "sauge")
+
+    def test_mobile_header_lists_companies(self):
+        Company.objects.create(
+            owner=self.user,
+            siren="812345680",
+            denomination="Atelier Secondaire",
+            forme="EURL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        page = self.client.get("/cockpit/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "m-company-menu")
+        self.assertContains(page, 'role="menuitem"', count=2)
+        self.assertContains(page, "Atelier Secondaire")
 
     def test_accepts_graphite_theme(self):
         response = self.client.post("/societe/", {
@@ -267,6 +308,14 @@ class MobileNavChromeTests(TestCase):
         )
         self.client.force_login(user)
 
+    def test_voice_shell_assets_and_sameorigin_frame_policy(self):
+        page = self.client.get(f"/cockpit/?societe={self.company.id}")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "voice-shell.js")
+        self.assertContains(page, "data-agent-duration")
+        self.assertContains(page, "data-agent-wakelock")
+        self.assertEqual(page["X-Frame-Options"], "SAMEORIGIN")
+
     def test_cockpit_has_mobile_header_drawer_footer(self):
         page = self.client.get(f"/cockpit/?societe={self.company.id}")
         self.assertEqual(page.status_code, 200)
@@ -296,9 +345,9 @@ class MobileNavChromeTests(TestCase):
         ):
             self.assertIn(label, body)
         # Footer mobile : raccourcis internes vers les modules
-        for label in ("Cockpit", "Achats", "Banque", "Trésorerie"):
+        for label in ("Cockpit", "Achats", "Facturer", "Trésorerie"):
             self.assertIn(label, body)
-        for href in ("/cockpit/", "/achats/", "/banque/", "/tresorerie/"):
+        for href in ("/cockpit/", "/achats/", "/factures/nouvelle/", "/tresorerie/"):
             self.assertIn(href, body)
         # Compte, paramètres, aide et mentions restent accessibles dans le drawer
         self.assertIn("Mon profil", body)
@@ -309,6 +358,15 @@ class MobileNavChromeTests(TestCase):
         self.assertIn("/societe/", body)
         self.assertIn("/aide/", body)
         self.assertIn("/mentions-legales/", body)
+        self.assertIn("mobile-tables.js", body)
+
+        from pathlib import Path
+
+        css = (
+            Path(__file__).resolve().parents[1] / "static" / "css" / "app.css"
+        ).read_text(encoding="utf-8")
+        self.assertIn(".card-tight.mobile-cards", css)
+        self.assertIn(".page-head div.page-actions", css)
         # Page courante mise en avant
         self.assertIn('side-link active', body)
 

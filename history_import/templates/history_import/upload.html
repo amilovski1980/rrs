@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Importer mon historique{% endblock %}
+{% block crumbs %}Pilotage / Import d'historique{% endblock %}
+{% block nav_history_import %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Importer mon historique</h1>
+    <p class="sub">
+      {% if batch %}
+        Ajoutez d'autres documents au lot « {{ batch.label|default:"en cours" }} ».
+      {% else %}
+        Importez vos anciennes factures depuis votre téléphone : photos, PDF ou archive ZIP.
+      {% endif %}
+      {% if company %} Société : <strong>{{ company.denomination }}</strong>.{% endif %}
+    </p>
+  </div>
+  {% if batch %}
+  <a class="btn btn-ghost page-actions" href="{% url 'history_import:batch' batch.pk %}?societe={{ company.id }}">Voir le lot</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <form method="post" enctype="multipart/form-data" class="form-stack" data-import-upload>
+    {% csrf_token %}
+    {% if batch %}<input type="hidden" name="batch" value="{{ batch.pk }}">{% endif %}
+    {% if form.non_field_errors %}
+    <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <div class="import-source-grid">
+      <label class="import-source">
+        <input type="file" name="files" accept="image/*" multiple data-import-input>
+        <span class="import-source-icon">{% include "partials/icon.html" with name="file" %}</span>
+        <strong>Galerie photos</strong>
+        <small>Sélectionnez plusieurs photos de factures.</small>
+      </label>
+      <label class="import-source">
+        <input type="file" name="files" accept="image/*" capture="environment" data-import-input>
+        <span class="import-source-icon">{% include "partials/icon.html" with name="plus" %}</span>
+        <strong>Prendre une photo</strong>
+        <small>Photographiez une facture, puis ajoutez-en d'autres.</small>
+      </label>
+      <label class="import-source">
+        <input type="file" name="files" accept=".pdf,.xml,.zip,image/*" multiple data-import-input>
+        <span class="import-source-icon">{% include "partials/icon.html" with name="inbox" %}</span>
+        <strong>Fichiers / ZIP</strong>
+        <small>PDF, XML, photos ou archive de plusieurs factures.</small>
+      </label>
+    </div>
+    <p class="micro import-file-summary" data-import-summary>Aucun fichier sélectionné.</p>
+
+    <div class="form-grid">
+      <div>
+        <label for="{{ form.kind_hint.id_for_label }}">{{ form.kind_hint.label }}</label>
+        {{ form.kind_hint }}
+        <p class="micro">Laissez la détection automatique si vous n'êtes pas sûr.</p>
+      </div>
+      <div>
+        <label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>
+        {{ form.label }}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary btn-lg" type="submit">Analyser mes documents</button>
+    </div>
+    <p class="micro" style="margin:0">
+      Formats acceptés : PDF, XML, JPG, PNG, WEBP, HEIC et ZIP. Maximum
+      15 Mo par fichier et 200 documents par lot. L'analyse peut être reprise
+      si vous quittez la page.
+    </p>
+  </form>
+</div>
+
+{% if recent %}
+<section class="card" style="margin-top:18px">
+  <h2 style="margin:0 0 12px;font-size:17px">Lots récents</h2>
+  <div class="import-batch-list">
+    {% for item in recent %}
+    <a class="import-batch-row" href="{% url 'history_import:batch' item.pk %}?societe={{ company.id }}">
+      <span>
+        <strong>{{ item.label|default:"Import sans nom" }}</strong>
+        <small>{{ item.created_at|date:"d/m/Y H:i" }} · {{ item.total }} document{{ item.total|pluralize }}</small>
+      </span>
+      <span class="badge">{{ item.get_status_display }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/history-import.js' %}?v=2026.11.15.1" defer></script>
+{% endblock %}

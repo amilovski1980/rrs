@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Document · {{ document.original_name|truncatechars:40 }}{% endblock %}
+{% block crumbs %}Import d'historique / Document{% endblock %}
+{% block nav_history_import %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ document.original_name|truncatechars:70 }}</h1>
+    <p class="sub">
+      {{ document.get_kind_display }} ·
+      <span class="badge">{{ document.get_status_display }}</span>
+      {% if document.invoice_number %} · N° {{ document.invoice_number }}{% endif %}
+    </p>
+  </div>
+  <a class="btn btn-ghost page-actions" href="{% url 'history_import:batch' document.batch_id %}?societe={{ company.id }}">Retour au lot</a>
+</div>
+
+{% if document.warnings %}
+<ul class="form-errors">
+  {% for warning in document.warnings %}<li>{{ warning }}</li>{% endfor %}
+</ul>
+{% endif %}
+{% if document.error_message %}
+<ul class="form-errors"><li>{{ document.error_message }}</li></ul>
+{% endif %}
+
+<div class="import-review">
+  <section class="card import-preview-card">
+    <div class="review-head">
+      <h2>Document original</h2>
+      <a class="btn btn-ghost btn-sm" href="{% url 'history_import:document_file' document.pk %}?societe={{ company.id }}" target="_blank" rel="noopener">Ouvrir</a>
+    </div>
+    {% if is_pdf %}
+      <iframe class="import-pdf-frame" src="{% url 'history_import:document_file' document.pk %}?societe={{ company.id }}" title="Aperçu du document"></iframe>
+    {% elif is_image %}
+      <img class="import-image-preview" src="{% url 'history_import:document_file' document.pk %}?societe={{ company.id }}" alt="Aperçu du document">
+    {% elif document.raw_text %}
+      <pre class="import-raw-text">{{ document.raw_text|truncatechars:6000 }}</pre>
+    {% else %}
+      <p class="empty" style="padding:20px">Aucun aperçu disponible. Ouvrez le fichier original.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    {% if document.status == "imported" %}
+      <h2 style="margin-top:0">Document importé</h2>
+      <p class="micro">Ce document a été archivé. Aucune écriture comptable n'a été créée.</p>
+      {% if document.imported_invoice %}
+      <p><a class="btn btn-primary" href="{% url 'invoice_detail' document.imported_invoice.pk %}?societe={{ company.id }}">Voir la facture de vente</a></p>
+      {% elif document.imported_purchase %}
+      <p><a class="btn btn-primary" href="{% url 'purchases:detail' document.imported_purchase.pk %}?societe={{ company.id }}">Voir la facture fournisseur</a></p>
+      {% else %}
+      <p class="badge badge-green">Archivé sans intégration métier</p>
+      {% endif %}
+      <p class="micro">Importé le {{ document.imported_at|date:"d/m/Y à H:i" }}.</p>
+    {% elif document.status == "rejected" %}
+      <h2 style="margin-top:0">Document exclu</h2>
+      <p class="micro">Ce document ne sera pas importé.</p>
+    {% else %}
+      <h2 style="margin-top:0">Vérifier les informations</h2>
+      <form method="post" class="form-stack">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        {% endif %}
+        <div>
+          <label for="{{ form.kind.id_for_label }}">{{ form.kind.label }}</label>
+          {{ form.kind }}
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.invoice_number.id_for_label }}">{{ form.invoice_number.label }}</label>
+            {{ form.invoice_number }}
+            {% if form.invoice_number.errors %}<p class="error">{{ form.invoice_number.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label for="{{ form.invoice_date.id_for_label }}">{{ form.invoice_date.label }}</label>
+            {{ form.invoice_date }}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+            {{ form.due_date }}
+          </div>
+          <div>
+            <label for="{{ form.currency.id_for_label }}">{{ form.currency.label }}</label>
+            {{ form.currency }}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.seller_name.id_for_label }}">{{ form.seller_name.label }}</label>
+            {{ form.seller_name }}
+          </div>
+          <div>
+            <label for="{{ form.customer_name.id_for_label }}">{{ form.customer_name.label }}</label>
+            {{ form.customer_name }}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.seller_siret.id_for_label }}">{{ form.seller_siret.label }}</label>
+            {{ form.seller_siret }}
+          </div>
+          <div>
+            <label for="{{ form.customer_siret.id_for_label }}">{{ form.customer_siret.label }}</label>
+            {{ form.customer_siret }}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.seller_vat.id_for_label }}">{{ form.seller_vat.label }}</label>
+            {{ form.seller_vat }}
+          </div>
+          <div>
+            <label for="{{ form.customer_vat.id_for_label }}">{{ form.customer_vat.label }}</label>
+            {{ form.customer_vat }}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.amount_ht.id_for_label }}">{{ form.amount_ht.label }}</label>
+            {{ form.amount_ht }}
+          </div>
+          <div>
+            <label for="{{ form.amount_vat.id_for_label }}">{{ form.amount_vat.label }}</label>
+            {{ form.amount_vat }}
+          </div>
+          <div>
+            <label for="{{ form.amount_ttc.id_for_label }}">{{ form.amount_ttc.label }}</label>
+            {{ form.amount_ttc }}
+          </div>
+          <div>
+            <label for="{{ form.vat_rate.id_for_label }}">{{ form.vat_rate.label }}</label>
+            {{ form.vat_rate }}
+          </div>
+        </div>
+        <div>
+          <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Enregistrer les corrections</button>
+        </div>
+      </form>
+
+      <div class="import-doc-actions">
+        <form method="post" action="{% url 'history_import:document_reanalyze' document.pk %}?societe={{ company.id }}">
+          {% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Réanalyser</button>
+        </form>
+        {% if document.status == "ready" %}
+        <form method="post" action="{% url 'history_import:document_import' document.pk %}?societe={{ company.id }}">
+          {% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Importer ce document</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'history_import:document_reject' document.pk %}?societe={{ company.id }}" onsubmit="return confirm('Exclure ce document du lot ?');">
+          {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
+        </form>
+      </div>
+    {% endif %}
+
+    {% if document.raw_text %}
+    <details style="margin-top:16px">
+      <summary class="micro">Texte extrait</summary>
+      <pre class="import-raw-text">{{ document.raw_text|truncatechars:6000 }}</pre>
+    </details>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

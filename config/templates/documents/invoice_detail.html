@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ invoice.number }}{% endblock %}
 {% block crumbs %}Facturation / {{ invoice.number }}{% endblock %}
 {% block nav_invoices %}active{% endblock %}
@@ -6,7 +7,7 @@
 <div class="page-head">
   <div>
     <h1>{{ invoice.number }}</h1>
-    <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
+    <p class="sub">{{ invoice.get_status_display }} · {{ invoice.created_at|date:"d/m/Y" }}{% if invoice.source == "historical_import" %} · <span class="badge">Import d'historique</span>{% endif %}</p>
   </div>
   <details class="page-actions">
     <summary class="btn btn-primary actions-summary">Actions</summary>
@@ -25,9 +26,52 @@
   </details>
 </div>
 
+<p class="model-picker-label">Modèle de facture</p>
+<div class="model-grid model-grid-inline">
+  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <input type="hidden" name="layout" value="">
+    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
+    <button class="model-card {% if not company.invoice_layout %}is-on{% endif %}" type="submit" aria-label="Automatique">
+      <span class="model-preview model-layout-auto" aria-hidden="true">
+        <span class="mp-top">
+          <span class="mp-logo"></span>
+          <span class="mp-id"><i></i><i></i></span>
+        </span>
+        <span class="mp-who"><i></i><i></i></span>
+        <span class="mp-row"></span>
+        <span class="mp-row short"></span>
+        <span class="mp-due"><i></i><b></b></span>
+      </span>
+      <span class="model-label">Automatique</span>
+    </button>
+  </form>
+  {% for code, label in layouts %}
+  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <input type="hidden" name="layout" value="{{ code }}">
+    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
+    <button class="model-card {% if company.invoice_layout == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}">
+      <span class="model-preview model-layout-{{ code }}" aria-hidden="true">
+        <span class="mp-top">
+          <span class="mp-logo"></span>
+          <span class="mp-id"><i></i><i></i></span>
+        </span>
+        <span class="mp-who"><i></i><i></i></span>
+        <span class="mp-row"></span>
+        <span class="mp-row short"></span>
+        <span class="mp-due"><i></i><b></b></span>
+      </span>
+      <span class="model-label">{{ label }}</span>
+    </button>
+  </form>
+  {% endfor %}
+</div>
+
+<p class="model-picker-label">Couleur de facture</p>
 <div class="model-grid model-grid-inline">
   {% for code, label in themes %}
-  <form method="post" action="{% url 'company_settings' %}?societe={{ company.id }}">
+  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
     {% csrf_token %}
     <input type="hidden" name="theme" value="{{ code }}">
     <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
@@ -48,6 +92,7 @@
   </form>
   {% endfor %}
 </div>
+<p class="micro" data-style-status role="status" aria-live="polite"></p>
 
 <section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
@@ -153,4 +198,7 @@
   <p class="empty">Aucune ligne détaillée sur cette facture. Ajoutez un produit catalogue ou une ligne libre pour que le PDF affiche le détail des prestations.</p>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/invoice-style-picker.js' %}?v=2026.11.15.1" defer></script>
 {% endblock %}

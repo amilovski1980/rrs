@@ -3,13 +3,17 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.text import get_valid_filename
 from django.views.decorators.http import require_POST
 
+from banking.utils import parse_date as parse_bank_date
 from core.context import resolve_company
+from documents.forms import PdfImportForm
 from documents.models import TicketDeCaisse
+from documents.pdf_import import PdfImportError, extract_pdf_text, parse_invoice_text
 from mailsync.models import Supplier, SupplierInvoiceDraft
 
 from .forms import PurchaseInvoiceForm, SupplierPaymentForm
@@ -146,6 +150,59 @@ def invoice_create(request):
 
 
 @login_required
+def invoice_import_pdf(request):
+    """Importe une facture fournisseur PDF dans le registre des achats."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    form = PdfImportForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data["pdf_file"]
+        data = upload.read()
+        try:
+            text = extract_pdf_text(data)
+            parsed = parse_invoice_text(text)
+        except PdfImportError as exc:
+            messages.error(request, str(exc))
+            return render(
+                request,
+                "purchases/import.html",
+                {"company": company, "form": form},
+            )
+        amount_ht = parsed.get("amount_ht") or Decimal("0.00")
+        amount_ttc = parsed.get("amount_ttc") or amount_ht
+        amount_vat = max(amount_ttc - amount_ht, Decimal("0.00"))
+        vat_rate = parsed.get("vat_rate") or Decimal("20.00")
+        invoice = PurchaseInvoice.objects.create(
+            company=company,
+            supplier_name=(parsed.get("client_name") or "Fournisseur à préciser")[:200],
+            number=(parsed.get("invoice_number") or "")[:50],
+            invoice_date=parse_bank_date(parsed.get("invoice_date") or ""),
+            amount_ht=amount_ht,
+            amount_vat=amount_vat,
+            amount_ttc=amount_ttc,
+            vat_rate=vat_rate,
+            description="Facture fournisseur importée",
+            status="draft",
+            source="manual",
+            attachment_data=data,
+            attachment_type="application/pdf",
+            attachment_name=(upload.name or "")[:255],
+        )
+        messages.success(
+            request,
+            "Facture fournisseur importée en brouillon. Vérifiez le fournisseur "
+            "et les montants avant de la valider.",
+        )
+        return redirect("purchases:detail", pk=invoice.pk)
+    return render(
+        request,
+        "purchases/import.html",
+        {"company": company, "form": form},
+    )
+
+
+@login_required
 def invoice_detail(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -240,13 +297,21 @@ def invoice_attachment(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(company, pk)
+    filename = get_valid_filename(invoice.attachment_name or "facture") or "facture"
+    if invoice.attachment_data:
+        response = HttpResponse(
+            bytes(invoice.attachment_data),
+            content_type=invoice.attachment_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
     if not invoice.attachment:
         raise Http404("Aucun justificatif.")
     try:
         handle = invoice.attachment.open("rb")
     except FileNotFoundError as exc:
         raise Http404("Justificatif introuvable sur le stockage.") from exc
-    return FileResponse(handle, as_attachment=True, filename=invoice.attachment_name or "facture")
+    return FileResponse(handle, as_attachment=True, filename=filename)
 
 
 @login_required

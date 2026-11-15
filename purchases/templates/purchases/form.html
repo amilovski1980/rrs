@@ -11,12 +11,13 @@
   <a class="btn btn-ghost page-actions" href="{% url 'purchases:list' %}?societe={{ company.id }}">Retour</a>
 </div>
 
-<form method="post" enctype="multipart/form-data" class="card form-stack">
+<form method="post" enctype="multipart/form-data" class="card form-stack" data-mobile-wizard>
   {% csrf_token %}
   {% if form.non_field_errors %}
   <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
   {% endif %}
 
+  <div class="wizard-step" data-wizard-step data-step-label="Fournisseur">
   <div class="form-grid">
     <div>
       <label for="{{ form.supplier.id_for_label }}">{{ form.supplier.label }}</label>
@@ -30,7 +31,9 @@
       {% if form.supplier_name.errors %}<p class="error">{{ form.supplier_name.errors.0 }}</p>{% endif %}
     </div>
   </div>
+  </div>
 
+  <div class="wizard-step" data-wizard-step data-step-label="Facture">
   <div class="form-grid">
     <div>
       <label for="{{ form.number.id_for_label }}">{{ form.number.label }}</label>
@@ -53,7 +56,9 @@
       <p class="micro">{{ form.due_date.help_text }}</p>
     </div>
   </div>
+  </div>
 
+  <div class="wizard-step" data-wizard-step data-step-label="Montants">
   <div class="form-grid">
     <div>
       <label for="{{ form.amount_ht.id_for_label }}">{{ form.amount_ht.label }}</label>
@@ -88,6 +93,10 @@
     <label for="{{ form.supplier_account_root.id_for_label }}">{{ form.supplier_account_root.label }}</label>
     {{ form.supplier_account_root }}
   </div>
+  </div>
+
+  <div class="wizard-step" data-wizard-step data-step-label="Justificatif">
+  <div class="wizard-recap" data-wizard-recap></div>
 
   <div>
     <label for="{{ form.attachment.id_for_label }}">{{ form.attachment.label }}</label>
@@ -101,6 +110,7 @@
 
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">Enregistrer le brouillon</button>
+  </div>
   </div>
 </form>
 {% endblock %}

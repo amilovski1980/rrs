@@ -18,8 +18,8 @@ class BankStatementAdmin(admin.ModelAdmin):
 
 @admin.register(BankTransaction)
 class BankTransactionAdmin(admin.ModelAdmin):
-    list_display = ("date", "label", "amount", "status", "match_type", "account")
-    list_filter = ("status", "match_type", "account")
+    list_display = ("date", "label", "amount", "status", "nature", "match_type", "account")
+    list_filter = ("status", "nature", "match_type", "account")
     search_fields = ("label", "counterparty", "reference")
     readonly_fields = ("fingerprint", "created_at")
 

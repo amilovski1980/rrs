@@ -179,16 +179,19 @@ class DashboardView(AdminStaffMixin, TemplateView):
         })
 
         try:
-            nouveaux_30j = User.objects.filter(created_at__gte=limite_30j).count()
-            nouveaux_precedents = User.objects.filter(
+            from core.demo import exclude_demo_users
+
+            user_qs = exclude_demo_users(User.objects.all())
+            nouveaux_30j = user_qs.filter(created_at__gte=limite_30j).count()
+            nouveaux_precedents = user_qs.filter(
                 created_at__gte=limite_60j, created_at__lt=limite_30j
             ).count()
             context.update({
-                "total_users": User.objects.count(),
+                "total_users": user_qs.count(),
                 "users_nouveaux_30j": nouveaux_30j,
                 "users_variation": _variation_pourcent(nouveaux_30j, nouveaux_precedents),
-                "users_series": _serie_quotidienne(User.objects, "created_at", 14, maintenant),
-                "recent_users": User.objects.order_by("-created_at")[:6],
+                "users_series": _serie_quotidienne(user_qs, "created_at", 14, maintenant),
+                "recent_users": user_qs.order_by("-created_at")[:6],
             })
         except Exception as exc:
             logger.error("Dashboard : indicateurs utilisateurs indisponibles : %s", exc)
@@ -561,7 +564,13 @@ class UserListView(AdminStaffMixin, ListView):
     crumbs_label = "Utilisateurs"
 
     def get_queryset(self):
-        qs = User.objects.all().prefetch_related("companies").order_by("-created_at")
+        from core.demo import exclude_demo_users
+
+        qs = (
+            exclude_demo_users(User.objects.all())
+            .prefetch_related("companies")
+            .order_by("-created_at")
+        )
         self.q = (self.request.GET.get("q") or "").strip()
         self.role = (self.request.GET.get("role") or "").strip()
         self.active = (self.request.GET.get("active") or "").strip()
