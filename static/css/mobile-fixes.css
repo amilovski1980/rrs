@@ -1,6 +1,11 @@
 /* Correctifs mobile — barre Aminia compacte, actions visibles, formulaires
    utilisables au pouce. Chargé après app.css et mobile-wizard.css. */
 
+/* Desktop : le libellé « Terminer » suffit ; la croix est réservée au mobile. */
+.agent-close-x {
+  display: none;
+}
+
 @media (max-width: 768px) {
   /* ---------- Footer : Aminia devient un onglet, plus une pastille flottante ---------- */
   .m-footer {
@@ -550,7 +555,3 @@
   }
 }
 
-/* Sur desktop, le bouton « × » reste une croix discrète à côté du libellé. */
-.agent-close-x {
-  display: none;
-}
