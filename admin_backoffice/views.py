@@ -21,6 +21,7 @@ from ai.providers import (
     XAI_CHAT_BASE,
     list_ai_models,
     probe_models_tools,
+    probe_models_vision,
     text_provider,
     test_ai_connection,
     voice_agent_config,
@@ -402,6 +403,11 @@ def settings_ai_models(request):
             payload["chat_base"], key, payload["models"]
         )
         payload["tools_tested"] = len(payload["tools"])
+    if request.POST.get("probe_vision") in ("1", "true"):
+        payload["vision"] = probe_models_vision(
+            payload["chat_base"], key, payload["models"]
+        )
+        payload["vision_tested"] = len(payload["vision"])
     return JsonResponse(payload)
 
 
