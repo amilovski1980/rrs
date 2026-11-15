@@ -58,12 +58,29 @@ class SiteConfiguration(models.Model):
             ("elevenlabs", "ElevenLabs (synthèse texte → voix)"),
         ],
         default="elevenlabs",
+        blank=True,
         verbose_name="Fournisseur de la voix",
+    )
+    voice_call_provider = models.CharField(
+        max_length=14,
+        choices=[
+            ("xai", "xAI / Grok (temps réel)"),
+            ("elevenlabs", "ElevenLabs (agent temps réel)"),
+        ],
+        default="xai",
+        blank=True,
+        verbose_name="Session vocale en direct",
+        help_text="Le fournisseur qui porte l'appel Aminia (micro, tour de parole, outils).",
+    )
+    elevenlabs_agent_id = models.CharField(
+        max_length=80, blank=True, default="", verbose_name="Agent ElevenLabs (ID)",
+        help_text="Créé via « Créer / mettre à jour l'agent ElevenLabs ».",
     )
     voice_gender = models.CharField(
         max_length=8,
         choices=[("femme", "Voix de femme"), ("homme", "Voix d'homme")],
         default="femme",
+        blank=True,
         verbose_name="Genre de la voix",
     )
     elevenlabs_api_key = models.CharField(
@@ -106,6 +123,7 @@ class SiteConfiguration(models.Model):
             ("manual", "Dépôt manuel (XML/PDF)"),
         ],
         default="generic",
+        blank=True,
         verbose_name="Plateforme de dépôt",
     )
     einvoicing_api_url = models.URLField(

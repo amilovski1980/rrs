@@ -11,6 +11,7 @@ urlpatterns = [
     path("settings/", views.SiteSettingsView.as_view(), name="settings"),
     path("settings/ai/modeles/", views.settings_ai_models, name="settings_ai_models"),
     path("settings/ai/connexion/", views.settings_ai_connection, name="settings_ai_connection"),
+    path("settings/ai/elevenagent/", views.settings_ai_voice_sync, name="settings_ai_voice_sync"),
     path("settings/tester/", views.settings_test, name="settings_test"),
     path("logs/", views.SystemLogsView.as_view(), name="logs"),
 

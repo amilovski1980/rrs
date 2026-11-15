@@ -407,6 +407,50 @@ def settings_ai_models(request):
 
 @staff_required
 @require_POST
+def settings_ai_voice_sync(request):
+    """Crée / met à jour l'agent ElevenLabs avec les outils RRS (client tools)."""
+    config, _ = SiteConfiguration.objects.get_or_create(id=1)
+    key = (config.elevenlabs_api_key or "").strip() or getattr(
+        settings, "ELEVENLABS_API_KEY", ""
+    )
+    if not key:
+        return JsonResponse({
+            "ok": False,
+            "message": "Enregistrez d'abord la clé API ElevenLabs, puis relancez.",
+        })
+    from ai.providers import elevenlabs_sync_tools
+    from admin_backoffice.agent_prompts import global_prompt_text
+
+    prompt = (
+        global_prompt_text()
+        + "\n\nCadre d'exécution des outils : les outils RRS sont exécutés par le client "
+        "(pilotes de Road Runner Solutions) ; un appel d'outil renvoie un résultat JSON "
+        "que tu annonces à voix haute avant d'attendre un oui pour valider quoi que ce soit."
+    )
+    try:
+        result = elevenlabs_sync_tools(
+            key, (config.elevenlabs_agent_id or "").strip(), "Aminia — Road Runner Solutions", prompt
+        )
+    except RuntimeError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)})
+    except Exception as exc:
+        return JsonResponse({"ok": False, "message": f"Erreur : {exc}"})
+    created = bool(result.get("created"))
+    config.elevenlabs_agent_id = result.get("agent_id") or config.elevenlabs_agent_id
+    config.save(update_fields=["elevenlabs_agent_id"])
+    return JsonResponse({
+        "ok": True,
+        "agent_id": config.elevenlabs_agent_id,
+        "tools_created": len(result.get("created") or []),
+        "tools_attached": result.get("attached"),
+        "message": (
+            "Agent ElevenLabs créé avec {} outil(s) RRS (id {})."
+        ).format(len(result.get("created") or []), config.elevenlabs_agent_id),
+    })
+
+
+@staff_required
+@require_POST
 def settings_ai_connection(request):
     """Test réel du chat : vérifie la clé, l'URL et la gestion des outils."""
     config = SiteConfiguration.objects.filter(pk=1).first()

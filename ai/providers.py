@@ -248,6 +248,195 @@ def elevenlabs_tts(text: str, *, api_key: str, voice_id: str, model: str = "") -
     return response.content
 
 
+def _elevenlabs_headers(api_key: str) -> dict:
+    return {"xi-api-key": api_key, "Content-Type": "application/json"}
+
+
+def elevenlabs_signed_url(api_key: str, agent_id: str, timeout: float = 20.0) -> str:
+    """Jeton signé pour connecter le navigateur à l'agent ElevenLabs."""
+    response = httpx.get(
+        f"{ELEVENLABS_BASE}/v1/convai/conversation/get-signed-url",
+        params={"agent_id": agent_id},
+        headers={"xi-api-key": api_key},
+        timeout=timeout,
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code == 404:
+        raise RuntimeError("Agent ElevenLabs introuvable (404). Vérifiez l'ID ou créez l'agent.")
+    if response.status_code >= 400:
+        try:
+            detail = (response.json() or {}).get("detail") or ""
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"ElevenLabs a refusé l'accès (HTTP {response.status_code}). {detail}".strip())
+    payload = response.json() or {}
+    signed_url = payload.get("signed_url")
+    if not signed_url:
+        raise RuntimeError("ElevenLabs n'a pas renvoyé d'URL signée.")
+    return signed_url
+
+
+def elevenlabs_client_tool(tool: dict) -> dict:
+    """Convertit un outil RRS (xAI realtime) en outil « client » ElevenLabs."""
+    params = tool.get("parameters") or {"type": "object", "properties": {}}
+    properties = dict(params.get("properties") or {})
+    for spec in properties.values():
+        if isinstance(spec, dict) and "additionalProperties" in spec:
+            spec.pop("additionalProperties", False)
+    config = {
+        "type": "object",
+        "properties": properties,
+        "required": list(params.get("required") or []),
+        "additionalProperties": False,
+    }
+    return {
+        "type": "client",
+        "name": tool.get("name"),
+        "description": tool.get("description", "Outil Aminia (Road Runner Solutions)."),
+        # L'attente de la réponse est indispensable : l'agent attend notre JSON.
+        "expects_response": True,
+        "parameters": config,
+    }
+
+
+def elevenlabs_list_tools(api_key: str, timeout: float = 20.0) -> list[dict]:
+    response = httpx.get(
+        f"{ELEVENLABS_BASE}/v1/convai/tools", headers={"xi-api-key": api_key}, timeout=timeout
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code >= 400:
+        raise RuntimeError(f"Liste des outils impossible (HTTP {response.status_code}).")
+    payload = response.json() or {}
+    return payload.get("tools") or []
+
+
+def elevenlabs_create_tool(api_key: str, tool_config: dict, timeout: float = 20.0) -> str:
+    response = httpx.post(
+        f"{ELEVENLABS_BASE}/v1/convai/tools",
+        headers=_elevenlabs_headers(api_key),
+        json={"tool_config": tool_config},
+        timeout=timeout,
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code == 409:
+        # Doublon : lister à nouveau pour retrouver l'ID.
+        name = (tool_config or {}).get("name")
+        for tool in elevenlabs_list_tools(api_key):
+            if (tool.get("tool_config") or {}).get("name") == name:
+                return tool.get("id")
+        raise RuntimeError(f"Outil « {name} » déjà présent mais introuvable sur ElevenLabs.")
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("detail") or ""
+        except Exception:
+            detail = f"HTTP {response.status_code}"
+        raise RuntimeError(f"Création de l'outil refusée par ElevenLabs : {detail}")
+    payload = response.json() or {}
+    tool_id = payload.get("id")
+    if not tool_id:
+        raise RuntimeError("ElevenLabs n'a pas renvoyé d'ID d'outil.")
+    return tool_id
+
+
+def elevenlabs_update_agent_tools(
+    api_key: str, agent_id: str, tool_ids: list[str], prompt: str | None = None,
+    timeout: float = 20.0,
+) -> dict:
+    body: dict = {
+        "conversation_config": {"agent": {"prompt": {"tool_ids": tool_ids}}}
+    }
+    if prompt:
+        body["conversation_config"]["agent"]["prompt"]["prompt"] = prompt
+    response = httpx.patch(
+        f"{ELEVENLABS_BASE}/v1/convai/agents/{agent_id}",
+        headers=_elevenlabs_headers(api_key),
+        json=body,
+        timeout=timeout,
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code == 404:
+        raise RuntimeError("Agent ElevenLabs introuvable (404).")
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("detail") or ""
+        except Exception:
+            detail = f"HTTP {response.status_code}"
+        raise RuntimeError(f"Mise à jour de l'agent refusée : {detail}")
+    return response.json() or {}
+
+
+def elevenlabs_create_agent(
+    api_key: str, name: str, prompt: str, timeout: float = 20.0
+) -> str:
+    response = httpx.post(
+        f"{ELEVENLABS_BASE}/v1/convai/agents/create",
+        headers=_elevenlabs_headers(api_key),
+        json={
+            "name": name,
+            "conversation_config": {
+                "agent": {
+                    "first_message": "Bonjour, Aminia à l'appareil. De quoi avez-vous besoin ?",
+                    "prompt": {"prompt": prompt},
+                }
+            },
+        },
+        timeout=timeout,
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code >= 400:
+        try:
+            detail = response.json().get("detail") or ""
+        except Exception:
+            detail = f"HTTP {response.status_code}"
+        raise RuntimeError(f"Création de l'agent refusée : {detail}")
+    agent_id = (response.json() or {}).get("agent_id")
+    if not agent_id:
+        raise RuntimeError("ElevenLabs n'a pas renvoyé d'ID d'agent.")
+    return agent_id
+
+
+def elevenlabs_sync_tools(
+    api_key: str, agent_id: str | None, agent_name: str, prompt: str
+) -> dict:
+    """Crée les outils clients manquants sur ElevenLabs et les attache à l'agent."""
+    from .assistant import TOOLS
+
+    wanted = {}
+    for tool in TOOLS:
+        if isinstance(tool, dict) and tool.get("name"):
+            wanted[tool["name"]] = tool
+    existing = {}
+    try:
+        for tool in elevenlabs_list_tools(api_key):
+            config = tool.get("tool_config") or {}
+            if config.get("type") == "client" and config.get("name") in wanted:
+                existing[config["name"]] = tool.get("id")
+    except RuntimeError:
+        pass
+    created = []
+    missing_ids = [tool_id for tool_id in existing.values() if tool_id]
+    for name, tool in wanted.items():
+        if name in existing:
+            continue
+        tool_id = elevenlabs_create_tool(api_key, elevenlabs_client_tool(tool))
+        created.append(name)
+        missing_ids.append(tool_id)
+    if not agent_id:
+        agent_id = elevenlabs_create_agent(api_key, agent_name, prompt)
+    try:
+        elevenlabs_update_agent_tools(api_key, agent_id, missing_ids, prompt=prompt)
+    except RuntimeError:
+        # L'agent vient d'être créé : on retente une mise à jour seule si prompt déjà OK.
+        if not created and not missing_ids:
+            raise
+    return {"agent_id": agent_id, "created": created, "attached": len(missing_ids)}
+
+
 def probe_chat_tools(
     base: str,
     api_key: str = "",

@@ -131,6 +131,8 @@
     var liveDot = root.querySelector("[data-agent-live-dot]");
     var startedAt = 0;
     var durationTimer = null;
+    var engine = "xai";
+    var elevenOutRate = 24000;
     var sessionCompanyId = companyIdFromPage();
 
     function setStatus(text) {
@@ -286,7 +288,8 @@
 
     function playSamples(samples) {
       if (!audioCtx || !samples.length) return;
-      var buffer = audioCtx.createBuffer(1, samples.length, SAMPLE_RATE);
+      var rate = engine === "eleven" ? elevenOutRate : SAMPLE_RATE;
+      var buffer = audioCtx.createBuffer(1, samples.length, rate);
       buffer.copyToChannel(samples, 0);
       var source = audioCtx.createBufferSource();
       source.buffer = buffer;
@@ -336,6 +339,15 @@
 
     function sendAudio(input) {
       if (!ws || ws.readyState !== 1 || muted || !audioCtx) return;
+      if (engine === "eleven") {
+        var chunks = resample(input, audioCtx.sampleRate, 16000);
+        if (!chunks.length) return;
+        ws.send(JSON.stringify({
+          type: "user_audio_chunk",
+          user_audio_chunk: pcm16Base64(chunks)
+        }));
+        return;
+      }
       var samples = resample(input, audioCtx.sampleRate, SAMPLE_RATE);
       if (!samples.length) return;
       ws.send(JSON.stringify({
@@ -624,18 +636,25 @@
       });
     }
 
+    function runTool(name, args, respond) {
+      postJson("/agent/outil/", { name: name, arguments: args }).then(function (data) {
+        var output = data.output || { error: data.message || data.error || "outil indisponible" };
+        if (name === "draft_invoice") finishLive(output);
+        if (name === "search_french_companies") showCompanyResults(output);
+        if (name === "choose_company_result") showPickedResult(output);
+        if (output.company && output.company.denomination) {
+          setStatus("Société : " + output.company.denomination);
+        }
+        respond(output);
+      });
+    }
+
     function handleTool(event) {
       var args = event.arguments || "{}";
+      if (engine === "eleven") return;
       var send = function () {
-        postJson("/agent/outil/", { name: event.name, arguments: args }).then(function (data) {
+        runTool(event.name, args, function (output) {
           if (!ws || ws.readyState !== 1) return;
-          var output = data.output || { error: data.message || data.error || "outil indisponible" };
-          if (event.name === "draft_invoice") finishLive(output);
-          if (event.name === "search_french_companies") showCompanyResults(output);
-          if (event.name === "choose_company_result") showPickedResult(output);
-          if (output.company && output.company.denomination) {
-            setStatus("Société : " + output.company.denomination);
-          }
           ws.send(JSON.stringify({
             type: "conversation.item.create",
             item: {
@@ -724,6 +743,7 @@
     function start() {
       if (starting || (ws && ws.readyState === 1)) return;
       starting = true;
+      engine = "xai";
       setStatus("Connexion à Aminia…");
       setTranscript("");
       postJson("/agent/session/", { company_id: companyIdFromPage() }).then(function (session) {
@@ -732,6 +752,11 @@
           setStatus(session.message || "Connectez-vous au cockpit.");
           return;
         }
+        if (session.provider === "elevenlabs" && session.signed_url) {
+          startEleven(session);
+          return;
+        }
+        if (session.notice) setStatus(session.notice);
         if (!session.token) {
           starting = false;
           setStatus(session.message || "Agent vocal indisponible.");
@@ -807,6 +832,151 @@
         setReconnect(true);
         setStatus("Micro ou réseau indisponible. Reconnectez Aminia.");
       });
+    }
+
+    /* Fab ouvre le sélecteur ; le vocal démarre via aminia:open-voice. */
+    function startEleven(session) {
+      sessionCompanyId = session.company_id || companyIdFromPage();
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+      navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true }
+      }).then(function (userStream) {
+        stream = userStream;
+        engine = "eleven";
+        elevenOutRate = 24000;
+        var socket = new WebSocket(session.signed_url);
+        ws = socket;
+        socket.onopen = function () {
+          starting = false;
+          setStatus("Aminia est en ligne (ElevenLabs).");
+          setListening(true);
+          setLiveIndicator(true);
+          setReconnect(false);
+          startDuration();
+          startWakeGuard();
+          requestWakeLock();
+          socket.send(JSON.stringify({
+            type: "conversation_initiation_client_data",
+            conversation_config_override: {},
+            custom_llm_extra_body: {
+              societe_id: session.company_id || "",
+              instructions: session.instructions || ""
+            }
+          }));
+          var audioTrack = stream.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.onended = function () {
+              setListening(false);
+              setLiveIndicator(false);
+              setReconnect(true);
+              stopWakeGuard();
+              releaseWakeLock();
+              setStatus("Microphone interrompu. Reconnectez Aminia.");
+            };
+          }
+          var source = audioCtx.createMediaStreamSource(stream);
+          processor = audioCtx.createScriptProcessor(4096, 1, 1);
+          processor.onaudioprocess = function (e) {
+            sendAudio(e.inputBuffer.getChannelData(0));
+          };
+          var silent = audioCtx.createGain();
+          silent.gain.value = 0;
+          source.connect(processor);
+          processor.connect(silent);
+          silent.connect(audioCtx.destination);
+          audioCtx.resume();
+        };
+        socket.onmessage = onElevenMessage;
+        socket.onerror = function () {
+          starting = false;
+          setListening(false);
+          setLiveIndicator(false);
+          setReconnect(true);
+          stopWakeGuard();
+          releaseWakeLock();
+          setStatus("Connexion ElevenLabs interrompue.");
+        };
+        socket.onclose = function () {
+          if (!panel.hidden) {
+            setStatus("Session vocale interrompue. Reconnectez Aminia.");
+          }
+          setListening(false);
+          setLiveIndicator(false);
+          setReconnect(true);
+          stopWakeGuard();
+          releaseWakeLock();
+          ws = null;
+        };
+      });
+    }
+
+    function elevenToolRespond(callId, output) {
+      if (!ws || ws.readyState !== 1) return;
+      ws.send(JSON.stringify({
+        type: "client_tool_result",
+        tool_call_id: callId,
+        result: JSON.stringify(output),
+        is_error: false
+      }));
+    }
+
+    function onElevenMessage(raw) {
+      var evt;
+      try { evt = JSON.parse(raw.data); } catch (e) { return; }
+      var type = evt.type || "";
+      if (type === "conversation_initiation_metadata") {
+        var meta = evt.conversation_initiation_metadata_event || {};
+        var outFormat = String(meta.agent_output_audio_format || "");
+        var rate = parseInt(outFormat.replace("pcm_", ""), 10);
+        if (rate > 0) elevenOutRate = rate;
+        setStatus("Aminia est en ligne.");
+      } else if (type === "audio" && evt.audio_event && evt.audio_event.audio_base_64) {
+        setStatus("Aminia parle…");
+        try { playSamples(b64ToPcm(evt.audio_event.audio_base_64)); } catch (e) { /* chunk illisible */ }
+      } else if (type === "interruption") {
+        stopPlayback();
+        setStatus("Je vous écoute…");
+      } else if (type === "user_transcript") {
+        setTranscript(evt.user_transcription_event ? evt.user_transcription_event.user_transcript : "");
+      } else if (type === "agent_chat_response_part") {
+        var part = evt.text_response_part || {};
+        if (part.text && part.type === "delta") setStatus("Aminia réfléchit…");
+      } else if (type === "agent_response") {
+        var reply = (evt.agent_response_event || {}).agent_response || "";
+        if (reply) setTranscript(reply.slice(-400));
+      } else if (type === "client_tool_call" || type === "agent_tool_request") {
+        var payload = evt.client_tool_call || evt.agent_tool_request || {};
+        var name = payload.tool_name || "";
+        var callId = payload.tool_call_id || "";
+        var args = payload.parameters || {};
+        if (callId && !payload.expects_response && type === "client_tool_call") {
+          /* Résultat non attendu : on exécute quand même côté serveur. */
+        }
+        if (name) {
+          if (name === "draft_invoice") {
+            showLiveInvoice(typeof args === "string" ? args : JSON.stringify(args));
+            whenTyped(function () {
+              runTool(name, args, function (output) {
+                elevenToolRespond(callId, output);
+              });
+            });
+          } else {
+            runTool(name, args, function (output) {
+              elevenToolRespond(callId, output);
+            });
+          }
+        }
+      } else if (type === "ping") {
+        var pingPayload = evt.ping_event || {};
+        try {
+          ws.send(JSON.stringify({ type: "pong", event_id: pingPayload.event_id }));
+        } catch (e) { /* socket déjà fermé */ }
+      } else if (type === "client_error") {
+        var err = evt.error_event || {};
+        setStatus(err.message || "Erreur ElevenLabs.");
+        setReconnect(true);
+      }
     }
 
     /* Fab ouvre le sélecteur ; le vocal démarre via aminia:open-voice. */

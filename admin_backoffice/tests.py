@@ -1,6 +1,7 @@
 from django.test import Client, TestCase, TransactionTestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
+from admin_backoffice.models import SiteConfiguration
 from companies.models import Company
 from billing.models import Plan, Subscription
 from ai.models import AiDraftEntry
@@ -659,7 +660,7 @@ class EveryAdminPageTests(TestCase):
             "settings_ai_models",
             "settings_ai_connection",
         )}
-        self.assertEqual(covered, names)
+        self.assertEqual(covered, names, sorted(names - covered))
 
     def test_staff_get_returns_200_on_every_page(self):
         markers = {
@@ -1045,3 +1046,72 @@ class SettingsAiModelsEndpointTests(TestCase):
         self.assertIn("Ollama (local)", content)
         self.assertIn("ai-models-button", content)
         self.assertIn("settings/ai/modeles", content)
+
+
+class ElevenLabsVoiceSyncTests(TestCase):
+    """L'agent ElevenLabs porte l'appel vocal et embarque les outils RRS."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="eleven-admin@rrs.fr", is_staff=True, is_superuser=True
+        )
+        self.client.force_login(self.admin)
+
+    def test_sync_requires_key(self):
+        response = self.client.post(reverse("admin_backoffice:settings_ai_voice_sync"), {})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["ok"])
+        self.assertIn("clé API ElevenLabs", response.json()["message"])
+
+    def test_sync_creates_and_attaches_tools(self):
+        from unittest.mock import patch
+
+        SiteConfiguration.objects.update_or_create(
+            id=1, defaults={"elevenlabs_api_key": "key-el", "voice_call_provider": "elevenlabs"}
+        )
+        with patch(
+            "ai.providers.elevenlabs_sync_tools",
+            return_value={"agent_id": "agent_123", "created": ["get_balance"], "attached": 4},
+        ) as fake:
+            response = self.client.post(reverse("admin_backoffice:settings_ai_voice_sync"), {})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["agent_id"], "agent_123")
+        self.assertEqual(data["tools_created"], 1)
+        config = SiteConfiguration.objects.get(pk=1)
+        self.assertEqual(config.elevenlabs_agent_id, "agent_123")
+        fake.assert_called_once()
+
+    def test_session_falls_back_to_xai_when_elevenlabs_unconfigured(self):
+        from unittest.mock import patch
+        from django.test import override_settings
+
+        SiteConfiguration.objects.update_or_create(
+            id=1,
+            defaults={
+                "voice_call_provider": "elevenlabs",
+                "xai_api_key": "xai",
+                "llm_api_key": "",
+                "llm_base_url": "",
+            },
+        )
+        with override_settings(ELEVENLABS_API_KEY=""):
+            with patch("ai.views._mint_secret") as mint:
+                mint.return_value = ({"token": "tok", "expires_at": None}, None)
+                response = self.client.post(reverse("voice_session"), {})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["provider"], "xai")
+        self.assertIn("ElevenLabs", data.get("notice", ""))
+
+    def test_session_503_when_nothing_configured(self):
+        from django.test import override_settings
+
+        SiteConfiguration.objects.update_or_create(
+            id=1, defaults={"voice_call_provider": "elevenlabs"}
+        )
+        with override_settings(XAI_API_KEY="", ELEVENLABS_API_KEY=""):
+            response = self.client.post(reverse("voice_session"), {})
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("ElevenLabs non configuré", response.json()["message"])

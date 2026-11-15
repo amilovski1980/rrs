@@ -294,6 +294,28 @@
         <label for="{{ form.elevenlabs_model.id_for_label }}">Modèle ElevenLabs</label>
         {{ form.elevenlabs_model }}
         <p class="secret-hint">Vide = eleven_flash_v2_5 (multilingue rapide).</p>
+
+        <h3 style="margin:26px 0 10px;font-size:15px">Session vocale en direct</h3>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.voice_call_provider.id_for_label }}">{{ form.voice_call_provider.label }}</label>
+            {{ form.voice_call_provider }}
+            <p class="secret-hint">
+              Grok/xAI : micro, tour de parole et outils portés par xAI.
+              ElevenLabs : l'appel est porté par un agent ElevenLabs, les outils RRS restent exécutés ici.
+            </p>
+          </div>
+          <div>
+            <label for="{{ form.elevenlabs_agent_id.id_for_label }}">{{ form.elevenlabs_agent_id.label }}</label>
+            {{ form.elevenlabs_agent_id }}
+            <p class="secret-hint">Vide si l'agent n'a pas encore été créé ci-dessous.</p>
+          </div>
+        </div>
+        <div class="settings-test-row">
+          <p class="secret-hint">Crée l'agent sur ElevenLabs et y attache tous les outils RRS (boutons client). À relancer après un changement d'outils.</p>
+          <button class="btn btn-ghost btn-sm" type="button" id="ai-sync-agent-button">Créer / mettre à jour l'agent ElevenLabs</button>
+        </div>
+        <p id="ai-sync-status" class="secret-hint" role="status" aria-live="polite"></p>
       </div>
 
       {% if ai_effective %}
@@ -307,9 +329,12 @@
         Requêtes : <code>POST {BASE}/chat/completions</code>.
       </div>
       <div class="settings-callout">
-        <strong>Voix.</strong> Session live : xAI temps réel — modèle <b>{{ ai_effective.voice.model }}</b>, voix
-        <b>{{ ai_effective.voice.voice }}</b>, clé {% if ai_effective.voice.key %}présente{% else %}absente
-        {% endif %}. Le jeton éphémère est distribué par <code>/agent/session/</code>.
+        <strong>Voix.</strong>
+        Session live : <b>{% if config.voice_call_provider == "elevenlabs" %}ElevenLabs{% else %}xAI / Grok{% endif %}</b>
+        {% if config.voice_call_provider == "elevenlabs" %}— agent
+        {% if config.elevenlabs_agent_id %}<code>{{ config.elevenlabs_agent_id }}</code>{% else %}<b>non créé</b> (bouton ci-dessus){% endif %}{% else %}temps réel
+        — modèle <b>{{ ai_effective.voice.model }}</b>, voix <b>{{ ai_effective.voice.voice }}</b>,
+        clé {% if ai_effective.voice.key %}présente{% else %}absente{% endif %}, jeton éphémère par <code>/agent/session/</code>{% endif %}.
         Lecture des réponses : <b>{{ ai_effective.speech.provider }}</b>
         ({% if ai_effective.speech.configured %}clé présente{% else %}clé absente{% endif %}), voix
         <b>{{ ai_effective.speech.voice_id }}</b> (genre {{ ai_effective.speech.gender }}).
@@ -509,6 +534,25 @@
                 })
                 .catch(function (error) {
                   if (status) status.textContent = "Test impossible : " + error;
+                });
+            });
+          }
+
+          var syncButton = document.getElementById("ai-sync-agent-button");
+          var syncStatus = document.getElementById("ai-sync-status");
+          if (syncButton && syncStatus) {
+            syncButton.addEventListener("click", function () {
+              syncStatus.textContent = "Création / mise à jour de l'agent sur ElevenLabs…";
+              postForm("{% url 'admin_backoffice:settings_ai_voice_sync' %}", {})
+                .then(function (data) {
+                  if (data.ok && data.agent_id) {
+                    var idInput = document.getElementById("{{ form.elevenlabs_agent_id.id_for_label }}");
+                    if (idInput) idInput.value = data.agent_id;
+                  }
+                  syncStatus.textContent = data.message || (data.ok ? "Agent à jour." : "Échec.");
+                })
+                .catch(function (error) {
+                  syncStatus.textContent = "Synchronisation impossible : " + error;
                 });
             });
           }

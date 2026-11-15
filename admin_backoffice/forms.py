@@ -18,6 +18,7 @@ SECRET_FIELDS = (
     "stripe_webhook_secret",
     "llm_api_key",
     "xai_api_key",
+    "elevenlabs_api_key",
     "insee_api_key",
     "einvoicing_api_key",
 )
@@ -77,7 +78,9 @@ class SiteConfigurationForm(forms.ModelForm):
             "xai_voice_model",
             "xai_voice",
             "voice_provider",
+            "voice_call_provider",
             "voice_gender",
+            "elevenlabs_agent_id",
             "elevenlabs_api_key",
             "elevenlabs_model",
             "elevenlabs_voice_female",

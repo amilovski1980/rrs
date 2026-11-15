@@ -2,6 +2,7 @@
 import json
 
 import httpx
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
@@ -79,22 +80,68 @@ def voice_session(request):
     company = resolve_company(request.user, body.get("company_id") or request.session.get(SESSION_KEY))
     if company is not None:
         request.session[SESSION_KEY] = str(company.id)
-    secret, error = _mint_secret()
-    if error:
-        return JsonResponse({"error": "voice", "message": error}, status=503)
-    from .providers import voice_config
 
-    spoken = voice_config()
-    return JsonResponse({
-        "token": secret["token"],
-        "expires_at": secret["expires_at"],
-        "url": f"wss://api.x.ai/v1/realtime?model={spoken['model']}",
-        "voice": spoken["voice"],
+    context = {
         "instructions": agent_instructions(request.user, company, channel="voice"),
         "tools": [tool for tool in TOOLS if tool_allowed(request.user, tool["name"])],
         "company_id": str(company.id) if company else None,
         "company_name": company.denomination if company else "",
-    })
+    }
+    from admin_backoffice.models import SiteConfiguration
+    from .providers import ELEVENLABS_BASE, elevenlabs_signed_url, voice_config
+
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    call_provider = (getattr(config, "voice_call_provider", "") or "xai") if config else "xai"
+    agent_id = (getattr(config, "elevenlabs_agent_id", "") or "") if config else ""
+    eleven_key = (getattr(config, "elevenlabs_api_key", "") or "") if config else ""
+    if not eleven_key:
+        eleven_key = getattr(settings, "ELEVENLABS_API_KEY", "")
+    eleven_ready = call_provider == "elevenlabs" and bool(agent_id and eleven_key)
+    if call_provider == "elevenlabs" and eleven_ready:
+        try:
+            signed_url = elevenlabs_signed_url(eleven_key, agent_id)
+        except RuntimeError as exc:
+            secret, mint_error = _mint_secret()
+            if mint_error:
+                return JsonResponse(
+                    {"error": "voice", "message": f"ElevenLabs : {exc}"}, status=503
+                )
+            payload = {**context, "provider": "xai", **_xai_payload(secret, request)}
+            payload["notice"] = f"ElevenLabs indisponible ({exc}) — session Grok en repli."
+            return JsonResponse(payload)
+        return JsonResponse({
+            "provider": "elevenlabs",
+            "signed_url": signed_url,
+            "agent_id": agent_id,
+            **context,
+        })
+    secret, error = _mint_secret()
+    if error:
+        if call_provider == "elevenlabs":
+            error = "ElevenLabs non configuré : ID d'agent ou clé manquant. " + error
+        return JsonResponse({"error": "voice", "message": error}, status=503)
+
+    from .providers import voice_config
+
+    spoken = voice_config()
+    payload = {**context, "provider": "xai", **_xai_payload(secret, request, spoken["voice"])}
+    if call_provider == "elevenlabs" and not eleven_ready:
+        payload["notice"] = (
+            "ElevenLabs non configuré (ID d'agent manquant) — session Grok en repli."
+        )
+    return JsonResponse(payload)
+
+
+def _xai_payload(secret, request, voice: str | None = None) -> dict:
+    from .providers import voice_config
+
+    spoken = voice_config()
+    return {
+        "token": secret["token"],
+        "expires_at": secret["expires_at"],
+        "url": f"wss://api.x.ai/v1/realtime?model={spoken['model']}",
+        "voice": voice or spoken["voice"],
+    }
 
 
 @require_POST
