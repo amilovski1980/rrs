@@ -1042,10 +1042,39 @@ class TicketDeCaisseTests(TestCase):
     def test_ocr_missing_engine_french_error(self):
         from unittest.mock import patch
         from .receipt_ocr import ReceiptOcrError, ocr_image_bytes
-        with patch("documents.receipt_ocr._tesseract_available", return_value=False):
+        with patch("documents.receipt_ocr._tesseract_available", return_value=False), \
+                patch("ai.providers.text_provider", return_value={"configured": False}):
             with self.assertRaises(ReceiptOcrError) as ctx:
                 ocr_image_bytes(b"fake", filename="x.jpg")
         self.assertIn("Tesseract", str(ctx.exception))
+
+    def test_agent_ocr_transcribes_when_tesseract_missing(self):
+        """Sans Tesseract, l'agent IA (vision) transcrit la photo du ticket."""
+        from .receipt_ocr import ReceiptOcrError, ocr_image_bytes
+
+        provider = {
+            "code": "xai", "base": "https://api.x.ai/v1", "key": "k", "model": "m",
+            "configured": True,
+        }
+        response = Mock(
+            status_code=200,
+            json=lambda: {"choices": [{"message": {"content": "TOTAL TTC 12,00 €"}}]},
+        )
+        with patch("documents.receipt_ocr._tesseract_available", return_value=False), \
+                patch("ai.providers.text_provider", return_value=provider), \
+                patch("httpx.post", return_value=response) as post:
+            text = ocr_image_bytes(b"fake", filename="ticket.jpg")
+        self.assertEqual(text, "TOTAL TTC 12,00 €")
+        self.assertIn("/chat/completions", post.call_args.args[0])
+
+    def test_agent_ocr_explains_missing_provider(self):
+        from .receipt_ocr import ReceiptOcrError, ocr_image_bytes
+
+        with patch("documents.receipt_ocr._tesseract_available", return_value=False), \
+                patch("ai.providers.text_provider", return_value={"configured": False}):
+            with self.assertRaises(ReceiptOcrError) as ctx:
+                ocr_image_bytes(b"fake", filename="ticket.jpg")
+        self.assertIn("agent IA", str(ctx.exception))
 
     def test_upload_with_mocked_ocr_creates_draft_entry(self):
         from unittest.mock import patch

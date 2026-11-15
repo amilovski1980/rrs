@@ -1,6 +1,8 @@
-"""OCR et heuristiques pour tickets de caisse (reçus)."""
+"""OCR du ticket. Le moteur Tesseract n'est pas indispensable : l'agent IA
+(multimodal, même configuration que le chat) transcrit l'image en texte."""
 from __future__ import annotations
 
+import base64
 import io
 import re
 from datetime import date, datetime
@@ -192,6 +194,12 @@ def ocr_image_bytes(data: bytes, filename: str = "") -> str:
         raise ReceiptOcrError(
             "Le traitement d'image n'est pas disponible (Pillow manquant)."
         ) from exc
+
+    if not _tesseract_available():
+        # L'agent IA (modèle multimodal du chat) remplace le binaire OCR :
+        # même pipeline texte, aucun binaire système à installer.
+        return transcribe_with_agent(data, filename=filename)
+
     try:
         import pytesseract
     except ImportError as exc:
@@ -199,13 +207,6 @@ def ocr_image_bytes(data: bytes, filename: str = "") -> str:
             "Le moteur OCR n'est pas installé (pytesseract). "
             "Saisissez le ticket manuellement ou installez Tesseract."
         ) from exc
-
-    if not _tesseract_available():
-        raise ReceiptOcrError(
-            "Le moteur OCR Tesseract est introuvable sur le serveur. "
-            "Saisissez le ticket manuellement, ou installez le binaire tesseract "
-            "(langues fra+eng)."
-        )
 
     try:
         data = prepare_image_bytes_for_ocr(data, filename=filename)
@@ -235,6 +236,96 @@ def ocr_image_bytes(data: bytes, filename: str = "") -> str:
         raise ReceiptOcrError(
             "Aucun texte détecté sur ce ticket. Photo floue, trop sombre, "
             "ou ticket vide — réessayez ou saisissez manuellement."
+        )
+    return text
+
+
+_TRANSCRIBE_PROMPT = (
+    "Transcris fidèlement TOUT le texte de cette photo de ticket de caisse ou de "
+    "document comptable, ligne par ligne, dans l'ordre visuel du haut vers le bas. "
+    "Copie les montants tels qu'ils apparaissent (espaces des milliers, devise). "
+    "N'ajoute AUCUN commentaire, titre ou interprétation : renvoie uniquement la "
+    "transcription."
+)
+
+
+def transcribe_with_agent(data: bytes, filename: str = "") -> str:
+    """Transcription de l'image par l'agent IA (modèle multimodal du chat).
+
+    Utilisé quand Tesseract est absent (déploiement serverless) : la lecture
+    passe par l'agent, pas par un binaire OCR système.
+    """
+    from ai.providers import text_provider
+
+    provider = text_provider()
+    if not provider.get("configured"):
+        raise ReceiptOcrError(
+            "Aucun moteur d'analyse disponible : Tesseract est absent du serveur "
+            "et l'agent IA n'est pas configuré. Configurez l'agent Aminia "
+            "(Configuration → Aminia) ou saisissez le ticket manuellement."
+        )
+
+    try:
+        image_data = prepare_image_bytes_for_ocr(data, filename=filename)
+    except ReceiptOcrError:
+        raise
+    except Exception:
+        image_data = data
+    encoded = base64.b64encode(image_data).decode("ascii")
+
+    payload = {
+        "model": provider["model"],
+        "temperature": 0,
+        "max_tokens": 2000,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": "data:image/jpeg;base64," + encoded},
+                    },
+                    {"type": "text", "text": _TRANSCRIBE_PROMPT},
+                ],
+            }
+        ],
+    }
+    try:
+        import httpx
+
+        response = httpx.post(
+            provider["base"].rstrip("/") + "/chat/completions",
+            json=payload,
+            headers={
+                "Authorization": "Bearer " + (provider["key"] or ""),
+                "Content-Type": "application/json",
+            },
+            timeout=90,
+        )
+    except Exception:
+        raise ReceiptOcrError(
+            "L'agent IA d'analyse est momentanément injoignable. Réessayez."
+        )
+    if response.status_code == 429:
+        raise ReceiptOcrError(
+            "L'agent IA est momentanément saturé (limite de débit). "
+            "Réessayez dans une minute."
+        )
+    if response.status_code >= 400:
+        raise ReceiptOcrError(
+            "L'agent IA n'a pas pu lire ce document (modèle incompatible avec "
+            "les images ou erreur de configuration). Saisissez le ticket "
+            "manuellement ou adaptez le modèle dans Configuration → Aminia."
+        )
+    try:
+        text = response.json()["choices"][0]["message"]["content"] or ""
+    except (KeyError, IndexError, ValueError):
+        text = ""
+    text = str(text).strip()
+    if not text:
+        raise ReceiptOcrError(
+            "L'agent IA n'a rien transcrit. Essayez une photo plus nette "
+            "ou saisissez le ticket à la main."
         )
     return text
 
