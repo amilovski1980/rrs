@@ -77,11 +77,12 @@ class BankAccount(models.Model):
 
 
 class BankStatement(models.Model):
-    """Relevé importé (CSV/OFX), conservé pour l'audit."""
+    """Relevé importé (CSV/OFX/PDF), conservé pour l'audit."""
 
     SOURCE_FORMATS = [
         ("csv", "CSV"),
         ("ofx", "OFX / QFX"),
+        ("pdf", "PDF"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

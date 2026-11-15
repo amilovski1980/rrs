@@ -116,7 +116,7 @@ class CompanySettingsTests(TestCase):
         page = self.client.get("/cockpit/")
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, "m-company-menu")
-        self.assertContains(page, "m-company-row", count=2)
+        self.assertContains(page, 'role="menuitem"', count=2)
         self.assertContains(page, "Atelier Secondaire")
 
     def test_accepts_graphite_theme(self):

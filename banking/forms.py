@@ -51,8 +51,11 @@ class ImportStatementForm(forms.Form):
         label="Compte bancaire", queryset=BankAccount.objects.none()
     )
     file = forms.FileField(
-        label="Relevé CSV ou OFX",
-        help_text="Formats acceptés : .csv, .ofx, .qfx, .txt — 10 Mo maximum.",
+        label="Relevé CSV, OFX ou PDF",
+        help_text=(
+            "Formats acceptés : .csv, .ofx, .qfx, .txt, .pdf — 10 Mo maximum. "
+            "Un PDF scanné est passé en OCR."
+        ),
     )
 
     def __init__(self, *args, company, **kwargs):
@@ -64,8 +67,8 @@ class ImportStatementForm(forms.Form):
     def clean_file(self):
         upload = self.cleaned_data["file"]
         name = (upload.name or "").lower()
-        if not name.endswith((".csv", ".ofx", ".qfx", ".txt")):
-            raise forms.ValidationError("Choisissez un fichier CSV, OFX ou QFX.")
+        if not name.endswith((".csv", ".ofx", ".qfx", ".txt", ".pdf")):
+            raise forms.ValidationError("Choisissez un fichier CSV, OFX, QFX ou PDF.")
         if upload.size and upload.size > 10 * 1024 * 1024:
             raise forms.ValidationError("Le relevé dépasse 10 Mo.")
         return upload

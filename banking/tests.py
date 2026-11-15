@@ -1,9 +1,12 @@
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from fpdf import FPDF
 
 from accounting.models import ChartAccount, EntryLine, Journal, JournalEntry
 from accounting.services import generate_portal
@@ -11,9 +14,9 @@ from companies.models import Company
 from documents.models import Invoice, Payment
 from purchases.models import PurchaseInvoice, SupplierPayment
 
-from .forms import TransactionEntryForm
+from .forms import ImportStatementForm, TransactionEntryForm
 from .models import BankAccount, BankRule, BankTransaction
-from .parsers import parse_csv, parse_ofx
+from .parsers import parse_csv, parse_ofx, parse_pdf
 from .services import (
     create_entry_from_transaction,
     import_statement,
@@ -37,6 +40,38 @@ OFX_SAMPLE = """OFXHEADER:100
 <STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260415<TRNAMT>-50.00<FITID>F1<NAME>FRAIS BANCAIRES</STMTTRN>
 </BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>
 """.encode("utf-8")
+
+
+def pdf_statement() -> bytes:
+    """Relevé PDF de test avec colonnes Débit / Crédit / Solde."""
+    pdf = FPDF(format="A4", unit="mm")
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=9)
+    for x, label in (
+        (15, "Date"),
+        (38, "Libelle"),
+        (105, "Debit"),
+        (135, "Credit"),
+        (168, "Solde"),
+    ):
+        pdf.text(x, 20, label)
+    rows = [
+        ("12/01/2026", "VIREMENT DUPONT", "", "1 250,00", "2 340,00"),
+        ("15/01/2026", "PRLV EDF", "89,90", "", "2 250,10"),
+        ("16/01/2026", "FRAIS BANCAIRES", "12,50", "", "2 237,60"),
+    ]
+    y = 30
+    for row in rows:
+        for x, value in zip((15, 38, 105, 135, 168), row):
+            pdf.text(x, y, value)
+        y += 7
+    return bytes(pdf.output())
+
+
+def blank_pdf() -> bytes:
+    pdf = FPDF(format="A4", unit="mm")
+    pdf.add_page()
+    return bytes(pdf.output())
 
 
 class BankTestCase(TestCase):
@@ -97,6 +132,50 @@ class BankTestCase(TestCase):
         self.assertEqual(len(ofx), 1)
         self.assertEqual(ofx[0].amount, Decimal("-50.00"))
         self.assertEqual(ofx[0].external_id, "F1")
+
+    def test_pdf_parser_reads_debit_credit_columns(self):
+        rows = parse_pdf(pdf_statement())
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0].date, date(2026, 1, 12))
+        self.assertEqual(rows[0].amount, Decimal("1250.00"))
+        self.assertEqual(rows[0].label, "VIREMENT DUPONT")
+        self.assertEqual(rows[1].amount, Decimal("-89.90"))
+        self.assertEqual(rows[2].amount, Decimal("-12.50"))
+
+    def test_pdf_import_is_idempotent_and_keeps_statement(self):
+        first = import_statement(self.account, pdf_statement(), "releve.pdf")
+        self.assertEqual(first.created, 3)
+        self.assertEqual(first.statement.source_format, "pdf")
+        self.assertEqual(first.statement.file_type, "application/pdf")
+        second = import_statement(self.account, pdf_statement(), "releve.pdf")
+        self.assertEqual(second.created, 0)
+        self.assertEqual(second.duplicates, 3)
+        self.assertEqual(BankTransaction.objects.count(), 3)
+
+    def test_scanned_pdf_uses_ocr_text_fallback(self):
+        text = (
+            "12/01/2026 VIREMENT DUPONT 1 250,00\n"
+            "15/01/2026 PRLV EDF -89,90\n"
+        )
+        with patch("banking.parsers.extract_receipt_text", return_value=text):
+            rows = parse_pdf(blank_pdf())
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].amount, Decimal("1250.00"))
+        self.assertEqual(rows[1].amount, Decimal("-89.90"))
+
+    def test_import_form_accepts_pdf(self):
+        form = ImportStatementForm(
+            data={"account": self.account.pk},
+            files={
+                "file": SimpleUploadedFile(
+                    "releve.pdf",
+                    pdf_statement(),
+                    content_type="application/pdf",
+                )
+            },
+            company=self.company,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
 
     def test_import_is_idempotent(self):
         first = import_statement(self.account, CSV_SAMPLE, "releve.csv")

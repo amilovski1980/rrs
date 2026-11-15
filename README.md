@@ -117,8 +117,9 @@ MAILSYNC_ENCRYPTION_KEY=...
 ## Banque
 
 - `/banque/` : comptes, soldes, relevés importés et opérations à rapprocher.
-- Import **CSV** ou **OFX/QFX** : dates FR, montants `1 234,56 €`, colonnes
-  débit/crédit ou montant signé. Les doublons sont écartés par empreinte
+- Import **CSV**, **OFX/QFX** ou **PDF** : dates FR, montants `1 234,56 €`,
+  colonnes débit/crédit ou montant signé. Un PDF natif est lu par colonnes ;
+  un PDF scanné passe par l'OCR. Les doublons sont écartés par empreinte
   `(compte, date, montant, libellé, référence)`.
 - Rapprochement automatique : même montant sur le compte `512`, date à ±7 jours,
   score libellé/référence ; en dessous du seuil, l'opération reste à rapprocher.
