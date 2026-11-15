@@ -400,3 +400,23 @@ html[data-theme="dark"] .product-suggestion:hover,
 html[data-theme="dark"] .product-suggestion[aria-selected="true"] {
   background: rgba(61, 220, 106, .12);
 }
+
+/* ---------- Boutons primaires : dégradé rose/rouge/violet sur dark ---------- */
+html[data-theme="dark"] .btn-primary {
+  background: linear-gradient(100deg, #a71c1c05 0%, #c70424 42%, #312747 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .btn-primary:hover {
+  background: linear-gradient(100deg, #c70424 42%, #312747 100%);
+  opacity: .95;
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+html[data-theme="dark"] .btn-primary:active { transform: scale(.98); box-shadow: none; }
+html[data-theme="dark"] .wizard-nav .wizard-next,
+html[data-theme="dark"] .wizard-nav .wizard-submit {
+  background: linear-gradient(100deg, #a71c1c05 0%, #c70424 42%, #312747 100%);
+  box-shadow: none;
+}
