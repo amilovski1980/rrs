@@ -17,7 +17,7 @@
   }
 
   .m-footer-agent .m-footer-ico {
-    color: var(--pink);
+    color: inherit;
   }
 
   body.agent-open .m-footer-agent .m-footer-ico {

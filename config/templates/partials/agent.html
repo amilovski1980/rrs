@@ -80,6 +80,10 @@
           </div>
           <div data-live-sheet data-preview-url="{% url 'invoice_preview_form' %}?societe={{ company.id }}"><p class="empty" style="padding:12px">L'aperçu complet apparaît ici.</p></div>
         </div>
+        <div class="live-actions-bar">
+          <button type="button" class="btn btn-ghost" data-agent-close aria-label="Terminer l'appel et annuler">Terminer</button>
+          <a class="btn btn-primary live-validate" data-live-validate href="#" hidden>Valider la facture</a>
+        </div>
       </div>
     </div>
   </div>
