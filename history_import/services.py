@@ -468,6 +468,19 @@ def _mark_duplicate(document: ImportDocument, existing) -> bool:
     document.duplicate_reason = "Document déjà présent dans la société."
     if isinstance(existing, ImportDocument):
         document.duplicate_of = existing
+        document.duplicate_reason = f"Déjà présent dans ce lot : {existing.original_name}"
+    elif isinstance(existing, Invoice):
+        document.imported_invoice = existing
+        document.kind = "sale_invoice"
+        document.duplicate_reason = (
+            f"Facture de vente {existing.number} déjà présente dans la société."
+        )
+    elif isinstance(existing, PurchaseInvoice):
+        document.imported_purchase = existing
+        document.kind = "purchase_invoice"
+        document.duplicate_reason = (
+            f"Facture fournisseur {existing.number} déjà présente dans la société."
+        )
     else:
         document.duplicate_reason = f"Déjà présent : {existing}"
     return True

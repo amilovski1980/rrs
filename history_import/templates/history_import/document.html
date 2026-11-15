@@ -54,6 +54,25 @@
       <p class="badge badge-green">Archivé sans intégration métier</p>
       {% endif %}
       <p class="micro">Importé le {{ document.imported_at|date:"d/m/Y à H:i" }}.</p>
+    {% elif document.status == "duplicate" %}
+      <h2 style="margin-top:0">Document déjà présent</h2>
+      <p class="micro">{{ document.duplicate_reason|default:"Ce document existe déjà dans la société." }}</p>
+      {% if document.imported_invoice %}
+      <p><a class="btn btn-primary" href="{% url 'invoice_detail' document.imported_invoice.pk %}?societe={{ company.id }}">Voir la facture de vente {{ document.imported_invoice.number }}</a></p>
+      {% elif document.imported_purchase %}
+      <p><a class="btn btn-primary" href="{% url 'purchases:detail' document.imported_purchase.pk %}?societe={{ company.id }}">Voir la facture fournisseur {{ document.imported_purchase.number }}</a></p>
+      {% elif document.duplicate_of %}
+      <p><a class="btn btn-ghost" href="{% url 'history_import:document' document.duplicate_of.pk %}?societe={{ company.id }}">Voir le document du lot</a></p>
+      {% endif %}
+      <p class="micro">Pour éviter un doublon, ce document ne peut pas être importé une seconde fois.</p>
+      <div class="import-doc-actions">
+        <form method="post" action="{% url 'history_import:document_reanalyze' document.pk %}?societe={{ company.id }}">
+          {% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Réanalyser</button>
+        </form>
+        <form method="post" action="{% url 'history_import:document_reject' document.pk %}?societe={{ company.id }}" onsubmit="return confirm('Exclure ce document du lot ?');">
+          {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
+        </form>
+      </div>
     {% elif document.status == "rejected" %}
       <h2 style="margin-top:0">Document exclu</h2>
       <p class="micro">Ce document ne sera pas importé.</p>
