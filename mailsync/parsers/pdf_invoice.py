@@ -292,9 +292,9 @@ def parse_text(text: str, source: str = "pdf") -> ExtractedInvoice | None:
 
 
 def parse_pdf(data: bytes) -> ExtractedInvoice | None:
-    """Extrait les données d'un PDF texte ; ``None`` si rien d'exploitable."""
+    """Extrait les données d'un PDF texte, toutes pages (jusqu'à 40)."""
     try:
-        text = extract_text(io.BytesIO(data), maxpages=8) or ""
+        text = extract_text(io.BytesIO(data), maxpages=40) or ""
     except Exception:
         logger.info("PDF illisible pour l'extraction texte.", exc_info=True)
         return None

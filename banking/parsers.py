@@ -534,17 +534,51 @@ def _parse_pdf_text(text: str) -> list[ParsedTransaction]:
 
 
 def parse_pdf(data: bytes) -> list[ParsedTransaction]:
-    """Relevé PDF : colonnes natives, puis texte OCR si le PDF est un scan."""
+    """Relevé PDF : colonnes natives toutes pages, puis texte OCR si le PDF est un scan."""
     if not data[:1024].lstrip().startswith(b"%PDF"):
         raise BankParseError("Ce fichier n'est pas un PDF valide.")
 
     pages = _pdf_words(data)
     if pages:
-        rows = [row for page in pages for row in _pdf_rows(page)]
-        transactions = _parse_pdf_layout(rows)
+        rows_by_page = [_pdf_rows(page) for page in pages]
+        transactions = _parse_pdf_layout(
+            [row for page_rows in rows_by_page for row in page_rows]
+        )
         if transactions:
-            return transactions
-        transactions = _parse_pdf_text("\n".join(row["text"] for row in rows))
+            # Repli par page : dans un relevé multi-pages, une page scannée
+            # ou à la géométrie différente peut échapper au layout. Le texte
+            # de chaque page est relu et seules les opérations vraiment
+            # nouvelles sont fusionnées (empreinte sur la valeur absolue :
+            # le texte peut perdre le signe débit).
+            seen_pairs = {(t.date, abs(t.amount)) for t in transactions}
+            seen_fp = {
+                (t.date, (t.label or "").lower()[:40], abs(t.amount))
+                for t in transactions
+            }
+            for page_rows in rows_by_page:
+                page_text = "\n".join(row["text"] for row in page_rows)
+                page_ops = _parse_pdf_text(page_text)
+                new_ops = [
+                    t for t in page_ops
+                    if (t.date, abs(t.amount)) not in seen_pairs
+                ]
+                if page_ops and not new_ops:
+                    continue  # page déjà couverte par le layout
+                for candidate in new_ops:
+                    fingerprint = (
+                        candidate.date,
+                        (candidate.label or "").lower()[:40],
+                        abs(candidate.amount),
+                    )
+                    if fingerprint in seen_fp:
+                        continue
+                    seen_fp.add(fingerprint)
+                    transactions.append(candidate)
+            if transactions:
+                return transactions
+        transactions = _parse_pdf_text(
+            "\n".join(row["text"] for page_rows in rows_by_page for row in page_rows)
+        )
         if transactions:
             return transactions
 
