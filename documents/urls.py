@@ -6,6 +6,7 @@ urlpatterns = [
     path("", views.invoice_dashboard, name="invoices"),
     path("liste/", views.invoice_list, name="invoice_list"),
     path("nouvelle/", views.invoice_create, name="invoice_create"),
+    path("apercu/", views.invoice_preview_form, name="invoice_preview_form"),
     path("import-pdf/", views.invoice_import_pdf, name="invoice_import_pdf"),
     path("<uuid:pk>/modifier/", views.invoice_edit, name="invoice_edit"),
     path("<uuid:pk>/pdf/", views.invoice_pdf, name="invoice_pdf"),
@@ -43,6 +44,7 @@ urlpatterns = [
 
     path("devis/", views.quote_list, name="quotes"),
     path("devis/nouveau/", views.quote_create, name="quote_create"),
+    path("devis/apercu/", views.quote_preview_form, name="quote_preview_form"),
     path("devis/<uuid:pk>/pdf/", views.quote_pdf, name="quote_pdf"),
     path("devis/<uuid:pk>/apercu/", views.quote_preview_png, name="quote_preview_png"),
     path("devis/<uuid:pk>/envoyer/", views.quote_email, name="quote_email"),

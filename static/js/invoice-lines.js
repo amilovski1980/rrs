@@ -1,4 +1,5 @@
-/* Éditeur de lignes de facture : préremplissage catalogue/client et totaux. */
+/* Éditeur de lignes de facture : préremplissage catalogue/client, totaux
+   et aperçu fidèle de la facture dans l'étape finale du wizard. */
 (function () {
   "use strict";
 
@@ -24,6 +25,56 @@
   function setValue(id, value) {
     var input = document.getElementById(id);
     if (input) input.value = value == null ? "" : value;
+  }
+
+  function bindSheetPreview(root) {
+    var holder = root.querySelector("[data-wizard-sheet]");
+    if (!holder || holder.dataset.previewWired === "1") return;
+    holder.dataset.previewWired = "1";
+    var url = holder.getAttribute("data-preview-url") || window.location.pathname;
+    var timer = null;
+
+    function load() {
+      holder.innerHTML =
+        '<p class="empty" style="padding:14px">Génération de l\'aperçu…</p>';
+      fetch(url, {
+        method: "POST",
+        body: new FormData(root),
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          Accept: "application/json",
+        },
+      })
+        .then(function (response) {
+          return response.json().then(function (data) {
+            return { ok: response.ok, data: data };
+          });
+        })
+        .then(function (payload) {
+          holder.innerHTML =
+            (payload.data && payload.data.html) ||
+            '<p class="error">Aperçu indisponible.</p>';
+        })
+        .catch(function () {
+          holder.innerHTML =
+            '<p class="error">Impossible de générer l\'aperçu. Réessayez.</p>';
+        });
+    }
+
+    root.addEventListener("wizard:final", load);
+    root.addEventListener(
+      "wizard:final-input",
+      function () {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(load, 700);
+      }
+    );
+    var refresh = root.querySelector("[data-sheet-refresh]");
+    if (refresh) refresh.addEventListener("click", load);
+    // Premier rendu si l'étape aperçu est déjà affichée (erreur serveur…).
+    var active = holder.closest(".wizard-step");
+    if (active && active.classList.contains("is-active")) load();
   }
 
   function init() {
@@ -57,6 +108,8 @@
     function rowField(row, suffix) {
       return row.querySelector('[name$="-' + suffix + '"]');
     }
+
+    var sheetPreview = bindSheetPreview(root);
 
     function updateRow(row) {
       var quantity = parseNumber(rowField(row, "quantity") && rowField(row, "quantity").value);

@@ -206,6 +206,7 @@
       if (cancel) cancel.hidden = index !== steps.length - 1;
       if (index === steps.length - 1) {
         fillRecap(form, steps[index].querySelector("[data-wizard-recap]"));
+        form.dispatchEvent(new CustomEvent("wizard:final", { bubbles: true }));
       }
     }
 
@@ -276,6 +277,7 @@
     form.addEventListener("input", function () {
       if (index === steps.length - 1) {
         fillRecap(form, steps[index].querySelector("[data-wizard-recap]"));
+        form.dispatchEvent(new CustomEvent("wizard:final-input", { bubbles: true }));
       }
     });
 
