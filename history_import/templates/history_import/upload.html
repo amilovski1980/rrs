@@ -74,6 +74,46 @@
   </form>
 </div>
 
+<details class="card import-tuto" style="margin-top:18px;padding:0">
+  <summary style="cursor:pointer;padding:16px 22px"><b>Comment ça marche — le guide en 5 étapes</b></summary>
+  <div style="padding:0 22px 18px" class="import-tuto-body">
+    <ol style="margin:0;padding-left:20px;color:var(--ink-2);font-size:13.5px;line-height:1.7">
+      <li>
+        <b>Chargez tout ce que vous avez.</b> Factures PDF/XML, tickets en photo,
+        relevés bancaires (PDF, OFX ou CSV), exports de caisse SumUp (CSV des
+        transactions) et catalogue produits de caisse (CSV) — un lot par session.
+      </li>
+      <li>
+        <b>L'app détecte tout automatiquement.</b> Chaque fichier est analysé :
+        le type (facture de vente, fournisseur, avoir, ticket, relevé SumUp ou
+        catalogue de caisse), les montants, la TVA, les dates, le client et le
+        fournisseur.
+      </li>
+      <li>
+        <b>Vérifiez la proposition.</b> Un CSV d'encaissements montre le brut, la
+        TVA, les commissions et le net ; un catalogue de caisse affiche les
+        produits avec prix et TVA ; une facture affiche ses champs corrigibles.
+      </li>
+      <li>
+        <b>Appliquez en un clic.</b> « Créer / mettre à jour le catalogue
+        produits » alimente la base produits ; « Créer les opérations de
+        trésorerie » charge les encaissements et relevés pour le rapprochement ;
+        les fiches client et fournisseur se créent depuis les factures. Les
+        doublons sont détectés et bloqués, rien n'est créé deux fois.
+      </li>
+      <li>
+        <b>Importez les documents finaux.</b> Les factures validées sont
+        archivées dans le module correspondant (ventes ou achats) sans créer
+        d'écriture comptable à votre place : la validation reste humaine.
+      </li>
+    </ol>
+    <p class="micro" style="margin-top:10px">
+      Astuce : renommez vos fichiers « vente-«, « achat-«, « ticket » si vous
+      voulez aider la détection — mais l'app se débrouille sans.
+    </p>
+  </div>
+</details>
+
 {% if recent %}
 <section class="card" style="margin-top:18px">
   <h2 style="margin:0 0 12px;font-size:17px">Lots récents</h2>

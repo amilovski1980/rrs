@@ -16,6 +16,7 @@ from .models import ImportAuditEvent, ImportBatch, ImportDocument
 from .services import (
     HistoricalImportError,
     add_upload,
+    apply_tabular,
     batch_stats,
     create_batch,
     import_document,
@@ -249,3 +250,74 @@ class HistoricalImportTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Historique")
         self.assertContains(response, "Importer la sélection")
+
+
+from datetime import date
+from decimal import Decimal
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+
+from companies.models import Company
+
+
+class TabularImportTests(HistoricalImportTestCase):
+    """Import universel : encaissements SumUp et catalogue de caisse."""
+
+    SUMUP_CSV = (
+        "Date,Transaction ID,Payment Method,Status,Gross Amount,Tax,Fee,Net Payout,Currency\r\n"
+        "2026-11-14 14:32:10,TXN-984321,Card (Contactless),Successful,25.00,4.17,0.44,24.56,EUR\r\n"
+        "2026-11-14 15:10:05,TXN-984322,Cash,Successful,12.50,2.08,0.00,12.50,EUR\r\n"
+    ).encode("utf-8")
+
+    CATALOGUE_CSV = (
+        "Item id,Variant id,Item name,Variant name,Category,Price,Tax rate (%),SKU,Track inventory,Quantity\r\n"
+        "a1b2c3d4,v1w2x3y4,Espresso,Single,Hot Drinks,2.50,10,COF-001,Yes,150\r\n"
+        "a1b2c3d4,v5w6x7y8,Espresso,Double,Hot Drinks,3.50,10,COF-002,Yes,150\r\n"
+    ).encode("utf-8")
+
+    def test_sumup_csv_is_detected_and_applied(self):
+        from banking.models import BankAccount, BankTransaction
+
+        batch = self._batch(("sumup.csv", self.SUMUP_CSV))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.kind, "sumup_transactions")
+        self.assertEqual(document.status, "ready")
+        self.assertEqual(document.extracted["totals"]["net"], "37.06")
+        self.assertEqual(document.extracted["totals"]["gross"], "37.50")
+
+        summary = apply_tabular(document)
+        self.assertEqual(summary["created"], 2)
+        document.refresh_from_db()
+        self.assertEqual(document.status, "imported")
+        transactions = BankTransaction.objects.filter(company=self.company)
+        self.assertEqual(transactions.count(), 2)
+        self.assertEqual(
+            transactions.filter(label__icontains="TXN-984321").first().amount,
+            Decimal("24.56"),
+        )
+        account = BankAccount.objects.get(company=self.company, label="SUMUP")
+        for transaction in transactions:
+            self.assertEqual(transaction.account_id, account.id)
+        # Idempotence : réappliquer ne recrée rien.
+        self.assertEqual(apply_tabular(document)["created"], 0)
+
+    def test_catalogue_csv_creates_products(self):
+        from documents.models import Product
+
+        batch = self._batch(("catalogue.csv", self.CATALOGUE_CSV))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.kind, "catalogue")
+        self.assertEqual(document.status, "ready")
+        summary = apply_tabular(document)
+        self.assertEqual(summary["created"], 2)
+        self.assertEqual(Product.objects.filter(company=self.company).count(), 2)
+        double = Product.objects.get(company=self.company, label="Espresso — Double")
+        self.assertEqual(double.unit_price, Decimal("3.50"))
+        self.assertEqual(double.vat_rate, Decimal("10.00"))
+        # Réapplication sans changement : rien ne se duplique.
+        self.assertEqual(apply_tabular(document)["skipped"], 2)
+        self.assertEqual(Product.objects.filter(company=self.company).count(), 2)

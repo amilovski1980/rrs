@@ -12,6 +12,7 @@ urlpatterns = [
     path("documents/<uuid:pk>/", views.document_detail, name="document"),
     path("documents/<uuid:pk>/fichier/", views.document_file, name="document_file"),
     path("documents/<uuid:pk>/importer/", views.document_import, name="document_import"),
+    path("documents/<uuid:pk>/appliquer/", views.document_apply, name="document_apply"),
     path("documents/<uuid:pk>/reanalyser/", views.document_reanalyze, name="document_reanalyze"),
     path("documents/<uuid:pk>/exclure/", views.document_reject, name="document_reject"),
 ]
