@@ -132,6 +132,8 @@
       form.querySelectorAll("[data-wizard-step]")
     );
     if (steps.length < 2) return;
+    var forced = form.getAttribute("data-wizard-mode") === "always";
+    if (forced) form.classList.add("wizard-forced");
 
     var originalSubmit = form.querySelector(
       ".form-actions-bar button[type='submit'], .form-actions button[type='submit']"
@@ -319,7 +321,7 @@
     Array.prototype.forEach.call(
       document.querySelectorAll("form[data-mobile-wizard]"),
       function (form) {
-        if (mql.matches) {
+        if (mql.matches || form.getAttribute("data-wizard-mode") === "always") {
           initWizard(form);
         } else {
           teardownWizard(form);

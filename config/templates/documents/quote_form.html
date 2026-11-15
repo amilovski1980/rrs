@@ -7,99 +7,133 @@
 <div class="page-head">
   <div>
     <h1>{% if quote %}Modifier {{ quote.number }}{% else %}Nouveau devis{% endif %}</h1>
-    <p class="sub">{{ company.denomination }} — ajoutez plusieurs produits comme sur une facture. Les totaux se calculent depuis les lignes.</p>
+    <p class="sub">{{ company.denomination }} — le devis se prépare en 4 étapes et se convertit en facture en un clic.</p>
   </div>
 </div>
 <div class="card">
-  <form class="form-stack" method="post" data-invoice-form data-mobile-wizard>
+  <form class="form-stack" method="post" data-invoice-form data-mobile-wizard data-wizard-mode="always" data-wizard-title="Nouveau devis">
     {% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    <div class="wizard-step" data-wizard-step data-step-label="Client">
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
-        {{ form.client }}
-        <p class="micro">{{ form.client.help_text }}</p>
-        {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
-      </div>
-      <div>
-        <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
-        {{ form.project }}
-        {% if form.project.errors %}<p class="error">{{ form.project.errors.0 }}</p>{% endif %}
-      </div>
-    </div>
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
-        {{ form.client_name }}
-        {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
-      </div>
-      <div>
-        <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
-        {{ form.client_siren }}
-        {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
-      </div>
-      <div>
-        <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
-        {{ form.valid_until }}
-        {% if form.valid_until.errors %}<p class="error">{{ form.valid_until.errors.0 }}</p>{% endif %}
-      </div>
-    </div>
-    </div>
 
-    <div class="wizard-step" data-wizard-step data-step-label="Lignes">
-    <section class="card invoice-lines-card">
-      <div class="invoice-lines-head">
-        <div>
-          <h2>Lignes du devis</h2>
-          <p class="sub">Choisissez un produit du catalogue pour préremplir la désignation, le prix et la TVA. Une ligne sans produit reste libre.</p>
-        </div>
+    <!-- ÉTAPE 1 : CLIENT -->
+    <div class="wizard-step" data-wizard-step data-step-label="Pour quel client ?">
+      <h2 class="wizard-step-title">Pour quel client ?</h2>
+      <p class="micro">Sélectionnez un client existant, cherchez une entreprise (INSEE) ou saisissez-en un nouveau.</p>
+      {% if company.clients.all %}
+      <div class="client-cards">
+        {% for client in company.clients.all %}
+        <button type="button" class="client-card" data-client-card
+                data-fill-id="{{ client.id }}"
+                data-fill-name="{{ client.name }}">
+          <strong>{{ client.name }}</strong>
+        </button>
+        {% endfor %}
       </div>
-      {{ formset.management_form }}
-      {% if formset.non_form_errors %}
-      <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
-      <div class="invoice-lines-scroll">
-        <table class="invoice-lines-table">
-          <thead>
-            <tr>
-              <th>Produit / service</th>
-              <th>Désignation</th>
-              <th class="num">Qté</th>
-              <th class="num">PU HT</th>
-              <th class="num">TVA %</th>
-              <th class="num">Montant HT</th>
-              <th><span class="sr-only">Action</span></th>
-            </tr>
-          </thead>
-          <tbody data-line-rows>
-            {% for line_form in formset %}
-            {% include "documents/_invoice_line_row.html" with line_form=line_form %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <template data-empty-form>
-        {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
-      </template>
-      <div class="invoice-lines-toolbar">
-        <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter une ligne</button>
-        <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
-          <span>Total HT <b data-preview-ht>0,00 €</b></span>
-          <span>TVA <b data-preview-vat>0,00 €</b></span>
-          <span class="invoice-preview-ttc">Total TTC <b data-preview-ttc>0,00 €</b></span>
+      <div class="form-grid" style="align-items:end">
+        <div>
+          <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
+          {{ form.client }}
+        </div>
+        <div>
+          <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
+          {{ form.project }}
         </div>
       </div>
-    </section>
+      <div class="form-grid" style="align-items:end">
+        <div>
+          <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
+          {{ form.client_name }}
+        </div>
+        <div>
+          <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
+          {{ form.client_siren }}
+        </div>
+      </div>
+      <div class="card" data-client-lookup
+           data-target-name="#id_client_name"
+           data-target-siren="#id_client_siren">
+        <div class="form-stack" style="gap:0">
+          <label>Chercher l'entreprise (nom, SIREN ou SIRET)</label>
+          <div class="form-grid" style="grid-template-columns:1fr auto;align-items:center">
+            <input data-client-lookup-input type="text" placeholder="Ex : Martin Bâtiment, 812345678…">
+            <button type="button" class="btn btn-primary" data-client-lookup-submit>Rechercher</button>
+          </div>
+          <p data-client-lookup-status class="micro" hidden></p>
+          <div data-client-lookup-results hidden></div>
+        </div>
+      </div>
     </div>
 
-    <div class="wizard-step" data-wizard-step data-step-label="Validation">
-      <div class="wizard-recap" data-wizard-recap></div>
-      <div>
+    <!-- ÉTAPE 2 : DÉTAILS -->
+    <div class="wizard-step" data-wizard-step data-step-label="Validité & conditions">
+      <h2 class="wizard-step-title">Validité & conditions</h2>
+      <p class="micro">Le devis est valable jusqu'à la date indiquée. Aucun engagement comptable avant la conversion en facture.</p>
+      <div class="due-quick" role="group" aria-label="Validité rapide">
+        <button type="button" class="due-chip" data-due-days="15" data-validity="on">15 jours</button>
+        <button type="button" class="due-chip" data-due-days="30" data-validity="on">30 jours</button>
+        <button type="button" class="due-chip" data-due-days="45" data-validity="on">45 jours</button>
+      </div>
+      <div class="form-grid" style="align-items:end">
+        <div class="card">
+          <label for="{{ form.valid_until.id_for_label }}">{{ form.valid_until.label }}</label>
+          {{ form.valid_until }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 : PRESTATIONS -->
+    <div class="wizard-step" data-wizard-step data-step-label="Prestations & articles">
+      <h2 class="wizard-step-title">Prestations & articles</h2>
+      <p class="micro">Choisissez un produit du catalogue pour préremplir la désignation, le prix et la TVA. Une ligne sans produit reste libre.</p>
+      <section class="card invoice-lines-card">
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}
+        <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        <div class="invoice-lines-scroll">
+          <table class="invoice-lines-table">
+            <thead>
+              <tr>
+                <th>Produit / service</th>
+                <th>Désignation</th>
+                <th class="num">Qté</th>
+                <th class="num">PU HT</th>
+                <th class="num">TVA %</th>
+                <th class="num">Montant HT</th>
+                <th><span class="sr-only">Action</span></th>
+              </tr>
+            </thead>
+            <tbody data-line-rows>
+              {% for line_form in formset %}
+              {% include "documents/_invoice_line_row.html" with line_form=line_form %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <template data-empty-form>
+          {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
+        </template>
+        <div class="invoice-lines-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter cette ligne</button>
+          <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
+            <span>Total HT <b data-preview-ht>0,00 €</b></span>
+            <span>TVA <b data-preview-vat>0,00 €</b></span>
+            <span class="invoice-preview-ttc">Total TTC <b data-preview-ttc>0,00 €</b></span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ÉTAPE 4 : APERÇU -->
+    <div class="wizard-step" data-wizard-step data-step-label="Aperçu du devis">
+      <h2 class="wizard-step-title">Aperçu du devis</h2>
+      <p class="micro">Vérifiez le client, les lignes et les totaux avant d'enregistrer.</p>
+      <div class="form-group">
         <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
         {{ form.notes }}
-        {% if form.notes.errors %}<p class="error">{{ form.notes.errors.0 }}</p>{% endif %}
       </div>
+      <div class="wizard-recap" data-wizard-recap></div>
       <div class="form-actions-bar">
         <button class="btn btn-primary" type="submit">Enregistrer</button>
         <a class="btn btn-ghost" href="{% url 'quotes' %}?societe={{ company.id }}">Annuler</a>
@@ -109,5 +143,44 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.14.6" defer></script>
+<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.16.5" defer></script>
+<script>
+  document.addEventListener("click", function (event) {
+    var chip = event.target.closest && event.target.closest("[data-due-days]");
+    if (!chip) return;
+    var field = document.getElementById("id_valid_until");
+    if (!field) return;
+    var days = parseInt(chip.getAttribute("data-due-days"), 10);
+    var date = new Date();
+    date.setDate(date.getDate() + days);
+    var pad = function (value) { return (value < 10 ? "0" : "") + value; };
+    field.value = date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+    document.querySelectorAll(".due-chip").forEach(function (other) {
+      other.classList.remove("is-selected");
+    });
+    chip.classList.add("is-selected");
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  document.addEventListener("click", function (event) {
+    var card = event.target.closest && event.target.closest("[data-client-card]");
+    if (!card) return;
+    var name = card.getAttribute("data-fill-name") || "";
+    var id = card.getAttribute("data-fill-id") || "";
+    var select = document.getElementById("id_client");
+    if (select && id) {
+      var option = Array.prototype.find.call(select.options, function (opt) { return opt.value === id; });
+      if (option) select.value = id;
+    }
+    var nameInput = document.getElementById("id_client_name");
+    if (nameInput) {
+      nameInput.value = name;
+      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    document.querySelectorAll("[data-client-card]").forEach(function (other) {
+      other.classList.remove("selected");
+    });
+    card.classList.add("selected");
+  });
+</script>
 {% endblock %}
