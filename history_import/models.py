@@ -101,6 +101,10 @@ class ImportDocument(models.Model):
         ("purchase_invoice", "Facture fournisseur"),
         ("credit_note", "Avoir"),
         ("ticket", "Ticket / justificatif"),
+        ("catalogue", "Catalogue produits"),
+        ("sumup_transactions", "Encaissements SumUp"),
+        ("product_sales", "Ventes par produit"),
+        ("bank_statement", "Relevé bancaire"),
         ("other", "Autre document"),
         ("unknown", "Non reconnu"),
     ]

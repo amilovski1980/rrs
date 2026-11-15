@@ -277,6 +277,43 @@ class TabularImportTests(HistoricalImportTestCase):
         "a1b2c3d4,v5w6x7y8,Espresso,Double,Hot Drinks,3.50,10,COF-002,Yes,150\r\n"
     ).encode("utf-8")
 
+    PRODUCT_SALES_CSV = (
+        "Product,Store,Category,Quantity,Unit of measure,Sales amount excluding tax,"
+        "Tax amount,Sales amount including tax,Gross Margin\r\n"
+        "Café Espresso,Boutique Paris,Boissons,10,Unit,15.00,1.50,16.50,12.00\r\n"
+        "Café Espresso,Boutique Lyon,Boissons,4,Unit,6.00,0.60,6.60,4.80\r\n"
+        "T-shirt Logo,Boutique Lyon,Merchandising,2,Unit,39.00,7.80,46.80,20.00\r\n"
+    ).encode("utf-8")
+
+    def test_product_sales_csv_creates_products(self):
+        from documents.models import Product
+
+        batch = self._batch(("ventes-par-produit.csv", self.PRODUCT_SALES_CSV))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.kind, "product_sales")
+        self.assertEqual(document.status, "ready")
+        totals = document.extracted["totals"]
+        self.assertEqual(totals["count"], 3)
+        self.assertEqual(totals["produits"], 2)
+        self.assertEqual(totals["ht"], "60.00")
+        self.assertEqual(totals["tax"], "9.90")
+        self.assertEqual(totals["ttc"], "69.90")
+
+        summary = apply_tabular(document)
+        self.assertEqual(summary["created"], 2)
+        document.refresh_from_db()
+        self.assertEqual(document.status, "imported")
+        espresso = Product.objects.get(company=self.company, label="Café Espresso")
+        # 21,00 € HT pour 14 unités vendues → PU 1,50 · TVA 10 %
+        self.assertEqual(espresso.unit_price, Decimal("1.50"))
+        self.assertEqual(espresso.vat_rate, Decimal("10.00"))
+        shirt = Product.objects.get(company=self.company, label="T-shirt Logo")
+        self.assertEqual(shirt.unit_price, Decimal("19.50"))
+        self.assertEqual(shirt.vat_rate, Decimal("20.00"))
+        # Idempotence : réappliquer ne recrée rien.
+        self.assertEqual(apply_tabular(document)["created"], 0)
+
     def test_sumup_csv_is_detected_and_applied(self):
         from banking.models import BankAccount, BankTransaction
 

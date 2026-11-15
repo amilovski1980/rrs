@@ -1,0 +1,15 @@
+﻿Product,Store,Category,Quantity,Unit of measure,Sales amount excluding tax,Tax amount,Sales amount including tax,Gross Margin
+Café Espresso,Boutique Paris,Boissons,10,Unit,15.00,1.50,16.50,12.00
+Café Latte,Boutique Paris,Boissons,8,Unit,21.60,2.16,23.76,17.10
+Cappuccino,Boutique Paris,Boissons,6,Unit,13.20,1.32,14.52,11.00
+Thé Vert Matcha,Boutique Lyon,Boissons,5,Unit,16.50,0.91,17.41,12.30
+Eau Minérale 50cl,Boutique Paris,Boissons,15,Unit,13.40,0.74,14.14,11.90
+Croissant au Beurre,Boutique Paris,Pâtisseries,12,Unit,21.00,2.10,23.10,15.60
+Pain au Chocolat,Boutique Paris,Pâtisseries,9,Unit,17.10,1.71,18.81,12.50
+Cookie Chocolat,Boutique Lyon,Pâtisseries,7,Unit,13.30,1.33,14.63,9.80
+Tarte aux Pommes,Boutique Lyon,Pâtisseries,4,Part,15.60,1.56,17.16,11.20
+Jambon-Beurre,Boutique Lyon,Snacking,5,Unit,19.50,1.95,21.45,13.90
+Salade Fraîcheur,Boutique Lyon,Snacking,3,Unit,14.70,1.47,16.17,10.40
+T-shirt Logo,Boutique Lyon,Merchandising,2,Unit,39.00,7.80,46.80,20.00
+Mug Céramique,Boutique Paris,Merchandising,4,Unit,31.60,6.32,37.92,18.40
+Tote Bag,Boutique Paris,Merchandising,3,Unit,22.50,4.50,27.00,13.50
