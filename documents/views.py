@@ -347,13 +347,18 @@ def invoice_preview_form(request):
                 "lines": preview_lines,
                 "client_kicker": "Facturé à",
                 "foot_note": (
-                    f"Payable à {preview.due_date|date:'d/m/Y'}."
+                    f"Payable au {preview.due_date.strftime('%d/%m/%Y')}."
                     if preview.due_date else "Payable à réception."
                 ),
             },
             request=request,
         )
     except Exception:
+        import logging as _log
+
+        _log.getLogger("documents.preview").exception(
+            "Rendu de l'aperçu de facture impossible → secours simplifié."
+        )
         # Rien ne doit bloquer le wizard : en dernier recours un aperçu
         # simplifié est renvoyé à la place de l'erreur.
         html = (
@@ -363,9 +368,9 @@ def invoice_preview_form(request):
             f"{(' · SIREN ' + escape(client_siren)) if client_siren else ''}</p>"
             f"<p style='margin:0 0 10px'>{escape(preview_lines[0]['description'] if preview_lines else '')}</p>"
             f"<p style='font-size:18px;margin:12px 0 0'><b>"
-            f"{(ht_total + vat_total).quantize(Decimal('0.01')).normalize()} € TTC</b> "
-            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')).normalize()} · "
-            f"TVA {vat_total.quantize(Decimal('0.01')).normalize()})</span></p>"
+            f"{(ht_total + vat_total).quantize(Decimal('0.01')):.2f} € TTC</b> "
+            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')):.2f} · "
+            f"TVA {vat_total.quantize(Decimal('0.01')):.2f})</span></p>"
             f"</article>"
         )
     return JsonResponse({"html": html})
@@ -1199,13 +1204,18 @@ def quote_preview_form(request):
                 "lines": preview_lines,
                 "client_kicker": "Devis pour",
                 "foot_note": (
-                    f"Devis valable jusqu'au {preview.due_date|date:'d/m/Y'}."
-                    if preview.due_date else "Devis valable 30 jours."
+                    f"Devis valable jusqu'au {preview.valid_until.strftime('%d/%m/%Y')}."
+                    if preview.valid_until else "Devis valable 30 jours."
                 ),
             },
             request=request,
         )
     except Exception:
+        import logging as _log
+
+        _log.getLogger("documents.preview").exception(
+            "Rendu de l'aperçu de devis impossible → secours simplifié."
+        )
         # Même secours simplifié que pour la facture.
         html = (
             f"<article class='sheet sheet-azur'>"
@@ -1213,9 +1223,9 @@ def quote_preview_form(request):
             f"<p style='margin:0 0 10px'><b>{escape(client_name) or 'Client à préciser'}</b></p>"
             f"<p style='margin:0 0 10px'>{escape(preview_lines[0]['description'] if preview_lines else '')}</p>"
             f"<p style='font-size:18px;margin:12px 0 0'><b>"
-            f"{(ht_total + vat_total).quantize(Decimal('0.01')).normalize()} € TTC</b> "
-            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')).normalize()} · "
-            f"TVA {vat_total.quantize(Decimal('0.01')).normalize()})</span></p>"
+            f"{(ht_total + vat_total).quantize(Decimal('0.01')):.2f} € TTC</b> "
+            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')):.2f} · "
+            f"TVA {vat_total.quantize(Decimal('0.01')):.2f})</span></p>"
             f"</article>"
         )
     return JsonResponse({"html": html})
