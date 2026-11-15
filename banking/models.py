@@ -33,7 +33,7 @@ class BankAccount(models.Model):
         verbose_name="Compte comptable",
     )
     opening_balance = models.DecimalField(
-        max_digits=12,
+        max_digits=15,
         decimal_places=2,
         default=Decimal("0.00"),
         verbose_name="Solde d'ouverture",
@@ -95,10 +95,10 @@ class BankStatement(models.Model):
     date_start = models.DateField(null=True, blank=True)
     date_end = models.DateField(null=True, blank=True)
     opening_balance = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
+        max_digits=15, decimal_places=2, null=True, blank=True
     )
     closing_balance = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True
+        max_digits=15, decimal_places=2, null=True, blank=True
     )
     file = models.FileField(upload_to="banking/releves/", null=True, blank=True)
     # Repli base de données : Vercel monte le code en lecture seule (/var/task),
@@ -171,7 +171,7 @@ class BankTransaction(models.Model):
     reference = models.CharField(max_length=120, blank=True, verbose_name="Référence")
     external_id = models.CharField(max_length=120, blank=True)
     amount = models.DecimalField(
-        max_digits=12, decimal_places=2, verbose_name="Montant (signé)"
+        max_digits=15, decimal_places=2, verbose_name="Montant (signé)"
     )
     currency = models.CharField(max_length=3, default="EUR")
     status = models.CharField(max_length=12, choices=STATUSES, default="unmatched")
@@ -234,10 +234,10 @@ class BankRule(models.Model):
         max_length=120, blank=True, verbose_name="Tiers contient"
     )
     min_amount = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Montant min"
+        max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Montant min"
     )
     max_amount = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Montant max"
+        max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Montant max"
     )
     counterpart_account = models.ForeignKey(
         "accounting.ChartAccount",

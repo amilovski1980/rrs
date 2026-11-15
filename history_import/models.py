@@ -137,13 +137,13 @@ class ImportDocument(models.Model):
     invoice_date = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     amount_ht = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal("0.00")
+        max_digits=15, decimal_places=2, default=Decimal("0.00")
     )
     amount_vat = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal("0.00")
+        max_digits=15, decimal_places=2, default=Decimal("0.00")
     )
     amount_ttc = models.DecimalField(
-        max_digits=12, decimal_places=2, default=Decimal("0.00")
+        max_digits=15, decimal_places=2, default=Decimal("0.00")
     )
     vat_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("20.00")

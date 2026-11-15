@@ -79,8 +79,8 @@ class EntryLine(models.Model):
     account = models.ForeignKey(ChartAccount, on_delete=models.PROTECT)
 
     # Decimal systématiquement, jamais de float.
-    debit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
-    credit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    debit = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal("0"))
+    credit = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal("0"))
 
     def clean(self):
         self.debit = self.debit or 0

@@ -379,8 +379,45 @@ def _classify(invoice: ExtractedInvoice | None, raw_text: str, batch: ImportBatc
     return kind, warnings
 
 
+MAX_IMPORT_AMOUNT = Decimal("999999999999.99")  # précision 15/2 : 10^14
+
+
+def _amounts_beyond_limit(invoice: ExtractedInvoice) -> list[str]:
+    """Noms des montants qui dépassent la capacité du champ (10^14)."""
+    beyond = []
+    for label, value in (
+        ("HT", invoice.amount_ht),
+        ("TVA", invoice.amount_vat),
+        ("TTC", invoice.amount_ttc),
+    ):
+        if abs(value or Decimal("0")) > MAX_IMPORT_AMOUNT:
+            beyond.append(f"{label} {value}")
+    return beyond
+
+
 def _apply_extraction(document: ImportDocument, invoice: ExtractedInvoice | None):
+    """Écrit les données extraites. Un montant hors échelle ne lève plus
+    une erreur Postgres : le document passe en « error » avec un message
+    lisible et des avertissements exploitables."""
     if invoice is None:
+        return
+    beyond = _amounts_beyond_limit(invoice)
+    if beyond:
+        document.warnings = list(document.warnings or []) + [
+            f"Montant hors échelle ignoré : {', '.join(beyond)}"
+        ]
+        document.status = "error"
+        document.error_message = (
+            "Montant illisible : la fiche contient une valeur au-delà de "
+            "999 999 999 999,99. Corrigez la lecture (montant, devise, "
+            "concentration de chiffres) puis relancez l'analyse."
+        )
+        document.amount_ht = ZERO
+        document.amount_vat = ZERO
+        document.amount_ttc = ZERO
+        document.vat_rate = invoice.vat_rate
+        document.currency = invoice.currency or "EUR"
+        document.extracted = {}
         return
     document.seller_name = invoice.supplier_name[:200]
     document.seller_siret = invoice.supplier_siret[:20]
