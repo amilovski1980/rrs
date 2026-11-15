@@ -26,11 +26,12 @@
 </div>
 {% endif %}
 
-<form method="post" class="card form-stack">
+<form method="post" class="card form-stack" data-mobile-wizard>
   {% csrf_token %}
   {% if form.non_field_errors %}
   <ul class="form-errors">{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
   {% endif %}
+  <div class="wizard-step" data-wizard-step data-step-label="Fournisseur">
   <div class="form-grid">
     <div>
       <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
@@ -53,6 +54,8 @@
       {{ form.tva_intra }}
     </div>
   </div>
+  </div>
+  <div class="wizard-step" data-wizard-step data-step-label="Contact & coordonnées">
   <div class="form-grid">
     <div>
       <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
@@ -89,6 +92,7 @@
   <div>
     <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
     {{ form.notes }}
+  </div>
   </div>
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">Enregistrer</button>

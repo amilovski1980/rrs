@@ -10,7 +10,11 @@
   </div>
 </div>
 <div class="card">
-  <div class="client-lookup" data-client-lookup>
+  <div class="client-lookup" data-client-lookup
+       data-target-name="#id_name"
+       data-target-siren="#id_siren"
+       data-target-address="#id_address"
+       data-target-tva="#id_tva_intra">
     <div class="client-lookup-head">
       <h2>Rechercher une entreprise</h2>
       <p class="sub">SIREN, SIRET ou nom. La fiche se remplit automatiquement ; vous pouvez aussi tout saisir manuellement.</p>
@@ -23,9 +27,10 @@
     <p class="client-lookup-status" data-client-lookup-status hidden role="status"></p>
     <div class="client-lookup-results" data-client-lookup-results hidden></div>
   </div>
-  <form class="form-stack" method="post">
+  <form class="form-stack" method="post" data-mobile-wizard>
     {% csrf_token %}
     {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="wizard-step" data-wizard-step data-step-label="Identité de l'entreprise">
     <div class="form-grid">
       <div><label>Nom</label>{{ form.name }}{% if form.name.errors %}<p class="error">{{ form.name.errors.0 }}</p>{% endif %}</div>
       <div><label>SIREN</label>{{ form.siren }}{% if form.siren.errors %}<p class="error">{{ form.siren.errors.0 }}</p>{% endif %}</div>
@@ -36,16 +41,20 @@
     </div>
     <div class="form-grid">
       <div><label>RCS</label>{{ form.rcs }}</div>
-      <div><label>E-mail</label>{{ form.email }}{% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}</div>
+      <div><label>Adresse</label>{{ form.address }}</div>
     </div>
+    </div>
+
+    <div class="wizard-step" data-wizard-step data-step-label="Contact & notes">
     <div class="form-grid">
+      <div><label>E-mail</label>{{ form.email }}{% if form.email.errors %}<p class="error">{{ form.email.errors.0 }}</p>{% endif %}</div>
       <div><label>Téléphone</label>{{ form.phone }}</div>
     </div>
-    <div><label>Adresse</label>{{ form.address }}</div>
     <div style="margin-top:12px"><label>Notes</label>{{ form.notes }}</div>
     <div class="form-actions-bar">
       <button class="btn btn-primary" type="submit">Enregistrer</button>
       <a class="btn btn-ghost" href="{% url 'clients' %}?societe={{ company.id }}">Annuler</a>
+    </div>
     </div>
   </form>
 </div>

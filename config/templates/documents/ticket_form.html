@@ -16,6 +16,7 @@
   method="post"
   enctype="multipart/form-data"
   data-ticket-form
+  data-mobile-wizard
   novalidate
 >
   {% csrf_token %}
@@ -38,7 +39,7 @@
 
   <div class="ticket-form-layout">
     {# —— Justificatif —— #}
-    <section class="ticket-section" aria-labelledby="sec-justificatif">
+    <section class="ticket-section" data-wizard-step data-step-label="Justificatif" aria-labelledby="sec-justificatif">
       <header class="ticket-section-head">
         <h2 id="sec-justificatif">Justificatif</h2>
         <p class="sub">Photo ou scan du ticket (optionnel à la saisie manuelle).</p>
@@ -76,7 +77,7 @@
     </section>
 
     {# —— Informations —— #}
-    <section class="ticket-section" aria-labelledby="sec-infos">
+    <section class="ticket-section" data-wizard-step data-step-label="Date & commerçant" aria-labelledby="sec-infos">
       <header class="ticket-section-head">
         <h2 id="sec-infos">Informations</h2>
         <p class="sub">Date et commerçant.</p>
@@ -114,7 +115,7 @@
     </section>
 
     {# —— Montants —— #}
-    <section class="ticket-section" aria-labelledby="sec-montants">
+    <section class="ticket-section" data-wizard-step data-step-label="Montants & TVA" aria-labelledby="sec-montants">
       <header class="ticket-section-head">
         <h2 id="sec-montants">Montants</h2>
         <p class="sub">TTC, TVA et taux — le HT est calculé automatiquement.</p>
@@ -148,7 +149,7 @@
     </section>
 
     {# —— Classement —— #}
-    <section class="ticket-section" aria-labelledby="sec-classement">
+    <section class="ticket-section" data-wizard-step data-step-label="Classement" aria-labelledby="sec-classement">
       <header class="ticket-section-head">
         <h2 id="sec-classement">Classement</h2>
         <p class="sub">Catégorie et statut du ticket.</p>
@@ -173,7 +174,7 @@
     </section>
 
     {# —— Notes —— #}
-    <section class="ticket-section" aria-labelledby="sec-notes">
+    <section class="ticket-section" data-wizard-step data-step-label="Notes" aria-labelledby="sec-notes">
       <header class="ticket-section-head">
         <h2 id="sec-notes">Notes</h2>
       </header>
