@@ -7,7 +7,7 @@
     <span class="agent-fab-text">Aminia</span>
   </button>
 
-  <div class="agent-chooser" id="agent-chooser" data-agent-chooser hidden role="dialog" aria-label="Choisir le mode Aminia">
+  <div class="agent-chooser glass-panel" id="agent-chooser" data-agent-chooser hidden role="dialog" aria-label="Choisir le mode Aminia">
     <p class="agent-chooser-title">Comment souhaitez-vous parler à Aminia&nbsp;?</p>
     <div class="agent-chooser-actions">
       <button class="btn {% if forfait.locks.ai_voice %}btn-ghost is-locked{% else %}btn-primary{% endif %}" type="button" data-agent-pick="voice" {% if forfait.locks.ai_voice %}data-plan-locked="1" data-upgrade-url="{% url 'plan_upgrade' %}"{% endif %}>Vocal</button>
@@ -20,7 +20,7 @@
   </div>
 
   <div class="agent-results" id="agent-results" data-agent-results hidden role="region" aria-label="Résultats de recherche d'entreprises">
-    <div class="agent-results-card">
+    <div class="agent-results-card glass-panel">
       <header class="agent-results-head">
         <div>
           <h2 data-agent-results-title aria-live="polite">Recherche d'entreprise…</h2>
@@ -42,7 +42,7 @@
   </div>
 
   <div class="live-invoice" data-live-invoice hidden>
-    <div class="card card-tight">
+    <div class="card card-tight glass-panel">
       <div class="card-head">
         <h3>Aminia rédige la facture</h3>
         <a class="btn btn-ghost btn-sm" data-live-open href="#" hidden>Ouvrir</a>
@@ -103,7 +103,7 @@
   </div>
 
   <div class="agent-chat" id="agent-chat" data-agent-chat hidden role="dialog" aria-labelledby="agent-chat-title" aria-modal="true">
-    <div class="agent-chat-card">
+    <div class="agent-chat-card glass-panel">
       <header class="agent-chat-head">
         <div>
           <h2 id="agent-chat-title">Aminia — chat</h2>
