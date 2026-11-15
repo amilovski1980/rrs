@@ -84,6 +84,8 @@
         button.addEventListener("click", function (event) {
           event.preventDefault();
           event.stopPropagation();
+          /* Ne pas couper un appel en cours en retapant l'onglet Aminia. */
+          if (document.body.classList.contains("agent-open")) return;
           var fab = document.querySelector("[data-agent-open]");
           if (fab) fab.click();
         });
