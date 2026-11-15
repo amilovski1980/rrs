@@ -22,11 +22,11 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.20">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.21">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.23">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
-  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.16.10">
+  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.16.11">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.5">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
@@ -321,17 +321,11 @@
   </div>
 
   {# —— Footer mobile (≤768px) : gestes quotidiens façon app bancaire —— #}
-  {# Accueil · Factures (liste) · Trésorerie · Aminia · Plus (tiroir) #}
+  {# Accueil · Trésorerie · Factures (centre surélevé) · Aminia · Plus (tiroir) #}
   <nav class="m-footer" data-m-footer aria-label="Navigation principale">
     <a class="m-footer-btn {% if request.resolver_match.url_name == 'cockpit' %}active{% endif %}" href="{% url 'cockpit' %}"{% if request.resolver_match.url_name == 'cockpit' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="house" %}</span>
       <span>Accueil</span>
-    </a>
-    <a class="m-footer-btn {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' or request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'client_list' or request.resolver_match.url_name == 'quote_list' or request.resolver_match.url_name == 'credit_note_list' %}active{% endif %}"
-       href="{% url 'invoice_list' %}"
-       {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' or request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'client_list' or request.resolver_match.url_name == 'quote_list' or request.resolver_match.url_name == 'credit_note_list' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
-      <span>Factures</span>
     </a>
     <a class="m-footer-btn {% if request.resolver_match.namespace == 'treasury' %}active{% endif %}"
        href="{% if forfait.locks.treasury %}{% url 'plan_upgrade' %}{% else %}{% url 'treasury:dashboard' %}{% endif %}"
@@ -339,6 +333,12 @@
        {% if request.resolver_match.namespace == 'treasury' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="chart" %}</span>
       <span>Trésorerie</span>
+    </a>
+    <a class="m-footer-btn m-footer-raised {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' or request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'client_list' or request.resolver_match.url_name == 'quote_list' or request.resolver_match.url_name == 'credit_note_list' %}active{% endif %}"
+       href="{% url 'invoice_list' %}"
+       {% if request.resolver_match.url_name == 'invoice_list' or request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice_detail' or request.resolver_match.url_name == 'invoice_create' or request.resolver_match.url_name == 'client_list' or request.resolver_match.url_name == 'quote_list' or request.resolver_match.url_name == 'credit_note_list' %} aria-current="page"{% endif %}>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
+      <span>Factures</span>
     </a>
     <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
@@ -354,7 +354,7 @@
 </div>
   <script src="{% static 'js/app.js' %}?v=2026.11.16.6" defer></script>
   <script src="{% static 'js/mobile-tables.js' %}?v=2026.11.16.4" defer></script>
-  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.16.8" defer></script>
+  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.16.9" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.17.2" defer></script>
   <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.4" defer></script>
   <script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>

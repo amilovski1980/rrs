@@ -517,6 +517,13 @@
           liveBox.setAttribute("data-live-draft-id", String(invoice.id || ""));
           liveTimer = window.setInterval(paintLive, 48);
         }
+        /* Le brouillon existe : la relecture plein écran est prête à être
+           validée. Valider ouvre le brouillon (et termine l'appel). */
+        var validate = document.querySelector("[data-live-validate]");
+        if (validate) {
+          validate.removeAttribute("hidden");
+          validate.href = themePath(invoice.url);
+        }
       }
       if (!invoice || !link) return;
       link.hidden = false;
