@@ -5,52 +5,84 @@
 {% block content %}
 <div class="page-head ticket-upload-head">
   <div>
-    <h1>Importer un ticket de caisse</h1>
-    <p class="sub">Photo ou scan (JPG, PNG, WEBP) — PDF texte accepté. Rien n'est comptabilisé tant que vous n'avez pas validé.</p>
+    <h1>Ajouter un ticket de caisse</h1>
+    <p class="sub">Une photo, l'OCR remplit tout, vous validez. Rien n'est comptabilisé sans vous.</p>
   </div>
-  <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Retour</a>
+  <a class="btn btn-ghost" href="{% url 'tickets' %}?societe={{ company.id }}">Mes tickets</a>
 </div>
 
 <form class="card ticket-upload-form" method="post" enctype="multipart/form-data" data-ticket-upload-form>
   {% csrf_token %}
 
-  <div class="ticket-upload-hero">
-    <span class="ticket-upload-icon" aria-hidden="true">{% include "partials/icon.html" with name="receipt" %}</span>
-    <div>
-      <h2>Un ticket, une dépense, c'est réglé.</h2>
-      <p>Déposez votre justificatif ou photographiez-le. L'OCR prépare un brouillon : vous gardez la main avant validation.</p>
+  <label class="ticket-camera-cta" for="id_ticket_camera">
+    <span class="ticket-camera-orb" aria-hidden="true">
+      {% include "partials/icon.html" with name="receipt" %}
+    </span>
+    <span class="ticket-camera-text">
+      <b>Prendre en photo le ticket</b>
+      <small>Appareil photo — l'agent IA lit les montants automatiquement</small>
+    </span>
+    <span class="ticket-camera-arrow" aria-hidden="true">→</span>
+  </label>
+  <input
+    id="id_ticket_camera"
+    class="ticket-camera-input"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    data-ticket-camera
+  >
+
+  <label class="ticket-file-cta" for="{{ form.fichier.id_for_label }}">
+    <span aria-hidden="true">📎</span>
+    <span>Choisir un fichier (JPG, PNG, WEBP, PDF)</span>
+  </label>
+  {{ form.fichier }}
+  {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
+
+  <div class="ticket-fields-grid">
+    <div class="field">
+      <label for="{{ form.categorie.id_for_label }}">{{ form.categorie.label }}</label>
+      {{ form.categorie }}
+      <p class="micro">Facultatif — aide Aminia à classer la dépense.</p>
+      {% for err in form.categorie.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
     </div>
   </div>
 
-  <div class="field mobile-only ticket-camera-block">
-    <p class="ticket-camera-hint">Sur téléphone, photographiez directement le ticket :</p>
-    <label class="btn btn-primary ticket-camera-btn" for="id_ticket_camera">Prendre en photo</label>
-    <input
-      id="id_ticket_camera"
-      class="ticket-camera-input"
-      type="file"
-      accept="image/*"
-      capture="environment"
-      data-ticket-camera
-    >
-    <p class="sub">La photo est envoyée au même OCR que l'import classique (brouillon à valider).</p>
-  </div>
-
-  <div class="ticket-dropzone">
-    <label for="{{ form.fichier.id_for_label }}">{{ form.fichier.label }}</label>
-    {{ form.fichier }}
-    {% if form.fichier.help_text %}<p class="sub">{{ form.fichier.help_text }}</p>{% endif %}
-    {% for err in form.fichier.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
-  </div>
-
-  <div class="field">
-    <label for="{{ form.categorie.id_for_label }}">{{ form.categorie.label }}</label>
-    {{ form.categorie }}
-    <p class="sub">Facultatif : aide Aminia à classer la dépense.</p>
-    {% for err in form.categorie.errors %}<p class="form-error">{{ err }}</p>{% endfor %}
-  </div>
-
-  <button class="btn btn-primary form-submit ticket-upload-submit" type="submit" data-ticket-ocr-submit>Lancer l'OCR</button>
+  <button class="btn btn-primary btn-lg ticket-upload-submit" type="submit" data-ticket-ocr-submit>
+    Lire le ticket avec l'agent IA
+  </button>
   <p class="ticket-upload-safe">Aucune écriture comptable avant votre validation.</p>
 </form>
+
+<div class="card ticket-recent" {% if not recent_tickets %}hidden{% endif %}>
+  <details class="import-tuto">
+    <summary style="cursor:pointer;padding:14px 18px">
+      <b>Vos derniers tickets</b>
+      <span class="micro">· les {5 derniers déjà importés dans la société</span>
+    </summary>
+    <ul style="margin:0;padding:8px 18px 14px;list-style:none">
+      {% for past in recent_tickets %}
+      <li style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0">
+        <a href="{% url 'ticket_detail' past.pk %}?societe={{ company.id }}" style="color:var(--ink);text-decoration:none">
+          <b>{{ past.magasin|default:"Ticket" }}</b>
+          <small style="color:var(--muted)"> · {{ past.date|date:"d/m/Y" }}</small>
+        </a>
+        <span class="badge">{{ past.amount_ttc|floatformat:2 }} €</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+</div>
+
+<div class="card import-tuto" style="margin-top:14px">
+  <details>
+    <summary style="cursor:pointer;padding:14px 18px"><b>Comment ça marche — 3 étapes</b></summary>
+    <ol style="margin:0;padding:8px 18px 16px 38px;color:var(--ink-2);font-size:13.5px;line-height:1.7">
+      <li><b>Prenez le ticket en photo</b> (ou choisissez un fichier).</li>
+      <li><b>L'agent IA lit le ticket</b> : magasin, date, TTC, TVA, lignes — un brouillon est préparé.</li>
+      <li><b>Vérifiez et validez</b> : l'écriture n'est créée qu'après votre accord, et la photo reste en archive.</li>
+    </ol>
+  </details>
+</div>
 {% endblock %}
