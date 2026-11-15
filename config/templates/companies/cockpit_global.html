@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Toutes mes sociétés{% endblock %}
+{% block crumbs %}Pilotage / Toutes mes sociétés{% endblock %}
+{% block nav_cockpit_global %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Toutes mes sociétés</h1>
+    <p class="sub">
+      {{ companies_count }} sociétés · {{ window_label }}
+      ({{ start|date:"d/m/Y" }} → {{ today|date:"d/m/Y" }})
+      · comparaison avec {{ prev_start|date:"d/m/Y" }} → {{ start|date:"d/m/Y" }}
+    </p>
+  </div>
+  <nav class="period-switch" aria-label="Période">
+    <a class="{% if period == 'semaine' %}is-on{% endif %}" href="?periode=semaine">Semaine</a>
+    <a class="{% if period == 'mois' %}is-on{% endif %}" href="?periode=mois">Mois</a>
+    <a class="{% if period == 'annee' %}is-on{% endif %}" href="?periode=annee">Année</a>
+  </nav>
+</div>
+
+<div class="global-kpis">
+  <div class="kpi global-kpi">
+    <span class="l">Chiffre d'affaires TTC</span>
+    <span class="v">{{ totals.ca|floatformat:2 }} €</span>
+    <span class="d {% if deltas.ca_up %}is-up{% else %}is-down{% endif %}">{{ deltas.ca }}</span>
+  </div>
+  <div class="kpi global-kpi">
+    <span class="l">TVA collectée</span>
+    <span class="v">{{ totals.vat|floatformat:2 }} €</span>
+    <span class="d">{{ deltas.vat }}</span>
+  </div>
+  <div class="kpi global-kpi">
+    <span class="l">Achats TTC</span>
+    <span class="v">{{ totals.achats|floatformat:2 }} €</span>
+    <span class="d">{{ deltas.achats }}</span>
+  </div>
+  <div class="kpi global-kpi">
+    <span class="l">TVA nette à décaisser</span>
+    <span class="v">{{ totals.vat_net|floatformat:2 }} €</span>
+    <span class="d">collectée − déductible</span>
+  </div>
+  <div class="kpi global-kpi">
+    <span class="l">Factures émises</span>
+    <span class="v">{{ totals.count }}</span>
+    <span class="d">toutes sociétés</span>
+  </div>
+</div>
+
+<section class="card global-chart">
+  <div class="card-head">
+    <h3>Chiffre d'affaires TTC — comparaison</h3>
+    <span class="micro">barre claire = période précédente</span>
+  </div>
+  <div class="card-body">
+    <svg class="global-bars" viewBox="0 0 720 176" role="img" aria-label="Chiffre d'affaires par période">
+      <line class="global-axis" x1="0" y1="148.5" x2="720" y2="148.5"></line>
+      {% for point in series %}
+        <rect class="global-bar-prev" x="{{ point.x }}" y="{{ point.prev_y }}" width="{{ point.w }}" height="{{ point.prev_h }}"></rect>
+        <rect class="global-bar" x="{{ point.x }}" y="{{ point.ca_y }}" width="{{ point.w }}" height="{{ point.ca_h }}"></rect>
+        <text class="global-bar-label" x="{{ point.x }}" y="172">{{ point.label|slice:":5" }}</text>
+      {% endfor %}
+    </svg>
+  </div>
+</section>
+
+<div class="societes-grid">
+  {% for row in company_rows %}
+  <a class="card socie-row" href="{% url 'cockpit' %}?societe={{ row.company.id }}">
+    <div class="socie-head">
+      <span class="socie-avatar">{{ row.company.denomination|first|upper }}</span>
+      <div class="socie-titlebox">
+        <b>{{ row.company.denomination }}</b>
+        <small>SIREN {{ row.company.siren }} · {{ row.company.get_forme_display|default:row.company.forme }}{% if row.company.tva == "reel" %} · TVA réelle{% endif %}</small>
+      </div>
+      <span class="socie-share" title="Part du CA de la période">{{ row.share }} %</span>
+    </div>
+    <div class="socie-stats">
+      <div><small>CA TTC</small><b>{{ row.ca|floatformat:2 }} €</b></div>
+      <div><small>Achats TTC</small><b>{{ row.achats|floatformat:2 }} €</b></div>
+      <div><small>TVA nette</small><b>{{ row.vat_net|floatformat:2 }} €</b></div>
+      <div><small>Factures</small><b>{{ row.count }}</b></div>
+    </div>
+    <div class="socie-foot">
+      <span class="badge {% if row.delta_tone == 'up' %}badge-green{% elif row.delta_tone == 'down' %}badge-amber{% else %}badge{% endif %}">{{ row.delta_display }}</span>
+      <span class="socie-open">Ouvrir le cockpit →</span>
+    </div>
+  </a>
+  {% empty %}
+  <div class="card"><p class="empty">Aucune société dans votre portefeuille. Ajoutez-en une depuis le cockpit.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

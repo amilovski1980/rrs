@@ -136,6 +136,9 @@
     <a class="side-link {% block nav_cockpit %}{% endblock %}" href="{% url 'cockpit' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="grid" %}</span> Cockpit
     </a>
+    <a class="side-link {% block nav_cockpit_global %}{% endblock %}" href="{% url 'cockpit_global' %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="building" %}</span> Toutes mes sociétés
+    </a>
     <a class="side-link {% block nav_onboarding %}{% endblock %}{% if forfait.locks.extra_company %} is-locked{% endif %}" href="{% if forfait.locks.extra_company %}{% url 'plan_upgrade' %}{% else %}{% url 'onboarding' %}{% endif %}" {% if forfait.locks.extra_company %}title="Mettre à jour le forfait"{% endif %}>
       <span class="side-ico">{% include "partials/icon.html" with name="plus" %}</span> Ajouter une société
       {% if forfait.locks.extra_company %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}

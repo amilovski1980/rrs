@@ -11,6 +11,7 @@ urlpatterns = [
     path("inscription/verifier/<str:token>/", signup.signup_verify, name="signup_verify"),
     path("inscription/telephone/", signup.signup_phone_check, name="signup_phone_check"),
     path("cockpit/", views.cockpit, name="cockpit"),
+    path("cockpit/global/", views.cockpit_global, name="cockpit_global"),
     path("ajouter/", views.onboarding, name="onboarding"),
     path("ajouter/confirmer/", views.onboarding_confirm, name="onboarding_confirm"),
     path("societe/", views.company_settings, name="company_settings"),
