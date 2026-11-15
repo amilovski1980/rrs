@@ -306,9 +306,9 @@ class InvoiceLineForm(forms.ModelForm):
         })
         self.fields["quantity"].label = "Quantité"
         self.fields["quantity"].widget.attrs.update({
-            "inputmode": "decimal",
-            "step": "0.001",
-            "min": "0.001",
+            "inputmode": "numeric",
+            "step": "1",
+            "min": "1",
             "data-line-quantity": "1",
         })
         self.fields["unit_price"].label = "Prix unitaire HT"
