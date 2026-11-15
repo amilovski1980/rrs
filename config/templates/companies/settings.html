@@ -28,6 +28,9 @@
       {% if form.non_field_errors %}
       <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
+      <details class="form-section" data-mobile-collapse open>
+        <summary class="form-header">Informations de la société <span class="form-header-hint">Identité, adresse, contact</span></summary>
+        <div class="form-section-body">
       <label>{{ form.denomination.label }}</label>
       {{ form.denomination }}
       {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
@@ -60,6 +63,8 @@
       <label>{{ form.slogan.label }}</label>
       {{ form.slogan }}
       {% if form.slogan.errors %}<p class="error">{{ form.slogan.errors.0 }}</p>{% endif %}
+        </div>
+      </details>
 
       <details class="form-section" data-mobile-collapse open>
         <summary class="form-header">Coordonnées bancaires <span class="form-header-hint">RIB, IBAN, BIC</span></summary>
@@ -276,15 +281,15 @@
   </div>
 </div>
 
-<div class="settings-preview-head">
-  <div>
-    <h2>Aperçu de la facture</h2>
-    <p class="sub">Le modèle et la couleur sélectionnés s'appliquent à l'aperçu et au PDF exporté.</p>
+<details class="form-section settings-preview-section" data-mobile-collapse open>
+  <summary class="form-header">Aperçu de la facture <span class="form-header-hint">Modèle et couleur sélectionnés</span></summary>
+  <div class="form-section-body">
+    <p class="sub" style="margin:0">L'aperçu utilise le même modèle et les mêmes couleurs que le PDF exporté.</p>
+    <section class="sheet-stage settings-sheet-preview">
+      {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
+    </section>
   </div>
-</div>
-<section class="sheet-stage settings-sheet-preview">
-  {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
-</section>
+</details>
 
 <section class="card settings-danger">
   <h2>Supprimer la société</h2>
