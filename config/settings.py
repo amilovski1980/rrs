@@ -244,5 +244,6 @@ XAI_API_KEY = env.get("XAI_API_KEY", "")
 XAI_TEXT_MODEL = env.get("XAI_TEXT_MODEL", "grok-3")
 XAI_VOICE_MODEL = env.get("XAI_VOICE_MODEL", "grok-voice-latest")
 XAI_VOICE = env.get("XAI_VOICE", "eve")
+ELEVENLABS_API_KEY = env.get("ELEVENLABS_API_KEY", "")
 AI_TEXT_PROVIDER = env.get("AI_TEXT_PROVIDER", "qwen")
 

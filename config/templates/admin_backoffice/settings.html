@@ -219,11 +219,25 @@
         </div>
 
         <div class="settings-test-row">
-          <p class="secret-hint">« Lister les modèles » interroge {URL}/models (OpenAI) puis {racine}/api/tags (Ollama).</p>
+          <p class="secret-hint">« Lister les modèles » interroge {URL}/models (OpenAI) puis {racine}/api/tags (Ollama). L'URL est corrigée automatiquement si le chemin réel est différent.</p>
           <button class="btn btn-ghost btn-sm" type="button" id="ai-models-button">Lister les modèles</button>
         </div>
 
         <select id="ai-model-select" class="form-control" size="6" hidden aria-label="Modèles disponibles"></select>
+
+        <div class="form-grid">
+          <div>
+            <label class="check-row" for="ai-tools-filter">
+              <input type="checkbox" id="ai-tools-filter"> <span>Afficher uniquement les modèles compatibles agent (outils)</span>
+            </label>
+            <p class="secret-hint">Le filtre interroge chaque modèle (mini chat, plafonné à 24) pour vérifier le tool-calling.</p>
+          </div>
+          <div>
+            <label for="ai-connection-status">&nbsp;</label>
+            <button class="btn btn-ghost btn-sm" type="button" id="ai-test-button">Tester la connexion</button>
+          </div>
+        </div>
+
         <p id="ai-models-status" class="secret-hint" role="status" aria-live="polite"></p>
       </div>
 
@@ -247,6 +261,61 @@
             {{ form.xai_voice }}
           </div>
         </div>
+
+        <h3 style="margin:26px 0 10px;font-size:15px">Voix de l'agent</h3>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.voice_provider.id_for_label }}">Fournisseur de la voix</label>
+            {{ form.voice_provider }}
+            <p class="secret-hint">ElevenLabs : lecture de chaque réponse Aminia. xAI : session vocale en direct.</p>
+          </div>
+          <div>
+            <label for="{{ form.voice_gender.id_for_label }}">Genre de la voix</label>
+            {{ form.voice_gender }}
+            <p class="secret-hint">Femme ou homme : la voix ElevenLabs et la voix xAI s'adaptent.</p>
+          </div>
+        </div>
+        <label for="{{ form.elevenlabs_api_key.id_for_label }}">Clé API ElevenLabs</label>
+        {{ form.elevenlabs_api_key }}
+        <p class="secret-hint">
+          {% if secrets.elevenlabs_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}
+          <span class="badge">Non configurée</span>{% endif %} — nécessaire pour la lecture des réponses.
+        </p>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.elevenlabs_voice_female.id_for_label }}">Voix ElevenLabs — femme</label>
+            {{ form.elevenlabs_voice_female }}
+          </div>
+          <div>
+            <label for="{{ form.elevenlabs_voice_male.id_for_label }}">Voix ElevenLabs — homme</label>
+            {{ form.elevenlabs_voice_male }}
+          </div>
+        </div>
+        <label for="{{ form.elevenlabs_model.id_for_label }}">Modèle ElevenLabs</label>
+        {{ form.elevenlabs_model }}
+        <p class="secret-hint">Vide = eleven_flash_v2_5 (multilingue rapide).</p>
+
+        <h3 style="margin:26px 0 10px;font-size:15px">Session vocale en direct</h3>
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.voice_call_provider.id_for_label }}">{{ form.voice_call_provider.label }}</label>
+            {{ form.voice_call_provider }}
+            <p class="secret-hint">
+              Grok/xAI : micro, tour de parole et outils portés par xAI.
+              ElevenLabs : l'appel est porté par un agent ElevenLabs, les outils RRS restent exécutés ici.
+            </p>
+          </div>
+          <div>
+            <label for="{{ form.elevenlabs_agent_id.id_for_label }}">{{ form.elevenlabs_agent_id.label }}</label>
+            {{ form.elevenlabs_agent_id }}
+            <p class="secret-hint">Vide si l'agent n'a pas encore été créé ci-dessous.</p>
+          </div>
+        </div>
+        <div class="settings-test-row">
+          <p class="secret-hint">Crée l'agent sur ElevenLabs et y attache tous les outils RRS (boutons client). À relancer après un changement d'outils.</p>
+          <button class="btn btn-ghost btn-sm" type="button" id="ai-sync-agent-button">Créer / mettre à jour l'agent ElevenLabs</button>
+        </div>
+        <p id="ai-sync-status" class="secret-hint" role="status" aria-live="polite"></p>
       </div>
 
       {% if ai_effective %}
@@ -260,9 +329,15 @@
         Requêtes : <code>POST {BASE}/chat/completions</code>.
       </div>
       <div class="settings-callout">
-        <strong>Voix.</strong> xAI temps réel — modèle <b>{{ ai_effective.voice.model }}</b>, voix
-        <b>{{ ai_effective.voice.voice }}</b>, clé {% if ai_effective.voice.key %}présente{% else %}absente
-        {% endif %}. Le jeton éphémère est distribué par <code>/agent/session/</code>.
+        <strong>Voix.</strong>
+        Session live : <b>{% if config.voice_call_provider == "elevenlabs" %}ElevenLabs{% else %}xAI / Grok{% endif %}</b>
+        {% if config.voice_call_provider == "elevenlabs" %}— agent
+        {% if config.elevenlabs_agent_id %}<code>{{ config.elevenlabs_agent_id }}</code>{% else %}<b>non créé</b> (bouton ci-dessus){% endif %}{% else %}temps réel
+        — modèle <b>{{ ai_effective.voice.model }}</b>, voix <b>{{ ai_effective.voice.voice }}</b>,
+        clé {% if ai_effective.voice.key %}présente{% else %}absente{% endif %}, jeton éphémère par <code>/agent/session/</code>{% endif %}.
+        Lecture des réponses : <b>{{ ai_effective.speech.provider }}</b>
+        ({% if ai_effective.speech.configured %}clé présente{% else %}clé absente{% endif %}), voix
+        <b>{{ ai_effective.speech.voice_id }}</b> (genre {{ ai_effective.speech.gender }}).
       </div>
       {% endif %}
 
@@ -278,9 +353,12 @@
           var selfhost = document.getElementById("ai-selfhost-fields");
           var xai = document.getElementById("ai-xai-fields");
           var button = document.getElementById("ai-models-button");
+          var testButton = document.getElementById("ai-test-button");
+          var toolsFilter = document.getElementById("ai-tools-filter");
           var listSelect = document.getElementById("ai-model-select");
           var status = document.getElementById("ai-models-status");
           var endpoint = "{% url 'admin_backoffice:settings_ai_models' %}";
+          var testEndpoint = "{% url 'admin_backoffice:settings_ai_connection' %}";
           var defaults = {};
           try { defaults = JSON.parse(document.getElementById("ai-defaults").textContent || "{}"); }
           catch (error) { defaults = {}; }
@@ -317,14 +395,36 @@
             previousBase = baseInput.value;
           }
 
-          function fillList(models) {
+          var lastModels = [];
+          var lastTools = null;
+          var lastSource = "";
+
+          function applyToolsFilter() {
+            if (!listSelect) return;
+            var filter = !!(toolsFilter && toolsFilter.checked && lastTools);
+            Array.prototype.forEach.call(listSelect.options, function (option) {
+              var compatible = lastTools ? lastTools[option.value] : null;
+              option.hidden = filter && compatible === false;
+              option.textContent = lastTools
+                ? option.value + (compatible ? "  ✓ outils" : "  ✗ sans outils")
+                : option.value;
+            });
+          }
+
+          function fillList(models, toolsMap, source) {
+            lastModels = models || [];
+            lastTools = toolsMap || null;
+            lastSource = source || "";
             listSelect.innerHTML = "";
-            (models || []).forEach(function (name) {
+            lastModels.forEach(function (name) {
               var option = document.createElement("option");
               option.value = name;
-              option.textContent = name;
+              option.textContent = lastTools
+                ? name + (lastTools[name] ? "  ✓ outils" : "  ✗ sans outils")
+                : name;
               listSelect.appendChild(option);
             });
+            applyToolsFilter();
             listSelect.hidden = !listSelect.options.length;
             listSelect.size = Math.min(8, Math.max(3, listSelect.options.length));
           }
@@ -340,36 +440,119 @@
             });
           }
 
+          function postForm(url, fields) {
+            return fetch(url, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: {
+                "X-CSRFToken": document.querySelector('#settings-form input[name="csrfmiddlewaretoken"]').value,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams(fields).toString(),
+            }).then(function (response) { return response.json(); });
+          }
+
+          if (toolsFilter) {
+            toolsFilter.addEventListener("change", function () {
+              if (toolsFilter.checked && !lastTools && lastModels.length) {
+                if (status) status.textContent = "Test de compatibilité des modèles… (jusqu'à ~1 min)";
+                postForm(endpoint, {
+                  provider: provider.value,
+                  base: baseInput.value.trim(),
+                  probe: "1",
+                })
+                  .then(function (data) {
+                    if (data.ok && data.tools) {
+                      listSelect.hidden = false;
+                      fillList(lastModels, data.tools, lastSource);
+                      var ok = Object.keys(data.tools).filter(function (k) { return data.tools[k]; }).length;
+                      if (status) status.textContent = ok + " modèle(s) compatible(s) agent sur " + data.tools_tested + " testés.";
+                    } else if (status) {
+                      status.textContent = data.message || "Vérification impossible.";
+                      toolsFilter.checked = false;
+                    }
+                  })
+                  .catch(function (error) {
+                    if (status) status.textContent = "Vérification impossible : " + error;
+                    toolsFilter.checked = false;
+                  });
+              } else if (listSelect && listSelect.options.length) {
+                applyToolsFilter();
+              }
+            });
+          }
+
           if (button) {
             button.addEventListener("click", function () {
               var value = (baseInput.value || "").trim() || (defaults[provider.value] || "");
               if (status) status.textContent = "Recherche des modèles…";
-              var body = new URLSearchParams({ provider: provider.value, base: value });
-              fetch(endpoint, {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                  "X-CSRFToken": document.querySelector('#settings-form input[name="csrfmiddlewaretoken"]').value,
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: body.toString(),
-              })
-                .then(function (response) { return response.json(); })
+              postForm(endpoint, { provider: provider.value, base: value })
                 .then(function (data) {
                   if (!data.ok) {
                     fillList([]);
                     if (status) status.textContent = data.message || "Liste impossible.";
                     return;
                   }
-                  fillList(data.models);
-                  if (status) {
+                  if (data.chat_base && data.chat_base !== baseInput.value.trim()) {
+                    baseInput.value = data.chat_base;
+                    if (status) {
+                      status.textContent =
+                        data.models.length + " modèle(s) — URL corrigée : " + data.chat_base + " (" +
+                        (data.source === "ollama" ? "api/tags (Ollama)" : "/models (compatible OpenAI)") +
+                        "). Enregistrez pour l'appliquer.";
+                    }
+                  } else if (status) {
                     status.textContent =
-                      data.models.length + " modèle(s) via " + (data.source === "ollama" ? "api/tags (Ollama)" : "/models (compatible OpenAI)") + ".";
+                      data.models.length + " modèle(s) via " +
+                      (data.source === "ollama" ? "api/tags (Ollama)" : "/models (compatible OpenAI)") + ".";
                   }
+                  listSelect.hidden = false;
+                  fillList(data.models, null, data.source);
                 })
                 .catch(function (error) {
                   fillList([]);
                   if (status) status.textContent = "Liste impossible : " + error;
+                });
+            });
+          }
+
+          if (testButton) {
+            testButton.addEventListener("click", function () {
+              var modelInput = document.getElementById("{{ form.llm_model.id_for_label }}");
+              var value = (baseInput.value || "").trim() || (defaults[provider.value] || "");
+              if (status) status.textContent = "Test du chat en cours…";
+              postForm(testEndpoint, {
+                provider: provider.value,
+                base: value,
+                model: (modelInput ? modelInput.value : "").trim(),
+              })
+                .then(function (data) {
+                  if (data.ok && data.chat_base && data.chat_base !== baseInput.value.trim()) {
+                    baseInput.value = data.chat_base;
+                  }
+                  if (status) status.textContent = data.message || (data.ok ? "Connexion OK." : "Test échoué.");
+                })
+                .catch(function (error) {
+                  if (status) status.textContent = "Test impossible : " + error;
+                });
+            });
+          }
+
+          var syncButton = document.getElementById("ai-sync-agent-button");
+          var syncStatus = document.getElementById("ai-sync-status");
+          if (syncButton && syncStatus) {
+            syncButton.addEventListener("click", function () {
+              syncStatus.textContent = "Création / mise à jour de l'agent sur ElevenLabs…";
+              postForm("{% url 'admin_backoffice:settings_ai_voice_sync' %}", {})
+                .then(function (data) {
+                  if (data.ok && data.agent_id) {
+                    var idInput = document.getElementById("{{ form.elevenlabs_agent_id.id_for_label }}");
+                    if (idInput) idInput.value = data.agent_id;
+                  }
+                  syncStatus.textContent = data.message || (data.ok ? "Agent à jour." : "Échec.");
+                })
+                .catch(function (error) {
+                  syncStatus.textContent = "Synchronisation impossible : " + error;
                 });
             });
           }

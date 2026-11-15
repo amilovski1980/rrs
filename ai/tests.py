@@ -351,7 +351,7 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertEqual(fake.messages[0]["role"], "system")
         self.assertIn("CONSIGNE-GLOBALE-TEST", system)
         self.assertIn("CONSIGNE-MICRO-TEST", system)
-        self.assertIn("Tu gÃ¨res la comptabilitÃ© de la sociÃ©tÃ©", system)
+        self.assertIn("Tu gères la comptabilité de la société", system)
         self.assertNotIn("Contexte administrateur", system)
         self.assertTrue(system.rindex("CONSIGNE-MICRO-TEST") > system.index("CONSIGNE-GLOBALE-TEST"))
         names = [tool["function"]["name"] for tool in fake.tools]
@@ -384,8 +384,8 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertIn("CONSIGNE-ADMIN-TEST", system)
         self.assertIn("Cadre administrateur", system)
         self.assertIn("Contexte administrateur", system)
-        self.assertIn("sociÃ©tÃ© de test", system)
-        self.assertNotIn("Tu gÃ¨res la comptabilitÃ© de la sociÃ©tÃ©", system)
+        self.assertIn("société de test", system)
+        self.assertNotIn("Tu gères la comptabilité de la société", system)
         names = [tool["function"]["name"] for tool in fake.tools]
         self.assertIn("draft_invoice", names)
 
@@ -396,9 +396,9 @@ class PlanPromptRuntimeTests(TestCase):
         self.user.save(update_fields=["is_staff"])
         text = agent_instructions(self.user, None, channel="voice")
         self.assertIn("Contexte administrateur", text)
-        self.assertIn("aucune sociÃ©tÃ© n'est sÃ©lectionnÃ©e", text)
+        self.assertIn("aucune société n'est sélectionnée", text)
         self.assertNotIn("ajouter un SIREN", text)
-        self.assertNotIn("Tu gÃ¨res la comptabilitÃ©", text)
+        self.assertNotIn("Tu gères la comptabilité", text)
 
     def test_micro_plan_blocks_invoice_tool(self):
         result = execute_tool(self.user, self.company, "draft_invoice", {
@@ -690,10 +690,22 @@ class ListAiModelsTests(TestCase):
         with self._patch_handler(handler):
             with self.assertRaises(ValueError):
                 list_ai_models("http://nowhere.local:9999/v1")
-        self.assertEqual(calls["count"], 2)
+        self.assertEqual(calls["count"], 3)
 
     def test_refuses_non_http(self):
         from .providers import list_ai_models
 
         with self.assertRaises(ValueError):
             list_ai_models("file:///etc")
+
+    def test_chat_base_is_added_when_v1_missing(self):
+        import httpx
+
+        from .providers import list_ai_models
+
+        def handler(request):
+            return httpx.Response(200, json={"data": [{"id": "m1"}]})
+
+        with self._patch_handler(handler):
+            result = list_ai_models("http://gpu.local:8000")
+        self.assertEqual(result["chat_base"], "http://gpu.local:8000/v1")

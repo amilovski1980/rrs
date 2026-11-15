@@ -92,7 +92,19 @@ def _reset_connection() -> None:
         connections["default"].rollback()
     except Exception:
         logger.debug("rollback ignoré", exc_info=True)
-    _drop_connections()
+    if not _is_memory_database():
+        _drop_connections()
+
+
+def _is_memory_database() -> bool:
+    """SQLite en mémoire (tests) : détruire les connexions vide la base."""
+    try:
+        return (
+            connections["default"].vendor == "sqlite"
+            and connections["default"].settings_dict.get("NAME") in (":memory:", None, "")
+        )
+    except Exception:
+        return False
 
 
 def _swap_to_direct() -> bool:
@@ -247,7 +259,8 @@ def assurer_migrations(*, force: bool = False) -> bool:
         print("[migrations] base à jour" if ok else "[migrations] schéma incomplet", flush=True)
         return ok
     finally:
-        if swapped:
+        if swapped and not _is_memory_database():
             _restore_database()
         else:
-            _drop_connections()
+            if not _is_memory_database():
+                _drop_connections()
