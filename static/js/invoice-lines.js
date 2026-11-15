@@ -47,18 +47,25 @@
         },
       })
         .then(function (response) {
-          return response.json().then(function (data) {
-            return { ok: response.ok, data: data };
-          });
+          return response
+            .json()
+            .then(
+              function (data) { return { ok: response.ok, data: data, status: response.status }; },
+              function () { return { ok: false, data: null, status: response.status }; }
+            );
         })
         .then(function (payload) {
+          if (payload && payload.ok && payload.data && payload.data.html) {
+            holder.innerHTML = payload.data.html;
+            return;
+          }
+          var detail = payload && payload.status ? " (erreur " + payload.status + ")" : "";
           holder.innerHTML =
-            (payload.data && payload.data.html) ||
-            '<p class="error">Aperçu indisponible.</p>';
+            '<p class="error">Aperçu indisponible' + detail + ". Réessayez.</p>";
         })
         .catch(function () {
           holder.innerHTML =
-            '<p class="error">Impossible de générer l\'aperçu. Réessayez.</p>';
+            '<p class="error">Impossible de générer l\'aperçu (réseau). Réessayez.</p>';
         });
     }
 

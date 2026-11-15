@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.html import escape
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -327,30 +328,46 @@ def invoice_preview_form(request):
     except AttributeError:
         number = f"BR-{uuid.uuid4().hex[:10]}"
 
-    html = render_to_string(
-        "documents/document_sheet.html",
-        {
-            "company": company,
-            "invoice": preview,
-            "kind_label": "Facture",
-            "number": number,
-            "status_label": "Brouillon",
-            "created_at": timezone.now(),
-            "client_name": client_name or "Client à préciser",
-            "client_siren": client_siren,
-            "amount_ht": ht_total.quantize(Decimal("0.01")),
-            "vat_rate": vat_rate_main,
-            "vat_amount": vat_total.quantize(Decimal("0.01")),
-            "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
-            "lines": preview_lines,
-            "client_kicker": "Facturé à",
-            "foot_note": (
-                f"Payable à {preview.due_date|date:'d/m/Y'}."
-                if preview.due_date else "Payable à réception."
-            ),
-        },
-        request=request,
-    )
+    try:
+        html = render_to_string(
+            "documents/document_sheet.html",
+            {
+                "company": company,
+                "invoice": preview,
+                "kind_label": "Facture",
+                "number": number,
+                "status_label": "Brouillon",
+                "created_at": timezone.now(),
+                "client_name": client_name or "Client à préciser",
+                "client_siren": client_siren,
+                "amount_ht": ht_total.quantize(Decimal("0.01")),
+                "vat_rate": vat_rate_main,
+                "vat_amount": vat_total.quantize(Decimal("0.01")),
+                "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
+                "lines": preview_lines,
+                "client_kicker": "Facturé à",
+                "foot_note": (
+                    f"Payable à {preview.due_date|date:'d/m/Y'}."
+                    if preview.due_date else "Payable à réception."
+                ),
+            },
+            request=request,
+        )
+    except Exception:
+        # Rien ne doit bloquer le wizard : en dernier recours un aperçu
+        # simplifié est renvoyé à la place de l'erreur.
+        html = (
+            f"<article class='sheet sheet-azur'>"
+            f"<h2 style='margin:0 0 6px'>{number} — Facture</h2>"
+            f"<p style='margin:0 0 10px'><b>{escape(client_name) or 'Client à préciser'}</b>"
+            f"{(' · SIREN ' + escape(client_siren)) if client_siren else ''}</p>"
+            f"<p style='margin:0 0 10px'>{escape(preview_lines[0]['description'] if preview_lines else '')}</p>"
+            f"<p style='font-size:18px;margin:12px 0 0'><b>"
+            f"{(ht_total + vat_total).quantize(Decimal('0.01')).normalize()} € TTC</b> "
+            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')).normalize()} · "
+            f"TVA {vat_total.quantize(Decimal('0.01')).normalize()})</span></p>"
+            f"</article>"
+        )
     return JsonResponse({"html": html})
 
 
@@ -1163,30 +1180,44 @@ def quote_preview_form(request):
     if ht_total > 0 and vat_total <= 0:
         vat_rate_main = Decimal("0.00")
 
-    html = render_to_string(
-        "documents/document_sheet.html",
-        {
-            "company": company,
-            "invoice": preview,
-            "kind_label": "Devis",
-            "number": getattr(preview, "number", "") or "DEV-………",
-            "status_label": "",
-            "created_at": timezone.now(),
-            "client_name": client_name or "Client à préciser",
-            "client_siren": client_siren,
-            "amount_ht": ht_total.quantize(Decimal("0.01")),
-            "vat_rate": vat_rate_main,
-            "vat_amount": vat_total.quantize(Decimal("0.01")),
-            "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
-            "lines": preview_lines,
-            "client_kicker": "Devis pour",
-            "foot_note": (
-                f"Devis valable jusqu'au {preview.due_date|date:'d/m/Y'}."
-                if preview.due_date else "Devis valable 30 jours."
-            ),
-        },
-        request=request,
-    )
+    try:
+        html = render_to_string(
+            "documents/document_sheet.html",
+            {
+                "company": company,
+                "invoice": preview,
+                "kind_label": "Devis",
+                "number": getattr(preview, "number", "") or "DEV-………",
+                "status_label": "",
+                "created_at": timezone.now(),
+                "client_name": client_name or "Client à préciser",
+                "client_siren": client_siren,
+                "amount_ht": ht_total.quantize(Decimal("0.01")),
+                "vat_rate": vat_rate_main,
+                "vat_amount": vat_total.quantize(Decimal("0.01")),
+                "amount_ttc": (ht_total + vat_total).quantize(Decimal("0.01")),
+                "lines": preview_lines,
+                "client_kicker": "Devis pour",
+                "foot_note": (
+                    f"Devis valable jusqu'au {preview.due_date|date:'d/m/Y'}."
+                    if preview.due_date else "Devis valable 30 jours."
+                ),
+            },
+            request=request,
+        )
+    except Exception:
+        # Même secours simplifié que pour la facture.
+        html = (
+            f"<article class='sheet sheet-azur'>"
+            f"<h2 style='margin:0 0 6px'>Devis</h2>"
+            f"<p style='margin:0 0 10px'><b>{escape(client_name) or 'Client à préciser'}</b></p>"
+            f"<p style='margin:0 0 10px'>{escape(preview_lines[0]['description'] if preview_lines else '')}</p>"
+            f"<p style='font-size:18px;margin:12px 0 0'><b>"
+            f"{(ht_total + vat_total).quantize(Decimal('0.01')).normalize()} € TTC</b> "
+            f"<span style='font-size:12px'>(HT {ht_total.quantize(Decimal('0.01')).normalize()} · "
+            f"TVA {vat_total.quantize(Decimal('0.01')).normalize()})</span></p>"
+            f"</article>"
+        )
     return JsonResponse({"html": html})
 
 
