@@ -8,6 +8,9 @@ Ces tests gardent en échec les bugs vus à cette occasion :
 - viewport avec `user-scalable=no` (WCAG 1.4.4) ;
 - shell mobile (m-header / m-footer) présent sur l'app authentifiée.
 """
+from pathlib import Path
+
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -74,6 +77,51 @@ class HistoryImportNamespaceTests(TestCase):
         self.assertEqual(self.client.get(reverse("purchases:dashboard")).status_code, 200)
 
 
+class MobileActionsAndWakeLockTests(TestCase):
+    """La barre mobile doit garder « Valider » visible et l'écran allumé."""
+
+    def setUp(self):
+        self.client.get(reverse("demo_login"))
+
+    def test_shared_mobile_assets_are_loaded(self):
+        response = self.client.get(reverse("cockpit"))
+        content = response.content.decode()
+        for marker in (
+            "mobile-fixes.css",
+            "mobile-actions.js",
+            "data-agent-footer-open",
+        ):
+            self.assertIn(marker, content)
+
+    def test_agent_bar_has_no_useless_wake_checkbox(self):
+        response = self.client.get(reverse("cockpit"))
+        content = response.content.decode()
+        self.assertNotIn("data-agent-wakelock", content)
+        self.assertIn("agent-close-x", content)
+
+    def test_voice_engine_keeps_the_screen_awake(self):
+        script = (
+            Path(settings.BASE_DIR) / "static" / "js" / "grok-voice.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn("startWakeGuard", script)
+        self.assertIn("pageshow", script)
+        self.assertIn("screen-wake-lock", (
+            Path(settings.BASE_DIR) / "static" / "js" / "voice-shell.js"
+        ).read_text(encoding="utf-8"))
+
+    def test_mobile_styles_unlock_scrolling_and_actions(self):
+        css = (
+            Path(settings.BASE_DIR) / "static" / "css" / "mobile-fixes.css"
+        ).read_text(encoding="utf-8")
+        for marker in (
+            ".m-dock-primary",
+            ".table-mobile-cards",
+            "body.agent-open .agent-panel",
+            ".wizard-mode .wizard-nav",
+        ):
+            self.assertIn(marker, css)
+
+
 class MobileSmokeTests(TestCase):
     """Parcours principal en viewport mobile : toutes les pages passent en 200.
 
@@ -98,6 +146,7 @@ class MobileSmokeTests(TestCase):
             reverse("purchases:dashboard"),
             reverse("banking:dashboard"),
             reverse("treasury:dashboard"),
+            reverse("company_settings"),
         ]
         for url in pages:
             with self.subTest(url=url):

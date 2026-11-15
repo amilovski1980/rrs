@@ -312,8 +312,8 @@ class MobileNavChromeTests(TestCase):
         page = self.client.get(f"/cockpit/?societe={self.company.id}")
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, "voice-shell.js")
-        self.assertContains(page, "data-agent-duration")
-        self.assertContains(page, "data-agent-wakelock")
+        self.assertContains(page, "data-agent-status")
+        self.assertContains(page, "agent-close-x")
         self.assertEqual(page["X-Frame-Options"], "SAMEORIGIN")
 
     def test_cockpit_has_mobile_header_drawer_footer(self):
