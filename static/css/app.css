@@ -1354,9 +1354,12 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
       inset 0 1px 0 rgba(255, 255, 255, 0.26),
       0 14px 28px -12px rgba(199, 4, 36, 0.55);
   }
-  /* Boutons (Aminia, Plus) : même texte que les liens du pied. */
+  /* Boutons (Aminia, Plus) : même texte que les liens du pied (10px compact). */
   .m-footer .m-footer-btn {
-    font: inherit;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
     line-height: 1.2;
   }
   div.page-actions.m-dock-split,

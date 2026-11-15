@@ -60,7 +60,6 @@
     /* Carte flottante au lieu d'une barre collée tout en bas :
        marges latérales, coins arrondis, posée au-dessus de la barre d'onglets. */
     min-height: 64px;
-    margin: 0 12px calc(var(--m-footer-h) + 12px + env(safe-area-inset-bottom, 0px));
     padding: 10px 14px;
     gap: 10px;
     border-radius: 22px;
@@ -69,6 +68,16 @@
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.5),
       0 24px 54px -22px rgba(0, 20, 50, 0.6);
+  }
+  body.agent-open .agent-dialog {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 0;
+    margin-bottom: calc(
+      var(--m-footer-h) + 10px + env(safe-area-inset-bottom, 0px)
+    );
   }
 
   .agent-orb {
