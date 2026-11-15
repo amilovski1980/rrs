@@ -26,73 +26,11 @@
   </details>
 </div>
 
-<p class="model-picker-label">Modèle de facture</p>
-<div class="model-grid model-grid-inline">
-  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
-    {% csrf_token %}
-    <input type="hidden" name="layout" value="">
-    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
-    <button class="model-card {% if not company.invoice_layout %}is-on{% endif %}" type="submit" aria-label="Automatique">
-      <span class="model-preview model-layout-auto" aria-hidden="true">
-        <span class="mp-top">
-          <span class="mp-logo"></span>
-          <span class="mp-id"><i></i><i></i></span>
-        </span>
-        <span class="mp-who"><i></i><i></i></span>
-        <span class="mp-row"></span>
-        <span class="mp-row short"></span>
-        <span class="mp-due"><i></i><b></b></span>
-      </span>
-      <span class="model-label">Automatique</span>
-    </button>
-  </form>
-  {% for code, label in layouts %}
-  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
-    {% csrf_token %}
-    <input type="hidden" name="layout" value="{{ code }}">
-    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
-    <button class="model-card {% if company.invoice_layout == code %}is-on{% endif %}" type="submit" aria-label="{{ label }}">
-      <span class="model-preview model-layout-{{ code }}" aria-hidden="true">
-        <span class="mp-top">
-          <span class="mp-logo"></span>
-          <span class="mp-id"><i></i><i></i></span>
-        </span>
-        <span class="mp-who"><i></i><i></i></span>
-        <span class="mp-row"></span>
-        <span class="mp-row short"></span>
-        <span class="mp-due"><i></i><b></b></span>
-      </span>
-      <span class="model-label">{{ label }}</span>
-    </button>
-  </form>
-  {% endfor %}
-</div>
-
-<p class="model-picker-label">Couleur de facture</p>
-<div class="model-grid model-grid-inline">
-  {% for code, label in themes %}
-  <form method="post" class="model-pick" action="{% url 'company_settings' %}?societe={{ company.id }}">
-    {% csrf_token %}
-    <input type="hidden" name="theme" value="{{ code }}">
-    <input type="hidden" name="next" value="{{ request.path }}?societe={{ company.id }}">
-        <button class="model-card {% if company.invoice_theme == code %}is-on{% endif %}{% if code in forfait.locked_themes %} is-locked{% endif %}" type="{% if code in forfait.locked_themes %}button{% else %}submit{% endif %}" aria-label="{{ label }}{% if code in forfait.locked_themes %}. Mettre à jour le forfait{% endif %}" {% if code in forfait.locked_themes %}onclick="window.location.href='{% url 'plan_upgrade' %}'; return false;"{% endif %}>
-      <span class="model-preview model-{{ code }}" aria-hidden="true">
-        <span class="mp-top">
-          <span class="mp-logo"></span>
-          <span class="mp-id"><i></i><i></i></span>
-        </span>
-        <span class="mp-who"><i></i><i></i></span>
-        <span class="mp-row"></span>
-        <span class="mp-row short"></span>
-        <span class="mp-due"><i></i><b></b></span>
-      </span>
-      <span class="model-label">{{ label }}</span>
-      {% if code in forfait.locked_themes %}<span class="model-lock">Mettre à jour le forfait</span>{% endif %}
-    </button>
-  </form>
-  {% endfor %}
-</div>
-<p class="micro" data-style-status role="status" aria-live="polite"></p>
+{% if company.invoice_layout or company.invoice_theme %}
+<p class="micro" data-style-status style="margin:0 0 12px">
+  Modèle{% if company.invoice_layout %} « {{ company.get_invoice_layout_display }} »{% endif %}{% if company.invoice_theme %} · couleur « {{ company.get_invoice_theme_display }} »{% endif %} — <a href="{% url 'company_settings' %}?societe={{ company.id }}#apparence">changer dans Configuration</a>
+</p>
+{% endif %}
 
 <section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
