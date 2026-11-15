@@ -112,7 +112,7 @@
             </thead>
             <tbody data-line-rows>
               {% for line_form in formset %}
-              {% include "documents/_invoice_line_row.html" with line_form=line_form %}
+              {% if forloop.first %}{% include "documents/_invoice_line_row.html" with line_form=line_form %}{% else %}{% include "documents/_invoice_line_row.html" with line_form=line_form line_hidden=1 %}{% endif %}
               {% endfor %}
             </tbody>
           </table>
@@ -121,7 +121,10 @@
           {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
         </template>
         <div class="invoice-lines-toolbar">
-          <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter cette ligne</button>
+          <button type="button" class="btn btn-ghost btn-sm btn-add-line" data-add-line aria-label="Ajouter une ligne de devis">
+            <span class="btn-add-line-ico" aria-hidden="true">+</span>
+            <span class="btn-add-line-txt">Ajouter une ligne</span>
+          </button>
           <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
             <span>Total HT <b data-preview-ht>0,00 €</b></span>
             <span>TVA <b data-preview-vat>0,00 €</b></span>
@@ -156,7 +159,7 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.16.6" defer></script>
+<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.16.7" defer></script>
 <script>
   document.addEventListener("click", function (event) {
     var chip = event.target.closest && event.target.closest("[data-due-days]");

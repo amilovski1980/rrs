@@ -1,4 +1,4 @@
-<tr class="invoice-line-row" data-line-form>
+<tr class="invoice-line-row" data-line-form{% if line_hidden %} hidden{% endif %}>
   {% for hidden in line_form.hidden_fields %}{{ hidden }}{% endfor %}
   <td class="line-product" data-label="Produit">
     {{ line_form.product }}

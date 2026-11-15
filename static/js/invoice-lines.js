@@ -186,7 +186,21 @@
     }
 
     function addRow() {
-      if (!table || !totalForms || !emptyTemplate) return;
+      if (!table || !totalForms) return;
+      // D'abord : déplier une ligne déjà rendue mais masquée (écran épuré,
+      // un seul formulaire visible au départ).
+      var hiddenRow = table.querySelector("[data-line-form][hidden]");
+      if (hiddenRow) {
+        hiddenRow.removeAttribute("hidden");
+        var description = rowField(hiddenRow, "description");
+        if (description) description.focus();
+        if (window.matchMedia("(max-width: 768px)").matches && hiddenRow.scrollIntoView) {
+          hiddenRow.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        updateTotals();
+        return;
+      }
+      if (!emptyTemplate) return;
       var index = table.querySelectorAll("[data-line-form]").length;
       var wrapper = document.createElement("tbody");
       wrapper.innerHTML = emptyTemplate.innerHTML.replace(/__prefix__/g, index);
