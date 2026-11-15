@@ -622,6 +622,7 @@ input[type="radio"] {
 }
 
 .auth-brand img { width: 48px; height: 48px; }
+.auth-brand .auth-brand-word { width: auto; height: 30px; object-fit: contain; }
 
 .flash {
   margin: 12px 0;

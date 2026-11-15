@@ -2,7 +2,7 @@
 <html lang="fr"{% if request.dark_ui %} data-theme="dark"{% endif %}>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,12 +11,15 @@
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
   {% else %}
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.15.16">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.15.16">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.2">
+  <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.3">
+  <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
+  <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.2">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -32,7 +35,7 @@
   .impersonation-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     flex-wrap: wrap; padding: 10px 16px; background: #fff3cd; color: #212529;
-    border-bottom: 1px solid #e6d48a; font-family: Roboto, system-ui, sans-serif;
+    border-bottom: 1px solid #e6d48a; font-family: var(--font, system-ui, sans-serif);
   }
   .impersonation-banner p { margin: 0; font-size: 14px; }
   .impersonation-banner button {
@@ -54,18 +57,52 @@
     >
       <span class="m-nav-toggle-bars" aria-hidden="true"></span>
     </button>
-    <a class="m-header-logo" href="{% url 'cockpit' %}" aria-label="Road Runner Solutions — Cockpit">
-      {% if request.dark_ui %}
-      <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
-      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
-      {% else %}
-      <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
-      <span class="m-header-brand">
-        <b>Road Runner</b>
-        <small>Solutions</small>
-      </span>
+    <div class="m-header-right">
+      <a class="m-header-logo" href="{% url 'cockpit' %}" aria-label="Road Runner Solutions — Cockpit">
+        {% if request.dark_ui %}
+        <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
+        <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
+        {% else %}
+        <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
+        <span class="m-header-brand">
+          <b>Road Runner</b>
+          <small>Solutions</small>
+        </span>
+        {% endif %}
+      </a>
+      {% if top_companies|length > 1 %}
+      <details class="m-company-menu">
+        <summary class="m-company-trigger" aria-label="Changer de société{% if top_company %} : {{ top_company.denomination }}{% endif %}">
+          {% if top_company %}
+          {% company_color_class top_company top_companies as current_cls %}
+          <span class="company-switch-btn {{ current_cls }}" aria-hidden="true">{{ top_company|company_initial }}</span>
+          {% endif %}
+          <span class="m-company-caret" aria-hidden="true"></span>
+        </summary>
+        <div class="m-company-panel" role="menu" aria-label="Mes sociétés">
+          <p class="m-company-panel-title">Mes sociétés</p>
+          {% for c in top_companies %}
+          {% company_color_class c top_companies as co_cls %}
+          <a class="m-company-row{% if top_company and top_company.id == c.id %} is-on{% endif %}"
+             role="menuitem"
+             href="{% url 'cockpit' %}?societe={{ c.id }}"
+             title="{{ c.denomination }}"
+             {% if top_company and top_company.id == c.id %}aria-current="true"{% endif %}>
+            <span class="company-switch-btn {{ co_cls }}" aria-hidden="true">{{ c|company_initial }}</span>
+            <span class="m-company-row-text">
+              <b>{{ c.denomination }}</b>
+              <small>SIREN {{ c.siren }}</small>
+            </span>
+            {% if top_company and top_company.id == c.id %}<span class="m-company-check" aria-hidden="true">✓</span>{% endif %}
+          </a>
+          {% endfor %}
+          <a class="m-company-add" href="{% if forfait.locks.extra_company %}{% url 'plan_upgrade' %}{% else %}{% url 'onboarding' %}{% endif %}">
+            {% include "partials/icon.html" with name="plus" %} Ajouter une société
+          </a>
+        </div>
+      </details>
       {% endif %}
-    </a>
+    </div>
   </header>
 
   <div class="m-backdrop" data-nav-backdrop hidden tabindex="-1" aria-hidden="true"></div>
@@ -305,6 +342,8 @@
   <script src="{% static 'js/app.js' %}?v=2026.11.14.5" defer></script>
   <script src="{% static 'js/mobile-tables.js' %}?v=2026.11.14.1" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
+  <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.3" defer></script>
+  <script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

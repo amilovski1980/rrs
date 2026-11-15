@@ -8,6 +8,8 @@ html[data-theme="dark"] {
   --bg-2: #1b1b1f;
   --surface: #121214;
   --card: #141416;
+  --thead-bg: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
   --blue: #f4f4f5;
   --blue-2: #c6ffb1;
   --blue-soft: rgba(61, 220, 106, 0.16);
@@ -27,6 +29,7 @@ html[data-theme="dark"] {
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
   --font: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
   --font-head: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
 }
 
 html[data-theme="dark"] body {
