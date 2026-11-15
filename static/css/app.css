@@ -4298,6 +4298,20 @@ html[data-theme="dark"] {
   }
 }
 
+/* Lignes du panneau de recherche : lisibles dans les deux thèmes. */
+html[data-theme="dark"] .agent-result-row {
+  background: rgba(255, 255, 255, .055);
+  border-color: rgba(255, 255, 255, .10);
+}
+html[data-theme="dark"] .agent-result-row:hover,
+html[data-theme="dark"] .agent-result-row.is-on {
+  background: rgba(255, 255, 255, .13);
+  border-color: rgba(255, 255, 255, .22);
+}
+html[data-theme="dark"] .agent-result-main b { color: #f6f6f4; }
+html[data-theme="dark"] .agent-result-main small { color: #a4a4ab; }
+html[data-theme="dark"] .agent-result-badges .badge { color: #d4d4d8; }
+
 /* Le thème sombre ne doit pas opacifier le matériau (dark-app.css chargé après). */
 html[data-theme="dark"] .glass-panel {
   background-color: var(--glass-bg) !important;
