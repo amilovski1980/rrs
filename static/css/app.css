@@ -1393,6 +1393,47 @@ html[data-theme="dark"] .skeleton::after {
   .skeleton::after { animation: none; }
 }
 
+/* ---------- Fiche facture : récap et actions cohérentes ---------- */
+.invoice-status-card { padding: 16px 18px; }
+.invoice-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 10px;
+}
+.invoice-status-item {
+  display: grid; gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-2, rgba(248, 249, 252, 0.6));
+}
+.invoice-status-item small {
+  font-size: 10.5px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--muted);
+}
+.invoice-status-item b {
+  font-family: var(--font-head);
+  font-size: 15px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.invoice-status-item b span { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.invoice-status-item a { color: var(--ink); text-decoration: none; }
+.invoice-actions {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-top: 14px;
+}
+.invoice-actions .invoice-main-action { flex: 1 1 220px; }
+.invoice-main-action .btn { width: 100%; min-height: 48px; }
+.invoice-actions .btn-ghost,
+.invoice-actions .btn-danger { min-height: 48px; }
+.invoice-sub-link { margin: 12px 0 0; text-align: right; }
+html[data-theme="dark"] .invoice-status-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--line);
+}
+html[data-theme="dark"] .invoice-status-item a { color: var(--ink); }
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;
@@ -2551,58 +2592,51 @@ label.ticket-camera-btn.btn-primary:hover {
 
   /* Footer fixe — dock flottant en verre, pastilles circulaires */
   .m-footer {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
     position: fixed;
-    left: max(10px, env(safe-area-inset-left, 0px));
-    right: max(10px, env(safe-area-inset-right, 0px));
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-m-footer);
     height: auto;
-    padding: 6px;
+    padding: 7px 8px;
     gap: 2px;
-    background: rgba(255, 255, 255, .72);
-    border: 1px solid rgba(255, 255, 255, .82);
+    background: rgba(255, 255, 255, .74);
+    border: 1px solid rgba(255, 255, 255, .38);
     border-radius: 999px;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .9),
-      0 18px 44px -20px rgba(15, 23, 42, .38);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
-    backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    backdrop-filter: blur(18px) saturate(180%);
   }
   .m-footer-btn {
     position: relative;
+    flex: 1 1 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; min-height: 58px; padding: 4px 2px;
-    /* 10.5px : plancher de lisibilité confortable sur mobile (<10px illisible). */
-    font-size: 10.5px; font-weight: 700; letter-spacing: .2px; color: var(--muted);
-    text-decoration: none; border-radius: 999px;
-    transition: color .18s var(--ease);
+    gap: 2px; min-height: 56px; padding: 4px 2px;
+    font-size: 11px; font-weight: 700; letter-spacing: .1px; color: var(--muted);
+    text-decoration: none; border-radius: 999px; background: transparent; border: none;
+    font-family: inherit;
+    transition: color .18s var(--ease), background .18s var(--ease);
   }
   .m-footer-btn:hover { text-decoration: none; color: var(--blue); background: transparent; }
   .m-footer-ico {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 38px; height: 38px; border-radius: 50%;
-    color: var(--blue);
-    background: linear-gradient(160deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .45));
-    border: 1px solid rgba(255, 255, 255, .9);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, .95),
-      0 4px 12px -6px rgba(0, 65, 146, .35);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s, color .2s;
+    width: 40px; height: 30px; border-radius: 14px;
+    color: var(--ink-2);
+    background: transparent;
+    transition: transform .2s var(--ease), background .2s var(--ease), color .2s;
   }
-  .m-footer-ico .icon { width: 18px; height: 18px; }
+  .m-footer-ico .icon { width: 22px; height: 22px; }
   .m-footer-btn.active { color: var(--blue); }
   .m-footer-btn.active .m-footer-ico {
     color: #fff;
     background: linear-gradient(135deg, var(--blue) 0%, #2563eb 58%, #4f8dff 100%);
-    border-color: transparent;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, .35),
-      0 8px 20px -6px rgba(0, 65, 146, .5);
-    transform: translateY(-2px);
+      0 8px 20px -6px rgba(37, 99, 235, .55);
+    transform: translateY(-1px);
   }
   .m-footer-btn:focus-visible { outline: none; }
   .m-footer-btn:focus-visible .m-footer-ico {
@@ -4550,4 +4584,36 @@ html[data-theme="dark"] .btn-primary {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, .16) inset,
     0 14px 30px -16px rgba(0, 0, 0, .55);
+}
+/* ---- Shell et contenu : carte arrondie posée sur le fond ---- */
+.shell { background: #eef2f7; }
+.main {
+  border-radius: 24px 24px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -6px 24px rgba(15, 23, 42, .05);
+}
+@media (min-width: 769px) {
+  /* Desktop : la carte est marginée comme la page de l'app */
+  .content { border-radius: 0 0 24px 0; }
+}
+
+html[data-theme="dark"] .shell { background: #050506; }
+html[data-theme="dark"] .main {
+  background: #08080a;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, .5);
+}
+
+/* Barre mobile : ré-assertions après le matériau (ordre de fichier). */
+html[data-theme="dark"] .m-footer {
+  background: rgba(16, 16, 19, .66);
+  border-color: rgba(255, 255, 255, .10);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .7);
+}
+html[data-theme="dark"] .m-footer-btn { color: #a4a4ab; }
+html[data-theme="dark"] .m-footer-ico { color: #d4d4d8; }
+html[data-theme="dark"] .m-footer-btn.active { color: #3ddc6a; }
+html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
+  color: #070708;
+  background: linear-gradient(135deg, #3ddc6a 0%, #c6ffb1 100%);
+  box-shadow: 0 8px 20px -6px rgba(61, 220, 106, .45);
 }
