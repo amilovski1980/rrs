@@ -12,6 +12,55 @@
   display: none;
 }
 
+/* Version desktop forcée : data-wizard-mode="always" (wizard Qonto).
+   Les mêmes règles que mobile, sans le media query. */
+.wizard-desktop.wizard-mode .wizard-step { display: none; }
+.wizard-desktop.wizard-mode .wizard-step.is-active {
+  display: block;
+  animation: wizard-step-in 0.2s ease both;
+  background: var(--card, #fff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin: 0 0 14px;
+}
+.wizard-desktop.wizard-mode .form-actions-bar { display: none; }
+.wizard-desktop.wizard-mode .wizard-head { display: block; margin: 0 0 18px; }
+.wizard-desktop.wizard-mode .wizard-nav { display: grid; }
+.wizard-desktop.wizard-mode .wizard-step-title { font-size: 20px; margin: 0 0 4px; color: var(--ink); }
+.wizard-desktop.wizard-active .wizard-track,
+.wizard-desktop .wizard-track { height: 6px; min-width: 260px; max-width: 420px; }
+
+@media (min-width: 769px) {
+  .wizard-desktop.wizard-mode .wizard-head-top {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  }
+  .wizard-desktop.wizard-mode .wizard-kicker {
+    text-transform: uppercase; letter-spacing: .06em;
+    font-size: 11px; font-weight: 800; color: var(--muted);
+  }
+  .wizard-desktop.wizard-mode .wizard-label { font-size: 15px; font-weight: 800; color: var(--ink); }
+  .wizard-desktop.wizard-mode .wizard-track i {
+    display: block; width: 0; height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, var(--blue), #4f8dff);
+    transition: width 0.25s var(--ease, ease);
+  }
+  .wizard-desktop.wizard-mode .wizard-nav {
+    grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+    margin-top: 18px; padding: 14px 0 0; border-top: 1px solid var(--line);
+  }
+  .wizard-desktop.wizard-mode .wizard-position {
+    color: var(--muted); font-size: 12px; font-weight: 700;
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .wizard-desktop.wizard-mode .wizard-nav .btn { min-height: 44px; white-space: nowrap; }
+  .wizard-desktop.wizard-mode .wizard-nav .wizard-back { justify-self: start; }
+  .wizard-desktop.wizard-mode .wizard-nav .wizard-next { justify-self: end; }
+  .wizard-desktop.wizard-mode .wizard-nav .wizard-submit {
+    grid-column: 1 / -1; width: 100%; justify-content: center;
+  }
+}
+
 @media (max-width: 768px) {
   .wizard-active .page-head .sub {
     display: none;

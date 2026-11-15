@@ -11,120 +11,169 @@
   </div>
 </div>
 <div class="card invoice-form-card">
-  <form class="form-stack invoice-form" method="post" data-invoice-form data-mobile-wizard>
+  <form class="form-stack invoice-form" method="post" data-invoice-form data-mobile-wizard data-wizard-mode="always" data-wizard-title="Nouvelle facture">
     {% csrf_token %}
     {% if form.non_field_errors %}
     <ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
     {% endif %}
 
-    <div class="wizard-step" data-wizard-step data-step-label="Client">
-    <div class="form-grid">
-      <div>
-        <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
-        {{ form.client }}
-        <p class="micro">{{ form.client.help_text }}</p>
-        {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
+    <!-- ÉTAPE 1 : CLIENT -->
+    <div class="wizard-step" data-wizard-step data-step-label="Pour quel client ?">
+      <h2 class="wizard-step-title">Pour quel client ?</h2>
+      <p class="micro">Sélectionnez un client existant, cherchez une entreprise (INSEE) ou saisissez-en un nouveau.</p>
+
+      {% if company.clients.all %}
+      <div class="client-cards">
+        {% for client in company.clients.all %}
+        <button type="button" class="client-card" data-client-card
+                data-fill-id="{{ client.id }}"
+                data-fill-name="{{ client.name }}"
+                data-fill-siren="{{ client.siren }}">
+          <strong>{{ client.name }}</strong>
+          <span>{% if client.siren %}SIREN {{ client.siren }}{% endif %}
+                {% if client.address %} · {{ client.address|truncatechars:38 }}{% endif %}</span>
+        </button>
+        {% endfor %}
       </div>
-      <div>
-        <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
-        {{ form.client_name }}
-        <p class="micro">{{ form.client_name.help_text }}</p>
-        {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
-      </div>
-    </div>
-
-    <details class="invoice-advanced card" data-invoice-advanced open>
-      <summary>
-        <span>Options de facturation</span>
-        <span class="micro">Projet · SIREN · TVA · échéance</span>
-      </summary>
-      <div class="invoice-advanced-body">
-        <div class="form-grid">
-          <div>
-            <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
-            {{ form.project }}
-            {% if form.project.errors %}<p class="error">{{ form.project.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
-            {{ form.client_siren }}
-            <p class="micro">{{ form.client_siren.help_text }}</p>
-            {% if form.client_siren.errors %}<p class="error">{{ form.client_siren.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-
-        <div>
-          <label for="{{ form.client_tva_intra.id_for_label }}">{{ form.client_tva_intra.label }}</label>
-          {{ form.client_tva_intra }}
-          <p class="micro">{{ form.client_tva_intra.help_text }}</p>
-          {% if form.client_tva_intra.errors %}<p class="error">{{ form.client_tva_intra.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div class="vat-reverse-card">
-          <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
-          <p class="micro">{{ form.reverse_charge.help_text }}</p>
-          <label for="{{ form.vat_exemption_reason.id_for_label }}">{{ form.vat_exemption_reason.label }}</label>
-          {{ form.vat_exemption_reason }}
-          {% if form.vat_exemption_reason.errors %}<p class="error">{{ form.vat_exemption_reason.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div>
-          <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
-          {{ form.due_date }}
-          <p class="micro">{{ form.due_date.help_text }}</p>
-          {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
-        </div>
-      </div>
-    </details>
-    </div>
-
-    <div class="wizard-step" data-wizard-step data-step-label="Lignes">
-    <section class="card invoice-lines-card">
-      <div class="invoice-lines-head">
-        <div>
-          <h2>Lignes de facture</h2>
-          <p class="sub">Choisissez un produit du catalogue pour préremplir la désignation, le prix et la TVA. Une ligne sans produit reste libre.</p>
-        </div>
-      </div>
-      {{ formset.management_form }}
-      {% if formset.non_form_errors %}
-      <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
-      <div class="invoice-lines-scroll">
-        <table class="invoice-lines-table">
-          <thead>
-            <tr>
-              <th>Produit / service</th>
-              <th>Désignation</th>
-              <th class="num">Qté</th>
-              <th class="num">PU HT</th>
-              <th class="num">TVA %</th>
-              <th class="num">Montant HT</th>
-              <th><span class="sr-only">Action</span></th>
-            </tr>
-          </thead>
-          <tbody data-line-rows>
-            {% for line_form in formset %}
-            {% include "documents/_invoice_line_row.html" with line_form=line_form %}
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <template data-empty-form>
-        {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
-      </template>
-      <div class="invoice-lines-toolbar">
-        <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter une ligne</button>
-        <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
-          <span>Total HT <b data-preview-ht>0,00 €</b></span>
-          <span>TVA <b data-preview-vat>0,00 €</b></span>
-          <span class="invoice-preview-ttc">Total TTC <b data-preview-ttc>0,00 €</b></span>
+
+      <div class="form-grid" style="align-items:end">
+        <div>
+          <label for="{{ form.client.id_for_label }}">{{ form.client.label }}</label>
+          {{ form.client }}
+          {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label for="{{ form.client_name.id_for_label }}">{{ form.client_name.label }}</label>
+          {{ form.client_name }}
+          {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
         </div>
       </div>
-    </section>
+
+      <div class="card" data-client-lookup
+           data-target-name="#id_client_name"
+           data-target-siren="#id_client_siren">
+        <div class="form-stack" style="gap:0">
+          <label>Chercher l'entreprise (nom, SIREN ou SIRET)</label>
+          <div class="form-grid" style="grid-template-columns:1fr auto;align-items:center">
+            <input data-client-lookup-input type="text" placeholder="Ex : Martin Bâtiment, 812345678…">
+            <button type="button" class="btn btn-primary" data-client-lookup-submit>Rechercher</button>
+          </div>
+          <p data-client-lookup-status class="micro" hidden></p>
+          <div data-client-lookup-results hidden></div>
+        </div>
+      </div>
+
+      <details class="invoice-advanced card" data-invoice-advanced>
+        <summary>
+          <span>Options de facturation</span>
+          <span class="micro">Projet · SIREN · TVA · autoliquidation</span>
+        </summary>
+        <div class="invoice-advanced-body">
+          <div class="form-grid">
+            <div>
+              <label for="{{ form.project.id_for_label }}">{{ form.project.label }}</label>
+              {{ form.project }}
+            </div>
+            <div>
+              <label for="{{ form.client_siren.id_for_label }}">{{ form.client_siren.label }}</label>
+              {{ form.client_siren }}
+            </div>
+          </div>
+          <div>
+            <label for="{{ form.client_tva_intra.id_for_label }}">{{ form.client_tva_intra.label }}</label>
+            {{ form.client_tva_intra }}
+          </div>
+          <div class="vat-reverse-card">
+            <label class="check-row">{{ form.reverse_charge }} <span>{{ form.reverse_charge.label }}</span></label>
+            <label for="{{ form.vat_exemption_reason.id_for_label }}">{{ form.vat_exemption_reason.label }}</label>
+            {{ form.vat_exemption_reason }}
+          </div>
+        </div>
+      </details>
     </div>
 
-    <div class="wizard-step" data-wizard-step data-step-label="Validation">
+    <!-- ÉTAPE 2 : DÉTAILS -->
+    <div class="wizard-step" data-wizard-step data-step-label="Informations de facture">
+      <h2 class="wizard-step-title">Informations de facture</h2>
+      <p class="micro">Le numéro définitif est attribué à l'émission (préfixe BR-). Aucune écriture n'est créée avant votre validation.</p>
+
+      <div class="due-quick" role="group" aria-label="Échéance rapide">
+        <button type="button" class="due-chip" data-due-days="0">À réception</button>
+        <button type="button" class="due-chip" data-due-days="15">Sous 15 jours</button>
+        <button type="button" class="due-chip" data-due-days="30">Sous 30 jours</button>
+      </div>
+
+      <div class="card">
+        <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+        {{ form.due_date }}
+        <p class="micro">{{ form.due_date.help_text }}</p>
+        {% if form.due_date.errors %}<p class="error">{{ form.due_date.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 : PRESTATIONS -->
+    <div class="wizard-step" data-wizard-step data-step-label="Prestations & articles">
+      <h2 class="wizard-step-title">Prestations & articles</h2>
+      <p class="micro">Choisissez un produit du catalogue ou une ligne libre, puis le prix et la TVA.</p>
+      <section class="card invoice-lines-card">
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}
+        <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+        <div class="invoice-lines-scroll">
+          <table class="invoice-lines-table">
+            <thead>
+              <tr>
+                <th>Produit / service</th>
+                <th>Désignation</th>
+                <th class="num">Qté</th>
+                <th class="num">PU HT</th>
+                <th class="num">TVA %</th>
+                <th class="num">Montant HT</th>
+                <th><span class="sr-only">Action</span></th>
+              </tr>
+            </thead>
+            <tbody data-line-rows>
+              {% for line_form in formset %}
+              {% include "documents/_invoice_line_row.html" with line_form=line_form %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <template data-empty-form>
+          {% include "documents/_invoice_line_row.html" with line_form=formset.empty_form %}
+        </template>
+        <div class="invoice-lines-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" data-add-line>+ Ajouter cette ligne</button>
+          <div class="invoice-preview-totals" data-invoice-preview aria-live="polite">
+            <span>Total HT <b data-preview-ht>0,00 €</b></span>
+            <span>TVA <b data-preview-vat>0,00 €</b></span>
+            <span class="invoice-preview-ttc">Total TTC <b data-preview-ttc>0,00 €</b></span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ÉTAPE 4 : RÈGLEMENT -->
+    <div class="wizard-step" data-wizard-step data-step-label="Règlement">
+      <h2 class="wizard-step-title">Règlement</h2>
+      <p class="micro">Le client versera sur le compte de votre société. Les coordonnées complètes figurent sur le PDF.</p>
+      <div class="card">
+        {% if company.bank_name or company.bank_iban %}
+        <b>Compte de réception</b>
+        <p class="micro">{% if company.bank_name %}{{ company.bank_name }} · {% endif %}{% if company.bank_iban %}IBAN {{ company.bank_iban|truncatechars:24 }}{% endif %}</p>
+        {% else %}
+        <b>Aucun compte configuré</b>
+        <p class="micro">La facture sera émise sans IBAN. Ajoutez-le dans <a href="/societe/?societe={{ company.id }}#apparence">Configuration → Coordonnées bancaires</a> pour l'afficher sur vos documents.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ÉTAPE 5 : APERÇU -->
+    <div class="wizard-step" data-wizard-step data-step-label="Aperçu de la facture">
+      <h2 class="wizard-step-title">Aperçu de la facture</h2>
+      <p class="micro">Vérifiez le client, les lignes et les totaux avant d'enregistrer le brouillon.</p>
       <div class="wizard-recap" data-wizard-recap></div>
       <div class="form-actions-bar">
         <button class="btn btn-primary" type="submit">{% if invoice %}Enregistrer{% else %}Enregistrer le brouillon{% endif %}</button>
@@ -135,5 +184,54 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.14.8" defer></script>
+<script src="{% static 'js/invoice-lines.js' %}?v=2026.11.16.5" defer></script>
+<script>
+  /* Échéances rapides (À réception / 15 / 30 jours) */
+  document.addEventListener("click", function (event) {
+    var chip = event.target.closest && event.target.closest("[data-due-days]");
+    if (!chip) return;
+    var field = document.getElementById("id_due_date");
+    if (!field) return;
+    var days = parseInt(chip.getAttribute("data-due-days"), 10);
+    var date = new Date();
+    date.setDate(date.getDate() + days);
+    var pad = function (value) { return (value < 10 ? "0" : "") + value; };
+    field.value = date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+    document.querySelectorAll(".due-chip").forEach(function (other) {
+      other.classList.remove("is-selected");
+    });
+    chip.classList.add("is-selected");
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  /* Fiches clientes rapides (style Qonto) */
+  document.addEventListener("click", function (event) {
+    var card = event.target.closest && event.target.closest("[data-client-card]");
+    if (!card) return;
+    var name = card.getAttribute("data-fill-name") || "";
+    var id = card.getAttribute("data-fill-id") || "";
+    var siren = card.getAttribute("data-fill-siren") || "";
+    var select = document.getElementById("id_client");
+    if (select && id) {
+      var option = Array.prototype.find.call(select.options, function (opt) { return opt.value === id; });
+      if (option) select.value = id;
+    } else if (select) {
+      select.value = "";
+    }
+    var nameInput = document.getElementById("id_client_name");
+    if (nameInput) {
+      nameInput.value = name;
+      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    var sirenInput = document.getElementById("id_client_siren");
+    if (sirenInput && siren) {
+      sirenInput.value = siren;
+      sirenInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    document.querySelectorAll("[data-client-card]").forEach(function (other) {
+      other.classList.remove("selected");
+    });
+    card.classList.add("selected");
+  });
+</script>
 {% endblock %}

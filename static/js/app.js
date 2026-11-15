@@ -292,9 +292,16 @@
     var results = root.querySelector("[data-client-lookup-results]");
     if (!input || !button || !status || !results) return;
 
-    var nameField = document.getElementById("id_name");
-    var sirenField = document.getElementById("id_siren");
-    var addressField = document.getElementById("id_address");
+    // Cibles configurables : data-target-name / -siren / -address sur le bloc.
+    var nameField = document.querySelector(
+      root.getAttribute("data-target-name") || "#id_name"
+    );
+    var sirenField = document.querySelector(
+      root.getAttribute("data-target-siren") || "#id_siren"
+    );
+    var addressField = document.querySelector(
+      root.getAttribute("data-target-address") || "#id_address"
+    );
     var controller = null;
     var requestId = 0;
 

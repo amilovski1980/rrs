@@ -1241,6 +1241,38 @@ html[data-theme="dark"] .live-invoice .card { background: rgba(18, 18, 20, .74);
 .phone.is-live .phone-orb .agent-ring { border-color: rgba(25, 135, 84, .55); }
 .phone.is-live .phone-ext { color: var(--green); }
 
+/* ---------- Wizard de facture / devis (style Qonto) ---------- */
+.client-cards {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  margin: 4px 0 14px;
+}
+.client-card {
+  text-align: left; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 12px; padding: 10px 14px; cursor: pointer; font-family: inherit;
+  display: grid; gap: 2px; transition: border-color .15s, background .15s;
+}
+.client-card:hover { border-color: var(--blue-2); }
+.client-card.selected, .client-card.selected:hover {
+  border-color: var(--blue-2); background: var(--blue-soft);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+.client-card strong { font-size: 13.5px; color: var(--ink); }
+.client-card span { font-size: 11px; color: var(--muted); }
+.wizard-step-title { font-size: 18px; margin: 0 0 3px; color: var(--ink); }
+.wizard-step .micro { margin: 0 0 14px; }
+.due-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.due-chip {
+  border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px;
+  padding: 8px 16px; font-size: 13px; font-weight: 650; cursor: pointer;
+  color: var(--ink); font-family: inherit; transition: border-color .15s, background .15s;
+}
+.due-chip:hover { border-color: var(--blue-2); }
+.due-chip.is-selected { border-color: var(--blue-2); background: var(--blue-soft); color: var(--blue); }
+@media (max-width: 768px) {
+  .client-cards { grid-template-columns: 1fr; }
+  .wizard-step-title { font-size: 17px; }
+}
+
 /* ---------- Aminia : panneau de recherche d'entreprises ---------- */
 .agent-results {
   position: fixed; right: 16px; bottom: 84px; z-index: var(--z-agent-panel);
