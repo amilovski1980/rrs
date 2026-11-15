@@ -499,3 +499,28 @@ class BankTestCase(TestCase):
         self.assertFalse(any(line.account.code.startswith("6") for line in lines))
         transaction.refresh_from_db()
         self.assertEqual(transaction.nature, "internal_transfer")
+
+class PdfWordsPdfminerFallbackTests(TestCase):
+    """Sans PyMuPDF (bundles serverless allégés), le layout colonnes survit
+    via pdfminer.six, purement Python."""
+
+    def test_pdfminer_fallback_extracts_positioned_words(self):
+        from banking.parsers import _pdf_words_pdfminer
+
+        pages = _pdf_words_pdfminer(pdf_statement())
+        self.assertTrue(pages)
+        text = " ".join(word for page in pages for _x0, _y0, _x1, word in page)
+        self.assertIn("VIREMENT DUPONT", text)
+        self.assertIn("12/01/2026", text)
+        self.assertIn("89,90", text)
+
+    def test_parse_pdf_without_pymupdf(self):
+        import sys
+        from unittest import mock
+
+        with mock.patch.dict(sys.modules, {"pymupdf": None, "fitz": None}):
+            transactions = parse_pdf(pdf_statement())
+        labels = [(transaction.label or "").upper() for transaction in transactions]
+        self.assertTrue(labels)
+        self.assertTrue(any("VIREMENT DUPONT" in label for label in labels))
+        self.assertTrue(any("PRLV EDF" in label for label in labels))

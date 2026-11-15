@@ -44,6 +44,8 @@
     style.id = "aminia-shell-style";
     style.textContent =
       ".agent{display:none!important}" +
+      "[data-agent-footer-open]{display:none!important}" +
+      ".m-footer{grid-template-columns:repeat(4,minmax(0,1fr))!important}" +
       "html,body{overscroll-behavior:contain}";
     doc.head.appendChild(style);
     syncAddress();
@@ -71,7 +73,10 @@
     frame.className = "voice-shell-frame";
     frame.name = "aminia-voice-shell";
     frame.title = "Application RRS Sandy";
-    frame.setAttribute("allow", "microphone; autoplay; clipboard-read; clipboard-write");
+    frame.setAttribute(
+      "allow",
+      "microphone; autoplay; clipboard-read; clipboard-write; screen-wake-lock"
+    );
     frame.src = url || window.location.href;
     frame.addEventListener("load", function () {
       decorateFrame();
