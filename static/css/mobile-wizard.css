@@ -276,3 +276,82 @@
     animation: none;
   }
 }
+
+/* ---------- Style fintech : barre d'action pleine largeur fixée ----------
+   Inspirée des apps bancaires : un seul grand bouton en bas, le retour en
+   pastille flottante en haut, les échéances et fiches en cartes tapables. */
+@media (max-width: 768px) {
+  .wizard-mode .wizard-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--m-footer-h);
+    margin: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -14px 34px -20px rgba(15, 23, 42, 0.4);
+    z-index: var(--z-m-footer, 40);
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-mode .wizard-nav .wizard-back,
+  .wizard-mode .wizard-nav .wizard-position {
+    display: none;
+  }
+
+  .wizard-mode .wizard-nav .wizard-next,
+  .wizard-mode .wizard-nav .wizard-submit {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 54px;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .wizard-mode .wizard-nav .wizard-next::after {
+    content: "→";
+    font-weight: 800;
+  }
+
+  .wizard-mode .wizard-nav .wizard-back {
+    position: fixed;
+    left: 10px;
+    top: calc(var(--m-header-h) + 8px);
+    margin: 0;
+    border: 1px solid var(--line-2);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 8px 14px;
+    min-height: 0;
+    font-size: 13px;
+    font-weight: 700;
+    z-index: var(--z-sticky, 20);
+  }
+
+  .wizard-mode .wizard-nav .wizard-cancel {
+    display: none !important;
+  }
+
+  .wizard-mode.wizard-desktop .wizard-nav .wizard-back {
+    position: static;
+    border: 0;
+    background: transparent;
+  }
+}
+
+html[data-theme="dark"] .wizard-mode .wizard-nav {
+  background: #121214;
+  box-shadow: 0 -14px 34px -18px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .wizard-mode .wizard-step.is-active {
+    animation: none;
+  }
+}
