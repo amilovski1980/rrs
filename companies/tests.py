@@ -128,6 +128,35 @@ class CompanySettingsTests(TestCase):
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_theme, "graphite")
 
+    def test_theme_choice_resets_mismatched_layout(self):
+        """Un modèle figé incompatible avec la nouvelle couleur retombe en
+        automatique : le PDF téléchargé doit ressembler à la vignette."""
+        self.company.invoice_theme = "indigo"
+        self.company.invoice_layout = "sapphire"
+        self.company.save(update_fields=["invoice_theme", "invoice_layout"])
+        response = self.client.post("/societe/", {
+            "theme": "carmin",
+            "next": "/cockpit/",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_theme, "carmin")
+        # bordeaux (auto de carmin) ≠ sapphire : le modèle figé est délié
+        self.assertEqual(self.company.invoice_layout, "")
+
+    def test_theme_choice_keeps_matching_layout(self):
+        """Choisir la couleur du modèle courant conserve cette mise en page."""
+        self.company.invoice_theme = "sauge"
+        self.company.invoice_layout = "emerald"
+        self.company.save(update_fields=["invoice_theme", "invoice_layout"])
+        response = self.client.post("/societe/", {
+            "theme": "sauge",
+            "next": "/cockpit/",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.company.refresh_from_db()
+        self.assertEqual(self.company.invoice_layout, "emerald")
+
 
 
 class CompanyDeleteTests(TestCase):
