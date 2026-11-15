@@ -20,13 +20,15 @@
       <h2 class="wizard-step-title">Pour quel client ?</h2>
       <p class="micro">Sélectionnez un client existant, cherchez une entreprise (INSEE) ou saisissez-en un nouveau.</p>
       {% if company.clients.all %}
+      <p class="micro client-cards-title">Clients déjà dans la base</p>
       <div class="client-cards">
         {% for client in company.clients.all %}
-        <button type="button" class="client-card" data-client-card
-                data-fill-id="{{ client.id }}"
-                data-fill-name="{{ client.name }}">
-          <strong>{{ client.name }}</strong>
-        </button>
+        <div class="client-card" data-client-card
+             data-fill-id="{{ client.id }}"
+             data-fill-name="{{ client.name }}">
+          <div class="client-card-body"><strong>{{ client.name }}</strong></div>
+          <span class="client-card-btn">Choisir</span>
+        </div>
         {% endfor %}
       </div>
       {% endif %}
