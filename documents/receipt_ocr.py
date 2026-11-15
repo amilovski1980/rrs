@@ -365,6 +365,52 @@ def _vision_call(candidate: dict, image_data: bytes) -> str:
     return text
 
 
+def _extra_vision_models(candidate: dict) -> list[str]:
+    """Modèles vision réellement exposés par le fournisseur (via /models).
+
+    Ollama Cloud, vLLM et xAI listent leurs modèles — on choisit ceux dont
+    l'identifiant respire la lecture d'images, dans l'ordre de l'API (souvent
+    du plus récent au plus ancien).
+    """
+    key = candidate.get("key") or ""
+    base = candidate.get("base", "").rstrip("/")
+    if not base:
+        return []
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    try:
+        import httpx
+
+        response = httpx.get(base + "/models", headers=headers, timeout=8)
+    except Exception:
+        return []
+    if response.status_code != 200:
+        return []
+    try:
+        payload = response.json()
+    except Exception:
+        return []
+    entries = payload.get("data") if isinstance(payload, dict) else payload
+    entries = entries or []
+    ids = []
+    for entry in entries:
+        if isinstance(entry, dict):
+            name = entry.get("id") or entry.get("name") or entry.get("model") or ""
+            name = (name or "").strip()
+        else:
+            name = str(entry).strip()
+        lowered = name.lower()
+        if name and ("vision" in lowered or lowered.endswith("vl") or "vl-" in lowered
+                     or "llava" in lowered or "gemma" in lowered or "llama4" in lowered):
+            ids.append(name)
+    seen = {candidate.get("model")}
+    ordered = []
+    for name in ids:
+        if name not in seen:
+            seen.add(name)
+            ordered.append(name)
+    return ordered[:3]
+
+
 def transcribe_with_agent(data: bytes, filename: str = "") -> str:
     """Transcription de l'image par l'agent IA (modèle multimodal du chat).
 
@@ -373,12 +419,18 @@ def transcribe_with_agent(data: bytes, filename: str = "") -> str:
     """
     candidates = _vision_candidates()
 
-    # xAI : plusieurs modèles vision en cascade si l'un est absent (404).
+    # Chaque fournisseur essaie son modèle configuré, PUIS les modèles vision
+    # qu'il expose réellement (les 404 sur des noms obsolètes disparaissent).
     extended = []
     for candidate in candidates:
         extended.append(candidate)
+        if candidate.get("code") in ("qwen", "ollama"):
+            for fallback_model in _extra_vision_models(candidate):
+                alternative = dict(candidate, model=fallback_model)
+                alternative.setdefault("label", candidate.get("code"))
+                extended.append(alternative)
         if candidate.get("code") == "xai-vision":
-            for fallback_model in _XAI_VISION_MODEL_FALLBACKS[1:]:
+            for fallback_model in (_extra_vision_models(candidate) or list(_XAI_VISION_MODEL_FALLBACKS)):
                 alternative = dict(candidate, model=fallback_model)
                 extended.append(alternative)
     if not extended:
