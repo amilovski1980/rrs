@@ -1535,9 +1535,126 @@
       onScroll();
     }
 
+  function initClientSuggest() {
+    var field = document.getElementById("id_client_name");
+    if (!field || field._clientSuggest) return;
+    field._clientSuggest = true;
+    var box = document.createElement("div");
+    box.className = "client-suggest";
+    field.parentNode.appendChild(box);
+    var wrapper = field.closest(".form-grid > div") || field.parentNode;
+    if (wrapper && getComputedStyle(wrapper).position === "static") {
+      wrapper.style.position = "relative";
+    }
+    var timer = null;
+    var lastQuery = "";
+
+    var render = function (items) {
+      box.textContent = "";
+      if (!items.length) {
+        box.hidden = true;
+        return;
+      }
+      items.forEach(function (item) {
+        var row = document.createElement("button");
+        row.type = "button";
+        row.className = "client-suggest-row"
+          + (item.source === "client" ? " is-internal" : "");
+        row.setAttribute("data-label", item.label);
+        row.setAttribute("data-siren", item.siren || "");
+        var title = document.createElement("strong");
+        title.textContent = item.label;
+        var meta = document.createElement("small");
+        meta.textContent = item.meta;
+        row.appendChild(title);
+        if (meta.textContent) row.appendChild(meta);
+        row.addEventListener("click", function () {
+          field.value = row.getAttribute("data-label");
+          notify(field);
+          var sirenValue = row.getAttribute("data-siren");
+          var sirenField = document.getElementById("id_client_siren");
+          if (sirenValue && sirenField) {
+            sirenField.value = sirenValue.slice(0, 9);
+            notify(sirenField);
+          }
+          box.hidden = true;
+        });
+        box.appendChild(row);
+      });
+      box.hidden = false;
+    };
+
+    var run = function () {
+      var value = field.value.trim();
+      if (value.length < 2) {
+        lastQuery = "";
+        box.hidden = true;
+        return;
+      }
+      if (value === lastQuery) return;
+      lastQuery = value;
+      var internal = fetch(
+        "/factures/clients/chercher/?q=" + encodeURIComponent(value),
+        { credentials: "same-origin" }
+      )
+        .then(function (response) {
+          return response.ok ? response.json() : { clients: [] };
+        })
+        .then(function (data) {
+          return (data.clients || []).map(function (client) {
+            return {
+              label: client.name,
+              meta: (client.siren ? "SIREN " + client.siren : "")
+                + (client.address ? " · " + client.address : ""),
+              siren: client.siren || "",
+              source: "client",
+            };
+          });
+        });
+      var directory = fetch(
+        "/agent/recherche/?query=" + encodeURIComponent(value) + "&limit=4",
+        { credentials: "same-origin" }
+      )
+        .then(function (response) {
+          return response.ok ? response.json() : { results: [] };
+        })
+        .then(function (data) {
+          return (data.results || []).map(function (hit) {
+            return {
+              label: hit.denomination,
+              meta: ["SIREN " + hit.siren, hit.adresse].filter(Boolean).join(" · "),
+              siren: hit.siren || "",
+              source: "annuaire",
+            };
+          });
+        });
+      Promise.allSettled([internal, directory]).then(function (outcomes) {
+        var items = (outcomes[0].value || []).slice();
+        var annuaire = (outcomes[1].value || []).slice();
+        annuaire.forEach(function (item) {
+          var exists = items.some(function (other) {
+            return other.label.toLowerCase() === item.label.toLowerCase();
+          });
+          if (!exists) items.push(item);
+        });
+        render(items.slice(0, 9));
+      });
+    };
+
+    field.addEventListener("input", function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(run, 280);
+    });
+    field.addEventListener("focus", run);
+    field.addEventListener("blur", function () {
+      window.setTimeout(function () { box.hidden = true; }, 240);
+    });
+  }
+
     initVoiceDemo(reduceMotion);
     initSirenSearch();
     initClientLookup();
+    initClientSuggest();
     initActivityDemo();
     initAgent();
     initAgentChat();

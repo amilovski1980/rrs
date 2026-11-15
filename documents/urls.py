@@ -23,6 +23,7 @@ urlpatterns = [
     path("<uuid:pk>/supprimer/", views.invoice_delete, name="invoice_delete"),
 
     path("clients/", views.client_list, name="clients"),
+    path("clients/chercher/", views.client_suggest, name="client_suggest"),
     path("clients/nouveau/", views.client_create, name="client_create"),
     path("clients/<uuid:pk>/", views.client_detail, name="client_detail"),
     path("clients/<uuid:pk>/modifier/", views.client_edit, name="client_edit"),
