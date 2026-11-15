@@ -321,7 +321,7 @@
   </div>
 
   {# —— Footer mobile (≤768px) : gestes quotidiens façon app bancaire —— #}
-  {# Accueil · Factures (liste) · Scanner (centre) · Trésorerie · Plus (tiroir) #}
+  {# Accueil · Factures (liste) · Trésorerie · Aminia · Plus (tiroir) #}
   <nav class="m-footer" data-m-footer aria-label="Navigation principale">
     <a class="m-footer-btn {% if request.resolver_match.url_name == 'cockpit' %}active{% endif %}" href="{% url 'cockpit' %}"{% if request.resolver_match.url_name == 'cockpit' %} aria-current="page"{% endif %}>
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="house" %}</span>
@@ -333,12 +333,6 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="file" %}</span>
       <span>Factures</span>
     </a>
-    <a class="m-footer-btn m-footer-scan {% if request.resolver_match.url_name == 'ticket_upload' or request.resolver_match.url_name == 'ticket_import' or request.resolver_match.url_name == 'ticket_list' or request.resolver_match.url_name == 'ticket_detail' %}active{% endif %}"
-       href="{% url 'ticket_upload' %}?camera=1"
-       {% if request.resolver_match.url_name == 'ticket_upload' or request.resolver_match.url_name == 'ticket_import' or request.resolver_match.url_name == 'ticket_list' or request.resolver_match.url_name == 'ticket_detail' %} aria-current="page"{% endif %}>
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="camera" %}</span>
-      <span>Scanner</span>
-    </a>
     <a class="m-footer-btn {% if request.resolver_match.namespace == 'treasury' %}active{% endif %}"
        href="{% if forfait.locks.treasury %}{% url 'plan_upgrade' %}{% else %}{% url 'treasury:dashboard' %}{% endif %}"
        {% if forfait.locks.treasury %}title="Mettre à jour le forfait"{% endif %}
@@ -346,6 +340,10 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="chart" %}</span>
       <span>Trésorerie</span>
     </a>
+    <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
+      <span>Aminia</span>
+    </button>
     <button class="m-footer-btn" type="button" data-nav-toggle aria-label="Ouvrir le menu">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="list" %}</span>
       <span>Plus</span>
