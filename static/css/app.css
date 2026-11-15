@@ -1247,17 +1247,24 @@ html[data-theme="dark"] .live-invoice .card { background: rgba(18, 18, 20, .74);
   margin: 4px 0 14px;
 }
 .client-card {
-  text-align: left; border: 1px solid var(--line); background: var(--surface);
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); background: var(--surface);
   border-radius: 12px; padding: 10px 14px; cursor: pointer; font-family: inherit;
-  display: grid; gap: 2px; transition: border-color .15s, background .15s;
+  transition: border-color .15s, background .15s;
 }
-.client-card:hover { border-color: var(--blue-2); }
+.client-card:hover { border-color: var(--blue-2); background: var(--blue-pale); }
 .client-card.selected, .client-card.selected:hover {
   border-color: var(--blue-2); background: var(--blue-soft);
   box-shadow: inset 3px 0 0 var(--blue);
 }
-.client-card strong { font-size: 13.5px; color: var(--ink); }
-.client-card span { font-size: 11px; color: var(--muted); }
+.client-card-body { min-width: 0; flex: 1 1 auto; display: grid; gap: 2px; }
+.client-card-body strong { font-size: 13.5px; color: var(--ink); }
+.client-card-body span { font-size: 11px; color: var(--muted); }
+.client-card-btn {
+  flex: 0 0 auto; font-size: 12px; font-weight: 800; color: var(--blue);
+  background: var(--blue-soft); border-radius: 999px; padding: 5px 12px;
+}
+.client-cards-title { margin: 2px 0 6px; }
 
 /* Autocomplétion client : fiches internes + annuaire INSEE */
 .client-suggest {

@@ -23,16 +23,20 @@
       <p class="micro">Sélectionnez un client existant, cherchez une entreprise (INSEE) ou saisissez-en un nouveau.</p>
 
       {% if company.clients.all %}
+      <p class="micro client-cards-title">Clients déjà dans la base</p>
       <div class="client-cards">
         {% for client in company.clients.all %}
-        <button type="button" class="client-card" data-client-card
-                data-fill-id="{{ client.id }}"
-                data-fill-name="{{ client.name }}"
-                data-fill-siren="{{ client.siren }}">
-          <strong>{{ client.name }}</strong>
-          <span>{% if client.siren %}SIREN {{ client.siren }}{% endif %}
-                {% if client.address %} · {{ client.address|truncatechars:38 }}{% endif %}</span>
-        </button>
+        <div class="client-card" data-client-card
+             data-fill-id="{{ client.id }}"
+             data-fill-name="{{ client.name }}"
+             data-fill-siren="{{ client.siren }}">
+          <div class="client-card-body">
+            <strong>{{ client.name }}</strong>
+            <span>{% if client.siren %}SIREN {{ client.siren }}{% endif %}
+                  {% if client.address %} · {{ client.address|truncatechars:34 }}{% endif %}</span>
+          </div>
+          <span class="client-card-btn">Choisir</span>
+        </div>
         {% endfor %}
       </div>
       {% endif %}
@@ -44,27 +48,13 @@
           {% if form.client.errors %}<p class="error">{{ form.client.errors.0 }}</p>{% endif %}
         </div>
         <div>
-          <label for="{{ form.client_name.id_for_label }}">Nom du client (affiché)</label>
+          <label for="{{ form.client_name.id_for_label }}">Nom du client</label>
           <div data-client-suggest>
             {{ form.client_name }}
-            <p class="micro">Tapez le nom : vos clients enregistrés et l'annuaire INSEE apparaissent au fil de la saisie. La fiche client est créée automatiquement à l'enregistrement si elle n'existe pas.</p>
+            <p class="micro">Tapez le nom : vos clients et l'annuaire INSEE apparaissent en temps réel. La fiche est créée automatiquement à l'enregistrement si elle n'existe pas.</p>
           </div>
           <input type="hidden" name="client_autocreate" value="1">
           {% if form.client_name.errors %}<p class="error">{{ form.client_name.errors.0 }}</p>{% endif %}
-        </div>
-      </div>
-
-      <div class="card" data-client-lookup
-           data-target-name="#id_client_name"
-           data-target-siren="#id_client_siren">
-        <div class="form-stack" style="gap:0">
-          <label>Chercher l'entreprise (nom, SIREN ou SIRET)</label>
-          <div class="form-grid" style="grid-template-columns:1fr auto;align-items:center">
-            <input data-client-lookup-input type="text" placeholder="Ex : Martin Bâtiment, 812345678…">
-            <button type="button" class="btn btn-primary" data-client-lookup-submit>Rechercher</button>
-          </div>
-          <p data-client-lookup-status class="micro" hidden></p>
-          <div data-client-lookup-results hidden></div>
         </div>
       </div>
 
