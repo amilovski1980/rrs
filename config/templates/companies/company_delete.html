@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Supprimer {{ company.denomination }}{% endblock %}
+{% block crumbs %}Configuration / Supprimer une société{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Supprimer la société</h1>
+    <p class="sub">{{ company.denomination }} · SIREN {{ company.siren }}</p>
+  </div>
+  <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ company.id }}">Revenir</a>
+</div>
+
+<div class="card">
+  <h2>Cette suppression est définitive</h2>
+  <p class="sub">
+    La société <b>{{ company.denomination }}</b> et toutes ses données rattachées
+    (écritures, grand livre, balance, factures, clients, fournisseurs, tickets,
+    banque, documents) seront supprimées. Cette action est irréversible.
+  </p>
+  <form method="post" class="form-stack">
+    {% csrf_token %}
+    <input type="hidden" name="societe" value="{{ company.id }}">
+    <label class="check-row" style="align-items:center">
+      <input type="checkbox" name="confirm" value="supprimer" required>
+      <span>Je confirme vouloir supprimer <b>{{ company.denomination }}</b> et toutes ses données.</span>
+    </label>
+    <div class="form-actions-bar" style="margin-top:16px">
+      <button class="btn btn-primary" type="submit"
+              onclick="return this.form.confirm.checked && confirm('Dernière confirmation : supprimer définitivement cette société ?');">
+        Supprimer définitivement
+      </button>
+      <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ company.id }}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
