@@ -50,29 +50,36 @@
       <div class="card-body">
         <div class="form-grid">
           <div>
-            <label>Client</label>
-            <input data-live-field="client_name" readonly>
+            <label for="live-client-name">Client</label>
+            <input id="live-client-name" autocomplete="off" spellcheck="false" data-live-field="client_name">
           </div>
           <div>
-            <label>SIREN</label>
-            <input data-live-field="client_siren" readonly>
+            <label for="live-client-siren">SIREN</label>
+            <input id="live-client-siren" autocomplete="off" inputmode="numeric" maxlength="14" spellcheck="false" data-live-field="client_siren">
           </div>
         </div>
         <div class="form-grid">
           <div>
-            <label>Montant HT</label>
-            <input data-live-field="amount_ht" readonly>
+            <label for="live-amount-ht">Montant HT</label>
+            <input id="live-amount-ht" autocomplete="off" inputmode="decimal" spellcheck="false" data-live-field="amount_ht">
           </div>
           <div>
-            <label>TVA %</label>
-            <input data-live-field="vat_rate" readonly>
+            <label for="live-vat-rate">TVA %</label>
+            <input id="live-vat-rate" autocomplete="off" inputmode="decimal" spellcheck="false" data-live-field="vat_rate">
           </div>
         </div>
         <div>
-          <label>Prestation</label>
-          <input data-live-field="designation" readonly>
+          <label for="live-designation">Prestation</label>
+          <input id="live-designation" autocomplete="off" spellcheck="false" data-live-field="designation">
         </div>
         <p class="sub" data-live-line style="margin:8px 0 0"></p>
+        <div class="card card-tight live-sheet-holder" data-live-sheet-holder>
+          <div class="card-head">
+            <h3>Aperçu du document</h3>
+            <button type="button" class="btn btn-ghost btn-sm" data-live-sheet-refresh>Actualiser</button>
+          </div>
+          <div data-live-sheet data-preview-url="{% url 'invoice_preview_form' %}?societe={{ company.id }}"><p class="empty" style="padding:12px">L'aperçu complet apparaît ici.</p></div>
+        </div>
       </div>
     </div>
   </div>

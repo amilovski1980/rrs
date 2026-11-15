@@ -355,6 +355,90 @@ def invoice_preview_form(request):
 
 
 @login_required
+@require_POST
+def invoice_live_update(request):
+    """Correction manuelle du brouillon depuis le panneau Aminia.
+
+    Les valeurs envoyées écrasent client, SIREN, montant HT, TVA et
+    désignation du brouillon courant, puis les totaux sont recalculés.
+    """
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return JsonResponse({"error": "Aucune société."}, status=403)
+    data = request.POST
+    invoice_id = (data.get("invoice_id") or "").strip()
+    invoice = (
+        Invoice.objects.filter(pk=invoice_id, company=company).first()
+        if invoice_id
+        else None
+    )
+    if invoice is None:
+        invoice = (
+            Invoice.objects.filter(company=company, status="draft")
+            .order_by("-created_at")
+            .first()
+        )
+    if invoice is None:
+        return JsonResponse({"error": "Aucun brouillon."}, status=404)
+
+    changed = []
+    client_name = (data.get("client_name") or "").strip()
+    if client_name and client_name != (invoice.client_name or ""):
+        invoice.client_name = client_name[:200]
+        changed.append("client")
+    siren = "".join(ch for ch in (data.get("client_siren") or "") if ch.isdigit())
+    if siren and len(siren) == 9 and siren != (invoice.client_siren or ""):
+        invoice.client_siren = siren
+        changed.append("siren")
+    vat_raw = (data.get("vat_rate") or "").strip()
+    if vat_raw:
+        try:
+            vat_dec = Decimal(vat_raw.replace(",", ".")).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            vat_dec = None
+        if vat_dec is not None and 0 <= vat_dec <= 100 and vat_dec != invoice.vat_rate:
+            invoice.vat_rate = vat_dec
+            changed.append("tva")
+    amount_raw = (data.get("amount_ht") or "").strip()
+    line = invoice.lines.first() if invoice.pk else None
+    if amount_raw:
+        try:
+            ht = Decimal(amount_raw.replace(",", ".")).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            ht = None
+        if ht is not None and line is not None and line.unit_price != ht:
+            line.unit_price = ht
+            line.save(update_fields=["unit_price", "updated_at"])
+            changed.append("montant")
+    designation = (data.get("designation") or "").strip()
+    if designation:
+        line = invoice.lines.first() if invoice.pk else None
+        if line is not None and (line.description or "") != designation[:255]:
+            line.description = designation[:255]
+            line.save(update_fields=["description", "updated_at"])
+            changed.append("prestation")
+
+    invoice.save()
+    from documents.services import recompute_invoice_totals_from_lines
+
+    recompute_invoice_totals_from_lines(invoice)
+    invoice.refresh_from_db()
+    return JsonResponse({
+        "ok": True,
+        "changed": changed,
+        "invoice": {
+            "id": str(invoice.id),
+            "number": invoice.number,
+            "url": f"/factures/{invoice.id}/?societe={company.id}",
+            "amount_ht": str(invoice.amount_ht),
+            "vat_amount": str(invoice.vat_amount),
+            "vat_rate": str(invoice.vat_rate),
+            "amount_ttc": str(invoice.amount_ttc),
+        },
+    })
+
+
+@login_required
 def invoice_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:

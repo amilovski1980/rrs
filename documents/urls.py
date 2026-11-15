@@ -7,6 +7,7 @@ urlpatterns = [
     path("liste/", views.invoice_list, name="invoice_list"),
     path("nouvelle/", views.invoice_create, name="invoice_create"),
     path("apercu/", views.invoice_preview_form, name="invoice_preview_form"),
+    path("live-update/", views.invoice_live_update, name="invoice_live_update"),
     path("import-pdf/", views.invoice_import_pdf, name="invoice_import_pdf"),
     path("<uuid:pk>/modifier/", views.invoice_edit, name="invoice_edit"),
     path("<uuid:pk>/pdf/", views.invoice_pdf, name="invoice_pdf"),

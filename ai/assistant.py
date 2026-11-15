@@ -355,6 +355,27 @@ TOOLS = [
             "additionalProperties": False,
         },
     },
+    {
+        "type": "function",
+        "name": "update_draft_invoice",
+        "description": (
+            "Modifie un brouillon de facture déjà créé : client, SIREN, montant HT, "
+            "taux de TVA ou désignation de la prestation. Relis ensuite les valeurs "
+            "modifiées à voix haute, champs par champs."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "invoice_id": {"type": "string", "description": "Identifiant du brouillon à modifier"},
+                "client_name": {"type": "string", "description": "Nom du client, ou vide"},
+                "client_siren": {"type": "string", "description": "SIREN à 9 chiffres, ou vide"},
+                "amount_ht": {"type": "string", "description": "Montant HT de la prestation"},
+                "vat_rate": {"type": "string", "description": "Taux de TVA, par exemple 20"},
+                "designation": {"type": "string", "description": "Libellé de la prestation"},
+            },
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -460,6 +481,14 @@ def execute_tool(user, company, name, args, session_company_setter=None, session
 
     if name == "draft_invoice":
         return _draft_invoice(company, args)
+
+    if name == "update_draft_invoice":
+        from billing.access import feature_on, invoice_create_block as _ivb
+
+        block = _ivb(user)
+        if block or not feature_on(user, "invoices"):
+            return {"error": "Cette action n'est pas incluse dans votre forfait."}
+        return _update_draft_invoice(company, args)
 
     if name == "draft_client":
         return _draft_client(company, args)
@@ -889,5 +918,106 @@ def _choose_company_result(user, company, args, session=None):
             "deja_client": already_client,
             "deja_fournisseur": already_supplier,
         }
+    }
+
+
+def _update_draft_invoice(company, args):
+    """Modifie un brouillon de facture existant (client, montant, TVA, désignation).
+
+    L'utilisateur peut aussi corriger depuis le panneau Aminia : les deux écritures
+    (outil et édition manuelle) passent par le même recompute des totaux.
+    """
+    from documents.models import Invoice, InvoiceLine
+
+    invoice_id = str(args.get("invoice_id") or "").strip()
+    invoice = None
+    if invoice_id:
+        invoice = Invoice.objects.filter(pk=invoice_id, company=company).first()
+    if invoice is None:
+        invoice = (
+            Invoice.objects.filter(company=company, status="draft")
+            .order_by("-created_at")
+            .first()
+        )
+    if invoice is None:
+        return {"error": "Aucun brouillon de facture à modifier."}
+
+    changed = []
+    client_name = (args.get("client_name") or "").strip()
+    if client_name and client_name != (invoice.client_name or ""):
+        invoice.client_name = client_name[:200]
+        changed.append("client : " + client_name[:80])
+
+    siren = "".join(ch for ch in str(args.get("client_siren") or "") if ch.isdigit())
+    if siren and len(siren) == 9 and siren != (invoice.client_siren or ""):
+        invoice.client_siren = siren
+        changed.append("SIREN : " + siren)
+
+    vat_rate_changed = False
+    from decimal import InvalidOperation as _Invalid
+    vat_raw = str(args.get("vat_rate") or "").replace(",", ".").strip()
+    vat_rate = None
+    if vat_raw:
+        try:
+            vat_rate = Decimal(vat_raw).quantize(Decimal("0.01"))
+        except (_Invalid, ValueError):
+            vat_rate = None
+        if vat_rate is not None and 0 <= vat_rate <= 100 and vat_rate != invoice.vat_rate:
+            invoice.vat_rate = vat_rate
+            vat_rate_changed = True
+            changed.append(f"TVA : {vat_rate} %")
+
+    amount = str(args.get("amount_ht") or "").replace(",", ".").strip()
+    ht = None
+    if amount:
+        try:
+            ht = Decimal(amount).quantize(Decimal("0.01"))
+        except (_Invalid, ValueError):
+            ht = None
+    designation = (args.get("designation") or "").strip()
+
+    line = invoice.lines.first() if invoice.pk else None
+    if ht is not None:
+        if line is None:
+            line = InvoiceLine(
+                invoice=invoice, quantity=Decimal("1.000"), unit_price=ht,
+            )
+        else:
+            line.unit_price = ht
+            if line.quantity is None:
+                line.quantity = Decimal("1.000")
+            changed.append(f"Montant HT : {ht}")
+    if line is not None and designation and designation != (line.description or ""):
+        line.description = designation[:255]
+        changed.append("prestation : " + designation[:60])
+    if line is not None and vat_rate is not None and vat_rate_changed:
+        line.vat_rate = vat_rate
+
+    if not changed:
+        return {"error": "Aucune modification fournie."}
+
+    if line is not None:
+        line.save()
+    invoice.save()
+    from documents.services import recompute_invoice_totals_from_lines
+
+    recompute_invoice_totals_from_lines(invoice)
+    invoice.refresh_from_db()
+
+    return {
+        "ok": True,
+        "changed": changed or ["Déjà à jour."],
+        "invoice": {
+            "id": str(invoice.id),
+            "number": invoice.number,
+            "url": f"/factures/{invoice.id}/?societe={company.id}",
+            "client_name": invoice.client_name,
+            "client_siren": invoice.client_siren,
+            "amount_ht": str(invoice.amount_ht),
+            "vat_amount": str(invoice.vat_amount),
+            "vat_rate": str(invoice.vat_rate),
+            "amount_ttc": str(invoice.amount_ttc),
+            "status": invoice.get_status_display(),
+        },
     }
 
