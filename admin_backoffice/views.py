@@ -17,7 +17,14 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 from accounts.forms import FrenchPasswordResetForm
 from accounts.models import User
 from ai.models import AiDraftEntry, Conversation, Message
-from ai.providers import XAI_CHAT_BASE, list_ai_models, text_provider, voice_config
+from ai.providers import (
+    XAI_CHAT_BASE,
+    list_ai_models,
+    probe_models_tools,
+    text_provider,
+    test_ai_connection,
+    voice_config,
+)
 from billing.models import Plan, Subscription
 from companies.models import Company
 
@@ -386,7 +393,65 @@ def settings_ai_models(request):
         return JsonResponse({"ok": False, "provider": chosen, "base": base, "message": str(exc)})
     except Exception as exc:  # réseau inattendu
         return JsonResponse({"ok": False, "provider": chosen, "base": base, "message": f"Erreur : {exc}"})
-    return JsonResponse({"ok": True, "provider": chosen, **result})
+    payload = {"ok": True, "provider": chosen, **result}
+    if request.POST.get("probe") in ("1", "true"):
+        payload["tools"] = probe_models_tools(
+            payload["chat_base"], key, payload["models"]
+        )
+        payload["tools_tested"] = len(payload["tools"])
+    return JsonResponse(payload)
+
+
+@staff_required
+@require_POST
+def settings_ai_connection(request):
+    """Test réel du chat : vérifie la clé, l'URL et la gestion des outils."""
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    chosen = (request.POST.get("provider") or (config.ai_text_provider if config else "") or "qwen").strip()
+    if chosen not in ("qwen", "xai", "ollama"):
+        chosen = "qwen"
+    base = (request.POST.get("base") or "").strip()
+    model = (request.POST.get("model") or "").strip()
+    if chosen == "xai":
+        base = base or XAI_CHAT_BASE
+        key = (config.xai_api_key if config else "") or getattr(settings, "XAI_API_KEY", "")
+        model = model or ((config.xai_text_model if config else "") or getattr(settings, "XAI_TEXT_MODEL", "") or "grok-3")
+    else:
+        base = base or ((config.llm_base_url if config else "") or getattr(settings, "LLM_BASE_URL", ""))
+        key = (config.llm_api_key if config else "") or getattr(settings, "LLM_API_KEY", "")
+        model = model or ((config.llm_model if config else "") or getattr(settings, "LLM_MODEL", ""))
+    if not base:
+        return JsonResponse({"ok": False, "message": "Renseignez l'URL de base avant de tester."})
+    if not model:
+        return JsonResponse({"ok": False, "message": "Choisissez un modèle (Lister les modèles) avant de tester."})
+    result = test_ai_connection(base, key, model)
+    okay = bool(result.get("ok"))
+    if okay:
+        message = (
+            "Connexion OK — {model} {tools}."
+        ).format(
+            model=model,
+            tools=(
+                "gère les outils de l'agent"
+                if result.get("tools")
+                else "ne gère PAS les outils (tool-calling absent)"
+            ),
+        )
+        return JsonResponse({
+            "ok": True,
+            "tools": bool(result.get("tools")),
+            "chat_base": result.get("chat_base"),
+            "provider": chosen,
+            "message": message,
+        })
+    message = f"Test échoué — {result.get('detail', 'réponse vide')}"
+    return JsonResponse({
+        "ok": False,
+        "tools": False,
+        "chat_base": result.get("chat_base"),
+        "provider": chosen,
+        "message": message,
+    })
 
 
 class CompanyListView(AdminStaffMixin, ListView):
