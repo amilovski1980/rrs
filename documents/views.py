@@ -1657,6 +1657,10 @@ def ticket_upload(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
+    recent_tickets = (
+        TicketDeCaisse.objects.filter(company=company)
+        .order_by("-date", "-created_at")[:5]
+    )
     form = TicketUploadForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         upload = form.cleaned_data["fichier"]
@@ -1675,6 +1679,7 @@ def ticket_upload(request):
             return render(request, "documents/ticket_upload.html", {
                 "company": company,
                 "form": form,
+                "recent_tickets": recent_tickets,
             })
         cat = form.cleaned_data.get("categorie") or parsed.get("categorie") or "autre"
         ttc = parsed.get("montant_ttc") or Decimal("0.00")
@@ -1715,6 +1720,7 @@ def ticket_upload(request):
     return render(request, "documents/ticket_upload.html", {
         "company": company,
         "form": form,
+        "recent_tickets": recent_tickets,
     })
 
 
