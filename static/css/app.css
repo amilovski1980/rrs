@@ -1116,6 +1116,27 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   font-size: 13px; font-weight: 700; color: var(--blue); line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.agent-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.agent-duration { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-2); }
+.agent-wake { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.agent-wake input { width: 13px; height: 13px; }
+.agent-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(61, 220, 106, .18);
+  animation: pulse 1.6s infinite;
+}
 .agent-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 .agent-mic {
   width: 46px; height: 46px; display: grid; place-items: center;
@@ -3138,6 +3159,23 @@ label.ticket-camera-btn.btn-primary:hover {
   flex-wrap: wrap;
 }
 
+/* ---------- Coque vocale persistante ---------- */
+.voice-shell-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+body.voice-shell-active { overflow: hidden; }
+body.voice-shell-active .agent-fab,
+body.voice-shell-active .agent-panel,
+body.voice-shell-active .agent-chooser,
+body.voice-shell-active .agent-chat { z-index: 130 !important; }
+body.voice-shell-active .live-invoice { z-index: 125 !important; }
+
 /* ---------- Modèles de facture A4 : 5 mises en page ---------- */
 [data-style-status] { min-height: 16px; margin: 6px 0 0; }
 [data-style-status].is-error { color: var(--red); }
@@ -3352,6 +3390,12 @@ label.ticket-camera-btn.btn-primary:hover {
 .model-layout-sapphire .mp-top { padding: 3px; background: #4f46e5; }
 .model-layout-sapphire .mp-logo { background: #e2e8f0; }
 .model-layout-sapphire .mp-due b { background: #4f46e5; }
+
+@media (max-width: 600px) {
+  .agent-meta { gap: 7px; }
+  .agent-wake span { display: none; }
+  .agent-actions .btn-sm { padding: 8px 10px; font-size: 11.5px; }
+}
 
 @media (max-width: 768px) {
   .entry-form-card { padding: 16px; border-radius: 14px; }

@@ -1,4 +1,5 @@
-{% load static %}<div class="agent" data-agent data-voice-agent>
+{% load static %}<script src="{% static 'js/voice-shell.js' %}?v=2026.11.15.1" defer></script>
+<div class="agent" data-agent data-voice-agent>
   {% csrf_token %}
   <button class="agent-fab" type="button" data-agent-open aria-label="Ouvrir Aminia" aria-expanded="false" aria-haspopup="dialog" aria-controls="agent-chooser">
     <span class="agent-fab-orb" aria-hidden="true">
@@ -62,15 +63,21 @@
         <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
       </div>
       <div class="agent-copy">
-        <h2 id="agent-title">Aminia</h2>
+        <h2 id="agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
         <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
         <p class="agent-note" data-agent-transcript></p>
+        <div class="agent-meta">
+          <span class="agent-duration" data-agent-duration>00:00</span>
+          <label class="agent-wake"><input type="checkbox" data-agent-wakelock checked> <span>Écran allumé</span></label>
+        </div>
       </div>
       <div class="agent-actions">
-        <button class="agent-mic" type="button" data-agent-mic aria-label="Parler à Aminia">
+        <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
+        <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
+        <button class="agent-mic" type="button" data-agent-mic aria-label="Couper le microphone" title="Couper le microphone">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
         </button>
-        <button class="btn btn-ghost" type="button" data-agent-close>Fermer</button>
+        <button class="btn btn-ghost" type="button" data-agent-close>Terminer</button>
       </div>
     </div>
   </div>

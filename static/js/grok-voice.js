@@ -1,6 +1,14 @@
 /* Assistant vocal Grok : jeton éphémère côté serveur, audio PCM 24 kHz. */
 (function () {
   var SAMPLE_RATE = 24000;
+  var WAKE_KEY = "aminia:screen-wake";
+  var wakeLock = null;
+  var wakeEnabled = false;
+  try {
+    wakeEnabled = window.localStorage.getItem(WAKE_KEY) !== "0";
+  } catch (error) {
+    wakeEnabled = true;
+  }
 
   function csrfToken() {
     var input = document.querySelector("[data-agent] input[name=csrfmiddlewaretoken]");
@@ -28,8 +36,29 @@
   }
 
   function companyIdFromPage() {
+    if (window.AminiaShell && window.AminiaShell.active) {
+      try {
+        var frameWindow = window.AminiaShell.document().defaultView;
+        if (frameWindow) {
+          return new URLSearchParams(frameWindow.location.search).get("societe") || "";
+        }
+      } catch (error) {
+        /* repli sur la page hôte */
+      }
+    }
     var params = new URLSearchParams(window.location.search);
     return params.get("societe") || "";
+  }
+
+  function activeDocument() {
+    if (window.AminiaShell && window.AminiaShell.active) {
+      try {
+        return window.AminiaShell.document();
+      } catch (error) {
+        return document;
+      }
+    }
+    return document;
   }
 
   function resample(input, fromRate, toRate) {
@@ -94,6 +123,14 @@
     var liveTimer = null;
     var sheet = document.querySelector("[data-live-invoice]");
     var liveFields = ["client_name", "client_siren", "amount_ht", "vat_rate", "designation"];
+    var durationEl = root.querySelector("[data-agent-duration]");
+    var wakeEl = root.querySelector("[data-agent-wakelock]");
+    var reconnectBtn = root.querySelector("[data-agent-reconnect]");
+    var draftLink = root.querySelector("[data-agent-draft]");
+    var liveDot = root.querySelector("[data-agent-live-dot]");
+    var startedAt = 0;
+    var durationTimer = null;
+    var sessionCompanyId = companyIdFromPage();
 
     function setStatus(text) {
       if (statusEl) statusEl.textContent = text;
@@ -108,6 +145,101 @@
       if (dialog) dialog.classList.toggle("is-listening", on);
       mic.classList.toggle("is-listening", on);
     }
+
+    function setLiveIndicator(on) {
+      if (liveDot) liveDot.hidden = !on;
+    }
+
+    function setReconnect(on) {
+      if (reconnectBtn) reconnectBtn.hidden = !on;
+    }
+
+    function setDraft(url, number) {
+      if (!draftLink) return;
+      if (!url) {
+        draftLink.hidden = true;
+        draftLink.removeAttribute("href");
+        return;
+      }
+      draftLink.hidden = false;
+      draftLink.href = url;
+      draftLink.textContent = number ? "Brouillon " + number : "Brouillon";
+    }
+
+    function updateDuration() {
+      if (!durationEl) return;
+      if (!startedAt) {
+        durationEl.textContent = "00:00";
+        return;
+      }
+      var seconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      var minutes = Math.floor(seconds / 60);
+      durationEl.textContent =
+        String(minutes).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
+    }
+
+    function startDuration() {
+      startedAt = Date.now();
+      updateDuration();
+      if (durationTimer) window.clearInterval(durationTimer);
+      durationTimer = window.setInterval(updateDuration, 1000);
+    }
+
+    function stopDuration() {
+      if (durationTimer) window.clearInterval(durationTimer);
+      durationTimer = null;
+      startedAt = 0;
+      updateDuration();
+    }
+
+    async function requestWakeLock() {
+      if (!wakeEnabled || !("wakeLock" in navigator) || document.hidden) return;
+      if (wakeLock && !wakeLock.released) return;
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", function () {
+          wakeLock = null;
+        });
+      } catch (error) {
+        wakeLock = null;
+      }
+    }
+
+    function releaseWakeLock() {
+      if (!wakeLock) return;
+      try {
+        wakeLock.release();
+      } catch (error) {
+        /* ignore */
+      }
+      wakeLock = null;
+    }
+
+    function syncWakePreference() {
+      if (!wakeEl) return;
+      wakeEl.checked = wakeEnabled;
+      wakeEl.addEventListener("change", function () {
+        wakeEnabled = !!wakeEl.checked;
+        try {
+          window.localStorage.setItem(WAKE_KEY, wakeEnabled ? "1" : "0");
+        } catch (error) {
+          /* stockage indisponible */
+        }
+        if (wakeEnabled && ws && ws.readyState === 1) requestWakeLock();
+        else releaseWakeLock();
+      });
+    }
+
+    function goToDraft(event) {
+      if (!draftLink || !draftLink.href) return;
+      if (window.AminiaShell && window.AminiaShell.active) {
+        event.preventDefault();
+        window.AminiaShell.navigate(draftLink.href);
+      }
+    }
+
+    syncWakePreference();
+    if (draftLink) draftLink.addEventListener("click", goToDraft);
 
     function stopPlayback() {
       for (var i = 0; i < sources.length; i++) {
@@ -139,6 +271,10 @@
       muted = false;
       starting = false;
       setListening(false);
+      setLiveIndicator(false);
+      setReconnect(false);
+      releaseWakeLock();
+      stopDuration();
       stopPlayback();
       if (processor) {
         try { processor.disconnect(); } catch (e) { /* ignore */ }
@@ -146,7 +282,10 @@
         processor = null;
       }
       if (stream) {
-        stream.getTracks().forEach(function (track) { track.stop(); });
+        stream.getTracks().forEach(function (track) {
+          track.onended = null;
+          track.stop();
+        });
         stream = null;
       }
       if (ws) {
@@ -170,9 +309,10 @@
     }
 
     function fieldBox(key) {
-      var formField = document.querySelector("form [name='" + key + "']");
+      var target = activeDocument();
+      var formField = target.querySelector("form [name='" + key + "']");
       if (formField) return formField;
-      return document.querySelector("[data-live-field='" + key + "']");
+      return target.querySelector("[data-live-field='" + key + "']");
     }
 
     function parsePartial(buffer) {
@@ -249,11 +389,12 @@
 
     function showLiveInvoice(buffer) {
       var parsed = parsePartial(buffer);
-      var hasForm = !!document.querySelector("form [name='client_name']");
+      var target = activeDocument();
+      var form = target.querySelector("form [name='client_name']");
+      var hasForm = !!form;
       if (sheet && !hasForm) sheet.hidden = false;
-      if (hasForm) {
-        var form = document.querySelector("form [name='client_name']");
-        if (form && form.scrollIntoView) form.scrollIntoView({ block: "center", behavior: "smooth" });
+      if (hasForm && form.scrollIntoView) {
+        form.scrollIntoView({ block: "center", behavior: "smooth" });
       }
       for (var i = 0; i < liveFields.length; i++) {
         var key = liveFields[i];
@@ -297,6 +438,7 @@
     function finishLive(output) {
       var invoice = output && output.invoice;
       var link = document.querySelector("[data-live-open]");
+      if (invoice) setDraft(invoice.url, invoice.number);
       if (!invoice || !link) return;
       link.hidden = false;
       link.href = invoice.url;
@@ -410,6 +552,7 @@
           setStatus(session.message || "Agent vocal indisponible.");
           return;
         }
+        sessionCompanyId = session.company_id || companyIdFromPage();
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         audioCtx = new AudioContext();
         return navigator.mediaDevices.getUserMedia({
@@ -422,6 +565,20 @@
             starting = false;
             setStatus("Aminia est en ligne.");
             setListening(true);
+            setLiveIndicator(true);
+            setReconnect(false);
+            startDuration();
+            requestWakeLock();
+            var audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+              audioTrack.onended = function () {
+                setListening(false);
+                setLiveIndicator(false);
+                setReconnect(true);
+                releaseWakeLock();
+                setStatus("Microphone interrompu. Reconnectez Aminia.");
+              };
+            }
             configure(session);
             var source = audioCtx.createMediaStreamSource(stream);
             processor = audioCtx.createScriptProcessor(4096, 1, 1);
@@ -438,18 +595,28 @@
           socket.onmessage = onMessage;
           socket.onerror = function () {
             starting = false;
+            setListening(false);
+            setLiveIndicator(false);
+            setReconnect(true);
+            releaseWakeLock();
             setStatus("Connexion vocale interrompue.");
           };
           socket.onclose = function () {
-            if (!panel.hidden) setStatus("Session vocale terminée.");
+            if (!panel.hidden) {
+              setStatus("Session vocale interrompue. Reconnectez Aminia.");
+            }
             setListening(false);
+            setLiveIndicator(false);
+            setReconnect(true);
+            releaseWakeLock();
             ws = null;
           };
         });
       }).catch(function () {
         starting = false;
         hangup();
-        setStatus("Micro ou réseau indisponible.");
+        setReconnect(true);
+        setStatus("Micro ou réseau indisponible. Reconnectez Aminia.");
       });
     }
 
@@ -464,8 +631,12 @@
       button.addEventListener("click", function () {
         hangup();
         setStatus("Appuyez pour parler");
+        if (window.AminiaShell && window.AminiaShell.active) {
+          window.AminiaShell.exit();
+        }
       });
     });
+    if (reconnectBtn) reconnectBtn.addEventListener("click", start);
     mic.addEventListener("click", function (event) {
       event.stopImmediatePropagation();
       if (!ws || ws.readyState !== 1) {
@@ -473,12 +644,63 @@
         return;
       }
       muted = !muted;
+      if (stream) {
+        stream.getAudioTracks().forEach(function (track) {
+          track.enabled = !muted;
+        });
+      }
       setListening(!muted);
+      mic.setAttribute(
+        "aria-label",
+        muted ? "Réactiver le microphone" : "Couper le microphone"
+      );
+      mic.title = muted ? "Réactiver le microphone" : "Couper le microphone";
       setStatus(muted ? "Micro coupé." : "Je vous écoute…");
     }, true);
 
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) hangup();
+      if (!ws || ws.readyState !== 1) return;
+      if (document.visibilityState === "visible") {
+        if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        requestWakeLock();
+        setStatus("Aminia est en ligne.");
+      } else {
+        releaseWakeLock();
+        setStatus("Aminia continue en arrière-plan.");
+      }
+    });
+
+    document.addEventListener("aminia:shell-url", function (event) {
+      var companyId = event.detail && event.detail.companyId;
+      if (!companyId || companyId === sessionCompanyId || !ws || ws.readyState !== 1) {
+        return;
+      }
+      sessionCompanyId = companyId;
+      postJson("/agent/session/", { company_id: companyId }).then(function (session) {
+        if (!session || !session.instructions || !ws || ws.readyState !== 1) return;
+        ws.send(JSON.stringify({
+          type: "session.update",
+          session: {
+            instructions: session.instructions,
+            tools: session.tools || [],
+          },
+        }));
+        setStatus(
+          session.company_name
+            ? "Société : " + session.company_name
+            : "Contexte de société mis à jour."
+        );
+      });
+    });
+
+    window.addEventListener("offline", function () {
+      if (ws) {
+        setStatus("Réseau perdu. Aminia reprendra à la reconnexion.");
+        setLiveIndicator(false);
+      }
+    });
+    window.addEventListener("online", function () {
+      if (ws && ws.readyState !== 1) setReconnect(true);
     });
   }
 
