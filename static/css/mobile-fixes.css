@@ -1,0 +1,556 @@
+/* Correctifs mobile — barre Aminia compacte, actions visibles, formulaires
+   utilisables au pouce. Chargé après app.css et mobile-wizard.css. */
+
+@media (max-width: 768px) {
+  /* ---------- Footer : Aminia devient un onglet, plus une pastille flottante ---------- */
+  .m-footer {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .agent-fab {
+    display: none !important;
+  }
+
+  .m-footer-agent .m-footer-ico {
+    color: var(--pink);
+  }
+
+  body.agent-open .m-footer-agent .m-footer-ico {
+    color: #fff;
+    background: linear-gradient(135deg, var(--pink) 0%, #e0447f 100%);
+    border-color: transparent;
+  }
+
+  .content {
+    padding-bottom: calc(
+      var(--space-5) + var(--m-footer-h) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .shell:has(details.page-actions) .content,
+  .shell:has(a.btn.page-actions) .content {
+    padding-bottom: calc(
+      var(--space-5) + var(--m-footer-h) + var(--m-action-h) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .shell:has(div.page-actions) .content {
+    padding-bottom: calc(
+      var(--space-5) + var(--m-footer-h) + var(--m-action-bar-h) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* ---------- Aminia : une barre compacte, pas un panneau ---------- */
+  .agent-panel {
+    /* Le padding bas de app.css réservait le footer *à l'intérieur* du panneau,
+       ce qui créait un grand bloc vide et poussait la barre hors écran. */
+    padding-bottom: 0;
+    background: transparent;
+  }
+
+  .agent-dialog {
+    min-height: 56px;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .agent-orb {
+    width: 36px;
+    height: 36px;
+  }
+
+  .agent-core {
+    width: 32px;
+    height: 32px;
+  }
+
+  .agent-wave {
+    height: 14px;
+    gap: 2px;
+  }
+
+  .agent-wave i {
+    width: 2px;
+    height: 6px;
+  }
+
+  .agent-dialog h2 {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .agent-status {
+    margin-top: 0;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  /* Durée, case « écran allumé » et transcript : inutiles sur un appel mobile. */
+  .agent-meta,
+  .agent-note {
+    display: none !important;
+  }
+
+  .agent-actions {
+    gap: 6px;
+  }
+
+  .agent-actions .btn {
+    min-height: var(--tap);
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .agent-mic {
+    width: var(--tap);
+    height: var(--tap);
+  }
+
+  .agent-close-x {
+    display: inline;
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .agent-close-label {
+    display: none;
+  }
+
+  .agent-actions [data-agent-close] {
+    width: var(--tap);
+    min-width: var(--tap);
+    padding: 0;
+    justify-content: center;
+  }
+
+  /* La barre vocale se pose juste au-dessus du footer, ou des actions. */
+  body.agent-open .agent-panel {
+    bottom: calc(
+      var(--m-footer-h) + 6px +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(details.page-actions) .agent-panel,
+  body.agent-open:has(a.btn.page-actions) .agent-panel {
+    bottom: calc(
+      var(--m-footer-h) + var(--m-action-h) + var(--m-fab-gap) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(div.page-actions) .agent-panel {
+    bottom: calc(
+      var(--m-footer-h) + var(--m-action-bar-h) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* Le panneau de résultats d'entreprises reste au-dessus de la barre vocale. */
+  body.agent-open .agent-results {
+    bottom: calc(
+      var(--m-footer-h) + 66px +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(details.page-actions) .agent-results,
+  body.agent-open:has(a.btn.page-actions) .agent-results {
+    bottom: calc(
+      var(--m-footer-h) + var(--m-action-h) + var(--m-fab-gap) + 66px +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(div.page-actions) .agent-results {
+    bottom: calc(
+      var(--m-footer-h) + var(--m-action-bar-h) + 66px +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.wizard-active.agent-open .agent-results {
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Le menu « Actions » doit passer au-dessus d'Aminia, sinon Valider est caché. */
+  body.agent-open details.page-actions[open] {
+    z-index: calc(var(--z-agent-panel) + 5);
+  }
+
+  details.page-actions[open] {
+    z-index: calc(var(--z-agent-panel) + 5);
+  }
+
+  details.page-actions > .actions-list {
+    max-height: min(62vh, 460px);
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Contenu : réserve la barre Aminia (environ 68 px) quand elle est ouverte. */
+  body.agent-open .content {
+    padding-bottom: calc(
+      var(--m-footer-h) + 68px + var(--m-fab-gap) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(details.page-actions) .content,
+  body.agent-open:has(a.btn.page-actions) .content {
+    padding-bottom: calc(
+      var(--m-footer-h) + var(--m-action-h) + 68px + var(--m-fab-gap) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  body.agent-open:has(div.page-actions) .content {
+    padding-bottom: calc(
+      var(--m-footer-h) + var(--m-action-bar-h) + 68px + var(--m-fab-gap) +
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* ---------- Actions de page : action principale + menu court ---------- */
+  details.page-actions.m-dock-split {
+    left: auto;
+    right: var(--space-3);
+    width: 54px;
+  }
+
+  details.page-actions.m-dock-split > summary.actions-summary {
+    width: 54px;
+    min-width: 54px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+    color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  details.page-actions.m-dock-split > summary.actions-summary::before {
+    content: "⋯";
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+
+  details.page-actions.m-dock-split > .actions-list {
+    left: auto;
+    right: 0;
+    width: min(340px, calc(100vw - 24px));
+  }
+
+  details.page-actions.m-dock-single {
+    display: none;
+  }
+
+  .m-dock-primary {
+    position: fixed;
+    left: var(--space-3);
+    right: calc(var(--space-3) + 54px + 8px);
+    bottom: calc(
+      var(--space-3) + var(--m-footer-h) +
+      env(safe-area-inset-bottom, 0px)
+    );
+    z-index: var(--z-page-actions);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 10px var(--space-2);
+    font-size: var(--text-sm);
+    box-shadow: var(--shadow);
+  }
+
+  .m-dock-primary--wide {
+    right: var(--space-3);
+  }
+
+  /* Boutons multiples (cockpit) : défilement horizontal plutôt que compression. */
+  div.page-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  div.page-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  div.page-actions .btn {
+    flex: 0 0 auto;
+    min-width: max-content;
+    scroll-snap-align: start;
+  }
+
+  /* ---------- Cartes : le scroll reste dans le tableau, pas dans la page ---------- */
+  .card,
+  .card-tight {
+    overflow-x: visible;
+  }
+
+  .card:has(> table),
+  .card-tight:has(> table) {
+    overflow-x: auto;
+  }
+
+  .table-wrap,
+  .invoice-lines-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .invoice-form-card,
+  .invoice-lines-card {
+    overflow: visible !important;
+  }
+
+  /* ---------- Tableaux transformés en fiches ---------- */
+  .card table.table-mobile-cards,
+  .card-tight table.table-mobile-cards,
+  .table-mobile-cards {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .table-mobile-cards thead {
+    display: none;
+  }
+
+  .table-mobile-cards tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .table-mobile-cards tr {
+    display: block;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+
+  .table-mobile-cards td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    border: 0;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .table-mobile-cards td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .card .table-mobile-cards td:first-child,
+  .card-tight .table-mobile-cards td:first-child {
+    position: static;
+    z-index: auto;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .table-mobile-cards td:last-child:has(.btn) {
+    padding-top: 8px;
+  }
+
+  .table-mobile-cards td:last-child:has(.btn)::before {
+    display: none;
+  }
+
+  .table-mobile-cards td .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-mobile-cards tr.empty-row td {
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* ---------- Lignes de facture / devis / avoir : une fiche par ligne ---------- */
+  .card table.invoice-lines-table,
+  .invoice-lines-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .invoice-lines-table thead {
+    display: none;
+  }
+
+  .invoice-lines-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .invoice-lines-table tr.invoice-line-row {
+    display: block;
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .invoice-lines-table tr.invoice-line-row td {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    min-width: 0;
+    padding: 6px 0;
+    border: 0;
+    vertical-align: middle;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td.line-product,
+  .invoice-lines-table tr.invoice-line-row td.line-description {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td.line-product::before,
+  .invoice-lines-table tr.invoice-line-row td.line-description::before {
+    margin-bottom: 2px;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td.line-total {
+    font-size: 16px;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td.line-remove {
+    position: static;
+    top: auto;
+    right: auto;
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
+    padding-top: 8px;
+  }
+
+  .invoice-lines-table tr.invoice-line-row td.line-remove::before {
+    display: none;
+  }
+
+  .invoice-lines-table input,
+  .invoice-lines-table select {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    font-size: 16px;
+  }
+
+  .invoice-lines-table tr.is-deleted {
+    opacity: .5;
+  }
+
+  .invoice-lines-table .line-remove-btn {
+    min-width: var(--tap);
+    min-height: var(--tap);
+  }
+
+  .invoice-lines-toolbar {
+    display: grid;
+    gap: 10px;
+  }
+
+  .invoice-preview-totals {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  /* ---------- Assistant par étapes : navigation toujours accessible ---------- */
+  body.wizard-active .m-footer,
+  body.wizard-active .agent-fab {
+    display: none !important;
+  }
+
+  body.wizard-active .content {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-mode .wizard-head {
+    margin: 0 0 12px;
+  }
+
+  .wizard-mode .wizard-nav {
+    position: fixed;
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    z-index: calc(var(--z-page-actions) + 1);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 -18px 44px -26px rgba(15, 23, 42, .5);
+  }
+
+  .wizard-mode .wizard-nav .wizard-submit,
+  .wizard-mode .wizard-nav .wizard-cancel {
+    grid-column: 1 / -1;
+  }
+
+  body.wizard-active.agent-open .agent-panel {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.agent-open.wizard-active .wizard-nav {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    z-index: calc(var(--z-agent-panel) + 5);
+  }
+}
+
+@media (max-width: 360px) {
+  .m-footer-btn {
+    font-size: 9.5px;
+  }
+
+  .m-footer-ico {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Sur desktop, le bouton « × » reste une croix discrète à côté du libellé. */
+.agent-close-x {
+  display: none;
+}
