@@ -69,12 +69,7 @@
 </div>
 {% endif %}
 
-<section class="sheet-stage invoice-preview-live" data-invoice-preview>
-  <img class="invoice-preview-image"
-       src="{% url 'quote_preview_png' quote.id %}?societe={{ company.id }}"
-       data-preview-url="{% url 'quote_preview_png' quote.id %}?societe={{ company.id }}"
-       alt="Aperçu du PDF du devis {{ quote.number }}"
-       onerror="this.closest('[data-invoice-preview]').classList.add('preview-failed')">
-  <div class="invoice-preview-fallback">{% include "documents/quote_sheet.html" %}</div>
+<section class="sheet-stage">
+  {% include "documents/quote_sheet.html" %}
 </section>
 {% endblock %}

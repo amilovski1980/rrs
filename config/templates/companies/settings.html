@@ -285,15 +285,8 @@
   <summary class="form-header">Aperçu de la facture <span class="form-header-hint">Modèle et couleur sélectionnés</span></summary>
   <div class="form-section-body">
     <p class="sub" style="margin:0">L'aperçu utilise le même modèle et les mêmes couleurs que le PDF exporté.</p>
-    <section class="sheet-stage settings-sheet-preview invoice-preview-live" data-invoice-preview>
-      <img class="invoice-preview-image"
-           src="{% url 'invoice_sample_preview_png' %}?societe={{ company.id }}"
-           data-preview-url="{% url 'invoice_sample_preview_png' %}?societe={{ company.id }}"
-           alt="Aperçu du modèle et de la couleur de facture"
-           onerror="this.closest('[data-invoice-preview]').classList.add('preview-failed')">
-      <div class="invoice-preview-fallback">
+    <section class="sheet-stage settings-sheet-preview">
       {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
-      </div>
     </section>
   </div>
 </details>

@@ -94,14 +94,7 @@
 </div>
 <p class="micro" data-style-status role="status" aria-live="polite"></p>
 
-<section class="sheet-stage invoice-preview-live" data-invoice-preview>
-  <img class="invoice-preview-image"
-       src="{% url 'invoice_preview_png' invoice.id %}?societe={{ company.id }}"
-       data-preview-url="{% url 'invoice_preview_png' invoice.id %}?societe={{ company.id }}"
-       alt="Aperçu du PDF de la facture {{ invoice.number }}"
-       onerror="this.closest('[data-invoice-preview]').classList.add('preview-failed')">
-  <div class="invoice-preview-fallback">{% include "documents/invoice_sheet.html" %}</div>
-</section>
+<section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
 <div class="card" style="padding:18px 22px;margin-top:16px">
   <p class="sub">Payé {{ invoice.amount_paid|floatformat:2 }} € · Restant {{ invoice.amount_remaining|floatformat:2 }} € TTC</p>
