@@ -942,23 +942,45 @@ def company_settings(request):
 
 
 @login_required
-@require_POST
+@login_required
 def company_delete(request):
     """Supprime définitivement la société courante et ses données rattachées."""
+    import logging
+
     company_id = request.POST.get("societe") or request.GET.get("societe")
     try:
         company = Company.objects.get(pk=company_id, owner=request.user)
     except (Company.DoesNotExist, ValidationError, TypeError):
         raise Http404("Société introuvable.")
+    name = company.denomination
+
+    # GET : l'écran de confirmation (aucune suppression sans POST explicite).
+    if request.method != "POST":
+        return render(request, "companies/company_delete.html", {
+            "company": company,
+        })
     if request.POST.get("confirm") != "supprimer":
         messages.error(request, "Cochez la confirmation avant de supprimer la société.")
         return redirect(reverse("company_settings") + f"?societe={company.id}")
-    name = company.denomination
-    if request.session.get("societe_id") == str(company.id):
-        request.session.pop("societe_id", None)
-    company.delete()
-    messages.success(request, f"Société {name} supprimée.")
-    return redirect("cockpit")
+
+    try:
+        with transaction.atomic():
+            if request.session.get("societe_id") == str(company.id):
+                request.session.pop("societe_id", None)
+            company.delete()
+    except Exception as exc:
+        # Aucun 500 : certaines données rattachées peuvent encore exister
+        # (rapprochements, documents protégés…). Message lisible et sortie propre.
+        logging.getLogger(__name__).exception(
+            "Suppression de la société %s en échec", company.pk
+        )
+        messages.error(
+            request,
+            "La suppression a échoué : des éléments restent rattachés à cette "
+            "société. Supprimez-les d'abord, ou contactez le support "
+            f"(réf. {company.pk}).",
+        )
+        return redirect(reverse("company_settings") + f"?societe={company.id}")
 
 
 @login_required
@@ -1009,4 +1031,3 @@ def terms_of_sale(request):
 def privacy_policy(request):
     """Politique de confidentialité et droits RGPD."""
     return render(request, "companies/privacy_policy.html")
-
