@@ -23,6 +23,7 @@ from ai.providers import (
     probe_models_tools,
     text_provider,
     test_ai_connection,
+    voice_agent_config,
     voice_config,
 )
 from billing.models import Plan, Subscription
@@ -294,6 +295,7 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
             "xai_api_key": bool(config.xai_api_key),
             "insee_api_key": bool(config.insee_api_key),
             "einvoicing_api_key": bool(config.einvoicing_api_key),
+            "elevenlabs_api_key": bool(config.elevenlabs_api_key),
         }
         context["ai_defaults"] = {
             "qwen": getattr(settings, "LLM_BASE_URL", "") or "http://localhost:8000/v1",
@@ -304,6 +306,7 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
         context["ai_effective"] = {
             "chat": text_provider(),
             "voice": voice_config(),
+            "speech": voice_agent_config(),
         }
         return context
 

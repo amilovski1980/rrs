@@ -175,6 +175,79 @@ def voice_config() -> dict:
     return {"key": key, "model": model, "voice": voice, "configured": bool(key)}
 
 
+ELEVENLABS_BASE = "https://api.elevenlabs.io"
+
+# Voix xAI du realtime, par genre (surchargeable librement dans la clé).
+XAI_VOICES = {"femme": "eve", "homme": "ara"}
+
+# Voix publiques ElevenLabs par genre, utilisées si l'ID n'est pas surchargé.
+ELEVENLABS_VOICES = {
+    "femme": "21m00Tcm4TlvDq8tWv",  # Rachel
+    "homme": "onwK4e9ZLuTAKqWW03F9",  # Daniel
+}
+
+
+def _overlay_field(config, db_attr: str, env_name: str) -> str:
+    db_value = (getattr(config, db_attr, "") or "").strip() if config else ""
+    if db_value:
+        return db_value
+    return (getattr(settings, env_name, "") or "").strip()
+
+
+def voice_agent_config() -> dict:
+    """Voix effective pour la lecture des réponses (ElevenLabs ou xAI)."""
+    config = _config()
+    provider = (getattr(config, "voice_provider", "") or "elevenlabs") if config else "elevenlabs"
+    gender = (getattr(config, "voice_gender", "") or "femme") if config else "femme"
+
+    if provider == "elevenlabs":
+        key = _overlay_field(config, "elevenlabs_api_key", "ELEVENLABS_API_KEY")
+        voice_id = (
+            (getattr(config, "elevenlabs_voice_male", "") or "") if gender == "homme"
+            else (getattr(config, "elevenlabs_voice_female", "") or "")
+        ).strip()
+        if not voice_id:
+            voice_id = ELEVENLABS_VOICES.get(gender, ELEVENLABS_VOICES["femme"])
+        model = _overlay_field(config, "elevenlabs_model", "ELEVENLABS_MODEL") or "eleven_flash_v2_5"
+        return {
+            "provider": "elevenlabs", "key": key, "voice_id": voice_id,
+            "model": model, "gender": gender,
+            "configured": bool(key and voice_id),
+        }
+
+    key = _overlay_field(config, "xai_api_key", "XAI_API_KEY")
+    default_voice = XAI_VOICES.get(gender, XAI_VOICES["femme"])
+    voice = _overlay_field(config, "xai_voice", "XAI_VOICE") or default_voice
+    model = _overlay_field(config, "xai_voice_model", "XAI_VOICE_MODEL") or "grok-voice-latest"
+    return {
+        "provider": "xai", "key": key,
+        "voice_id": voice,  # xAI : le nom de la voix
+        "model": model, "gender": gender,
+        "configured": bool(key),
+    }
+
+
+def elevenlabs_tts(text: str, *, api_key: str, voice_id: str, model: str = "") -> bytes:
+    """Synthèse ElevenLabs : texte → audio MP3."""
+    if not text.strip():
+        raise ValueError("Texte vide.")
+    payload = {"text": text.strip(), "model_id": model or "eleven_flash_v2_5"}
+    response = httpx.post(
+        f"{ELEVENLABS_BASE}/v1/text-to-speech/{voice_id}",
+        params={"output_format": "mp3_44100_128"},
+        json=payload,
+        headers={"xi-api-key": api_key, "Content-Type": "application/json"},
+        timeout=30,
+    )
+    if response.status_code == 401:
+        raise RuntimeError("Clé ElevenLabs refusée (401).")
+    if response.status_code == 429:
+        raise RuntimeError("ElevenLabs est momentanément saturé (limite de débit).")
+    if response.status_code >= 400:
+        raise RuntimeError(f"ElevenLabs a refusé la synthèse (HTTP {response.status_code}).")
+    return response.content
+
+
 def probe_chat_tools(
     base: str,
     api_key: str = "",

@@ -291,6 +291,46 @@ from .models import Conversation
 
 
 @login_required
+def voice_tts(request):
+    """Synthèse texte → voix (ElevenLabs) pour lire un message du chat."""
+    from ai.providers import elevenlabs_tts, voice_agent_config
+
+    denied = _auth_required(request)
+    if denied:
+        return denied
+    body = _json_body(request) or {}
+    import re as _re
+
+    text = _re.sub(r"\s+", " ", str(body.get("text") or ""))[:600].strip()
+    if not text:
+        return JsonResponse({"error": "Aucun texte à lire."}, status=400)
+    try:
+        voice = voice_agent_config()
+    except Exception:
+        return JsonResponse({"error": "Config de la voix invalide."}, status=500)
+    if not voice.get("configured"):
+        return JsonResponse({
+            "error": "voice", "message": "La voix n'est pas configurée (clé ElevenLabs manquante).",
+        }, status=503)
+    if voice.get("provider") != "elevenlabs":
+        return JsonResponse({
+            "error": "voice",
+            "message": "La lecture est réservée à ElevenLabs ; la voix xAI sert la session en direct.",
+        }, status=501)
+    try:
+        audio = elevenlabs_tts(
+            text, api_key=voice["key"], voice_id=voice["voice_id"], model=voice.get("model") or "",
+        )
+    except RuntimeError as exc:
+        return JsonResponse({"error": "voice", "message": str(exc)}, status=502)
+    except Exception:
+        return JsonResponse({"error": "voice", "message": "La synthèse vocale a échoué."}, status=500)
+    response = HttpResponse(audio, content_type="audio/mpeg")
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@login_required
 def chat_page(request):
     """Page chat dédiée (fallback hors panneau) — company-scoped."""
     company = resolve_web_company_chat(request)

@@ -51,6 +51,36 @@ class SiteConfiguration(models.Model):
         max_length=40, blank=True, default="", verbose_name="Voix xAI",
         help_text="Vide = variable XAI_VOICE.",
     )
+    voice_provider = models.CharField(
+        max_length=14,
+        choices=[
+            ("xai", "xAI Realtime (live)"),
+            ("elevenlabs", "ElevenLabs (synthèse texte → voix)"),
+        ],
+        default="elevenlabs",
+        verbose_name="Fournisseur de la voix",
+    )
+    voice_gender = models.CharField(
+        max_length=8,
+        choices=[("femme", "Voix de femme"), ("homme", "Voix d'homme")],
+        default="femme",
+        verbose_name="Genre de la voix",
+    )
+    elevenlabs_api_key = models.CharField(
+        max_length=512, blank=True, default="", verbose_name="Clé API ElevenLabs",
+    )
+    elevenlabs_model = models.CharField(
+        max_length=80, blank=True, default="", verbose_name="Modèle ElevenLabs",
+        help_text="Vide = eleven_flash_v2_5 (multilingue rapide).",
+    )
+    elevenlabs_voice_female = models.CharField(
+        max_length=80, blank=True, default="21m00Tcm4TlvDq8tWv",
+        verbose_name="Voix ElevenLabs — femme",
+    )
+    elevenlabs_voice_male = models.CharField(
+        max_length=80, blank=True, default="onwK4e9ZLuTAKqWW03F9",
+        verbose_name="Voix ElevenLabs — homme",
+    )
     ai_text_provider = models.CharField(
         max_length=12,
         choices=[

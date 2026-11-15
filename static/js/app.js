@@ -810,6 +810,47 @@
     var p = document.createElement("p");
     p.textContent = text;
     bubble.appendChild(p);
+    if (role === "assistant" && text) {
+      var speak = document.createElement("button");
+      speak.className = "agent-chat-speak";
+      speak.type = "button";
+      speak.textContent = "🔊 Écouter";
+      speak.addEventListener("click", function () {
+        speak.disabled = true;
+        fetch("/agent/tts/", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfTokenFrom(log),
+          },
+          body: JSON.stringify({ text: text }),
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              return response
+                .json()
+                .then(function (data) {
+                  throw new Error(data.message || "Lecture indisponible.");
+                });
+            }
+            return response.blob();
+          })
+          .then(function (blob) {
+            var audio = new Audio(URL.createObjectURL(blob));
+            audio.play();
+          })
+          .catch(function (error) {
+            speak.textContent = "🔇 " + ((error && error.message) || "Lecture indisponible.");
+            window.setTimeout(function () {
+              speak.textContent = "🔊 Écouter";
+              speak.disabled = false;
+            }, 2600);
+            return;
+          });
+      });
+      bubble.appendChild(speak);
+    }
     log.appendChild(bubble);
     log.scrollTop = log.scrollHeight;
   }
