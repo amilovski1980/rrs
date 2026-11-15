@@ -101,34 +101,34 @@ html[data-theme="dark"] .side-link.active {
 html[data-theme="dark"] .btn {
   border-radius: 999px;
 }
-/* Boutons primaires : rose→rouge→violet, surcouche de verre, lueur douce */
+/* Boutons primaires : rouge profond tons-sur-tons, reflet verre discret, sans contour */
 html[data-theme="dark"] .btn-primary,
 html[data-theme="dark"] label.btn.btn-primary,
 html[data-theme="dark"] label.ticket-camera-btn.btn-primary {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 48%),
-    linear-gradient(100deg, #e6244d 0%, #c70424 48%, #312747 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, #e0244a 0%, #c70424 55%, #9e0320 100%);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: transparent;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 12px 26px -14px rgba(199, 4, 36, 0.45);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
 }
 html[data-theme="dark"] .btn-primary:hover,
 html[data-theme="dark"] label.btn.btn-primary:hover,
 html[data-theme="dark"] label.ticket-camera-btn.btn-primary:hover {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 52%),
-    linear-gradient(100deg, #f43f5e 0%, #d41436 48%, #3a2a5c 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, #ee2f55 0%, #d41436 55%, #b30426 100%);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: transparent;
   transform: translateY(-1px);
 }
 html[data-theme="dark"] .btn-primary:active {
   transform: scale(.98);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 6px 16px -12px rgba(199, 4, 36, 0.4);
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
 }
 html[data-theme="dark"] .btn-ghost {
   background: rgba(255, 255, 255, 0.05);
@@ -214,12 +214,12 @@ html[data-theme="dark"] .m-footer-btn.active { color: #fff; }
 html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
   color: #fff;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 50%),
-    linear-gradient(100deg, #e6244d 0%, #c70424 48%, #312747 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, #e0244a 0%, #c70424 55%, #9e0320 100%);
   border-color: transparent;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 8px 24px -8px rgba(199, 4, 36, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
 }
 html[data-theme="dark"] .m-footer-btn:focus-visible .m-footer-ico {
   box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.35), 0 8px 24px -8px rgba(199, 4, 36, 0.5);
