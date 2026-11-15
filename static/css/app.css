@@ -1305,6 +1305,14 @@ html[data-theme="dark"] .agent-result-row { background: rgba(255, 255, 255, .04)
   .agent-results-card { max-height: min(65vh, 480px); }
 }
 
+/* Sélecteur de période lisible dans les deux thèmes */
+html[data-theme="dark"] .period-switch a { color: #d4d4d8; }
+html[data-theme="dark"] .period-switch a:hover { color: #f6f6f4; background: rgba(255, 255, 255, .06); }
+html[data-theme="dark"] .period-switch a.is-on { background: var(--blue); color: #070708; }
+html[data-theme="dark"] .period-switch { background: #121214; border-color: var(--line); }
+html[data-theme="dark"] .global-kpi .v { color: var(--ink); }
+html[data-theme="dark"] .socie-stats b { color: var(--ink); }
+
 /* ---------- Dashboard inter-sociétés ---------- */
 .period-switch {
   display: inline-flex; gap: 4px; background: var(--surface);
