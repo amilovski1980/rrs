@@ -27,7 +27,7 @@ ALLOWED_IMAGE_TYPES = {
     "application/pdf",
 }
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".pdf"}
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 Mo
+MAX_UPLOAD_BYTES = 4 * 1024 * 1024  # 4 Mo : limite de requête Vercel inclus
 
 MONEY_RE = re.compile(
     r"(?<!\d)(\d{1,3}(?:[ \u00a0]\d{3})*|\d+)([.,]\d{2})\s*€?",
@@ -98,7 +98,7 @@ def validate_upload(filename: str, content_type: str | None, size: int) -> None:
         raise ReceiptOcrError("Le fichier est vide.")
     if size > MAX_UPLOAD_BYTES:
         raise ReceiptOcrError(
-            "Fichier trop volumineux (maximum 10 Mo). "
+            "Fichier trop volumineux (maximum 4 Mo par requête du serveur). "
             "Reprenez la photo en résolution plus basse, ou compressez l'image."
         )
     name = (filename or "").lower()

@@ -36,10 +36,12 @@ from .models import ImportAuditEvent, ImportBatch, ImportDocument
 logger = logging.getLogger(__name__)
 
 MAX_FILES = int(getattr(settings, "HISTORY_IMPORT_MAX_FILES", 200))
-MAX_FILE_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_FILE_MB", 15)) * 1024 * 1024
-MAX_BATCH_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_BATCH_MB", 150)) * 1024 * 1024
+# Vercel refuse les requêtes de plus de ~4,5 Mo (FUNCTION_PAYLOAD_TOO_LARGE) :
+# la limite applicative reste en dessous pour donner un message lisible.
+MAX_FILE_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_FILE_MB", 4)) * 1024 * 1024
+MAX_BATCH_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_BATCH_MB", 4)) * 1024 * 1024
 MAX_ZIP_FILES = int(getattr(settings, "HISTORY_IMPORT_MAX_ZIP_FILES", 100))
-MAX_ZIP_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_ZIP_MB", 150)) * 1024 * 1024
+MAX_ZIP_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_ZIP_MB", 4)) * 1024 * 1024
 
 ALLOWED_EXTENSIONS = {
     ".pdf",
