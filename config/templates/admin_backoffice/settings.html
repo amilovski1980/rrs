@@ -176,35 +176,205 @@
       <div class="settings-card-head">
         <div>
           <h2>Aminia — chat et voix</h2>
-          <p>Le chat utilise le fournisseur choisi. La voix reste sur xAI. Les secrets laissés vides sont conservés.</p>
+          <p>
+            Le chat passe par l'API compatible OpenAI du fournisseur choisi (Qwen/vLLM,
+            Ollama ou xAI). La voix reste sur xAI. Les secrets laissés vides sont conservés.
+          </p>
         </div>
       </div>
-      <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>
-      {{ form.ai_text_provider }}
-      <label for="{{ form.llm_base_url.id_for_label }}">{{ form.llm_base_url.label }}</label>
-      {{ form.llm_base_url }}
-      <p class="secret-hint">{{ form.llm_base_url.help_text }}</p>
-      <label for="{{ form.llm_model.id_for_label }}">{{ form.llm_model.label }}</label>
-      {{ form.llm_model }}
-      <label for="{{ form.llm_api_key.id_for_label }}">{{ form.llm_api_key.label }}</label>
-      {{ form.llm_api_key }}
-      <p class="secret-hint">{% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-      <label for="{{ form.xai_api_key.id_for_label }}">{{ form.xai_api_key.label }}</label>
-      {{ form.xai_api_key }}
-      <p class="secret-hint">{% if secrets.xai_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}<span class="badge">Non configurée</span>{% endif %}</p>
-      <label for="{{ form.xai_text_model.id_for_label }}">{{ form.xai_text_model.label }}</label>
-      {{ form.xai_text_model }}
-      <p class="secret-hint">{{ form.xai_text_model.help_text }}</p>
+
       <div class="form-grid">
         <div>
-          <label for="{{ form.xai_voice_model.id_for_label }}">{{ form.xai_voice_model.label }}</label>
-          {{ form.xai_voice_model }}
-        </div>
-        <div>
-          <label for="{{ form.xai_voice.id_for_label }}">{{ form.xai_voice.label }}</label>
-          {{ form.xai_voice }}
+          <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>
+          {{ form.ai_text_provider }}
+          <p class="secret-hint">
+            Qwen et Ollama partagent l'URL / le modèle / la clé ci-dessous. xAI a ses propres champs.
+          </p>
         </div>
       </div>
+
+      <div id="ai-selfhost-fields">
+        <label for="{{ form.llm_base_url.id_for_label }}">
+          <span id="ai-base-label">URL de base LLM (Qwen / Ollama)</span>
+          <span class="form-header-hint" id="ai-base-hint"></span>
+        </label>
+        {{ form.llm_base_url }}
+        <p class="secret-hint">{{ form.llm_base_url.help_text }}</p>
+
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.llm_model.id_for_label }}">
+              <span id="ai-model-label">Modèle LLM (Qwen / Ollama)</span>
+            </label>
+            {{ form.llm_model }}
+          </div>
+          <div>
+            <label for="{{ form.llm_api_key.id_for_label }}">Clé API LLM (Qwen / Ollama)</label>
+            {{ form.llm_api_key }}
+            <p class="secret-hint">
+              {% if secrets.llm_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}
+              <span class="badge">Non configurée</span>{% endif %} — Ollama n'en a pas besoin.
+            </p>
+          </div>
+        </div>
+
+        <div class="settings-test-row">
+          <p class="secret-hint">« Lister les modèles » interroge {URL}/models (OpenAI) puis {racine}/api/tags (Ollama).</p>
+          <button class="btn btn-ghost btn-sm" type="button" id="ai-models-button">Lister les modèles</button>
+        </div>
+
+        <select id="ai-model-select" class="form-control" size="6" hidden aria-label="Modèles disponibles"></select>
+        <p id="ai-models-status" class="secret-hint" role="status" aria-live="polite"></p>
+      </div>
+
+      <div id="ai-xai-fields">
+        <label for="{{ form.xai_api_key.id_for_label }}">{{ form.xai_api_key.label }}</label>
+        {{ form.xai_api_key }}
+        <p class="secret-hint">
+          {% if secrets.xai_api_key %}<span class="badge badge-green">Enregistrée</span>{% else %}
+          <span class="badge">Non configurée</span>{% endif %}
+        </p>
+        <label for="{{ form.xai_text_model.id_for_label }}">{{ form.xai_text_model.label }}</label>
+        {{ form.xai_text_model }}
+        <p class="secret-hint">{{ form.xai_text_model.help_text }}</p>
+        <div class="form-grid">
+          <div>
+            <label for="id_xai_voice_model">Modèle vocal xAI</label>
+            {{ form.xai_voice_model }}
+          </div>
+          <div>
+            <label for="id_xai_voice">Voix xAI</label>
+            {{ form.xai_voice }}
+          </div>
+        </div>
+      </div>
+
+      {% if ai_effective %}
+      <div class="settings-callout">
+        <strong>Connexion actuelle.</strong>
+        Chat : <b>{{ ai_effective.chat.label }}</b>
+        — modèle <b>{{ ai_effective.chat.model|default:"(à choisir)" }}</b>
+        sur <b>{{ ai_effective.chat.base|default:"(URL absente)" }}</b>,
+        clé {% if ai_effective.chat.key %}présente{% else %}absente{% endif %},
+        {% if ai_effective.chat.configured %}prêt{% else %}à compléter{% endif %}.
+        Requêtes : <code>POST {BASE}/chat/completions</code>.
+      </div>
+      <div class="settings-callout">
+        <strong>Voix.</strong> xAI temps réel — modèle <b>{{ ai_effective.voice.model }}</b>, voix
+        <b>{{ ai_effective.voice.voice }}</b>, clé {% if ai_effective.voice.key %}présente{% else %}absente
+        {% endif %}. Le jeton éphémère est distribué par <code>/agent/session/</code>.
+      </div>
+      {% endif %}
+
+      {{ ai_defaults|json_script:"ai-defaults" }}
+      <script>
+        (function () {
+          "use strict";
+          var provider = document.getElementById("{{ form.ai_text_provider.id_for_label }}");
+          var baseInput = document.getElementById("{{ form.llm_base_url.id_for_label }}");
+          var baseLabel = document.getElementById("ai-base-label");
+          var baseHint = document.getElementById("ai-base-hint");
+          var modelLabel = document.getElementById("ai-model-label");
+          var selfhost = document.getElementById("ai-selfhost-fields");
+          var xai = document.getElementById("ai-xai-fields");
+          var button = document.getElementById("ai-models-button");
+          var listSelect = document.getElementById("ai-model-select");
+          var status = document.getElementById("ai-models-status");
+          var endpoint = "{% url 'admin_backoffice:settings_ai_models' %}";
+          var defaults = {};
+          try { defaults = JSON.parse(document.getElementById("ai-defaults").textContent || "{}"); }
+          catch (error) { defaults = {}; }
+          var labels = {
+            qwen: { base: "URL de base LLM (Qwen)", model: "Modèle (Qwen)" },
+            ollama: { base: "URL de base LLM (Ollama)", model: "Modèle (Ollama)" },
+          };
+          if (!provider || !selfhost || !xai) return;
+
+          var knownDefaults = Object.keys(defaults).map(function (key) {
+            return defaults[key];
+          });
+          var previousProvider = provider.value;
+          var previousBase = baseInput.value;
+
+          function applyProvider() {
+            var isXai = provider.value === "xai";
+            selfhost.hidden = false;
+            selfhost.style.display = isXai ? "none" : "";
+            xai.style.display = isXai ? "" : "none";
+            var texts = labels[provider.value];
+            if (texts) {
+              baseLabel.textContent = texts.base;
+              modelLabel.textContent = texts.model;
+            }
+            baseHint.textContent = defaults[provider.value] ? ("Défaut : " + defaults[provider.value]) : "";
+            var current = baseInput.value.trim();
+            var stillDefault =
+              !current || knownDefaults.indexOf(current) !== -1 || current === previousBase;
+            if (!isXai && stillDefault && defaults[provider.value]) {
+              baseInput.value = defaults[provider.value];
+            }
+            previousProvider = provider.value;
+            previousBase = baseInput.value;
+          }
+
+          function fillList(models) {
+            listSelect.innerHTML = "";
+            (models || []).forEach(function (name) {
+              var option = document.createElement("option");
+              option.value = name;
+              option.textContent = name;
+              listSelect.appendChild(option);
+            });
+            listSelect.hidden = !listSelect.options.length;
+            listSelect.size = Math.min(8, Math.max(3, listSelect.options.length));
+          }
+
+          if (provider) provider.addEventListener("change", applyProvider);
+          applyProvider();
+
+          if (listSelect) {
+            listSelect.addEventListener("change", function () {
+              var modelInput = document.getElementById("{{ form.llm_model.id_for_label }}");
+              if (modelInput && listSelect.value) modelInput.value = listSelect.value;
+              if (status) status.textContent = "Modèle sélectionné : " + listSelect.value;
+            });
+          }
+
+          if (button) {
+            button.addEventListener("click", function () {
+              var value = (baseInput.value || "").trim() || (defaults[provider.value] || "");
+              if (status) status.textContent = "Recherche des modèles…";
+              var body = new URLSearchParams({ provider: provider.value, base: value });
+              fetch(endpoint, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                  "X-CSRFToken": document.querySelector('#settings-form input[name="csrfmiddlewaretoken"]').value,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: body.toString(),
+              })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                  if (!data.ok) {
+                    fillList([]);
+                    if (status) status.textContent = data.message || "Liste impossible.";
+                    return;
+                  }
+                  fillList(data.models);
+                  if (status) {
+                    status.textContent =
+                      data.models.length + " modèle(s) via " + (data.source === "ollama" ? "api/tags (Ollama)" : "/models (compatible OpenAI)") + ".";
+                  }
+                })
+                .catch(function (error) {
+                  fillList([]);
+                  if (status) status.textContent = "Liste impossible : " + error;
+                });
+            });
+          }
+        })();
+      </script>
     </section>
 
     <section class="card admin-form settings-card" id="insee">

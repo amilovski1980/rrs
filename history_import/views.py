@@ -16,6 +16,7 @@ from .models import ImportBatch, ImportDocument
 from .services import (
     HistoricalImportError,
     add_upload,
+    apply_tabular,
     batch_stats,
     create_batch,
     import_document,
@@ -262,6 +263,71 @@ def document_import(request, pk):
         messages.error(request, str(exc))
     else:
         messages.success(request, "Document archivé dans le module concerné.")
+    return redirect("history_import:document", pk=document.pk)
+
+
+@require_POST
+@login_required
+@plan_required
+def document_apply(request, pk):
+    """Applique les créations proposées : catalogue / encaissements / fiches."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    document = get_object_or_404(ImportDocument, pk=pk, company=company)
+
+    if document.kind in ("catalogue", "sumup_transactions", "bank_statement"):
+        try:
+            summary = apply_tabular(document)
+        except HistoricalImportError as exc:
+            messages.error(request, str(exc))
+        else:
+            messages.success(
+                request,
+                f"Créations appliquées : {summary['created']} nouveau(x) · "
+                f"{summary['updated']} mis à jour · {summary['skipped']} ignorés.",
+            )
+        return redirect("history_import:document", pk=document.pk)
+
+    from documents.models import Client
+    from mailsync.matching import create_supplier, find_matching_supplier
+
+    if document.kind == "purchase_invoice":
+        name = (document.seller_name or "").strip()
+        if len(name) < 2:
+            messages.error(request, "Nom du fournisseur non identifié sur le document.")
+            return redirect("history_import:document", pk=document.pk)
+        existing = find_matching_supplier(
+            company, name=name, siret=document.seller_siret or "",
+            vat=document.seller_vat or "",
+        )
+        if existing:
+            messages.info(request, f"Fournisseur déjà présent : {existing.name}.")
+        else:
+            supplier = create_supplier(
+                company, name=name, siret=document.seller_siret or "",
+                vat=document.seller_vat or "", source="historical_import",
+            )
+            messages.success(request, f"Fiche fournisseur « {supplier.name} » créée.")
+        return redirect("history_import:document", pk=document.pk)
+
+    name = (document.customer_name or "").strip()
+    if len(name) < 2:
+        messages.error(request, "Nom du client non identifié sur la fiche analyse.")
+        return redirect("history_import:document", pk=document.pk)
+    siren = "".join(ch for ch in (document.customer_siret or "") if ch.isdigit())[:9]
+    existing = (
+        Client.objects.filter(company=company, siren=siren).first()
+        if siren
+        else Client.objects.filter(company=company, name__iexact=name).first()
+    )
+    if existing:
+        messages.info(request, f"Client déjà présent : {existing.name}.")
+    else:
+        Client.objects.create(
+            company=company, name=name[:200], siren=siren if len(siren) == 9 else "",
+        )
+        messages.success(request, f"Fiche client « {name} » créée.")
     return redirect("history_import:document", pk=document.pk)
 
 

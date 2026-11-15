@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import hashlib
 import io
+import csv
 import logging
 import mimetypes
 import re
 import zipfile
 from datetime import date, datetime, time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import PurePosixPath
 
 from django.conf import settings
@@ -23,7 +24,7 @@ from django.db.models import Count
 from django.utils import timezone
 from django.utils.text import get_valid_filename
 
-from documents.models import Client, Invoice
+from documents.models import Client, Invoice, Product
 from documents.receipt_ocr import ReceiptOcrError, extract_receipt_text
 from mailsync.matching import create_supplier, find_matching_supplier
 from mailsync.parsers import parse_attachment
@@ -46,6 +47,7 @@ MAX_ZIP_BYTES = int(getattr(settings, "HISTORY_IMPORT_MAX_ZIP_MB", 4)) * 1024 * 
 ALLOWED_EXTENSIONS = {
     ".pdf",
     ".xml",
+    ".csv",
     ".jpg",
     ".jpeg",
     ".png",
@@ -496,6 +498,18 @@ def process_document(document: ImportDocument, user=None):
     document.error_message = ""
     document.save(update_fields=["status", "error_message", "updated_at"])
     try:
+        if document.original_name.lower().endswith(".csv"):
+            tabular = _analyse_tabular(document)
+            if tabular is not None:
+                audit(
+                    document.company,
+                    "document_processed",
+                    batch=document.batch,
+                    document=document,
+                    user=user,
+                    detail=f"{tabular.kind} / {tabular.status}",
+                )
+                return tabular
         invoice, raw_text, source = _extract_document(document)
         document.raw_text = (raw_text or "")[:40000]
         kind, warnings = _classify(invoice, raw_text, document.batch)
@@ -547,6 +561,307 @@ def process_batch(batch: ImportBatch, *, limit=None, user=None):
             process_document(document, user=user)
     _refresh_batch_status(batch)
     return batch_stats(batch)
+
+
+# ---------------------------------------------------------------------------
+# Import universel : documents tabulaires (SumUp, catalogue, relevés CSV)
+# ---------------------------------------------------------------------------
+SUMUP_HEADER = "date, transaction id, payment method, status, gross amount"
+CATALOGUE_HEADER = "item id, variant id, item name, price, tax rate"
+
+
+def _decode_text(data: bytes) -> str:
+    for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
+        try:
+            return data.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return data.decode("utf-8", errors="replace")
+
+
+def _sniff(text: str) -> str:
+    first = (text.lstrip()[:4000]).splitlines()
+    if not first:
+        return ","
+    first = first[0]
+    for delimiter in (";", "\t", ","):
+        if first.count(delimiter) >= 3:
+            return delimiter
+    return ","
+
+
+def _amount(raw) -> Decimal | None:
+    cleaned = str(raw or "").replace(" ", "").replace("\u00a0", "").replace("€", "").strip()
+    if "," in cleaned and "." in cleaned:
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            cleaned = cleaned.replace(",", "")
+    elif "," in cleaned:
+        cleaned = cleaned.replace(",", ".")
+    try:
+        return Decimal(cleaned).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _tabular_date(raw):
+    raw = str(raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw).date()
+    except ValueError:
+        pass
+    for fmt in ("%d/%m/%Y", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def detect_tabular(text: str) -> dict | None:
+    """Détecte SumUp (encaissements), catalogue produits ou relevé CSV.
+
+    Renvoie ``{kind, columns, rows}`` ou None. Les trois formats couvrent
+    les exports SumUp, les catalogues Square/SumUp et les relevés CSV.
+    """
+    if not text or len(text) < 20:
+        return None
+    reader = csv.reader(io.StringIO(text), delimiter=_sniff(text))
+    rows = [row for row in reader if any(cell.strip() for cell in row)]
+    if len(rows) < 2:
+        return None
+    header = [cell.strip().lower().strip('"') for cell in rows[0]]
+    header_blob = ", ".join(header)
+    data_rows = rows[1:]
+
+    if all(key in header_blob for key in ("transaction id", "gross amount", "payment method")):
+        parsed = []
+        for row in data_rows[:500]:
+            cells = [cell.strip() for cell in row]
+            if len(cells) < 8:
+                continue
+            gross = _amount(cells[4])
+            tax = _amount(cells[5]) or Decimal("0.00")
+            fee = _amount(cells[6]) or Decimal("0.00")
+            net = _amount(cells[7]) or ((gross or Decimal("0.00")) - tax - fee)
+            if gross is None:
+                continue
+            parsed.append({
+                "date": cells[0],
+                "transaction_id": cells[1],
+                "method": cells[2],
+                "status": cells[3],
+                "gross": str(gross),
+                "tax": str(tax),
+                "fee": str(fee),
+                "net": str(net.quantize(Decimal("0.01"))),
+                "currency": (cells[8] if len(cells) > 8 else "EUR")[:3],
+            })
+        if not parsed:
+            return None
+        return {"kind": "sumup_transactions", "columns": rows[0], "rows": parsed}
+
+    if all(key in header_blob for key in ("item name", "price", "tax rate")):
+        parsed = []
+        for row in data_rows[:500]:
+            cells = [cell.strip() for cell in row]
+            if len(cells) < 6:
+                continue
+            price = _amount(cells[5])
+            if price is None:
+                continue
+            label_parts = [cells[2]]
+            variant = cells[3] if len(cells) > 3 else ""
+            if variant and variant.lower() != cells[2].lower():
+                label_parts.append(variant)
+            parsed.append({
+                "item_id": cells[0],
+                "variant_id": cells[1] if len(cells) > 1 else "",
+                "label": " — ".join(part for part in label_parts if part)[:200],
+                "category": cells[4] if len(cells) > 4 else "",
+                "price": str(price),
+                "vat_rate": cells[6] if len(cells) > 6 else "10",
+                "sku": cells[7] if len(cells) > 7 else "",
+                "quantity": cells[9] if len(cells) > 9 else "",
+            })
+        if not parsed:
+            return None
+        return {"kind": "catalogue", "columns": rows[0], "rows": parsed}
+
+    lower = text.lower()
+    if ("libellé" in lower or "libelle" in lower) and ("débit" in lower or "debit" in lower or "crédit" in lower):
+        return {"kind": "bank_statement", "columns": rows[0], "rows": [
+            [cell.strip() for cell in row] for row in data_rows[:500]
+        ]}
+    return None
+
+
+def _analyse_tabular(document: ImportDocument) -> ImportDocument | None:
+    """Analyse un CSV universel : encaissements SumUp, catalogue, relevé.
+
+    Ne lève pas : un CSV inconnu suit le circuit classique (facture/OCR).
+    """
+    data = bytes(document.file_data) if document.file_data else (document.file.read() if document.file else b"")
+    text = _decode_text(data)
+    detected = detect_tabular(text)
+    if detected is None:
+        return None
+
+    rows = detected["rows"]
+    totals = {}
+    if detected["kind"] == "sumup_transactions":
+        totals = {
+            "count": len(rows),
+            "gross": str(sum((Decimal(item["gross"]) for item in rows), Decimal("0.00"))),
+            "tax": str(sum((Decimal(item["tax"]) for item in rows), Decimal("0.00"))),
+            "fees": str(sum((Decimal(item["fee"]) for item in rows), Decimal("0.00"))),
+            "net": str(sum((Decimal(item["net"]) for item in rows), Decimal("0.00"))),
+        }
+    elif detected["kind"] == "catalogue":
+        totals = {"count": len(rows), "produits": len({item["label"] for item in rows})}
+
+    document.kind = detected["kind"]
+    document.raw_text = text[:40000]
+    display_rows = []
+    for item in rows:
+        if detected["kind"] == "sumup_transactions":
+            display_rows.append([
+                item.get("date"), item.get("transaction_id"), item.get("method"),
+                item.get("status"), item.get("gross"), item.get("tax"),
+                item.get("fee"), item.get("net"), item.get("currency"),
+            ])
+        elif detected["kind"] == "catalogue":
+            display_rows.append([
+                item.get("item_id"), item.get("variant_id"), item.get("label"),
+                item.get("category"), item.get("price"), item.get("vat_rate"),
+                item.get("sku"), item.get("quantity"),
+            ])
+        else:
+            display_rows.append(list(item)[:8] if isinstance(item, (list, tuple)) else [str(item)[:80]])
+    document.raw_text = text[:40000]
+    document.extracted = {
+        "rows": rows,
+        "columns": detected["columns"],
+        "display_rows": display_rows,
+        "totals": totals,
+    }
+    document.warnings = [
+        "Format détecté automatiquement : "
+        + dict(ImportDocument.KINDS).get(detected["kind"], detected["kind"])
+        + ". Vérifiez l'aperçu puis appliquez la création."
+    ]
+    document.status = "ready"
+    document.processed_at = timezone.now()
+    document.error_message = ""
+    document.save()
+    return document
+
+
+def apply_tabular(document: ImportDocument) -> dict:
+    """Crée les produits / opérations bancaires proposés par le document."""
+    import hashlib
+
+    from banking.models import BankAccount, BankTransaction
+
+    if document.kind not in ("catalogue", "sumup_transactions", "bank_statement"):
+        raise HistoricalImportError("Ce document n'est pas un document tabulaire.")
+    rows = (document.extracted or {}).get("rows") or []
+    company = document.company
+    summary = {"created": 0, "updated": 0, "skipped": 0}
+
+    if document.kind == "catalogue":
+        for item in rows:
+            label = (item.get("label") or "").strip()[:200]
+            price = _amount(item.get("price"))
+            if len(label) < 2 or price is None:
+                summary["skipped"] += 1
+                continue
+            try:
+                vat_rate = Decimal(str(item.get("vat_rate") or 10)).quantize(Decimal("0.01"))
+            except (InvalidOperation, ValueError):
+                vat_rate = Decimal("10.00")
+            description = f"SKU {item['sku']} · {item['category']}" if item.get("sku") else item.get("category", "")
+            product, created = Product.objects.get_or_create(
+                company=company, label=label,
+                defaults={
+                    "unit_price": price,
+                    "vat_rate": vat_rate,
+                    "active": True,
+                    "description": description[:2000],
+                },
+            )
+            if created:
+                summary["created"] += 1
+            elif product.unit_price != price or product.vat_rate != vat_rate:
+                product.unit_price = price
+                product.vat_rate = vat_rate
+                product.save(update_fields=["unit_price", "vat_rate", "updated_at"])
+                summary["updated"] += 1
+            else:
+                summary["skipped"] += 1
+
+    elif document.kind in ("sumup_transactions", "bank_statement"):
+        account = BankAccount.objects.filter(company=company, label__iexact="SUMUP").first()
+        if account is None:
+            account = BankAccount.objects.filter(company=company).first()
+        if account is None:
+            account = BankAccount.objects.create(
+                company=company,
+                label="SUMUP" if document.kind == "sumup_transactions" else "Compte courant",
+                bank_name="SumUp" if document.kind == "sumup_transactions" else "",
+            )
+        for item in rows:
+            if document.kind == "sumup_transactions":
+                date_value = _tabular_date(item.get("date"))
+                amount = _amount(item.get("net"))
+                label = f"Vente SUMUP {item.get('transaction_id')} ({item.get('method')})"[:255]
+                external_id = str(item.get("transaction_id") or "")[:120]
+                currency = (item.get("currency") or "EUR")[:3]
+            else:
+                cells = item if isinstance(item, (list, tuple)) else []
+                if len(cells) < 4:
+                    summary["skipped"] += 1
+                    continue
+                date_value = _tabular_date(cells[0])
+                label = str(cells[1])[:255]
+                debit = _amount(cells[2]) or Decimal("0.00")
+                credit = _amount(cells[3]) or Decimal("0.00")
+                amount = credit - debit
+                external_id = ""
+                currency = "EUR"
+            if date_value is None or amount is None:
+                summary["skipped"] += 1
+                continue
+            fingerprint = hashlib.sha256(
+                f"{company.pk}:{account.pk}:{date_value:%Y%m%d}:{label}:{amount}".encode()
+            ).hexdigest()
+            _, created = BankTransaction.objects.get_or_create(
+                company=company, account=account, fingerprint=fingerprint,
+                defaults={
+                    "date": date_value,
+                    "label": label,
+                    "amount": amount,
+                    "currency": currency,
+                    "external_id": external_id,
+                    "nature": "customer_receipt" if (document.kind == "sumup_transactions" and amount > 0) else "other",
+                },
+            )
+            if created:
+                summary["created"] += 1
+            else:
+                summary["skipped"] += 1
+
+    if summary["created"] or summary["updated"]:
+        document.status = "imported"
+        document.imported_at = timezone.now()
+        document.warnings = list(document.warnings or []) + [
+            f"Créations appliquées : {summary['created']} · mises à jour : {summary['updated']} · ignorées : {summary['skipped']}"
+        ]
+        document.save()
+    return summary
 
 
 def _refresh_batch_status(batch: ImportBatch):

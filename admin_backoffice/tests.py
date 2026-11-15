@@ -982,3 +982,63 @@ class EmailTemplateAdminTests(TestCase):
         page = self.client.get(reverse("legal_notice"))
         self.assertContains(page, "12 rue des Artisans")
         self.assertContains(page, "bonjour@roadrunner.fr")
+
+class SettingsAiModelsEndpointTests(TestCase):
+    """Le back-office liste les modèles réels de l'API choisie."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email="models-admin@rrs.fr", is_staff=True, is_superuser=True
+        )
+        self.user = User.objects.create_user(email="models-user@rrs.fr")
+
+    def test_requires_staff(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("admin_backoffice:settings_ai_models"), {"provider": "ollama"})
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_lists_models(self):
+        from unittest.mock import patch
+
+        self.client.force_login(self.admin)
+        with patch(
+            "admin_backoffice.views.list_ai_models",
+            return_value={"models": ["llama3.1:8b", "qwen2.5:7b"], "source": "ollama", "base": "http://localhost:11434/v1"},
+        ) as fake:
+            response = self.client.post(
+                reverse("admin_backoffice:settings_ai_models"),
+                {"provider": "ollama", "base": "http://localhost:11434/v1"},
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["provider"], "ollama")
+        self.assertEqual(data["models"], ["llama3.1:8b", "qwen2.5:7b"])
+        self.assertEqual(data["source"], "ollama")
+        fake.assert_called_once()
+
+    def test_providers_error_message(self):
+        from unittest.mock import patch
+
+        self.client.force_login(self.admin)
+        with patch(
+            "admin_backoffice.views.list_ai_models",
+            side_effect=ValueError("http://localhost:11434/v1/models : connection refused"),
+        ):
+            response = self.client.post(
+                reverse("admin_backoffice:settings_ai_models"),
+                {"provider": "ollama", "base": "http://localhost:11434/v1"},
+            )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data["ok"])
+        self.assertIn("connection refused", data["message"])
+
+    def test_settings_page_lists_ollama(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("admin_backoffice:settings"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("Ollama (local)", content)
+        self.assertIn("ai-models-button", content)
+        self.assertIn("settings/ai/modeles", content)

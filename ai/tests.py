@@ -1,4 +1,4 @@
-from datetime import date
+﻿from datetime import date
 from decimal import Decimal
 from unittest import mock
 
@@ -45,7 +45,7 @@ class VoiceAssistantTests(TestCase):
             "client_name": "Atelier Martin",
             "amount_ht": "800",
             "vat_rate": "20",
-            "designation": "Pose de fenêtres",
+            "designation": "Pose de fenÃªtres",
         })
         self.assertTrue(result["ok"])
         self.assertEqual(result["invoice"]["amount_ttc"], "960.00")
@@ -141,13 +141,13 @@ class ClientDraftTests(TestCase):
         from .models import AiDraftEntry
 
         result = execute_tool(self.user, self.company, "draft_client", {
-            "name": "À Valider SARL",
+            "name": "Ã€ Valider SARL",
             "siren": "987654321",
         })
         draft_id = result["draft"]["id"]
         # reject path
         other = execute_tool(self.user, self.company, "draft_client", {
-            "name": "À Rejeter",
+            "name": "Ã€ Rejeter",
         })
         reject_id = other["draft"]["id"]
         resp = self.http.post(f"/agent/brouillons/{reject_id}/rejeter/")
@@ -162,7 +162,7 @@ class ClientDraftTests(TestCase):
         self.assertEqual(draft.status, "validated")
         self.assertIsNotNone(draft.created_client_id)
         client = Client.objects.get(pk=draft.created_client_id)
-        self.assertEqual(client.name, "À Valider SARL")
+        self.assertEqual(client.name, "Ã€ Valider SARL")
         self.assertEqual(client.siren, "987654321")
 
 
@@ -260,7 +260,7 @@ class ChatAminiaTests(TestCase):
 
 
 class AminiaChooserMarkupTests(TestCase):
-    """Le FAB Aminia expose le sélecteur Vocal|Chat sur les pages cockpit."""
+    """Le FAB Aminia expose le sÃ©lecteur Vocal|Chat sur les pages cockpit."""
 
     def setUp(self):
         User = get_user_model()
@@ -304,7 +304,7 @@ class AminiaChooserMarkupTests(TestCase):
 
 
 class PlanPromptRuntimeTests(TestCase):
-    """Le chat et la voix envoient la consigne générale plus celle du forfait."""
+    """Le chat et la voix envoient la consigne gÃ©nÃ©rale plus celle du forfait."""
 
     def setUp(self):
         User = get_user_model()
@@ -330,14 +330,14 @@ class PlanPromptRuntimeTests(TestCase):
         from admin_backoffice.models import SiteConfiguration
 
         SiteConfiguration.objects.create(ai_system_prompt="CONSIGNE-GLOBALE-TEST")
-        self.micro.ai_prompt = "CONSIGNE-MICRO-TEST ne révèle pas les fonctions d'un forfait supérieur"
+        self.micro.ai_prompt = "CONSIGNE-MICRO-TEST ne rÃ©vÃ¨le pas les fonctions d'un forfait supÃ©rieur"
         self.micro.save(update_fields=["ai_prompt"])
 
         class Fake:
             def chat(self, messages, tools=None):
                 self.messages = messages
                 self.tools = tools
-                return {"choices": [{"message": {"content": "Bien reçu.", "tool_calls": []}}]}
+                return {"choices": [{"message": {"content": "Bien reÃ§u.", "tool_calls": []}}]}
 
         fake = Fake()
         from ai.chat import get_or_create_conversation, run_chat_turn
@@ -351,7 +351,7 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertEqual(fake.messages[0]["role"], "system")
         self.assertIn("CONSIGNE-GLOBALE-TEST", system)
         self.assertIn("CONSIGNE-MICRO-TEST", system)
-        self.assertIn("Tu gères la comptabilité de la société", system)
+        self.assertIn("Tu gÃ¨res la comptabilitÃ© de la sociÃ©tÃ©", system)
         self.assertNotIn("Contexte administrateur", system)
         self.assertTrue(system.rindex("CONSIGNE-MICRO-TEST") > system.index("CONSIGNE-GLOBALE-TEST"))
         names = [tool["function"]["name"] for tool in fake.tools]
@@ -371,7 +371,7 @@ class PlanPromptRuntimeTests(TestCase):
             def chat(self, messages, tools=None):
                 self.messages = messages
                 self.tools = tools
-                return {"choices": [{"message": {"content": "Bien reçu.", "tool_calls": []}}]}
+                return {"choices": [{"message": {"content": "Bien reÃ§u.", "tool_calls": []}}]}
 
         fake = Fake()
         from ai.chat import get_or_create_conversation, run_chat_turn
@@ -384,8 +384,8 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertIn("CONSIGNE-ADMIN-TEST", system)
         self.assertIn("Cadre administrateur", system)
         self.assertIn("Contexte administrateur", system)
-        self.assertIn("société de test", system)
-        self.assertNotIn("Tu gères la comptabilité de la société", system)
+        self.assertIn("sociÃ©tÃ© de test", system)
+        self.assertNotIn("Tu gÃ¨res la comptabilitÃ© de la sociÃ©tÃ©", system)
         names = [tool["function"]["name"] for tool in fake.tools]
         self.assertIn("draft_invoice", names)
 
@@ -396,9 +396,9 @@ class PlanPromptRuntimeTests(TestCase):
         self.user.save(update_fields=["is_staff"])
         text = agent_instructions(self.user, None, channel="voice")
         self.assertIn("Contexte administrateur", text)
-        self.assertIn("aucune société n'est sélectionnée", text)
+        self.assertIn("aucune sociÃ©tÃ© n'est sÃ©lectionnÃ©e", text)
         self.assertNotIn("ajouter un SIREN", text)
-        self.assertNotIn("Tu gères la comptabilité", text)
+        self.assertNotIn("Tu gÃ¨res la comptabilitÃ©", text)
 
     def test_micro_plan_blocks_invoice_tool(self):
         result = execute_tool(self.user, self.company, "draft_invoice", {
@@ -447,7 +447,7 @@ SAMPLE_CARD = {
     "siret": "81234567800019",
     "denomination": "BTP Martin",
     "forme": "SARL",
-    "adresse": "12 rue des Maçons 69003 LYON",
+    "adresse": "12 rue des MaÃ§ons 69003 LYON",
     "code_naf": "4322B",
     "naf": "43.22B",
     "etat": "Active",
@@ -455,7 +455,7 @@ SAMPLE_CARD = {
 
 
 class CompanySearchToolTests(TestCase):
-    """Outils Aminia : recherche annuaire officiel + sélection par numéro."""
+    """Outils Aminia : recherche annuaire officiel + sÃ©lection par numÃ©ro."""
 
     def setUp(self):
         User = get_user_model()
@@ -536,7 +536,7 @@ class CompanySearchToolTests(TestCase):
 
 
     def test_choose_from_panel_via_get(self):
-        """Le clic « Choisir cette entreprise » du panneau (mode démo inclus)."""
+        """Le clic Â« Choisir cette entreprise Â» du panneau (mode dÃ©mo inclus)."""
         self.client.force_login(self.user)
         with mock.patch("integrations.insee.search_french_companies") as fake:
             fake.return_value = ([{**SAMPLE_CARD, "index": 1}], None, 0, False)
@@ -551,7 +551,7 @@ class CompanySearchToolTests(TestCase):
 
 
 class CompanySearchEndpointTests(TestCase):
-    """Endpoint JSON /agent/recherche/ pour les écrans de saisie."""
+    """Endpoint JSON /agent/recherche/ pour les Ã©crans de saisie."""
 
     def setUp(self):
         User = get_user_model()
@@ -585,3 +585,115 @@ class CompanySearchEndpointTests(TestCase):
         data = response.json()
         self.assertEqual(data["count"], 1)
         self.assertEqual(data["results"][0]["denomination"], "BTP Martin")
+
+class TextProviderOllamaTests(TestCase):
+    """Le chat Aminia peut utiliser un serveur Ollama local."""
+
+    def test_ollama_choice_is_available(self):
+        from admin_backoffice.models import SiteConfiguration
+
+        choices = SiteConfiguration._meta.get_field("ai_text_provider").choices
+        self.assertIn(("ollama", "Ollama (local)"), choices)
+
+    def test_db_choice_and_fields_win(self):
+        from admin_backoffice.models import SiteConfiguration
+        from django.test import override_settings
+
+        from .providers import text_provider
+
+        SiteConfiguration.objects.update_or_create(
+            id=1,
+            defaults={
+                "ai_text_provider": "ollama",
+                "llm_base_url": "http://gpu.local:11434/v1",
+                "llm_model": "llama3.1:8b",
+                "llm_api_key": "",
+            },
+        )
+        with override_settings(OLLAMA_BASE_URL="", LLM_MODEL="autre", LLM_API_KEY="cle-env"):
+            spec = text_provider()
+        self.assertEqual(spec["code"], "ollama")
+        self.assertEqual(spec["base"], "http://gpu.local:11434/v1")
+        self.assertEqual(spec["model"], "llama3.1:8b")
+        self.assertTrue(spec["configured"])
+
+    def test_default_ollama_base_without_model(self):
+        from admin_backoffice.models import SiteConfiguration
+        from django.test import override_settings
+
+        from .providers import OLLAMA_DEFAULT_BASE, text_provider
+
+        SiteConfiguration.objects.update_or_create(
+            id=1, defaults={"ai_text_provider": "ollama", "llm_base_url": "", "llm_model": ""}
+        )
+        with override_settings(OLLAMA_BASE_URL="", LLM_MODEL=""):
+            spec = text_provider()
+        self.assertEqual(spec["base"], OLLAMA_DEFAULT_BASE)
+        self.assertFalse(spec["configured"])
+
+class ListAiModelsTests(TestCase):
+    """La liste des modÃ¨les passe par /models puis /api/tags (Ollama)."""
+
+    @staticmethod
+    def _patch_handler(handler):
+        import httpx
+        from unittest.mock import patch
+
+        original_client = httpx.Client
+
+        def factory(**kwargs):
+            kwargs.pop("transport", None)
+            return original_client(transport=httpx.MockTransport(handler), **kwargs)
+
+        return patch.object(httpx, "Client", new=factory)
+
+    def test_openai_models(self):
+        from .providers import list_ai_models
+
+        def handler(request):
+            self.assertEqual(request.method, "GET")
+            import httpx
+
+            return httpx.Response(200, json={"data": [{"id": "qwen2.5:7b"}, {"id": "mistral-7b"}]})
+
+        with self._patch_handler(handler):
+            result = list_ai_models("http://gpu.local:8000/v1", "cle")
+        self.assertEqual(result["source"], "openai")
+        self.assertEqual(result["models"], ["mistral-7b", "qwen2.5:7b"])
+
+    def test_ollama_tags_fallback(self):
+        import httpx
+
+        from .providers import list_ai_models
+
+        def handler(request):
+            self.assertEqual(request.method, "GET")
+            self.assertEqual(str(request.url), "http://gpu.local:11434/api/tags")
+            return httpx.Response(200, json={"models": [{"name": "llama3.1:8b"}]})
+
+        with self._patch_handler(handler):
+            result = list_ai_models("http://gpu.local:11434/v1")
+        self.assertEqual(result["source"], "ollama")
+        self.assertEqual(result["models"], ["llama3.1:8b"])
+
+    def test_unreachable_base_raises(self):
+        import httpx
+
+        from .providers import list_ai_models
+
+        calls = {"count": 0}
+
+        def handler(request):
+            calls["count"] += 1
+            return httpx.Response(404)
+
+        with self._patch_handler(handler):
+            with self.assertRaises(ValueError):
+                list_ai_models("http://nowhere.local:9999/v1")
+        self.assertEqual(calls["count"], 2)
+
+    def test_refuses_non_http(self):
+        from .providers import list_ai_models
+
+        with self.assertRaises(ValueError):
+            list_ai_models("file:///etc")

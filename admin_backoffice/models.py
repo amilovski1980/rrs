@@ -21,14 +21,22 @@ class SiteConfiguration(models.Model):
     stripe_webhook_secret = models.CharField(
         max_length=255, blank=True, default="", verbose_name="Secret webhook Stripe",
     )
-    llm_api_key = models.CharField(max_length=255, default="", verbose_name="Clé API LLM")
+    llm_api_key = models.CharField(
+        max_length=255, default="", verbose_name="Clé API LLM (Qwen / Ollama)"
+    )
     llm_base_url = models.CharField(
-        max_length=255, blank=True, default="", verbose_name="URL de base Qwen",
-        help_text="Vide = variable LLM_BASE_URL.",
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="URL de base LLM (Qwen / Ollama)",
+        help_text="Vide = variable LLM_BASE_URL. Ollama : http://localhost:11434/v1",
     )
     llm_model = models.CharField(
-        max_length=120, blank=True, default="", verbose_name="Modèle Qwen",
-        help_text="Vide = variable LLM_MODEL.",
+        max_length=120,
+        blank=True,
+        default="",
+        verbose_name="Modèle LLM (Qwen / Ollama)",
+        help_text="Vide = variable LLM_MODEL. Utilisez « Lister les modèles » pour choisir.",
     )
     xai_api_key = models.CharField(max_length=512, blank=True, default="", verbose_name="Clé API xAI")
     xai_text_model = models.CharField(
@@ -45,7 +53,11 @@ class SiteConfiguration(models.Model):
     )
     ai_text_provider = models.CharField(
         max_length=12,
-        choices=[("qwen", "Qwen (auto-hébergé)"), ("xai", "xAI / Grok")],
+        choices=[
+            ("qwen", "Qwen (vLLM / compatible OpenAI)"),
+            ("ollama", "Ollama (local)"),
+            ("xai", "xAI / Grok"),
+        ],
         default="qwen",
         verbose_name="Fournisseur du chat Aminia",
     )
