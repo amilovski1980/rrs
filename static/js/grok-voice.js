@@ -148,6 +148,7 @@
 
     function setLiveIndicator(on) {
       if (liveDot) liveDot.hidden = !on;
+      if (dialog) dialog.classList.toggle("is-live", on);
     }
 
     function setReconnect(on) {

@@ -1127,6 +1127,8 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 .agent-duration { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-2); }
 .agent-wake { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .agent-wake input { width: 13px; height: 13px; }
+[hidden] { display: none !important; }
+.agent-dialog:not(.is-live) .agent-meta { display: none; }
 .agent-live-dot {
   display: inline-block;
   width: 8px;
@@ -2480,12 +2482,19 @@ label.ticket-camera-btn.btn-primary:hover {
     flex: 1 1 0; min-width: 0; min-height: 46px;
     padding: 10px var(--space-2); font-size: var(--text-sm);
   }
-  /* Pendant le choix Aminia : masquer la barre d'actions (évite le chevauchement). */
-  body.agent-open details.page-actions,
-  body.agent-open a.btn.page-actions,
-  body.agent-open div.page-actions {
-    visibility: hidden;
-    pointer-events: none;
+  /* La barre Aminia se place au-dessus des actions : on ne masque plus les boutons. */
+  body.agent-open:has(div.page-actions) .agent-panel {
+    bottom: calc(var(--m-footer-h) + var(--m-action-bar-h));
+  }
+  body.agent-open:has(details.page-actions) .agent-panel,
+  body.agent-open:has(a.btn.page-actions) .agent-panel {
+    bottom: calc(var(--m-footer-h) + var(--m-action-h) + var(--m-fab-gap));
+  }
+  body.agent-open .main {
+    padding-bottom: calc(var(--m-footer-h) + 118px + env(safe-area-inset-bottom, 0px));
+  }
+  body.agent-open:has(div.page-actions) .main {
+    padding-bottom: calc(var(--m-footer-h) + var(--m-action-bar-h) + 118px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Aminia FAB — au-dessus du footer ; monte seulement s'il y a une barre d'actions */
