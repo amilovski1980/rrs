@@ -2369,8 +2369,14 @@ label.ticket-camera-btn.btn-primary:hover {
   .m-header-logo:hover { text-decoration: none; color: var(--ink); }
   .m-header-logo img, .m-header-logo .product-logo { width: 32px; height: 32px; max-width: 32px; border-radius: var(--radius-sm); object-fit: contain; background: #fff; flex: 0 0 32px; }
   .m-header-brand { line-height: 1.1; text-align: right; }
+  .m-company-logo {
+    width: 32px; height: 32px; max-width: 32px; flex: 0 0 32px;
+    border-radius: var(--radius-sm); object-fit: contain; background: #fff;
+    border: 1px solid var(--line); padding: 2px;
+  }
   .m-header-brand b {
     display: block; font-family: var(--font-head); font-size: var(--text-sm); color: var(--blue);
+    max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .m-header-brand small {
     display: block; font-size: 10px; color: var(--muted);

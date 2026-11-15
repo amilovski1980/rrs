@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.18">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.19">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.23">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -66,24 +66,29 @@
       <span class="m-nav-toggle-bars" aria-hidden="true"></span>
     </button>
     <div class="m-header-right">
-      <a class="m-header-logo" href="{% url 'cockpit' %}" aria-label="Road Runner Solutions — Cockpit">
-        {% if request.dark_ui %}
+      <a class="m-header-logo" href="{% url 'cockpit' %}{% if top_company %}?societe={{ top_company.id }}{% endif %}" aria-label="Cockpit{% if top_company %} — {{ top_company.denomination|truncatechars:30 }}{% endif %}">
+        {% if top_company and top_company.logo %}
+        <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
+        {% elif request.dark_ui %}
         <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
-        <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
         {% else %}
-        <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
-        <span class="m-header-brand">
-          <b>Road Runner</b>
-          <small>Solutions</small>
-        </span>
+        <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="" width="32" height="32">
         {% endif %}
+        <span class="m-header-brand">
+          <b>{% if top_company %}{{ top_company.denomination|truncatechars:26 }}{% else %}Road Runner{% endif %}</b>
+          <small>Road Runner Solutions</small>
+        </span>
       </a>
       {% if top_companies|length > 1 %}
       <details class="m-company-menu">
         <summary class="m-company-trigger" aria-label="Changer de société{% if top_company %} : {{ top_company.denomination }}{% endif %}">
           {% if top_company %}
           {% company_color_class top_company top_companies as current_cls %}
+          {% if top_company.logo %}
+          <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
+          {% else %}
           <span class="company-switch-btn {{ current_cls }}" aria-hidden="true">{{ top_company|company_initial }}</span>
+          {% endif %}
           {% endif %}
           <span class="m-company-caret" aria-hidden="true"></span>
         </summary>
