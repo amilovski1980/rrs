@@ -34,45 +34,66 @@
 
 <section class="sheet-stage">{% include "documents/invoice_sheet.html" %}</section>
 
-<div class="card" style="padding:18px 22px;margin-top:16px">
-  <p class="sub">Payé {{ invoice.amount_paid|floatformat:2 }} € · Restant {{ invoice.amount_remaining|floatformat:2 }} € TTC</p>
-  {% if invoice.client %}
-  <p>Fiche client : <a href="{% url 'client_detail' invoice.client.id %}?societe={{ company.id }}">{{ invoice.client.name }}</a></p>
-  {% endif %}
-  {% if invoice.project %}
-  <p>Projet : <a href="{% url 'project_detail' invoice.project.id %}?societe={{ company.id }}">{{ invoice.project.name }}</a></p>
-  {% endif %}
+<div class="card invoice-status-card">
+  <div class="invoice-status-grid">
+    <div class="invoice-status-item">
+      <small>Payé</small>
+      <b>{{ invoice.amount_paid|floatformat:2 }} €</b>
+    </div>
+    <div class="invoice-status-item">
+      <small>Restant</small>
+      <b>{{ invoice.amount_remaining|floatformat:2 }} € <span>TTC</span></b>
+    </div>
+    {% if invoice.client %}
+    <div class="invoice-status-item">
+      <small>Client</small>
+      <b><a href="{% url 'client_detail' invoice.client.id %}?societe={{ company.id }}">{{ invoice.client.name|truncatechars:18 }}</a></b>
+    </div>
+    {% endif %}
+    {% if invoice.project %}
+    <div class="invoice-status-item">
+      <small>Projet</small>
+      <b><a href="{% url 'project_detail' invoice.project.id %}?societe={{ company.id }}">{{ invoice.project.name|truncatechars:18 }}</a></b>
+    </div>
+    {% endif %}
+  </div>
   {% if invoice.client_tva_intra %}
   <p class="sub">TVA intracommunautaire du client : {{ invoice.client_tva_intra }}{% if invoice.reverse_charge %} · autoliquidation{% endif %}</p>
   {% elif invoice.reverse_charge %}
   <p class="sub">Autoliquidation de la TVA — TVA due par le preneur.</p>
   {% endif %}
   {% if invoice.source_quote %}
-  <p>Issu du devis <a href="{% url 'quote_detail' invoice.source_quote.id %}?societe={{ company.id }}">{{ invoice.source_quote.number }}</a></p>
+  <p class="sub">Issu du devis <a href="{% url 'quote_detail' invoice.source_quote.id %}?societe={{ company.id }}">{{ invoice.source_quote.number }}</a></p>
   {% endif %}
   {% if invoice.status == "draft" %}
-  <p class="sub">Brouillon. L'émission attribue un numéro séquentiel et passe l'écriture de vente.</p>
-  <form method="post" action="{% url 'invoice_issue' invoice.id %}?societe={{ company.id }}">
-    {% csrf_token %}
-    <button class="btn btn-primary" type="submit">Émettre la facture</button>
-  </form>
-  <form method="post" action="{% url 'invoice_delete' invoice.id %}?societe={{ company.id }}" style="margin-top:8px" onsubmit="return confirm('Supprimer ce brouillon ?');">
-    {% csrf_token %}
-    <button class="btn btn-ghost btn-sm" type="submit">Supprimer le brouillon</button>
-  </form>
+  <p class="sub">Brouillon — l'émission attribue le numéro définitif et passe l'écriture de vente.</p>
+  <div class="invoice-actions">
+    <form method="post" action="{% url 'invoice_issue' invoice.id %}?societe={{ company.id }}" class="invoice-main-action">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-lg" type="submit">Émettre la facture</button>
+    </form>
+    <form method="post" action="{% url 'invoice_delete' invoice.id %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer ce brouillon ?');">
+      {% csrf_token %}
+      <button class="btn btn-danger" type="submit">Supprimer</button>
+    </form>
+  </div>
   {% elif invoice.status != "paid" %}
-  <p class="sub">Facture émise. Enregistrez un paiement total ou partiel.</p>
-  <form method="post" action="{% url 'invoice_pay' invoice.id %}?societe={{ company.id }}" style="display:inline">
-    {% csrf_token %}
-    <button class="btn btn-primary" type="submit">Encaisser le solde</button>
-  </form>
-  <a class="btn btn-ghost" href="{% url 'payment_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Paiement partiel</a>
-  <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Créer un avoir</a>
+  <p class="sub">Facture émise — enregistrez un paiement total ou partiel.</p>
+  <div class="invoice-actions">
+    <form method="post" action="{% url 'invoice_pay' invoice.id %}?societe={{ company.id }}" class="invoice-main-action">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-lg" type="submit">Encaisser le solde</button>
+    </form>
+    <a class="btn btn-ghost" href="{% url 'payment_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Paiement partiel</a>
+    <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Avoir</a>
+  </div>
   {% else %}
-  <p class="sub">Facture soldée. Vous pouvez encore corriger le client ou les montants : les écritures suivent.</p>
-  <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Créer un avoir</a>
+  <p class="sub">Facture soldée — vous pouvez encore créer un avoir : les écritures suivent.</p>
+  <div class="invoice-actions">
+    <a class="btn btn-ghost" href="{% url 'credit_note_create' %}?societe={{ company.id }}&facture={{ invoice.id }}">Créer un avoir</a>
+  </div>
   {% endif %}
-  <p style="margin-top:16px">
+  <p class="invoice-sub-link">
     <a class="btn btn-ghost btn-sm" href="{% url 'ledger' %}?societe={{ company.id }}&q={{ invoice.number }}">Écritures de cette facture</a>
   </p>
 </div>
