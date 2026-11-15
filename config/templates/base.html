@@ -82,13 +82,9 @@
       {% if top_companies|length > 1 %}
       <details class="m-company-menu">
         <summary class="m-company-trigger" aria-label="Changer de société{% if top_company %} : {{ top_company.denomination }}{% endif %}">
-          {% if top_company %}
+          {% if top_company and not top_company.logo %}
           {% company_color_class top_company top_companies as current_cls %}
-          {% if top_company.logo %}
-          <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
-          {% else %}
           <span class="company-switch-btn {{ current_cls }}" aria-hidden="true">{{ top_company|company_initial }}</span>
-          {% endif %}
           {% endif %}
           <span class="m-company-caret" aria-hidden="true"></span>
         </summary>
