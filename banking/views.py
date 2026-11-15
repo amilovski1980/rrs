@@ -23,11 +23,18 @@ from .services import (
     BankError,
     accounting_balance,
     candidate_entries,
-    create_entry_from_transaction,
     ensure_default_account,
     find_rule,
     import_statement,
     match_transaction,
+    reconcile_bank_fee,
+    reconcile_customer_receipt,
+    reconcile_expense,
+    reconcile_internal_transfer,
+    reconcile_loan_payment,
+    reconcile_other,
+    reconcile_supplier_payment,
+    reconcile_vat_payment,
     unmatch_transaction,
 )
 
@@ -262,19 +269,74 @@ def transaction_create_entry(request, pk):
     bank_transaction = _scoped(BankTransaction, company, pk)
     rule = find_rule(bank_transaction)
     form = TransactionEntryForm(
-        request.POST or None, bank_transaction=bank_transaction, rule=rule
+        request.POST or None,
+        bank_transaction=bank_transaction,
+        rule=rule,
+        company=company,
     )
     if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data
+        common = {
+            "label": data.get("label") or "",
+            "reference": data.get("reference") or "",
+            "entry_date": data.get("date"),
+        }
         try:
-            create_entry_from_transaction(
-                bank_transaction,
-                counterpart_code=form.cleaned_data["counterpart_code"],
-                vat_account_code=form.cleaned_data.get("vat_account_code") or "",
-                vat_amount=form.cleaned_data.get("vat_amount") or Decimal("0.00"),
-                label=form.cleaned_data["label"],
-                reference=form.cleaned_data.get("reference") or "",
-                entry_date=form.cleaned_data.get("date"),
-            )
+            if data["nature"] == "customer_receipt":
+                reconcile_customer_receipt(
+                    bank_transaction,
+                    invoice=data.get("customer_invoice"),
+                    gross_amount=data.get("gross_amount"),
+                    fee_amount=data.get("fee_amount"),
+                    fee_account_code=data.get("fee_account_code") or "627000",
+                    **common,
+                )
+            elif data["nature"] == "supplier_payment":
+                reconcile_supplier_payment(
+                    bank_transaction,
+                    invoice=data.get("supplier_invoice"),
+                    gross_amount=data.get("gross_amount"),
+                    fee_amount=data.get("fee_amount"),
+                    fee_account_code=data.get("fee_account_code") or "627000",
+                    **common,
+                )
+            elif data["nature"] == "expense":
+                reconcile_expense(
+                    bank_transaction,
+                    charge_account_code=data.get("charge_account_code"),
+                    vat_account_code=data.get("vat_account_code") or "",
+                    vat_amount=data.get("vat_amount") or Decimal("0.00"),
+                    **common,
+                )
+            elif data["nature"] == "bank_fee":
+                reconcile_bank_fee(bank_transaction, **common)
+            elif data["nature"] == "loan_payment":
+                reconcile_loan_payment(
+                    bank_transaction,
+                    principal=data.get("loan_principal") or Decimal("0.00"),
+                    interest=data.get("loan_interest") or Decimal("0.00"),
+                    **common,
+                )
+            elif data["nature"] == "internal_transfer":
+                reconcile_internal_transfer(
+                    bank_transaction,
+                    other_account=data.get("transfer_account"),
+                    **common,
+                )
+            elif data["nature"] == "vat_payment":
+                reconcile_vat_payment(
+                    bank_transaction,
+                    vat_account_code=data.get("vat_payment_account_code") or "44571",
+                    **common,
+                )
+            else:
+                reconcile_other(
+                    bank_transaction,
+                    counterpart_code=data.get("counterpart_code"),
+                    vat_account_code=data.get("vat_account_code") or "",
+                    vat_amount=data.get("vat_amount") or Decimal("0.00"),
+                    **common,
+                )
         except BankError as exc:
             messages.error(request, str(exc))
         else:

@@ -1,0 +1,221 @@
+import io
+import zipfile
+
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase
+from django.urls import reverse
+
+from accounting.models import JournalEntry
+from companies.models import Company
+from documents.models import Invoice
+from mailsync.models import Supplier
+from purchases.models import PurchaseInvoice
+
+from .models import ImportAuditEvent, ImportBatch, ImportDocument
+from .services import (
+    HistoricalImportError,
+    add_upload,
+    batch_stats,
+    create_batch,
+    import_document,
+    process_batch,
+)
+
+
+def ubl_invoice(*, number, supplier_name, supplier_id, customer_name, customer_id):
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>{number}</cbc:ID>
+  <cbc:IssueDate>2024-01-15</cbc:IssueDate>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>{supplier_name}</cbc:Name></cac:PartyName>
+      <cac:PartyLegalEntity><cbc:CompanyID>{supplier_id}</cbc:CompanyID></cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>{customer_name}</cbc:Name></cac:PartyName>
+      <cac:PartyLegalEntity><cbc:CompanyID>{customer_id}</cbc:CompanyID></cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:TaxTotal>
+    <cbc:TaxAmount>200.00</cbc:TaxAmount>
+    <cac:TaxSubtotal><cbc:Percent>20.00</cbc:Percent></cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:TaxExclusiveAmount>1000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount>1200.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount>1200.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+</Invoice>""".encode("utf-8")
+
+
+class HistoricalImportTestCase(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email="migration@example.fr", password="secret"
+        )
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="123456789",
+            denomination="Menuiserie Historique",
+            regime="reel_simple",
+            tva="reel",
+            source_data={"siret": "12345678901234"},
+        )
+        self.client.force_login(self.user)
+        self.sale_xml = ubl_invoice(
+            number="HIST-SALE-1",
+            supplier_name="Menuiserie Historique",
+            supplier_id="12345678901234",
+            customer_name="Client Historique",
+            customer_id="98765432109876",
+        )
+        self.purchase_xml = ubl_invoice(
+            number="HIST-PURCHASE-1",
+            supplier_name="Fournisseur Historique",
+            supplier_id="98765432109876",
+            customer_name="Menuiserie Historique",
+            customer_id="12345678901234",
+        )
+
+    def _batch(self, *files):
+        batch = create_batch(self.company, self.user)
+        for name, payload in files:
+            add_upload(
+                batch,
+                SimpleUploadedFile(name, payload, content_type="application/xml"),
+                self.user,
+            )
+        return batch
+
+    def test_sale_invoice_is_imported_as_archive_without_accounting_entry(self):
+        batch = self._batch(("vente.xml", self.sale_xml))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.kind, "sale_invoice")
+        self.assertEqual(document.status, "ready")
+        import_document(document, user=self.user)
+
+        document.refresh_from_db()
+        self.assertEqual(document.status, "imported")
+        invoice = Invoice.objects.get(company=self.company, number="HIST-SALE-1")
+        self.assertEqual(invoice.source, "historical_import")
+        self.assertEqual(invoice.status, "archived")
+        self.assertEqual(invoice.client_name, "Client Historique")
+        self.assertEqual(invoice.amount_ht, 1000)
+        self.assertEqual(document.imported_invoice_id, invoice.id)
+        self.assertEqual(JournalEntry.objects.filter(company=self.company).count(), 0)
+        self.assertTrue(ImportAuditEvent.objects.filter(action="document_imported").exists())
+
+    def test_purchase_invoice_is_imported_in_purchase_register_without_entry(self):
+        batch = self._batch(("achat.xml", self.purchase_xml))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.kind, "purchase_invoice")
+        self.assertTrue(document.seller_name)
+        import_document(document, user=self.user)
+
+        purchase = PurchaseInvoice.objects.get(
+            company=self.company, number="HIST-PURCHASE-1"
+        )
+        self.assertEqual(purchase.source, "historical_import")
+        self.assertEqual(purchase.status, "archived")
+        self.assertTrue(Supplier.objects.filter(company=self.company).exists())
+        self.assertEqual(JournalEntry.objects.filter(company=self.company).count(), 0)
+
+    def test_existing_invoice_is_flagged_duplicate(self):
+        Invoice.objects.create(
+            company=self.company,
+            number="HIST-SALE-1",
+            client_name="Déjà présent",
+            amount_ht=1000,
+            vat_rate=20,
+            status="issued",
+        )
+        batch = self._batch(("vente.xml", self.sale_xml))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        self.assertEqual(document.status, "duplicate")
+        self.assertIn("déjà présent", document.duplicate_reason.lower())
+
+    def test_duplicate_file_is_not_processed_twice(self):
+        batch = self._batch(
+            ("vente-1.xml", self.sale_xml),
+            ("vente-2.xml", self.sale_xml),
+        )
+        process_batch(batch, user=self.user)
+        stats = batch_stats(batch)
+        self.assertEqual(stats["total"], 2)
+        self.assertEqual(stats["duplicates"], 1)
+        self.assertEqual(stats["ready"], 1)
+        self.assertEqual(ImportDocument.objects.filter(status="imported").count(), 0)
+
+    def test_zip_path_traversal_is_rejected(self):
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("../facture.xml", self.sale_xml)
+        batch = create_batch(self.company, self.user)
+        with self.assertRaises(HistoricalImportError):
+            add_upload(
+                batch,
+                SimpleUploadedFile(
+                    "archive.zip", buffer.getvalue(), content_type="application/zip"
+                ),
+                self.user,
+            )
+
+    def test_upload_view_accepts_multiple_files(self):
+        response = self.client.post(
+            reverse("history_import:upload"),
+            {
+                "files": [
+                    SimpleUploadedFile("vente.xml", self.sale_xml, content_type="application/xml"),
+                    SimpleUploadedFile("achat.xml", self.purchase_xml, content_type="application/xml"),
+                ],
+                "kind_hint": "",
+                "label": "Test mobile",
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        batch = ImportBatch.objects.get(company=self.company)
+        self.assertEqual(batch.documents.count(), 2)
+        self.assertContains(response, "Test mobile")
+
+    def test_document_file_is_private_to_company(self):
+        batch = self._batch(("vente.xml", self.sale_xml))
+        process_batch(batch, user=self.user)
+        document = batch.documents.get()
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            email="autre-migration@example.fr", password="secret"
+        )
+        Company.objects.create(
+            owner=other_user,
+            siren="987654321",
+            denomination="Autre société",
+            regime="reel_simple",
+            tva="reel",
+        )
+        self.client.force_login(other_user)
+        response = self.client.get(
+            reverse("history_import:document_file", args=[document.pk])
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_batch_page_renders(self):
+        batch = self._batch(("vente.xml", self.sale_xml))
+        process_batch(batch, user=self.user)
+        response = self.client.get(
+            reverse("history_import:batch", args=[batch.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Historique")
+        self.assertContains(response, "Importer la sélection")

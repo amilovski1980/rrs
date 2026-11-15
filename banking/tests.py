@@ -8,6 +8,8 @@ from django.urls import reverse
 from accounting.models import ChartAccount, EntryLine, Journal, JournalEntry
 from accounting.services import generate_portal
 from companies.models import Company
+from documents.models import Invoice, Payment
+from purchases.models import PurchaseInvoice, SupplierPayment
 
 from .forms import TransactionEntryForm
 from .models import BankAccount, BankRule, BankTransaction
@@ -16,6 +18,11 @@ from .services import (
     create_entry_from_transaction,
     import_statement,
     match_transaction,
+    reconcile_customer_receipt,
+    reconcile_internal_transfer,
+    reconcile_loan_payment,
+    reconcile_supplier_payment,
+    reconcile_vat_payment,
     unmatch_transaction,
 )
 
@@ -238,4 +245,178 @@ class BankTestCase(TestCase):
         self.assertContains(entry_page, "data-banking-entry")
         self.assertContains(entry_page, "counterpart-accounts")
         self.assertContains(entry_page, "data-preview-status")
+        self.assertContains(entry_page, "data-nature-section")
         self.assertContains(entry_page, "banking-entry.js")
+
+    def test_reconcile_view_dispatches_customer_receipt(self):
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC-VIEW-1",
+            client_name="Client Vue",
+            amount_ht=Decimal("317.90"),
+            vat_rate=Decimal("0.00"),
+            status="issued",
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 6),
+            label="CB CLIENT VUE",
+            amount=Decimal("316.80"),
+            fingerprint="view-customer-1",
+        )
+        response = self.client.post(
+            reverse("banking:transaction_entry", args=[transaction.pk]),
+            {
+                "nature": "customer_receipt",
+                "date": "2026-06-06",
+                "label": "CB Client Vue",
+                "reference": "CB-VIEW",
+                "customer_invoice": str(invoice.pk),
+                "gross_amount": "317.90",
+                "fee_amount": "1.10",
+                "fee_account_code": "627000",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "paid")
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "customer_receipt")
+        self.assertEqual(transaction.status, "matched")
+
+    def test_customer_receipt_with_bank_fee(self):
+        invoice = Invoice.objects.create(
+            company=self.company,
+            number="FAC-CLIENT-1",
+            client_name="Client CB",
+            amount_ht=Decimal("317.90"),
+            vat_rate=Decimal("0.00"),
+            status="issued",
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 1),
+            label="CB CLIENT",
+            amount=Decimal("316.80"),
+            fingerprint="client-cb-1",
+        )
+        entry = reconcile_customer_receipt(
+            transaction,
+            invoice=invoice,
+            gross_amount=Decimal("317.90"),
+            fee_amount=Decimal("1.10"),
+            entry_date=date(2026, 6, 1),
+        )
+        lines = list(entry.lines.select_related("account"))
+        self.assertEqual(sum(line.debit for line in lines), Decimal("317.90"))
+        self.assertEqual(sum(line.credit for line in lines), Decimal("317.90"))
+        self.assertTrue(any(line.account.code == "627000" and line.debit == Decimal("1.10") for line in lines))
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, "paid")
+        self.assertEqual(Payment.objects.get(invoice=invoice).amount, Decimal("317.90"))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "customer_receipt")
+        self.assertEqual(transaction.matched_entry_id, entry.id)
+
+    def test_supplier_payment_with_bank_fee(self):
+        purchase = PurchaseInvoice.objects.create(
+            company=self.company,
+            supplier_name="Fournisseur Test",
+            number="ACH-TEST-1",
+            invoice_date=date(2026, 6, 1),
+            amount_ht=Decimal("1000.00"),
+            amount_vat=Decimal("0.00"),
+            amount_ttc=Decimal("1000.00"),
+            status="approved",
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 2),
+            label="VIR FOURNISSEUR",
+            amount=Decimal("-1010.00"),
+            fingerprint="supplier-pay-1",
+        )
+        entry = reconcile_supplier_payment(
+            transaction,
+            invoice=purchase,
+            gross_amount=Decimal("1000.00"),
+            fee_amount=Decimal("10.00"),
+            entry_date=date(2026, 6, 2),
+        )
+        lines = list(entry.lines.select_related("account"))
+        self.assertTrue(any(line.account.code == "401" and line.debit == Decimal("1000.00") for line in lines))
+        self.assertTrue(any(line.account.code == "627000" and line.debit == Decimal("10.00") for line in lines))
+        self.assertTrue(any(line.account.code == "512" and line.credit == Decimal("1010.00") for line in lines))
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.status, "paid")
+        self.assertEqual(
+            SupplierPayment.objects.get(invoice=purchase).amount, Decimal("1000.00")
+        )
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "supplier_payment")
+
+    def test_loan_payment_splits_principal_and_interest(self):
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 3),
+            label="ECHEANCE PRET",
+            amount=Decimal("-596.70"),
+            fingerprint="loan-1",
+        )
+        entry = reconcile_loan_payment(
+            transaction,
+            principal=Decimal("500.00"),
+            interest=Decimal("96.70"),
+        )
+        lines = list(entry.lines.select_related("account"))
+        self.assertTrue(any(line.account.code == "164" and line.debit == Decimal("500.00") for line in lines))
+        self.assertTrue(any(line.account.code == "661" and line.debit == Decimal("96.70") for line in lines))
+        self.assertTrue(any(line.account.code == "512" and line.credit == Decimal("596.70") for line in lines))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "loan_payment")
+
+    def test_vat_payment_does_not_create_an_expense(self):
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 4),
+            label="TVA A PAYER",
+            amount=Decimal("-200.00"),
+            fingerprint="vat-1",
+        )
+        entry = reconcile_vat_payment(transaction, vat_account_code="44571")
+        lines = list(entry.lines.select_related("account"))
+        self.assertTrue(any(line.account.code == "44571" and line.debit == Decimal("200.00") for line in lines))
+        self.assertFalse(any(line.account.code.startswith("6") for line in lines))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "vat_payment")
+
+    def test_internal_transfer_has_no_charge(self):
+        other_ledger = ChartAccount.objects.create(
+            company=self.company, code="5121", label="Banque secondaire"
+        )
+        other = BankAccount.objects.create(
+            company=self.company,
+            label="Compte secondaire",
+            ledger_account=other_ledger,
+            journal=self.account.journal,
+        )
+        transaction = BankTransaction.objects.create(
+            company=self.company,
+            account=self.account,
+            date=date(2026, 6, 5),
+            label="VIREMENT COMPTE SECONDAIRE",
+            amount=Decimal("-100.00"),
+            fingerprint="transfer-1",
+        )
+        entry = reconcile_internal_transfer(transaction, other_account=other)
+        lines = list(entry.lines.select_related("account"))
+        self.assertTrue(any(line.account.code == "5121" and line.debit == Decimal("100.00") for line in lines))
+        self.assertTrue(any(line.account.code == "512" and line.credit == Decimal("100.00") for line in lines))
+        self.assertFalse(any(line.account.code.startswith("6") for line in lines))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.nature, "internal_transfer")

@@ -140,6 +140,23 @@ MAILSYNC_ENCRYPTION_KEY=...
 - Limite v1 : la TVA à payer n'est pas encore intégrée au prévisionnel (module
   TVA à venir), et les éléments au-delà de 13 semaines sont signalés à part.
 
+## Import intelligent d'historique
+
+Module `/migration/`, réservé au **forfait ultime** :
+
+- import multiple de photos, PDF, XML et archives ZIP ;
+- extraction Factur-X/UBL/PDF et OCR des documents scannés ;
+- classification vente / achat / avoir / ticket / autre ;
+- détection des doublons (empreinte du fichier et facture existante) ;
+- validation collective des documents prêts et correction des exceptions ;
+- factures historiques archivées (`source="historical_import"`), **sans aucune
+  écriture comptable** ;
+- reprise automatique de l'analyse après interruption.
+
+Worker optionnel : `python manage.py process_history_imports` (cron toutes les
+1 à 5 minutes). Voir [`docs/HISTORY_IMPORT.md`](docs/HISTORY_IMPORT.md) pour
+l'architecture, la sécurité et le retour arrière.
+
 ## TVA — à faire
 
 Le module TVA/CA3/CA12 n'est pas encore implémenté. Le cahier des charges
@@ -197,6 +214,7 @@ Render : GitHub Pages et Vercel ne servent que la page publique.
 - `suppliers/` : fiches fournisseurs et encours.
 - `banking/` : comptes, import de relevés et rapprochement bancaire.
 - `treasury/` : position de trésorerie et prévisionnel.
+- `history_import/` : import intelligent d'historique (mobile, ZIP, OCR).
 - `billing/` : plans, abonnements, webhooks Stripe.
 - `core/` : isolation multi-tenant.
 - `static/css/app.css` : design system inspiré de Santé publique France, modernisé.

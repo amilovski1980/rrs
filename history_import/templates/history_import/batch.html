@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Lot d'import · {{ batch.label|default:"Historique" }}{% endblock %}
+{% block crumbs %}Import d'historique / Lot{% endblock %}
+{% block nav_history_import %}active{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ batch.label|default:"Import d'historique" }}</h1>
+    <p class="sub">
+      {{ company.denomination }} · {{ batch.created_at|date:"d/m/Y H:i" }} ·
+      <span class="badge">{{ batch.get_status_display }}</span>
+      {% if batch.kind_hint %}<span class="badge">{{ batch.get_kind_hint_display }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn btn-ghost" href="{% url 'history_import:upload' %}?batch={{ batch.pk }}&societe={{ company.id }}">Ajouter des documents</a>
+    <a class="btn btn-ghost" href="{% url 'history_import:upload' %}?societe={{ company.id }}">Nouveau lot</a>
+  </div>
+</div>
+
+<div class="grid g4" style="margin-bottom:16px">
+  <div class="kpi"><div class="l">Reçus</div><div class="v">{{ stats.total }}</div><div class="d">documents</div></div>
+  <div class="kpi"><div class="l">Prêts</div><div class="v">{{ stats.ready }}</div><div class="d">à importer</div></div>
+  <div class="kpi"><div class="l">À vérifier</div><div class="v">{{ stats.review }}</div><div class="d">exceptions</div></div>
+  <div class="kpi"><div class="l">Doublons</div><div class="v">{{ stats.duplicates }}</div><div class="d">déjà présents</div></div>
+</div>
+
+{% if stats.pending %}
+<section class="card import-progress-card" data-import-progress
+         data-process-url="{% url 'history_import:batch_process' batch.pk %}?societe={{ company.id }}"
+         data-pending="{{ stats.pending }}">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+    <strong>Analyse en cours…</strong>
+    <span class="micro"><span data-import-done>{{ batch.processed_count }}</span> / {{ stats.total }} traités</span>
+  </div>
+  <div class="import-progress-bar"><i data-import-bar style="width: {{ batch.progress_percent }}%"></i></div>
+  <p class="micro" data-import-note>Vous pouvez quitter la page : l'analyse reprend à votre retour.</p>
+  <form method="post" action="{% url 'history_import:batch_process' batch.pk %}?societe={{ company.id }}">
+    {% csrf_token %}
+    <button class="btn btn-ghost btn-sm" type="submit">Continuer maintenant</button>
+  </form>
+</section>
+{% endif %}
+
+<div class="import-tabs" role="tablist">
+  <a class="{% if not status_filter %}is-on{% endif %}" href="{% url 'history_import:batch' batch.pk %}?societe={{ company.id }}">Tous <b>{{ stats.total }}</b></a>
+  <a class="{% if status_filter == 'ready' %}is-on{% endif %}" href="?societe={{ company.id }}&statut=ready">Prêts <b>{{ stats.ready }}</b></a>
+  <a class="{% if status_filter == 'review' %}is-on{% endif %}" href="?societe={{ company.id }}&statut=review">À vérifier <b>{{ stats.review }}</b></a>
+  <a class="{% if status_filter == 'duplicate' %}is-on{% endif %}" href="?societe={{ company.id }}&statut=duplicate">Doublons <b>{{ stats.duplicates }}</b></a>
+  <a class="{% if status_filter == 'imported' %}is-on{% endif %}" href="?societe={{ company.id }}&statut=imported">Importés <b>{{ stats.imported }}</b></a>
+</div>
+
+{% if documents %}
+<form method="post" action="{% url 'history_import:batch_import' batch.pk %}?societe={{ company.id }}" data-import-selection>
+  {% csrf_token %}
+  <div class="import-select-all">
+    <label class="check-row"><input type="checkbox" data-import-select-all> <span>Tout sélectionner les documents prêts</span></label>
+    <button class="btn btn-primary" type="submit">Importer la sélection</button>
+  </div>
+
+  <div class="import-doc-list">
+    {% for document in documents %}
+    <article class="import-doc-card">
+      {% if document.status == "ready" %}
+      <label class="import-doc-check"><input type="checkbox" name="document_ids" value="{{ document.pk }}" data-import-check> <span class="sr-only">Sélectionner</span></label>
+      {% endif %}
+      <div class="import-doc-main">
+        <div class="import-doc-head">
+          <div>
+            <strong>{{ document.original_name|truncatechars:60 }}</strong>
+            <small>{{ document.created_at|date:"d/m/Y H:i" }} · {{ document.get_kind_display }}</small>
+          </div>
+          <span class="badge {% if document.status == 'ready' %}badge-green{% elif document.status == 'review' %}badge-blue{% elif document.status == 'duplicate' %}badge-amber{% elif document.status == 'imported' %}badge-green{% else %}badge{% endif %}">
+            {{ document.get_status_display }}
+          </span>
+        </div>
+        <div class="import-doc-meta">
+          {% if document.invoice_number %}<span>N° {{ document.invoice_number }}</span>{% endif %}
+          {% if document.invoice_date %}<span>{{ document.invoice_date|date:"d/m/Y" }}</span>{% endif %}
+          {% if document.amount_ttc %}<span><b>{{ document.amount_ttc|floatformat:2 }} €</b></span>{% endif %}
+          {% if document.kind == "sale_invoice" and document.customer_name %}<span>{{ document.customer_name|truncatechars:30 }}</span>{% endif %}
+          {% if document.kind == "purchase_invoice" and document.seller_name %}<span>{{ document.seller_name|truncatechars:30 }}</span>{% endif %}
+        </div>
+        {% if document.warnings %}
+        <p class="micro import-doc-warning">{{ document.warnings|join:" · "|truncatechars:150 }}</p>
+        {% endif %}
+        {% if document.duplicate_reason %}<p class="micro import-doc-warning">{{ document.duplicate_reason }}</p>{% endif %}
+      </div>
+      <a class="btn btn-ghost btn-sm" href="{% url 'history_import:document' document.pk %}?societe={{ company.id }}">Ouvrir</a>
+    </article>
+    {% endfor %}
+  </div>
+</form>
+{% else %}
+<div class="card card-tight">
+  <p class="empty" style="padding:26px">Aucun document dans cette vue. Ajoutez des fichiers ou changez d'onglet.</p>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/history-import.js' %}?v=2026.11.15.1" defer></script>
+{% endblock %}

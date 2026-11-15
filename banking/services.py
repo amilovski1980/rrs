@@ -198,6 +198,8 @@ def _apply_match(
     entry: JournalEntry,
     match_type: str,
     score: int = 0,
+    *,
+    nature: str = "existing",
 ) -> None:
     if entry.company_id != bank_transaction.company_id:
         raise BankError("Écriture d'une autre société.")
@@ -212,8 +214,9 @@ def _apply_match(
     bank_transaction.status = "matched"
     bank_transaction.match_type = match_type
     bank_transaction.match_score = score
+    bank_transaction.nature = nature
     bank_transaction.save(
-        update_fields=["matched_entry", "status", "match_type", "match_score"]
+        update_fields=["matched_entry", "status", "match_type", "match_score", "nature"]
     )
 
 
@@ -255,8 +258,9 @@ def unmatch_transaction(bank_transaction: BankTransaction) -> None:
     bank_transaction.status = "unmatched"
     bank_transaction.match_type = ""
     bank_transaction.match_score = 0
+    bank_transaction.nature = ""
     bank_transaction.save(
-        update_fields=["matched_entry", "status", "match_type", "match_score"]
+        update_fields=["matched_entry", "status", "match_type", "match_score", "nature"]
     )
 
 
@@ -270,6 +274,7 @@ def create_entry_from_transaction(
     label: str = "",
     reference: str = "",
     entry_date=None,
+    nature: str = "other",
 ) -> JournalEntry:
     """Crée l'écriture de banque manquante (frais, virement, encaissement...)."""
     if bank_transaction.status == "matched":
@@ -354,8 +359,374 @@ def create_entry_from_transaction(
                 debit=Decimal("0.00"),
                 credit=amount,
             )
-        _apply_match(bank_transaction, entry, "entry", 100)
+        _apply_match(bank_transaction, entry, "entry", 100, nature=nature)
     return entry
+
+
+def _bank_context(bank_transaction: BankTransaction):
+    company = bank_transaction.company
+    ledger = bank_transaction.account.ledger
+    if ledger is None:
+        ledger = resolve_account(company, "512", label="Banque", roots=("512",))
+        bank_transaction.account.ledger_account = ledger
+        bank_transaction.account.save(update_fields=["ledger_account"])
+    journal = bank_transaction.account.journal or company.journals.filter(
+        code="BQ"
+    ).first()
+    if journal is None:
+        raise BankError("Aucun journal de banque (BQ) pour cette société.")
+    return company, ledger, journal
+
+
+def _decimal(value) -> Decimal:
+    return Decimal(str(value or 0)).quantize(STEP)
+
+
+def _create_entry(company, journal, *, date, label, reference, lines):
+    total_debit = sum((debit for _account, debit, _credit in lines), Decimal("0.00"))
+    total_credit = sum((credit for _account, _debit, credit in lines), Decimal("0.00"))
+    if total_debit != total_credit:
+        raise BankError(
+            f"Écriture déséquilibrée : débit {total_debit} € / crédit {total_credit} €."
+        )
+    entry = JournalEntry.objects.create(
+        company=company,
+        journal=journal,
+        date=date,
+        label=(label or "Opération bancaire")[:200],
+        reference=(reference or "")[:50],
+        validated=True,
+    )
+    for account, debit, credit in lines:
+        if account is None:
+            raise BankError("Compte comptable manquant dans l'écriture.")
+        if debit == 0 and credit == 0:
+            continue
+        EntryLine.objects.create(
+            entry=entry, account=account, debit=debit, credit=credit
+        )
+    return entry
+
+
+def _entry_meta(bank_transaction, label, reference, entry_date):
+    return {
+        "date": entry_date or bank_transaction.date,
+        "label": label or bank_transaction.label or "Opération bancaire",
+        "reference": (
+            reference
+            or bank_transaction.reference
+            or f"BQ-{bank_transaction.id.hex[:10]}"
+        )[:50],
+    }
+
+
+def _require_unmatched(bank_transaction):
+    if bank_transaction.status == "matched":
+        raise BankError("Cette opération est déjà rapprochée.")
+
+
+@transaction.atomic
+def reconcile_customer_receipt(
+    bank_transaction: BankTransaction,
+    *,
+    invoice=None,
+    gross_amount=None,
+    fee_amount=Decimal("0.00"),
+    fee_account_code: str = "627000",
+    label: str = "",
+    reference: str = "",
+    entry_date=None,
+) -> JournalEntry:
+    """Encaissement client : brut (411), frais (627), net banque (512)."""
+    _require_unmatched(bank_transaction)
+    if bank_transaction.amount <= 0:
+        raise BankError("Un encaissement client doit être une entrée d'argent.")
+    company, ledger, journal = _bank_context(bank_transaction)
+    amount = bank_transaction.absolute_amount
+    fee = _decimal(fee_amount)
+    if fee < 0:
+        raise BankError("Les frais bancaires ne peuvent pas être négatifs.")
+    gross = _decimal(gross_amount if gross_amount is not None else amount + fee)
+    if gross <= 0:
+        raise BankError("Le montant brut encaissé doit être positif.")
+    if (gross - fee) != amount:
+        raise BankError(
+            f"Le brut ({gross} €) moins les frais ({fee} €) doit égaler "
+            f"le montant bancaire ({amount} €)."
+        )
+    if invoice is not None:
+        if invoice.company_id != company.id:
+            raise BankError("Facture d'une autre société.")
+        if invoice.status not in ("issued", "late", "received"):
+            raise BankError("Cette facture n'est pas encaissable.")
+        if gross > invoice.amount_remaining + Decimal("0.01"):
+            raise BankError(
+                f"Le montant dépasse le reste à encaisser ({invoice.amount_remaining} €)."
+            )
+
+    client = resolve_account(company, "411", label="Clients", roots=("411",))
+    lines = [(ledger, amount, Decimal("0.00"))]
+    if fee > 0:
+        fee_account = resolve_account(
+            company, fee_account_code or "627000", label="Frais bancaires", roots=("627",)
+        )
+        lines.append((fee_account, fee, Decimal("0.00")))
+    lines.append((client, Decimal("0.00"), gross))
+    meta = _entry_meta(bank_transaction, label, reference, entry_date)
+    entry = _create_entry(company, journal, lines=lines, **meta)
+
+    if invoice is not None:
+        from documents.services import register_payment
+
+        payment = register_payment(
+            invoice,
+            amount=gross,
+            method="transfer",
+            paid_at=meta["date"],
+            reference=meta["reference"],
+            notes="Rapprochement bancaire",
+            post_accounting=False,
+        )
+        payment.journal_entry = entry
+        payment.save(update_fields=["journal_entry"])
+
+    _apply_match(bank_transaction, entry, "entry", 100, nature="customer_receipt")
+    return entry
+
+
+@transaction.atomic
+def reconcile_supplier_payment(
+    bank_transaction: BankTransaction,
+    *,
+    invoice=None,
+    gross_amount=None,
+    fee_amount=Decimal("0.00"),
+    fee_account_code: str = "627000",
+    label: str = "",
+    reference: str = "",
+    entry_date=None,
+) -> JournalEntry:
+    """Paiement fournisseur : dette (401), frais(627), banque (512)."""
+    _require_unmatched(bank_transaction)
+    if bank_transaction.amount >= 0:
+        raise BankError("Un paiement fournisseur doit être une sortie d'argent.")
+    company, ledger, journal = _bank_context(bank_transaction)
+    amount = bank_transaction.absolute_amount
+    fee = _decimal(fee_amount)
+    if fee < 0:
+        raise BankError("Les frais bancaires ne peuvent pas être négatifs.")
+    gross = _decimal(gross_amount if gross_amount is not None else amount - fee)
+    if gross <= 0:
+        raise BankError("Le montant payé au fournisseur doit être positif.")
+    if (gross + fee) != amount:
+        raise BankError(
+            f"Le paiement fournisseur ({gross} €) plus les frais ({fee} €) doit "
+            f"égaler le montant bancaire ({amount} €)."
+        )
+    if invoice is not None:
+        if invoice.company_id != company.id:
+            raise BankError("Facture d'une autre société.")
+        if invoice.status != "approved":
+            raise BankError("Cette facture fournisseur n'est pas à payer.")
+        if gross > invoice.amount_remaining + Decimal("0.01"):
+            raise BankError(
+                f"Le montant dépasse le reste à payer ({invoice.amount_remaining} €)."
+            )
+
+    supplier = resolve_account(company, "401", label="Fournisseurs", roots=("401",))
+    lines = [(supplier, gross, Decimal("0.00"))]
+    if fee > 0:
+        fee_account = resolve_account(
+            company, fee_account_code or "627000", label="Frais bancaires", roots=("627",)
+        )
+        lines.append((fee_account, fee, Decimal("0.00")))
+    lines.append((ledger, Decimal("0.00"), amount))
+    meta = _entry_meta(bank_transaction, label, reference, entry_date)
+    entry = _create_entry(company, journal, lines=lines, **meta)
+
+    if invoice is not None:
+        from purchases.services import register_supplier_payment
+
+        payment = register_supplier_payment(
+            invoice,
+            amount=gross,
+            method="transfer",
+            paid_at=meta["date"],
+            reference=meta["reference"],
+            notes="Rapprochement bancaire",
+            post_accounting=False,
+        )
+        payment.journal_entry = entry
+        payment.save(update_fields=["journal_entry"])
+
+    _apply_match(bank_transaction, entry, "entry", 100, nature="supplier_payment")
+    return entry
+
+
+@transaction.atomic
+def reconcile_loan_payment(
+    bank_transaction: BankTransaction,
+    *,
+    principal,
+    interest,
+    label: str = "",
+    reference: str = "",
+    entry_date=None,
+) -> JournalEntry:
+    """Échéance de prêt : capital (164) + intérêts (661)."""
+    _require_unmatched(bank_transaction)
+    if bank_transaction.amount >= 0:
+        raise BankError("Une échéance de prêt doit être une sortie d'argent.")
+    company, ledger, journal = _bank_context(bank_transaction)
+    amount = bank_transaction.absolute_amount
+    principal = _decimal(principal)
+    interest = _decimal(interest)
+    if principal < 0 or interest < 0:
+        raise BankError("Les montants du prêt ne peuvent pas être négatifs.")
+    if principal + interest != amount:
+        raise BankError(
+            f"Capital ({principal} €) + intérêts ({interest} €) doit égaler "
+            f"le montant bancaire ({amount} €)."
+        )
+    loan = resolve_account(company, "164", label="Emprunts", roots=("164",))
+    interest_account = resolve_account(
+        company, "661", label="Charges financières", roots=("661",)
+    )
+    lines = [
+        (loan, principal, Decimal("0.00")),
+        (interest_account, interest, Decimal("0.00")),
+        (ledger, Decimal("0.00"), amount),
+    ]
+    meta = _entry_meta(bank_transaction, label, reference, entry_date)
+    entry = _create_entry(company, journal, lines=lines, **meta)
+    _apply_match(bank_transaction, entry, "entry", 100, nature="loan_payment")
+    return entry
+
+
+@transaction.atomic
+def reconcile_vat_payment(
+    bank_transaction: BankTransaction,
+    *,
+    vat_account_code: str = "44571",
+    label: str = "",
+    reference: str = "",
+    entry_date=None,
+) -> JournalEntry:
+    """TVA payée : dette fiscale (44571/44566), pas une nouvelle charge."""
+    _require_unmatched(bank_transaction)
+    if bank_transaction.amount >= 0:
+        raise BankError("Un paiement de TVA doit être une sortie d'argent.")
+    company, ledger, journal = _bank_context(bank_transaction)
+    amount = bank_transaction.absolute_amount
+    vat_account = resolve_account(
+        company,
+        vat_account_code or "44571",
+        label="TVA",
+        roots=("44571", "44566", "445"),
+    )
+    lines = [
+        (vat_account, amount, Decimal("0.00")),
+        (ledger, Decimal("0.00"), amount),
+    ]
+    meta = _entry_meta(bank_transaction, label, reference, entry_date)
+    entry = _create_entry(company, journal, lines=lines, **meta)
+    _apply_match(bank_transaction, entry, "entry", 100, nature="vat_payment")
+    return entry
+
+
+@transaction.atomic
+def reconcile_internal_transfer(
+    bank_transaction: BankTransaction,
+    *,
+    other_account: BankAccount,
+    label: str = "",
+    reference: str = "",
+    entry_date=None,
+) -> JournalEntry:
+    """Virement entre deux comptes : aucun produit, aucune charge."""
+    _require_unmatched(bank_transaction)
+    company, ledger, journal = _bank_context(bank_transaction)
+    if other_account.company_id != company.id:
+        raise BankError("Compte bancaire d'une autre société.")
+    if other_account.pk == bank_transaction.account_id:
+        raise BankError("Choisissez un autre compte que le compte d'origine.")
+    other_ledger = other_account.ledger
+    if other_ledger is None:
+        raise BankError("Le compte de destination n'a pas de compte comptable 512.")
+    amount = bank_transaction.absolute_amount
+    if bank_transaction.amount < 0:
+        lines = [
+            (other_ledger, amount, Decimal("0.00")),
+            (ledger, Decimal("0.00"), amount),
+        ]
+    else:
+        lines = [
+            (ledger, amount, Decimal("0.00")),
+            (other_ledger, Decimal("0.00"), amount),
+        ]
+    meta = _entry_meta(bank_transaction, label, reference, entry_date)
+    entry = _create_entry(company, journal, lines=lines, **meta)
+    _apply_match(bank_transaction, entry, "entry", 100, nature="internal_transfer")
+    return entry
+
+
+def reconcile_bank_fee(bank_transaction, *, label="", reference="", entry_date=None):
+    if bank_transaction.amount >= 0:
+        raise BankError("Des frais bancaires doivent être une sortie d'argent.")
+    return create_entry_from_transaction(
+        bank_transaction,
+        counterpart_code="627000",
+        label=label or f"Frais bancaires — {bank_transaction.label}",
+        reference=reference,
+        entry_date=entry_date,
+        nature="bank_fee",
+    )
+
+
+def reconcile_expense(
+    bank_transaction,
+    *,
+    charge_account_code,
+    vat_account_code="",
+    vat_amount=Decimal("0.00"),
+    label="",
+    reference="",
+    entry_date=None,
+):
+    if bank_transaction.amount >= 0:
+        raise BankError("Une dépense doit être une sortie d'argent.")
+    return create_entry_from_transaction(
+        bank_transaction,
+        counterpart_code=charge_account_code,
+        vat_account_code=vat_account_code,
+        vat_amount=vat_amount,
+        label=label,
+        reference=reference,
+        entry_date=entry_date,
+        nature="expense",
+    )
+
+
+def reconcile_other(
+    bank_transaction,
+    *,
+    counterpart_code,
+    vat_account_code="",
+    vat_amount=Decimal("0.00"),
+    label="",
+    reference="",
+    entry_date=None,
+):
+    return create_entry_from_transaction(
+        bank_transaction,
+        counterpart_code=counterpart_code,
+        vat_account_code=vat_account_code,
+        vat_amount=vat_amount,
+        label=label,
+        reference=reference,
+        entry_date=entry_date,
+        nature="other",
+    )
 
 
 def find_rule(bank_transaction: BankTransaction) -> BankRule | None:

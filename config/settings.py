@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "purchases",
     "banking",
     "treasury",
+    "history_import",
     "billing",
     "admin_backoffice",
 ]

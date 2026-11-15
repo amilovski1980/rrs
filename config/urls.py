@@ -17,6 +17,7 @@ urlpatterns = [
     path("fournisseurs/", include("suppliers.urls")),
     path("banque/", include("banking.urls")),
     path("tresorerie/", include("treasury.urls")),
+    path("migration/", include("history_import.urls")),
     path("agent/", include("ai.urls")),
     path("", include("billing.urls")),
     path("agent-config", demo.agent_config, name="agent_config"),

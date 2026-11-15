@@ -19,6 +19,9 @@ class ExtractedInvoice:
     supplier_name: str = ""
     supplier_siret: str = ""
     supplier_vat: str = ""
+    customer_name: str = ""
+    customer_siret: str = ""
+    customer_vat: str = ""
     invoice_number: str = ""
     invoice_date: date | None = None
     amount_ht: Decimal = Decimal("0.00")

@@ -137,6 +137,17 @@ class BankTransaction(models.Model):
         ("manual", "Manuel"),
         ("entry", "Écriture créée"),
     ]
+    NATURES = [
+        ("customer_receipt", "Encaissement client"),
+        ("supplier_payment", "Paiement fournisseur"),
+        ("expense", "Dépense / achat"),
+        ("bank_fee", "Frais bancaires"),
+        ("loan_payment", "Remboursement de prêt"),
+        ("internal_transfer", "Virement interne"),
+        ("vat_payment", "TVA payée à l'État"),
+        ("other", "Autre opération"),
+        ("existing", "Écriture existante"),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey(
@@ -173,6 +184,9 @@ class BankTransaction(models.Model):
     )
     match_type = models.CharField(max_length=10, choices=MATCH_TYPES, blank=True)
     match_score = models.PositiveSmallIntegerField(default=0)
+    nature = models.CharField(
+        max_length=24, choices=NATURES, blank=True, default="", verbose_name="Nature"
+    )
     fingerprint = models.CharField(max_length=64)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

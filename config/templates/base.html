@@ -15,8 +15,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.14.15">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.14.15">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.15.16">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.15.16">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -178,6 +178,10 @@
     </a>
     <a class="side-link {% block nav_mail %}{% endblock %}" href="{% url 'mailsync:drafts' %}">
       <span class="side-ico">{% include "partials/icon.html" with name="mail" %}</span> Factures e-mail
+    </a>
+    <a class="side-link {% block nav_history_import %}{% endblock %}{% if forfait.locks.history_import %} is-locked{% endif %}" href="{% if forfait.locks.history_import %}{% url 'plan_upgrade' %}{% else %}{% url 'history_import:upload' %}{% endif %}">
+      <span class="side-ico">{% include "partials/icon.html" with name="inbox" %}</span> Importer mon historique
+      {% if forfait.locks.history_import %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
     </div>{# /.sidebar-nav-scroll #}
 

@@ -18,6 +18,9 @@
   {% if selected %}
   <div class="page-actions">
     <a class="btn btn-ghost" href="{% url 'company_settings' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="building" %} Configuration</a>
+    <a class="btn btn-ghost" href="{% if forfait.locks.history_import %}{% url 'plan_upgrade' %}{% else %}{% url 'history_import:upload' %}{% endif %}">
+      {% include "partials/icon.html" with name="inbox" %} Importer mon historique
+    </a>
     {% if forfait.can_invoice %}
     <a class="btn btn-ghost" href="{% url 'invoice_create' %}?societe={{ selected.id }}">{% include "partials/icon.html" with name="receipt" %} Nouvelle facture</a>
     {% else %}

@@ -237,14 +237,32 @@ def _extract_supplier_name(text: str) -> str:
     return ""
 
 
-def parse_pdf(data: bytes) -> ExtractedInvoice | None:
-    """Extrait les données d'un PDF texte ; ``None`` si rien d'exploitable."""
-    try:
-        text = extract_text(io.BytesIO(data), maxpages=8) or ""
-    except Exception:
-        logger.info("PDF illisible pour l'extraction texte.", exc_info=True)
-        return None
-    if len(text.strip()) < 30:
+def _extract_customer_name(text: str) -> str:
+    """Heuristique : nom qui suit « Facturé à », « Client », « Destinataire »."""
+    labels = re.compile(
+        r"(?:factur[ée]\s*[àa]|client|destinataire|adress[ée]\s*[àa])\s*[:\s]+(.+)",
+        re.IGNORECASE,
+    )
+    for line in text.splitlines()[:40]:
+        match = labels.search(line.strip())
+        if not match:
+            continue
+        candidate = match.group(1).strip(" -|:•\t")
+        low = _normalize(candidate)
+        if not (3 <= len(candidate) <= 80):
+            continue
+        if any(word in low for word in _GENERIC_WORDS):
+            continue
+        if re.search(r"\d{4,}", candidate) or "@" in candidate:
+            continue
+        if sum(char.isalpha() for char in candidate) >= 3:
+            return candidate
+    return ""
+
+
+def parse_text(text: str, source: str = "pdf") -> ExtractedInvoice | None:
+    """Extrait les données d'un texte de facture (PDF natif ou OCR)."""
+    if len((text or "").strip()) < 30:
         return None
 
     amount_ht, amount_vat, amount_ttc = _extract_amounts(text)
@@ -259,14 +277,25 @@ def parse_pdf(data: bytes) -> ExtractedInvoice | None:
         supplier_vat=(
             re.sub(r"\s+", "", vat_match.group(0)).upper() if vat_match else ""
         ),
+        customer_name=_extract_customer_name(text),
         invoice_number=_extract_invoice_number(text),
         invoice_date=_find_date(text),
         amount_ht=amount_ht,
         amount_vat=amount_vat,
         amount_ttc=amount_ttc,
         vat_rate=_extract_rate(text),
-        source="pdf",
+        source=source,
         raw_text=text[:20000],
     )
     invoice = finalize_amounts(invoice)
     return invoice if invoice.is_usable() else None
+
+
+def parse_pdf(data: bytes) -> ExtractedInvoice | None:
+    """Extrait les données d'un PDF texte ; ``None`` si rien d'exploitable."""
+    try:
+        text = extract_text(io.BytesIO(data), maxpages=8) or ""
+    except Exception:
+        logger.info("PDF illisible pour l'extraction texte.", exc_info=True)
+        return None
+    return parse_text(text, source="pdf")

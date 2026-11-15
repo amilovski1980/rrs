@@ -9,6 +9,7 @@
     <p class="sub">
       {% if invoice.status == "paid" %}<span class="badge badge-green">Payée</span>
       {% elif invoice.status == "approved" %}<span class="badge badge-blue">À payer</span>
+      {% elif invoice.status == "archived" %}<span class="badge">Archivée (import)</span>
       {% elif invoice.status == "ignored" %}<span class="badge">Ignorée</span>
       {% else %}<span class="badge">Brouillon</span>{% endif %}
       {% if invoice.is_late %}<span class="badge badge-red">En retard</span>{% endif %}
