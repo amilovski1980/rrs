@@ -137,6 +137,20 @@
       if (statusEl) statusEl.textContent = text;
     }
 
+    /* Les URLs des outils sont sans préfixe : dans la coque dark, on les
+       remonte sous /dark pour ne pas sauter à la version claire. */
+    function themePath(path) {
+      if (
+        path &&
+        path.charAt(0) === "/" &&
+        path.indexOf("/dark") !== 0 &&
+        document.documentElement.getAttribute("data-theme") === "dark"
+      ) {
+        return "/dark" + path;
+      }
+      return path;
+    }
+
     function setTranscript(text) {
       transcript = text;
       if (transcriptEl) transcriptEl.textContent = text;
@@ -164,7 +178,7 @@
         return;
       }
       draftLink.hidden = false;
-      draftLink.href = url;
+      draftLink.href = themePath(url);
       draftLink.textContent = number ? "Brouillon " + number : "Brouillon";
     }
 
@@ -487,7 +501,7 @@
       if (invoice) setDraft(invoice.url, invoice.number);
       if (!invoice || !link) return;
       link.hidden = false;
-      link.href = invoice.url;
+      link.href = themePath(invoice.url);
       link.textContent = "Ouvrir " + invoice.number;
       var line = document.querySelector("[data-live-line]");
       if (line) line.textContent = "Brouillon " + invoice.number + " enregistré.";
@@ -568,7 +582,7 @@
       };
       var links = actions.querySelectorAll("[data-dest]");
       for (var j = 0; j < links.length; j++) {
-        links[j].href = map[links[j].getAttribute("data-dest")] || "#";
+        links[j].href = themePath(map[links[j].getAttribute("data-dest")] || "#");
       }
       actions.hidden = false;
     }

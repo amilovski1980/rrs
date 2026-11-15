@@ -1237,23 +1237,33 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 
 /* ---------- Aminia : panneau de recherche d'entreprises ---------- */
 .agent-results {
-  position: fixed; right: 22px; bottom: 92px; z-index: var(--z-agent-panel);
+  position: fixed; right: 16px; bottom: 84px; z-index: var(--z-agent-panel);
   width: min(360px, calc(100vw - 28px));
   animation: fadeUp .3s var(--ease) both;
 }
 .agent-results-card {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
-  box-shadow: var(--shadow-lg); padding: 14px 14px 12px;
-  max-height: min(70vh, 560px);
+  background: rgba(255, 255, 255, .86);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 16px;
+  box-shadow: 0 28px 64px -28px rgba(15, 23, 42, .38);
+  padding: 14px 14px 12px;
+  max-height: calc(100vh - 120px);
   display: flex; flex-direction: column; gap: 8px;
 }
 .agent-results-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .agent-results-head h2 { margin: 0; font-family: var(--font-head); font-size: 15px; }
 .agent-results-sub { margin: 2px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
-.agent-results-list { overflow-y: auto; display: grid; gap: 6px; padding-right: 2px; }
+.agent-results-list {
+  overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  display: grid; gap: 6px; padding-right: 2px;
+  flex: 1 1 auto; min-height: 0;
+}
 .agent-result-row {
   display: flex; align-items: flex-start; gap: 10px; text-align: left;
-  background: var(--blue-pale); border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .72); border: 1px solid var(--line);
   border-radius: 12px; padding: 9px 12px; cursor: pointer; font-family: inherit;
   transition: border-color .15s, background .15s;
 }
@@ -1268,16 +1278,25 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
 .agent-result-main small { font-size: 11px; color: var(--muted); line-height: 1.35; }
 .agent-result-badges { display: grid; gap: 4px; flex: 0 0 auto; }
 .agent-result-badges .badge { font-size: 10px; padding: 2px 7px; }
-.agent-results-actions { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; }
+.agent-results-actions { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; flex: 0 0 auto; }
 .agent-results-label { margin: 0; font-size: 11.5px; color: var(--muted); font-weight: 600; }
 .agent-results-action-links { display: flex; flex-wrap: wrap; gap: 6px; }
 .agent-results-close { flex: 0 0 auto; }
 
+html[data-theme="dark"] .agent-results-card {
+  background: rgba(18, 18, 20, .68);
+  border-color: var(--line);
+  box-shadow: 0 24px 56px -24px rgba(0, 0, 0, .65);
+}
+html[data-theme="dark"] .agent-result-row { background: rgba(255, 255, 255, .04); }
+
+/* Collé à la tab bar sur mobile ; le voile laisse lire la FAB en dessous */
 @media (max-width: 768px) {
   .agent-results {
-    right: 10px; left: 10px; bottom: calc(var(--m-footer-h) + var(--m-fab-h) + 8px);
+    left: 8px; right: 8px; bottom: calc(var(--m-footer-h) + 6px + env(safe-area-inset-bottom, 0px));
     width: auto;
   }
+  .agent-results-card { max-height: min(65vh, 480px); }
 }
 
 /* ---------- Responsive ---------- */
