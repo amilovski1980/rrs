@@ -44,6 +44,8 @@
     style.id = "aminia-shell-style";
     style.textContent =
       ".agent{display:none!important}" +
+      "[data-agent-footer-open]{display:none!important}" +
+      ".m-footer{grid-template-columns:repeat(4,minmax(0,1fr))!important}" +
       "html,body{overscroll-behavior:contain}";
     doc.head.appendChild(style);
     syncAddress();
