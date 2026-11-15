@@ -238,6 +238,15 @@ def invoice_create(request):
             return redirect("plan_upgrade")
     invoice = Invoice(company=company)
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia.
+        initial = {
+            key: request.GET.get(key)
+            for key in ("client_name", "client_siren")
+            if request.GET.get(key)
+        }
+        if initial:
+            form = InvoiceForm(initial=initial, instance=invoice, company=company)
     formset = InvoiceLineFormSet(
         request.POST or None,
         instance=invoice,
@@ -617,6 +626,24 @@ def client_create(request):
     if bounce:
         return bounce
     form = ClientForm(request.POST or None, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia :
+        # nom, SIREN, adresse, email et téléphone passés en query string.
+        try:
+            siren_digits = "".join(
+                ch for ch in str(request.GET.get("siren") or "") if ch.isdigit()
+            )[:9]
+            initial = {
+                key: request.GET.get(key)
+                for key in ("name", "email", "phone", "address")
+                if request.GET.get(key)
+            }
+            if siren_digits and len(siren_digits) == 9:
+                initial["siren"] = siren_digits
+            if initial:
+                form = ClientForm(initial=initial, company=company)
+        except Exception:
+            pass
     if request.method == "POST" and form.is_valid():
         client = form.save(commit=False)
         client.company = company
@@ -842,6 +869,15 @@ def quote_create(request):
         return bounce
     quote = Quote(company=company)
     form = QuoteForm(request.POST or None, instance=quote, company=company)
+    if not request.POST:
+        # Préremplissage depuis le panneau de recherche Aminia.
+        initial = {
+            key: request.GET.get(key)
+            for key in ("client_name", "client_siren")
+            if request.GET.get(key)
+        }
+        if initial:
+            form = QuoteForm(initial=initial, instance=quote, company=company)
     formset = QuoteLineFormSet(
         request.POST or None,
         instance=quote,

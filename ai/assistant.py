@@ -313,6 +313,48 @@ TOOLS = [
             "additionalProperties": False,
         },
     },
+    {
+        "type": "function",
+        "name": "search_french_companies",
+        "description": (
+            "Recherche une entreprise française dans l'annuaire officiel par nom, "
+            "SIREN à 9 chiffres ou SIRET à 14 chiffres (dictés chiffre par chiffre), "
+            "avec ville ou code postal facultatifs. Un panneau numéroté s'affiche : "
+            "annonce le nombre de résultats et invite à en choisir un (« la deuxième »). "
+            "N'invente jamais une entreprise si aucun résultat."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Nom de l'entreprise, ou SIREN/SIRET en chiffres",
+                },
+                "city": {"type": "string", "description": "Ville de l'établissement, facultatif"},
+                "postal_code": {"type": "string", "description": "Code postal à 5 chiffres, facultatif"},
+                "limit": {"type": "integer", "description": "Nombre de fiches à afficher, 1 à 10, 5 par défaut"},
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "type": "function",
+        "name": "choose_company_result",
+        "description": (
+            "Sélectionne une fiche du dernier panneau de résultats, d'après le numéro "
+            "dicté (« la deuxième » vaut index 2). Demande ensuite une confirmation "
+            "avant toute création de client, fournisseur ou facture."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "index": {"type": "integer", "description": "Numéro du résultat affiché, 1 à 10"},
+                "siren": {"type": "string", "description": "SIREN à 9 chiffres si l'index est inconnu"},
+            },
+            "additionalProperties": False,
+        },
+    },
 ]
 
 
@@ -336,7 +378,7 @@ def _entry_payload(entry):
     }
 
 
-def execute_tool(user, company, name, args, session_company_setter=None):
+def execute_tool(user, company, name, args, session_company_setter=None, session=None):
     args = args or {}
     from admin_backoffice.agent_prompts import tool_allowed
 
@@ -368,6 +410,12 @@ def execute_tool(user, company, name, args, session_company_setter=None):
         if session_company_setter:
             session_company_setter(company)
         return {"ok": True, "company": company_card(company)}
+
+    if name == "search_french_companies":
+        return _search_french_companies(user, company, args, session)
+
+    if name == "choose_company_result":
+        return _choose_company_result(user, company, args, session)
 
     if company is None:
         return {"error": "Aucune société. Ajoutez un SIREN dans le cockpit."}
@@ -694,5 +742,152 @@ def _draft_client(company, args):
             "data": payload,
             "url": f"/agent/brouillons/?societe={company.id}",
         },
+    }
+
+
+def _search_french_companies(user, company, args, session=None):
+    """Recherche l'annuaire officiel et numérote les fiches pour l'écran."""
+    from documents.models import Client
+    from integrations.insee import search_french_companies
+    from suppliers.models import Supplier
+
+    query = " ".join(str(args.get("query") or "").split())
+    if not query:
+        return {"error": "Indiquez le nom de l'entreprise, ou son SIREN ou SIRET."}
+    try:
+        limit = int(args.get("limit") or 5)
+    except (TypeError, ValueError):
+        limit = 5
+    results, error, retry_after, geo_applied = search_french_companies(
+        query,
+        city=str(args.get("city") or ""),
+        postal_code=str(args.get("postal_code") or ""),
+        limit=limit,
+    )
+    if error == "rate_limit":
+        return {
+            "error": "L'annuaire officiel est momentanément saturé : réessayez dans une minute.",
+            "retry_after_seconds": retry_after or 60,
+        }
+    if error == "invalid":
+        return {"error": "Requête invalide : donnez un nom, un SIREN à 9 chiffres ou un SIRET."}
+    if error:
+        return {"error": "L'annuaire officiel (recherche-entreprises.api.gouv.fr) est indisponible."}
+    if not results:
+        return {
+            "results": [],
+            "message": (
+                "Aucune entreprise ne correspond à cette recherche. L'absence de résultat "
+                "ne prouve pas que l'entreprise n'existe pas : reformulez ou vérifiez le SIREN."
+            ),
+        }
+
+    # Anti-doublon : fiche déjà rattachée à la société courante.
+    sirens = [item["siren"] for item in results]
+    sirets = [item["siret"] for item in results if item.get("siret")]
+    client_sirens: set[str] = set()
+    supplier_sirets: set[str] = set()
+    if company is not None:
+        client_sirens = set(
+            Client.objects.filter(company=company, siren__in=sirens).values_list("siren", flat=True)
+        )
+        if sirets:
+            supplier_sirets = set(
+                Supplier.objects.filter(company=company, siret__in=sirets).values_list("siret", flat=True)
+            )
+    for item in results:
+        item["deja_client"] = item["siren"] in client_sirens
+        item["deja_fournisseur"] = item.get("siret", "") in supplier_sirets
+
+    # Mémoire légère en session : numéro -> (siren, siret) pour « la deuxième ».
+    if session is not None:
+        try:
+            session["aminia_results"] = {
+                str(item["index"]): {"siren": item["siren"], "siret": item.get("siret", "")}
+                for item in results
+            }
+        except Exception:
+            pass  # la session est un cookie : on ne bloque jamais la recherche
+
+    return {
+        "results": results,
+        "count": len(results),
+        "geo_filtre": geo_applied,
+        "company": {"id": str(company.id), "denomination": company.denomination} if company else None,
+    }
+
+
+def _choose_company_result(user, company, args, session=None):
+    """Sélection « la deuxième » / « la 2 » : fiche complète + drapeaux doublon."""
+    from documents.models import Client
+    from integrations.insee import official_card
+    from suppliers.models import Supplier
+
+    memory = {}
+    if session is not None:
+        try:
+            memory = session.get("aminia_results") or {}
+        except Exception:
+            memory = {}
+    try:
+        index = int(args.get("index"))
+    except (TypeError, ValueError):
+        index = None
+    siren = "".join(ch for ch in str(args.get("siren") or "") if ch.isdigit())
+
+    mem = memory.get(str(index)) if index is not None else None
+    if mem:
+        siren = str(mem.get("siren") or "")
+        siret = str(mem.get("siret") or "")
+    elif siren:
+        siret = ""
+    else:
+        return {"error": "Indiquez le numéro du résultat (« la deuxième » = 2) ou son SIREN."}
+    if len(siren) != 9:
+        return {"error": "SIREN invalide (9 chiffres attendus)."}
+
+    card, error = official_card(siren)
+    if error == "rate_limit":
+        return {"error": "L'annuaire officiel est momentanément saturé : réessayez dans une minute."}
+    if error == "empty" or error == "not_found":
+        return {"error": "Aucune entreprise valide sur ce SIREN : relancez la recherche."}
+    if error or not card:
+        return {"error": "Le service annuaire est indisponible : relancez la recherche."}
+
+    siret = siret or str(card.get("siret") or "")
+    already_client = False
+    already_supplier = False
+    if company is not None:
+        already_client = Client.objects.filter(company=company, siren=siren).exists()
+        if siret:
+            already_supplier = Supplier.objects.filter(company=company, siret=siret).exists()
+
+    if session is not None:
+        try:
+            session["aminia_picked"] = {
+                "index": index,
+                "siren": siren,
+                "siret": siret,
+                "denomination": str(card.get("denomination") or "")[:120],
+                "adresse": str(card.get("adresse") or "")[:160],
+            }
+        except Exception:
+            pass
+
+    return {
+        "selected": {
+            "index": index,
+            "siren": siren,
+            "siret": siret,
+            "denomination": card.get("denomination", ""),
+            "forme": card.get("forme", ""),
+            "adresse": card.get("adresse", ""),
+            "ville": card.get("ville", ""),
+            "code_postal": card.get("code_postal", ""),
+            "naf": card.get("naf", ""),
+            "etat": card.get("etat", ""),
+            "deja_client": already_client,
+            "deja_fournisseur": already_supplier,
+        }
     }
 

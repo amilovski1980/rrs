@@ -1,9 +1,10 @@
 /* Assistant vocal Grok : jeton éphémère côté serveur, audio PCM 24 kHz. */
 (function () {
   var SAMPLE_RATE = 24000;
-  var WAKE_KEY = "aminia:screen-wake";
+  var WAKE_KEY = "aminia:screen-wake:v2";
   var wakeLock = null;
-  var wakeEnabled = false;
+  var wakeTimer = null;
+  var wakeEnabled = true;
   try {
     wakeEnabled = window.localStorage.getItem(WAKE_KEY) !== "0";
   } catch (error) {
@@ -219,6 +220,22 @@
       wakeLock = null;
     }
 
+    /* Certains navigateurs relâchent le verrou après un changement d'onglet
+       ou une coupure réseau. On le redemande tant que l'appel est vivant. */
+    function startWakeGuard() {
+      if (wakeTimer) window.clearInterval(wakeTimer);
+      wakeTimer = window.setInterval(function () {
+        if (ws && ws.readyState === 1 && document.visibilityState === "visible") {
+          requestWakeLock();
+        }
+      }, 15000);
+    }
+
+    function stopWakeGuard() {
+      if (wakeTimer) window.clearInterval(wakeTimer);
+      wakeTimer = null;
+    }
+
     function syncWakePreference() {
       if (!wakeEl) return;
       wakeEl.checked = wakeEnabled;
@@ -277,6 +294,7 @@
       setListening(false);
       setLiveIndicator(false);
       setReconnect(false);
+      stopWakeGuard();
       releaseWakeLock();
       stopDuration();
       stopPlayback();
@@ -421,6 +439,30 @@
       }
     };
 
+    window.AminiaCherche = {
+      cherche: function (query) {
+        var encoded = encodeURIComponent(query || "");
+        return fetch("/agent/recherche/?query=" + encoded + "&limit=5", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { status: response.status, data: data };
+            });
+          })
+          .then(function (payload) {
+            var data = payload.data || {};
+            if (data.error && payload.status !== 200) {
+              setStatus(data.error);
+              return data;
+            }
+            showCompanyResults(data);
+            return data;
+          });
+      }
+    };
+
     function liveCaughtUp() {
       for (var i = 0; i < liveFields.length; i++) {
         var key = liveFields[i];
@@ -451,6 +493,123 @@
       if (line) line.textContent = "Brouillon " + invoice.number + " enregistré.";
     }
 
+    /* ---- Panneau de recherche d'entreprises (annuaire officiel) ---- */
+    var companySearch = { company: null, selected: null };
+
+    function esc(text) {
+      var box = document.createElement("div");
+      box.textContent = text == null ? "" : String(text);
+      return box.innerHTML;
+    }
+
+    function showCompanyResults(output) {
+      var panel = document.querySelector("[data-agent-results]");
+      var box = document.querySelector("[data-agent-results-list]");
+      var title = document.querySelector("[data-agent-results-title]");
+      var sub = document.querySelector("[data-agent-results-sub]");
+      var actions = document.querySelector("[data-agent-results-actions]");
+      if (!panel || !box || !title || !sub || !actions) return;
+      companySearch.company = (output && output.company) || null;
+      companySearch.selected = null;
+      var items = (output && output.results) || [];
+      if (!items.length) {
+        title.textContent = "Aucun résultat";
+        sub.textContent = (output && output.message) || "Reformulez ou vérifiez le SIREN.";
+        box.innerHTML = "";
+        actions.hidden = true;
+      } else {
+        title.textContent = "Entreprises trouvées";
+        sub.textContent =
+          items.length + (items.length > 1 ? " fiches" : " fiche") +
+          (output.geo_filtre ? " filtrées par ville ou code postal" : "") +
+          " — dites « la première », « la deuxième »…";
+        var html = "";
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var badges = "";
+          if (item.deja_client) badges += '<span class="badge badge-green">déjà client</span>';
+          if (item.deja_fournisseur) badges += '<span class="badge badge-blue">déjà fournisseur</span>';
+          html += '<button class="agent-result-row" type="button" data-result-index="' + esc(item.index) + '">'
+            + '<span class="agent-result-rank" aria-hidden="true">' + esc(item.index) + '</span>'
+            + '<span class="agent-result-main"><b>' + esc(item.denomination) + '</b>'
+            + '<small>' + esc(item.forme ? item.forme + " · " : "") + 'SIREN ' + esc(item.siren)
+            + (item.siret ? " · SIRET " + esc(item.siret) : "") + (item.etat ? " · " + esc(item.etat) : "") + '</small>'
+            + '<small>' + esc(item.adresse || "") + (item.ville ? " · " + esc(item.ville) : "") + '</small></span>'
+            + (badges ? '<span class="agent-result-badges">' + badges + '</span>' : "")
+            + '</button>';
+        }
+        box.innerHTML = html;
+        actions.hidden = true;
+      }
+      panel.hidden = false;
+    }
+
+    function showPickedResult(output) {
+      var card = (output && output.selected) || null;
+      var box = document.querySelector("[data-agent-results-list]");
+      var actions = document.querySelector("[data-agent-results-actions]");
+      var sub = document.querySelector("[data-agent-results-sub]");
+      if (!box || !actions || !card) return;
+      companySearch.selected = card;
+      var rows = box.querySelectorAll("[data-result-index]");
+      for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.toggle("is-on", String(rows[i].getAttribute("data-result-index")) === String(card.index));
+      }
+      if (sub) {
+        sub.textContent = "Fiche sélectionnée : " + (card.denomination || "") + " — dites ce que vous en faites (client, fournisseur, facture…).";
+      }
+      var enc = encodeURIComponent;
+      var base = companySearch.company && companySearch.company.id ? "societe=" + enc(companySearch.company.id) + "&" : "";
+      var map = {
+        client: "/factures/clients/nouveau/?" + base + "name=" + enc(card.denomination || "") + "&siren=" + enc(card.siren || "") + "&address=" + enc(card.adresse || ""),
+        supplier: "/fournisseurs/rechercher/?q=" + enc(card.siren || ""),
+        invoice: "/factures/nouvelle/?" + base + "client_name=" + enc(card.denomination || "") + "&client_siren=" + enc(card.siren || ""),
+        quote: "/devis/nouveau/?" + base + "client_name=" + enc(card.denomination || "") + "&client_siren=" + enc(card.siren || "")
+      };
+      var links = actions.querySelectorAll("[data-dest]");
+      for (var j = 0; j < links.length; j++) {
+        links[j].href = map[links[j].getAttribute("data-dest")] || "#";
+      }
+      actions.hidden = false;
+    }
+
+    function closeCompanyResults() {
+      var panel = document.querySelector("[data-agent-results]");
+      if (panel) panel.hidden = true;
+    }
+
+    function initCompanyResults(root) {
+      var panel = root.querySelector("[data-agent-results]");
+      if (!panel) return;
+      panel.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!target || !target.closest) return;
+        if (target.closest("[data-agent-results-close]")) {
+          closeCompanyResults();
+          return;
+        }
+        var row = target.closest("[data-result-index]");
+        if (!row) return;
+        var index = row.getAttribute("data-result-index");
+        setStatus("Sélection de la fiche " + index + "…");
+        // Sélection par GET : lecture seule, compatible mode démo.
+        fetch("/agent/recherche/?choisir=" + encodeURIComponent(index), {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { status: response.status, data: data };
+            });
+          })
+          .then(function (payload) {
+            var data = payload.data || {};
+            if (data.selected) showPickedResult({ selected: data.selected });
+            else if (data.error) setStatus(data.error);
+          });
+      });
+    }
+
     function handleTool(event) {
       var args = event.arguments || "{}";
       var send = function () {
@@ -458,6 +617,8 @@
           if (!ws || ws.readyState !== 1) return;
           var output = data.output || { error: data.message || data.error || "outil indisponible" };
           if (event.name === "draft_invoice") finishLive(output);
+          if (event.name === "search_french_companies") showCompanyResults(output);
+          if (event.name === "choose_company_result") showPickedResult(output);
           if (output.company && output.company.denomination) {
             setStatus("Société : " + output.company.denomination);
           }
@@ -476,6 +637,12 @@
         showLiveInvoice(typeof args === "string" ? args : JSON.stringify(args));
         whenTyped(send);
         return;
+      }
+      if (event.name === "search_french_companies") {
+        setStatus("Recherche dans l'annuaire officiel…");
+      }
+      if (event.name === "choose_company_result") {
+        setStatus("Fiche sélectionnée…");
       }
       send();
     }
@@ -572,6 +739,7 @@
             setLiveIndicator(true);
             setReconnect(false);
             startDuration();
+            startWakeGuard();
             requestWakeLock();
             var audioTrack = stream.getAudioTracks()[0];
             if (audioTrack) {
@@ -579,6 +747,7 @@
                 setListening(false);
                 setLiveIndicator(false);
                 setReconnect(true);
+                stopWakeGuard();
                 releaseWakeLock();
                 setStatus("Microphone interrompu. Reconnectez Aminia.");
               };
@@ -602,6 +771,7 @@
             setListening(false);
             setLiveIndicator(false);
             setReconnect(true);
+            stopWakeGuard();
             releaseWakeLock();
             setStatus("Connexion vocale interrompue.");
           };
@@ -612,6 +782,7 @@
             setListening(false);
             setLiveIndicator(false);
             setReconnect(true);
+            stopWakeGuard();
             releaseWakeLock();
             ws = null;
           };
@@ -629,6 +800,7 @@
       panel.hidden = false;
       openBtn.setAttribute("aria-expanded", "true");
       document.body.classList.add("agent-open");
+      requestWakeLock();
       window.setTimeout(start, 60);
     });
     root.querySelectorAll("[data-agent-close]").forEach(function (button) {
@@ -666,11 +838,19 @@
       if (!ws || ws.readyState !== 1) return;
       if (document.visibilityState === "visible") {
         if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+        startWakeGuard();
         requestWakeLock();
         setStatus("Aminia est en ligne.");
       } else {
         releaseWakeLock();
         setStatus("Aminia continue en arrière-plan.");
+      }
+    });
+
+    window.addEventListener("pageshow", function () {
+      if (ws && ws.readyState === 1 && document.visibilityState === "visible") {
+        startWakeGuard();
+        requestWakeLock();
       }
     });
 
@@ -706,6 +886,7 @@
     window.addEventListener("online", function () {
       if (ws && ws.readyState !== 1) setReconnect(true);
     });
+    initCompanyResults(root);
   }
 
   document.addEventListener("DOMContentLoaded", function () {

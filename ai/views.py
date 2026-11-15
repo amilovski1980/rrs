@@ -121,12 +121,68 @@ def voice_tool(request):
         request.session[SESSION_KEY] = str(selected.id)
 
     try:
-        result = execute_tool(request.user, company, name, args, remember)
+        result = execute_tool(request.user, company, name, args, remember, session=request.session)
     except PermissionError as exc:
         return JsonResponse({"error": str(exc)}, status=403)
     except Exception:
         return JsonResponse({"error": "L'outil comptable a échoué."}, status=500)
     return JsonResponse({"output": result})
+
+
+def company_search_api(request):
+    """Recherche annuaire officiel pour les écrans (client, fournisseur, devis).
+
+    Identique au tool `search_french_companies` de l'agent, en GET ou POST.
+    Session Django + CSRF implicite ; lecture seule, jamais d'écriture.
+    """
+    denied = _auth_required(request)
+    if denied:
+        return denied
+    if request.method == "POST":
+        body = _json_body(request) or {}
+    else:
+        body = request.GET
+
+    from .assistant import execute_tool
+
+    choosing = "".join(ch for ch in str(body.get("choisir") or "") if ch.isdigit())
+    if choosing:
+        # Sélection du panneau (clic ou « la deuxième ») : lecture seule,
+        # autorisée même en mode démo.
+        try:
+            company = resolve_company(request.user, request.session.get(SESSION_KEY))
+            result = execute_tool(
+                request.user, company, "choose_company_result",
+                {"index": int(choosing)},
+                session=request.session,
+            )
+        except Exception:
+            return JsonResponse({"error": "La sélection a échoué."}, status=500)
+        return JsonResponse(result)
+
+    args = {
+        "query": (body.get("query") or "").strip(),
+        "city": (body.get("city") or "").strip(),
+        "postal_code": (body.get("postal_code") or "").strip(),
+        "limit": body.get("limit") or 5,
+    }
+    if not args["query"]:
+        return JsonResponse({"error": "Indiquez une recherche (nom, SIREN ou SIRET)."}, status=400)
+    try:
+        company = resolve_company(request.user, request.session.get(SESSION_KEY))
+        result = execute_tool(
+            request.user, company, "search_french_companies", args,
+            session=request.session,
+        )
+    except Exception:
+        return JsonResponse({"error": "La recherche d'entreprises a échoué."}, status=500)
+    if result.get("error"):
+        status = 429 if result.get("retry_after_seconds") else 502
+    elif result.get("message"):
+        status = 200
+    else:
+        status = 200
+    return JsonResponse(result, status=status)
 
 
 # ---------------------------------------------------------------------------

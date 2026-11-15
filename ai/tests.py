@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -439,3 +440,148 @@ class PlanPromptRuntimeTests(TestCase):
         self.assertIn("l'ensemble des fonctions du produit", payload["instructions"])
         names = [tool["name"] for tool in payload["tools"]]
         self.assertIn("draft_invoice", names)
+
+
+SAMPLE_CARD = {
+    "siren": "812345678",
+    "siret": "81234567800019",
+    "denomination": "BTP Martin",
+    "forme": "SARL",
+    "adresse": "12 rue des Maçons 69003 LYON",
+    "code_naf": "4322B",
+    "naf": "43.22B",
+    "etat": "Active",
+}
+
+
+class CompanySearchToolTests(TestCase):
+    """Outils Aminia : recherche annuaire officiel + sélection par numéro."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("artisan@example.com")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="552100554",
+            denomination="Menuiserie Dupont",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+            activites=["menuiserie"],
+        )
+        generate_portal(self.company)
+
+    def test_search_numbers_results_and_memorizes_session(self):
+        results = [{**SAMPLE_CARD, "index": 1}, {**SAMPLE_CARD, "index": 2}]
+        memory = {}
+        with mock.patch("integrations.insee.search_french_companies") as fake:
+            fake.return_value = (results, None, 0, True)
+            result = execute_tool(self.user, self.company, "search_french_companies", {
+                "query": "BTP Martin", "city": "Lyon",
+            }, session=memory)
+        self.assertEqual(result["count"], 2)
+        self.assertEqual(result["results"][0]["index"], 1)
+        self.assertEqual(result["results"][1]["index"], 2)
+        self.assertIn("1", memory.get("aminia_results", {}))
+        self.assertEqual(memory["aminia_results"]["1"]["siren"], "812345678")
+
+    def test_search_rate_limit_is_speakable(self):
+        with mock.patch("integrations.insee.search_french_companies") as fake:
+            fake.return_value = ([], "rate_limit", 45, False)
+            result = execute_tool(self.user, self.company, "search_french_companies", {
+                "query": "Martin",
+            }, session={})
+        self.assertIn("error", result)
+        self.assertEqual(result["retry_after_seconds"], 45)
+
+    def test_search_empty_is_not_a_proof_of_nonexistence(self):
+        with mock.patch("integrations.insee.search_french_companies") as fake:
+            fake.return_value = ([], None, 0, False)
+            result = execute_tool(self.user, self.company, "search_french_companies", {
+                "query": "Inconnue Totale",
+            }, session={})
+        self.assertEqual(result["results"], [])
+        self.assertIn("ne prouve pas", result["message"])
+
+    def test_choose_by_index_flags_existing_client(self):
+        from documents.models import Client
+
+        Client.objects.create(company=self.company, name="BTP Martin", siren="812345678")
+        session = {"aminia_results": {"1": {"siren": "812345678", "siret": "81234567800019"}}}
+        with mock.patch("integrations.insee.official_card") as card:
+            card.return_value = (dict(SAMPLE_CARD), None)
+            result = execute_tool(self.user, self.company, "choose_company_result", {
+                "index": 1,
+            }, session=session)
+        self.assertEqual(result["selected"]["siren"], "812345678")
+        self.assertTrue(result["selected"]["deja_client"])
+        self.assertFalse(result["selected"]["deja_fournisseur"])
+        self.assertIn("aminia_picked", session)
+
+    def test_choose_by_siren_without_search_memory(self):
+        with mock.patch("integrations.insee.official_card") as card:
+            card.return_value = (dict(SAMPLE_CARD), None)
+            result = execute_tool(self.user, self.company, "choose_company_result", {
+                "siren": "812345678",
+            }, session={})
+        self.assertTrue(result["selected"]["deja_client"] is False)
+        self.assertEqual(result["selected"]["denomination"], "BTP Martin")
+
+    def test_choose_rejects_bad_siren(self):
+        result = execute_tool(self.user, self.company, "choose_company_result", {
+            "siren": "123", "index": 1,
+        }, session={})
+        self.assertIn("error", result)
+
+
+    def test_choose_from_panel_via_get(self):
+        """Le clic « Choisir cette entreprise » du panneau (mode démo inclus)."""
+        self.client.force_login(self.user)
+        with mock.patch("integrations.insee.search_french_companies") as fake:
+            fake.return_value = ([{**SAMPLE_CARD, "index": 1}], None, 0, False)
+            self.client.get("/agent/recherche/", {"query": "BTP Martin"})
+        with mock.patch("integrations.insee.official_card") as card:
+            card.return_value = (dict(SAMPLE_CARD), None)
+            response = self.client.get("/agent/recherche/", {"choisir": "1"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["selected"]["siren"], "812345678")
+        self.assertIn("aminia_picked", self.client.session)
+
+
+class CompanySearchEndpointTests(TestCase):
+    """Endpoint JSON /agent/recherche/ pour les écrans de saisie."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("artisan@example.com")
+        self.company = Company.objects.create(
+            owner=self.user,
+            siren="812345679",
+            denomination="Menuiserie Dupont",
+            forme="SARL",
+            regime="reel_simple",
+            tva="reel",
+            exercice_debut=date(2026, 1, 1),
+        )
+        generate_portal(self.company)
+
+    def test_requires_authentication(self):
+        response = self.client.get("/agent/recherche/", {"query": "BTP"})
+        self.assertEqual(response.status_code, 401)
+
+    def test_requires_query(self):
+        self.client.force_login(self.user)
+        response = self.client.get("/agent/recherche/")
+        self.assertEqual(response.status_code, 400)
+
+    def test_returns_numbered_results(self):
+        self.client.force_login(self.user)
+        with mock.patch("integrations.insee.search_french_companies") as fake:
+            fake.return_value = ([{**SAMPLE_CARD, "index": 1}], None, 0, False)
+            response = self.client.get("/agent/recherche/", {"query": "BTP Martin"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["results"][0]["denomination"], "BTP Martin")
