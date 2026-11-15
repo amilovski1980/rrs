@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  {% if request.dark_ui %}<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">{% else %}<meta name="apple-mobile-web-app-status-bar-style" content="default">{% endif %}
   <meta name="apple-mobile-web-app-title" content="RRS">
   <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="{% static 'site.webmanifest' %}">
+  {% if request.dark_ui %}<meta name="theme-color" content="#070708">{% else %}<meta name="theme-color" content="#ffffff">{% endif %}
   <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
