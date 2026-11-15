@@ -9,7 +9,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import get_valid_filename
@@ -224,6 +224,29 @@ def invoice_list(request):
     })
 
 
+def _attach_or_autocreate_client(invoice, company, request):
+    """Lier la fiche client existante ou la créer (drapeau du wizard Qonto)."""
+    if invoice.client_id:
+        return
+    name = (invoice.client_name or "").strip()
+    if len(name) < 2:
+        return
+    match = Client.objects.filter(company=company, name__iexact=name).first()
+    if match is not None:
+        invoice.client = match
+        return
+    if request.POST.get("client_autocreate") != "1":
+        return
+    siren = "".join(ch for ch in (invoice.client_siren or "") if ch.isdigit())[:9]
+    client = Client.objects.create(
+        company=company, name=name[:200], siren=siren if len(siren) == 9 else "",
+    )
+    invoice.client = client
+    messages.success(
+        request, f"Fiche client « {client.name} » créée automatiquement."
+    )
+
+
 @login_required
 def invoice_create(request):
     company, bounce = _company_or_redirect(request)
@@ -260,6 +283,7 @@ def invoice_create(request):
             invoice.status = "draft"
             invoice.number = f"BR-{uuid.uuid4().hex[:10]}"
             invoice.amount_ht = Decimal("0.00")
+            _attach_or_autocreate_client(invoice, company, request)
             invoice.save()
             formset.instance = invoice
             formset.save()
@@ -610,6 +634,22 @@ def invoice_delete(request, pk):
 
 
 @login_required
+def client_suggest(request):
+    """Suggestions de fiches clients existantes (autocomplétion du wizard)."""
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    query = (request.GET.get("q") or "").strip()
+    if len(query) < 2:
+        return JsonResponse({"clients": []})
+    clients = list(
+        company.clients.filter(name__icontains=query).order_by("name")[:6]
+        .values("id", "name", "siren", "address")
+    )
+    return JsonResponse({"clients": clients})
+
+
+@login_required
 def client_list(request):
     company, bounce = _company_or_redirect(request)
     if bounce:
@@ -892,6 +932,7 @@ def quote_create(request):
             quote.number = f"BR-{uuid.uuid4().hex[:10]}"
             quote.amount_ht = Decimal("0.00")
             quote.vat_rate = Decimal("0.00")
+            _attach_or_autocreate_client(quote, company, request)
             quote.save()
             formset.instance = quote
             formset.save()
