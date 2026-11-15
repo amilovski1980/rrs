@@ -283,7 +283,12 @@ class InvoiceLineForm(forms.ModelForm):
     class Meta:
         model = InvoiceLine
         fields = ("product", "description", "quantity", "unit_price", "vat_rate")
-        widgets = {"product": ProductSelect}
+        widgets = {
+            "product": ProductSelect,
+            "description": forms.Textarea(
+                attrs={"rows": 2, "data-multiline": "1", "aria-label": "Désignation multi-lignes"}
+            ),
+        }
 
     def __init__(self, *args, company=None, **kwargs):
         super().__init__(*args, **kwargs)
