@@ -1294,6 +1294,18 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   .wizard-step-title { font-size: 17px; }
 }
 
+/* Petit bouton "+" d'ajout de ligne : rond et discret sur mobile,
+   libellé complet sur grand écran. */
+.btn-add-line { display: inline-flex; align-items: center; gap: 6px; }
+.btn-add-line-ico { font-size: 17px; font-weight: 800; line-height: 1; }
+@media (max-width: 768px) {
+  .btn-add-line {
+    width: 44px; min-height: 44px; padding: 0;
+    border-radius: 999px; justify-content: center; flex: 0 0 auto;
+  }
+  .btn-add-line-txt { display: none; }
+}
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;
