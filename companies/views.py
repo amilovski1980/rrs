@@ -152,7 +152,10 @@ class CompanyProfileForm(forms.Form):
     exercice_debut = forms.DateField(
         label="Date de début d'exercice",
         initial=date(date.today().year, 1, 1),
-        widget=forms.DateInput(attrs={"type": "date"}),
+        widget=forms.DateInput(
+            attrs={"type": "date"},
+            format="%Y-%m-%d",
+        ),
     )
     phone = forms.CharField(label="Téléphone", max_length=30, required=False)
     email = forms.EmailField(label="Email de facturation", required=False)
@@ -942,7 +945,6 @@ def company_settings(request):
 
 
 @login_required
-@login_required
 def company_delete(request):
     """Supprime définitivement la société courante et ses données rattachées."""
     import logging
@@ -981,6 +983,12 @@ def company_delete(request):
             f"(réf. {company.pk}).",
         )
         return redirect(reverse("company_settings") + f"?societe={company.id}")
+
+    messages.success(
+        request,
+        f"Société « {name} » supprimée, données rattachées incluses.",
+    )
+    return redirect(reverse("cockpit"))
 
 
 @login_required

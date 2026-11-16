@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Vérifiez les informations</h1>
-    <p class="sub">SIREN {{ siren }} — données légales officielles (API Sirene INSEE). Validez, puis complétez votre profil comptable.</p>
+    <p class="sub">SIREN {{ siren }} — données légales officielles (API Sirene INSEE). Validez, puis complétez le profil comptable.</p>
   </div>
   <span class="badge badge-blue" style="padding:8px 13px">Étape 2 / 2</span>
 </div>
@@ -27,60 +27,160 @@
   </div>
 
   <div class="card" style="border-top:4px solid var(--blue)">
-    <h2 style="margin:0 0 4px;font-size:20px">Votre profil comptable</h2>
-    <p class="sub" style="margin-bottom:4px">Il détermine le portail généré (comptes, journaux, TVA).</p>
-    <form method="post">
+    <form method="post" class="form-stack" data-mobile-wizard
+          data-wizard-mode="always" data-wizard-title="Nouvelle société"
+          data-company-wizard>
       {% csrf_token %}
       {% if form.non_field_errors %}<ul class="form-errors">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
 
-      <label>{{ form.denomination.label }}</label>
-      {{ form.denomination }}
-      {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+      <!-- ÉTAPE 1 : PROFIL -->
+      <div class="wizard-step" data-wizard-step data-step-label="Profil de la société">
+        <h2 class="wizard-step-title">Profil de la société</h2>
+        <p class="micro">La dénomination et la forme préremplis par l'INSEE ont été vérifiées ? Ajustez si besoin.</p>
 
-      <div class="form-grid">
-        <div>
-          <label>{{ form.forme.label }}</label>
-          {{ form.forme }}
+        <label for="{{ form.denomination.id_for_label }}">{{ form.denomination.label }}</label>
+        {{ form.denomination }}
+        {% if form.denomination.errors %}<p class="error">{{ form.denomination.errors.0 }}</p>{% endif %}
+
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.forme.id_for_label }}">{{ form.forme.label }}</label>
+            {{ form.forme }}
+          </div>
+          <div>
+            <label for="{{ form.exercice_debut.id_for_label }}">{{ form.exercice_debut.label }}</label>
+            {{ form.exercice_debut }}
+            <p class="micro">Premier jour du premier exercice comptable.</p>
+          </div>
         </div>
-        <div>
-          <label>{{ form.exercice_debut.label }}</label>
-          {{ form.exercice_debut }}
+
+        <label for="{{ form.activites.id_for_label }}">{{ form.activites.label }}</label>
+        {{ form.activites }}
+        <p class="micro">Génère le plan comptable (PCG) et les journaux adaptés.</p>
+        {% if form.activites.errors %}<p class="error">{{ form.activites.errors.0 }}</p>{% endif %}
+      </div>
+
+      <!-- ÉTAPE 2 : FISCALITÉ -->
+      <div class="wizard-step" data-wizard-step data-step-label="Régime &amp; TVA">
+        <h2 class="wizard-step-title">Régime &amp; TVA</h2>
+        <p class="micro">Détermine le portail généré : comptes, journaux, échéances (TVA, CFE, formation).</p>
+
+        <label for="{{ form.regime.id_for_label }}">{{ form.regime.label }}</label>
+        {{ form.regime }}
+        <p class="micro">Réel simplifié : convient à la plupart des artisans. Modifiable en cours d'année auprès de vos services.</p>
+
+        <label for="{{ form.tva.id_for_label }}">{{ form.tva.label }}</label>
+        {{ form.tva }}
+        <p class="micro">Sélectionné automatiquement au bon taux dans les factures et les achats.</p>
+      </div>
+
+      <!-- ÉTAPE 3 : COORDONNÉES -->
+      <div class="wizard-step" data-wizard-step data-step-label="Coordonnées">
+        <h2 class="wizard-step-title">Coordonnées</h2>
+        <p class="micro">Elles apparaissent sur les devis et factures. Modifiables à tout moment.</p>
+
+        <div class="form-grid">
+          <div>
+            <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+            {{ form.phone }}
+          </div>
+          <div>
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            {{ form.email }}
+          </div>
         </div>
       </div>
 
-      <label>{{ form.activites.label }}</label>
-      {{ form.activites }}
-      {% if form.activites.errors %}<p class="error">{{ form.activites.errors.0 }}</p>{% endif %}
+      <!-- ÉTAPE 4 : RÉCAPITULATIF -->
+      <div class="wizard-step" data-wizard-step data-step-label="Récapitulatif">
+        <h2 class="wizard-step-title">Récapitulatif</h2>
+        <p class="micro">Vérifiez une dernière fois le cockpit qui va être généré : plan comptable, journaux, échéancier, cloisonnement.</p>
 
-      <div class="form-grid">
-        <div>
-          <label>{{ form.regime.label }}</label>
-          {{ form.regime }}
+        <div class="wizard-recap" data-recap-box>
+          <div class="wizard-recap-row"><span>SIREN</span><strong>{{ siren }}</strong></div>
+          {% if data.adresse %}<div class="wizard-recap-row"><span>Adresse</span><strong>{{ data.adresse }}</strong></div>{% endif %}
+          {% if data.code_naf %}<div class="wizard-recap-row"><span>Code NAF</span><strong>{{ data.code_naf }}</strong></div>{% endif %}
+          <!-- lignes dynamiques ajoutées par le script (débute ici) -->
         </div>
-        <div>
-          <label>{{ form.tva.label }}</label>
-          {{ form.tva }}
-        </div>
-      </div>
 
-      <p class="muted" style="font-size:12.5px;margin:8px 0 0">
-        L'annuaire des entreprises a rempli la dénomination, la forme, l'adresse et le code NAF.
-        Le téléphone n'y figure pas : ajoutez-le ici si vous l'avez.
-      </p>
-      <div class="form-grid">
-        <div>
-          <label>{{ form.phone.label }}</label>
-          {{ form.phone }}
+        <div class="form-actions">
+          <a class="btn btn-ghost" href="{% url 'onboarding' %}">Changer de SIREN</a>
+          <button class="btn btn-primary" type="submit">Créer mon cockpit</button>
         </div>
-        <div>
-          <label>{{ form.email.label }}</label>
-          {{ form.email }}
-        </div>
-      </div>
-        <a class="btn btn-ghost" href="{% url 'onboarding' %}">Changer de SIREN</a>
-        <button class="btn btn-primary" style="flex:1">Valider et créer mon cockpit</button>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+  (function () {
+    "use strict";
+    var form = document.querySelector("[data-company-wizard]");
+    if (!form) return;
+    var box = form.querySelector("[data-recap-box]");
+    if (!box) return;
+
+    function field(selector) {
+      return form.querySelector(selector);
+    }
+    function raw(selector) {
+      var el = field(selector);
+      return el ? String(el.value || "").trim() : "";
+    }
+    function choice(selector) {
+      var el = field(selector);
+      if (!el || el.tagName !== "SELECT" || el.selectedIndex < 0) return "";
+      return String(el.options[el.selectedIndex].textContent || "").trim();
+    }
+    function checkedActivites() {
+      return Array.prototype.slice
+        .call(form.querySelectorAll('input[name="activites"]:checked'))
+        .map(function (input) {
+          var labelEl = input.id ? form.querySelector('label[for="' + input.id + '"]') : null;
+          return labelEl ? labelEl.textContent.trim() : input.value;
+        });
+    }
+    function fmtDate(value) {
+      var parts = String(value).split("-");
+      return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : value;
+    }
+    function addRow(key, value, extraClass) {
+      if (!value) return;
+      var row = document.createElement("div");
+      row.className = "wizard-recap-row" + (extraClass ? " " + extraClass : "");
+      row.setAttribute("data-dynamic", "1");
+      var cell = document.createElement("span");
+      cell.textContent = key;
+      var strong = document.createElement("strong");
+      strong.textContent = value;
+      row.appendChild(cell);
+      row.appendChild(strong);
+      box.appendChild(row);
+    }
+    function refresh() {
+      Array.prototype.slice
+        .call(box.querySelectorAll("[data-dynamic]"))
+        .forEach(function (node) { node.remove(); });
+      addRow("Dénomination", raw("#id_denomination"));
+      addRow("Forme", choice("#id_forme"));
+      addRow("Début d'exercice", fmtDate(raw("#id_exercice_debut")));
+      var activites = checkedActivites();
+      if (activites.length) {
+        addRow(
+          "Activités",
+          activites.slice(0, 3).join(", ") + (activites.length > 3 ? "…" : "")
+        );
+      }
+      addRow("Régime", choice("#id_regime"));
+      addRow("TVA", choice("#id_tva"));
+      addRow("Téléphone", raw("#id_phone"));
+      addRow("Email", raw("#id_email"));
+    }
+    form.addEventListener("input", refresh);
+    form.addEventListener("change", refresh);
+    form.addEventListener("wizard:final", refresh);
+    form.addEventListener("wizard:final-input", refresh);
+    refresh();
+  })();
+</script>
 {% endblock %}

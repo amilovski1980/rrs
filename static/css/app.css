@@ -1466,6 +1466,66 @@ html[data-theme="dark"] .progressbar > i {
   .progressbar > i { animation: none; width: 100%; }
 }
 
+/* Cartes bancaires (mobile) : liste type Qonto, la table reste pour l'écran large. */
+.bank-mobile-list { display: none; }
+@media (max-width: 768px) {
+  .bank-transactions-table-wrap { display: none; }
+  .bank-mobile-list {
+    display: grid; gap: 10px;
+    padding: 0 2px;
+  }
+  .bank-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 26px -22px rgba(15, 23, 42, 0.5);
+  }
+  .bank-item.is-ignored { opacity: 0.55; }
+  .bank-item-check {
+    width: 18px; height: 18px; flex: 0 0 auto; margin: 2px 0 0;
+    accent-color: var(--blue);
+  }
+  .bank-item-body {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1 1 auto; min-width: 0;
+    text-decoration: none; color: inherit;
+  }
+  .bank-item-ico {
+    width: 38px; height: 38px; flex: 0 0 38px;
+    display: grid; place-items: center;
+    border-radius: 12px;
+    font-family: var(--font-head); font-weight: 800; font-size: 16px;
+  }
+  .bank-item-ico.is-out { background: rgba(255, 61, 120, 0.12); color: #c81b52; }
+  .bank-item-ico.is-in { background: rgba(52, 211, 153, 0.16); color: #0f9d6a; }
+  .bank-item-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+  .bank-item-main b {
+    font-size: 13.5px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bank-item-main small {
+    font-size: 11px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bank-item-amount {
+    flex: 0 0 auto;
+    font-family: var(--font-head); font-weight: 800; font-size: 14px;
+  }
+  .bank-item-amount.is-neg { color: var(--ink); }
+  .bank-item-amount.is-pos { color: #0f9d6a; }
+}
+html[data-theme="dark"] .bank-item {
+  background: #121214;
+  border-color: var(--line);
+  box-shadow: none;
+}
+html[data-theme="dark"] .bank-item-ico.is-out { background: rgba(255, 61, 120, 0.16); color: #ff8aa0; }
+html[data-theme="dark"] .bank-item-ico.is-in { background: rgba(52, 211, 153, 0.14); color: #34d399; }
+html[data-theme="dark"] .bank-item-amount.is-neg { color: var(--ink); }
+html[data-theme="dark"] .bank-item-amount.is-pos { color: #34d399; }
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;

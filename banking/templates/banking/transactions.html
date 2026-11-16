@@ -93,7 +93,7 @@
         </button>
       </div>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap bank-transactions-table-wrap">
       <table>
         <thead><tr>
           <th style="width:34px"><span class="sr-only">Sélection</span></th>
@@ -129,6 +129,24 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+
+    <div class="bank-mobile-list">
+      {% for transaction in page_items %}
+      <div class="bank-item {% if transaction.status == 'ignored' %}is-ignored{% endif %}">
+        <input type="checkbox" name="ids" value="{{ transaction.pk }}" data-bulk-check class="bank-item-check" aria-label="Sélectionner l'opération du {{ transaction.date|date:'d/m/Y' }}">
+        <a class="bank-item-body" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">
+          <span class="bank-item-ico {% if transaction.amount < 0 %}is-out{% else %}is-in{% endif %}" aria-hidden="true">{% if transaction.amount < 0 %}−{% else %}+{% endif %}</span>
+          <span class="bank-item-main">
+            <b>{{ transaction.label|truncatechars:44 }}</b>
+            <small>{{ transaction.date|date:"d/m/Y" }} · {{ transaction.account.label|truncatechars:14 }}{% if transaction.status == "matched" %} · Rapproché{% elif transaction.status == "ignored" %} · Ignoré{% elif transaction.status == "draft" %} · Brouillon{% endif %}</small>
+          </span>
+          <span class="bank-item-amount {% if transaction.amount < 0 %}is-neg{% else %}is-pos{% endif %}">{{ transaction.amount|floatformat:2 }} €</span>
+        </a>
+      </div>
+      {% empty %}
+      <p class="empty" style="padding:16px">Aucune opération pour ces filtres.</p>
+      {% endfor %}
     </div>
   </div>
 </form>

@@ -175,8 +175,10 @@ class CompanyDeleteTests(TestCase):
         self.client.force_login(user)
 
     def test_delete_requires_post(self):
+        """GET montre l'écran de confirmation ; rien n'est supprimé."""
         response = self.client.get(f"/societe/supprimer/?societe={self.company.id}")
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cette suppression est")
 
     def test_delete_requires_confirmation(self):
         response = self.client.post(f"/societe/supprimer/?societe={self.company.id}")
