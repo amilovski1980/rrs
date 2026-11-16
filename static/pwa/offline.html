@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hors ligne — Road Runner Solutions</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(120% 140% at 80% 0%, #101014 0%, #070708 60%);
+    color: #f4f4f5; display: grid; place-items: center; padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 420px; padding: 30px 26px;
+    background: rgba(255, 255, 255, .05);
+    border: 1px solid rgba(255, 255, 255, .10); border-radius: 20px;
+    box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8);
+    text-align: center;
+  }
+  .mark { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px; display: block; }
+  h1 { margin: 0 0 10px; font-size: 21px; letter-spacing: -.02em; }
+  p { margin: 0 0 20px; color: #a4a4ab; font-size: 14px; line-height: 1.6; }
+  button {
+    width: 100%; padding: 13px 16px; border: 0; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(135deg, #3ddc6a 0%, #c6ffb1 100%);
+    color: #070708; font-weight: 800; font-size: 15px;
+  }
+  .micro { margin-top: 14px; font-size: 11.5px; color: #6b6b72; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <img class="mark" src="/static/img/dark/mark.png" alt="">
+    <h1>Vous êtes hors ligne</h1>
+    <p>Road Runner Solutions a besoin du réseau pour afficher vos données comptables. Vos saisies seront possibles dès le retour de la connexion.</p>
+    <button onclick="location.reload()">Réessayer</button>
+    <p class="micro">La page se rechargera automatiquement dès que le réseau revient.</p>
+  </main>
+  <script>
+    // Auto-retry doux : dès que la connectivity revient, on recharge.
+    window.addEventListener("online", function () { location.reload(); });
+    setInterval(function () {
+      if (navigator.onLine) location.reload();
+    }, 8000);
+  </script>
+</body>
+</html>
