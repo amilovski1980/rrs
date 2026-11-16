@@ -568,6 +568,27 @@ def invoice_verify(request, pk: str):
     Aucune donnée sensible : n°, émetteur, client, montants, statut.
     """
     invoice = Invoice.objects.select_related("company", "client").filter(pk=pk).first()
+    if invoice is None and pk == "00000000-0000-0000-0000-000000000000":
+        # QR d'exemple de #apparence : démonstration de la page de vérification.
+        from decimal import Decimal
+
+        from django.utils import timezone
+
+        return render(request, "documents/invoice_verify.html", {
+            "found": True,
+            "invoice_number": "FAC-2026-0042",
+            "status": "Payée",
+            "status_code": "paid",
+            "issued_company": "Road Runner Solutions — Exemple",
+            "company_siren": "552100554000XX",
+            "client_name": "Client Exemple",
+            "amount_ttc": Decimal("349.50"),
+            "paid": Decimal("349.50"),
+            "remaining": Decimal("0.00"),
+            "vat_rate": Decimal("20.00"),
+            "created_at": timezone.now(),
+            "due_date": timezone.now().date(),
+        })
     if invoice is None:
         return render(request, "documents/invoice_verify.html", {
             "found": False,
