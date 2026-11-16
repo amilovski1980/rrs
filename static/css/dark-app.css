@@ -430,3 +430,35 @@ html[data-theme="dark"] .product-suggestion:hover,
 html[data-theme="dark"] .product-suggestion[aria-selected="true"] {
   background: rgba(52, 211, 153, .12);
 }
+
+
+/* ---- Ajout de ticket : CTA photo, fichier et champs en mode sombre. ---- */
+html[data-theme="dark"] .ticket-camera-cta {
+  background: linear-gradient(135deg, rgba(37, 99, 235, .22), rgba(37, 99, 235, .10));
+  border-color: rgba(90, 160, 255, .45);
+}
+html[data-theme="dark"] .ticket-camera-cta:hover {
+  background: linear-gradient(135deg, rgba(37, 99, 235, .30), rgba(37, 99, 235, .16));
+  border-color: rgba(90, 160, 255, .70);
+}
+html[data-theme="dark"] .ticket-camera-orb {
+  background: linear-gradient(135deg, #5aa0ff 0%, #2563eb 62%, #0a3d8f 100%);
+  color: #fff;
+  box-shadow: 0 10px 26px -12px rgba(37, 99, 235, .55);
+}
+html[data-theme="dark"] .ticket-camera-text { color: #f4f4f5; }
+html[data-theme="dark"] .ticket-camera-arrow { color: #7ba7ff; }
+html[data-theme="dark"] .ticket-file-cta {
+  border-color: var(--line, rgba(255, 255, 255, .12));
+  background: rgba(255, 255, 255, .04);
+  color: #a4a4ab;
+}
+html[data-theme="dark"] .ticket-file-cta:hover {
+  border-color: rgba(90, 160, 255, .5);
+  color: #d4d4d8;
+  background: rgba(255, 255, 255, .06);
+}
+html[data-theme="dark"] .ticket-uploaded-row,
+html[data-theme="dark"] .ticket-upload-safe {
+  color: #a4a4ab;
+}
