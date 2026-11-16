@@ -462,3 +462,15 @@ html[data-theme="dark"] .ticket-uploaded-row,
 html[data-theme="dark"] .ticket-upload-safe {
   color: #a4a4ab;
 }
+
+
+/* ---- Bulle Aminia en sombre ---- */
+html[data-theme="dark"] .agent-panel .agent-dialog {
+  background: rgba(22, 22, 26, .62);
+  border-color: rgba(255, 255, 255, .16);
+  box-shadow: 0 26px 62px -20px rgba(0, 0, 0, .85);
+  color: #f4f4f5;
+}
+html[data-theme="dark"] .agent-panel.is-expanded .agent-dialog {
+  background: rgba(22, 22, 26, .78);
+}
