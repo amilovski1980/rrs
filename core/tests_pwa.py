@@ -49,3 +49,32 @@ class ManifestTests(TestCase):
 
     def test_512_icon_file_exists(self):
         self.assertTrue((STATIC_DIR / "img" / "pwa-512.png").exists())
+
+
+class DynamicManifestTests(TestCase):
+    """Le mode d'installation suit le thème de la page : /dark/ reste sombre."""
+
+    def test_light_manifest(self):
+        response = self.client.get("/pwa/manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("manifest+json", response.headers["Content-Type"])
+        import json
+
+        data = json.loads(response.content.decode())
+        self.assertEqual(data["start_url"], "/cockpit/")
+        self.assertEqual(data["theme_color"], "#ffffff")
+
+    def test_dark_manifest_and_icons(self):
+        response = self.client.get("/dark/pwa/manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        import json
+
+        data = json.loads(response.content.decode())
+        self.assertEqual(data["start_url"], "/dark/cockpit/")
+        self.assertEqual(data["theme_color"], "#070708")
+        sources = [icon["src"] for icon in data["icons"]]
+        self.assertIn("/static/img/dark/mark.png", sources)
+
+    def test_base_links_dynamic_manifest(self):
+        body = Path(settings.BASE_DIR) / "config" / "templates" / "base.html"
+        self.assertIn("pwa_manifest", body.read_text(encoding="utf-8"))
