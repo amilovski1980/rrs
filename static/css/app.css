@@ -4996,3 +4996,31 @@ html[data-theme='dark'] .scan-progress {
 html[data-theme='dark'] .btn:active {
   filter: brightness(1.08);
 }
+
+
+/* ---- Bandeau d'echeance urgente (<= 14 jours), shell entier. ---- */
+.deadline-strip {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 16px; padding: 11px 15px; border-radius: 13px;
+  border: 1px solid rgba(214, 124, 24, .35);
+  background: linear-gradient(135deg, var(--amber-soft), #fff7ea);
+  color: var(--amber); font-size: 13.5px; line-height: 1.4;
+  box-shadow: 0 10px 26px -18px rgba(161, 98, 7, .4);
+}
+.deadline-strip-ico { flex: 0 0 auto; font-size: 15px; }
+.deadline-strip-copy b { font-weight: 800; }
+.deadline-strip-link {
+  margin-left: auto; flex: 0 0 auto;
+  padding: 6px 12px; border-radius: 999px; text-decoration: none;
+  background: var(--amber); color: #fff; font-size: 12.5px; font-weight: 800;
+}
+.deadline-strip-link:hover { filter: brightness(1.06); text-decoration: none; }
+html[data-theme='dark'] .deadline-strip {
+  background: linear-gradient(135deg, rgba(161, 98, 7, .22), rgba(161, 98, 7, .10));
+  border-color: rgba(244, 190, 108, .38); color: #ffd28a;
+}
+html[data-theme='dark'] .deadline-strip-link { color: #201400; }
+@media (max-width: 768px) {
+  .deadline-strip { font-size: 12.5px; padding: 10px 12px; gap: 8px; }
+  .deadline-strip-link { padding: 5px 10px; font-size: 12px; }
+}
