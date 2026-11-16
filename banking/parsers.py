@@ -542,67 +542,68 @@ def _parse_pdf_text(text: str) -> list[ParsedTransaction]:
 
 
 def parse_pdf(data: bytes) -> list[ParsedTransaction]:
-    """Relevé PDF : colonnes natives toutes pages, puis texte OCR si le PDF est un scan."""
+    """Relevé PDF : colonnes natives toutes pages, repli texte par page, puis
+    OCR des pages scannées. Fusion sans doublon à chaque étape."""
     if not data[:1024].lstrip().startswith(b"%PDF"):
         raise BankParseError("Ce fichier n'est pas un PDF valide.")
 
+    transactions: list[ParsedTransaction] = []
+    seen_pairs: set = set()
+    seen_fp: set = set()
+
+    def absorb(candidates) -> int:
+        added = 0
+        for candidate in candidates:
+            fingerprint = (
+                candidate.date,
+                (candidate.label or "").lower()[:40],
+                abs(candidate.amount),
+            )
+            if fingerprint in seen_fp:
+                continue
+            seen_fp.add(fingerprint)
+            seen_pairs.add((candidate.date, abs(candidate.amount)))
+            transactions.append(candidate)
+            added += 1
+        return added
+
+    scanned_pages_present = False
     pages = _pdf_words(data)
     if pages:
         rows_by_page = [_pdf_rows(page) for page in pages]
-        transactions = _parse_pdf_layout(
+        absorb(_parse_pdf_layout(
             [row for page_rows in rows_by_page for row in page_rows]
-        )
-        if transactions:
-            # Repli par page : dans un relevé multi-pages, une page scannée
-            # ou à la géométrie différente peut échapper au layout. Le texte
-            # de chaque page est relu et seules les opérations vraiment
-            # nouvelles sont fusionnées (empreinte sur la valeur absolue :
-            # le texte peut perdre le signe débit).
-            seen_pairs = {(t.date, abs(t.amount)) for t in transactions}
-            seen_fp = {
-                (t.date, (t.label or "").lower()[:40], abs(t.amount))
-                for t in transactions
-            }
-            for page_rows in rows_by_page:
+        ))
+        # Repli par page : une page à la géométrie différente ou scannée
+        # peut échapper au layout ; son texte est relu indépendamment.
+        scanned_pages_present = any(not page_rows for page_rows in rows_by_page)
+        for page_rows in rows_by_page:
+            if page_rows:
                 page_text = "\n".join(row["text"] for row in page_rows)
-                page_ops = _parse_pdf_text(page_text)
-                new_ops = [
-                    t for t in page_ops
-                    if (t.date, abs(t.amount)) not in seen_pairs
-                ]
-                if page_ops and not new_ops:
-                    continue  # page déjà couverte par le layout
-                for candidate in new_ops:
-                    fingerprint = (
-                        candidate.date,
-                        (candidate.label or "").lower()[:40],
-                        abs(candidate.amount),
-                    )
-                    if fingerprint in seen_fp:
-                        continue
-                    seen_fp.add(fingerprint)
-                    transactions.append(candidate)
+                absorb(_parse_pdf_text(page_text))
+        if transactions and not scanned_pages_present:
+            return transactions
+    else:
+        scanned_pages_present = True
+
+    # Pages scannées ou PDF image : OCR (via l'agent IA, repli Tesseract).
+    if not transactions or scanned_pages_present:
+        try:
+            ocr_text = extract_receipt_text(
+                data, filename="releve.pdf", content_type="application/pdf"
+            )
+        except ReceiptOcrError as exc:
             if transactions:
                 return transactions
-        transactions = _parse_pdf_text(
-            "\n".join(row["text"] for page_rows in rows_by_page for row in page_rows)
-        )
-        if transactions:
-            return transactions
+            raise BankParseError(f"Lecture du PDF impossible : {exc}") from exc
+        absorb(_parse_pdf_text(ocr_text or ""))
 
-    try:
-        text = extract_receipt_text(
-            data, filename="releve.pdf", content_type="application/pdf"
-        )
-    except ReceiptOcrError as exc:
-        raise BankParseError(f"Lecture du PDF impossible : {exc}") from exc
-    transactions = _parse_pdf_text(text)
-    if not transactions:
-        raise BankParseError(
-            "Aucune opération reconnue dans ce PDF. Exportez le relevé en CSV "
-            "ou vérifiez la qualité du scan."
-        )
-    return transactions
+    if transactions:
+        return transactions
+    raise BankParseError(
+        "Aucune opération reconnue dans ce PDF, toutes pages comprises. "
+        "Exportez le relevé en CSV, Excel (.xlsx), OFX ou relancez un scan net."
+    )
 
 
 def parse_xlsx(data: bytes) -> list[ParsedTransaction]:
