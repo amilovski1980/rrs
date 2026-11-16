@@ -4949,3 +4949,50 @@ html[data-theme='dark'] .scan-text {
 html[data-theme='dark'] .scan-progress {
   background: rgba(255, 255, 255, .08);
 }
+
+
+/* ---- Boutons mobiles normaliss: mme chelle, mmme largeur d'empiles,
+   retour d'appui. Gagne en fin de feuille. ---- */
+@media (max-width: 768px) {
+  .btn, .btn-sm, .btn-lg, .actions-summary {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .12s ease, box-shadow .15s ease, background .15s ease,
+      filter .15s ease;
+  }
+  .btn:active, .btn-sm:active, .btn-lg:active, .actions-summary:active {
+    transform: scale(.975); filter: brightness(.96);
+  }
+  .btn { min-height: 46px; padding: 12px 20px; font-size: 14.5px; }
+  .btn-sm { min-height: 40px; padding: 9px 14px; font-size: 13.5px; }
+  .btn-lg { min-height: 52px; padding: 14px 22px; font-size: 15.5px; }
+
+  /* CTA empils en pleine largeur: listes d'actions, barres d'actions, formulaires */
+  .actions-list .btn,
+  .form-actions-bar .btn,
+  .form-actions .btn,
+  .scan-form-actions .btn,
+  .ticket-upload-submit,
+  .live-actions-bar .btn,
+  .invoice-actions .btn {
+    width: 100%; margin: 0;
+  }
+  .actions-list, .form-actions-bar, .form-actions {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .form-actions-bar a.btn-secondary + button,
+  .form-actions-bar .btn + .btn { margin-top: 0; }
+
+  /* Sommaire mobile du bloc page-actions, cohrent avec les CTA */
+  details.page-actions > summary.actions-summary {
+    min-height: 46px; font-size: 14.5px; padding: 12px 20px;
+  }
+
+  /* Les paires Ouvrir/Corriger des tableaux restent compactes mais tactiles */
+  .bank-row-actions .btn-sm, .card-head .btn-sm { min-height: 40px; }
+
+  /* Danger: mme gabarit que les tertiaires, lisible */
+  .btn-danger { min-height: 46px; font-weight: 800; }
+}
+html[data-theme='dark'] .btn:active {
+  filter: brightness(1.08);
+}
