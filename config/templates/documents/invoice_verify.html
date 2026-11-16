@@ -29,19 +29,21 @@
       border-radius: 20px;
       padding: 22px 20px 20px;
       box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
+      animation: rise .45s ease-out both;
     }
-    .spinner {
-      width: 46px; height: 46px; margin: 26px auto;
-      border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, .12);
-      border-top-color: #34d399;
-      animation: spin 1s linear infinite;
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .searching { text-align: center; color: #a4a4ab; font-size: 13px; margin: 8px 0 0; }
-    body.reveal .spinner, body.reveal .searching { display: none; }
-    body.reveal #content { display: block; }
-    #content { display: none; }
+    .features {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      flex-wrap: wrap; margin: 0 0 16px;
+    }
+    .feature {
+      padding: 4px 11px; border-radius: 999px; font-size: 10.5px; font-weight: 700;
+      color: #c9c9cf; background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
     .hero h1 { margin: 6px 0 8px; font-size: 23px; line-height: 1.2; }
     .hero h1 em { font-style: normal;
       background: linear-gradient(100deg, #ff5f8f, #c70424 60%, #7a3cff);
@@ -114,54 +116,48 @@
     </div>
 
     <div class="card">
-      <div class="spinner" aria-hidden="true"></div>
-      <p class="searching" role="status">Vérification de la facture en cours…</p>
-
-      <div id="content">
-        {% if found %}
-        <div class="hero">
-          <h1>Cette facture a été générée <em>avec RRS</em></h1>
-          <p>Le QR a été imprimé par Road Runner Solutions, l'outil de facturation des artisans et TPE : devis, factures, encaissements, comptabilité — tenus au propre en temps réel.</p>
-          <a class="cta" href="/inscription/">Essayez RRS pour votre facturation →</a>
-          <a class="ghost" href="/">Voir le produit et les forfaits</a>
+      {% if found %}
+      <div class="hero">
+        <h1>Cette facture a été générée <em>avec RRS</em></h1>
+        <p>Le QR a été imprimé par Road Runner Solutions, l'outil de facturation des artisans et TPE : devis, factures, encaissements, comptabilité — tenus au propre en temps réel.</p>
+        <a class="cta" href="/inscription/">Essayez RRS pour votre facturation →</a>
+        <a class="ghost" href="/">Voir le produit et les forfaits</a>
+      </div>
+      <div class="features">
+        <span class="feature">Devis & factures</span>
+        <span class="feature">Encaissements</span>
+        <span class="feature">Écritures automatiques</span>
+        <span class="feature">Aminia, votre assistant</span>
+      </div>
+      <div class="invoice">
+        <div class="invoice-head">
+          <b>Vérification — {{ invoice_number }}</b>
+          <span class="okay">Authentique ✓</span>
         </div>
-        <div class="invoice">
-          <div class="invoice-head">
-            <b>{{ invoice_number }}</b>
-            <span class="okay">Vérifiée ✓</span>
-          </div>
-          <div class="rows">
-            <div class="row"><small>Émetteur</small><b>{{ issued_company }}</b></div>
-            <div class="row"><small>SIREN</small><b>{{ company_siren }}</b></div>
-            <div class="row"><small>Client</small><b>{{ client_name|default:"—" }}</b></div>
-            <div class="row"><small>Émise le</small><b>{{ created_at|date:"d/m/Y" }}</b></div>
-            <div class="row"><small>Statut</small><b>{{ status }}</b></div>
-          </div>
-          <div class="total"><span>Montant TTC</span><span>{{ amount_ttc|floatformat:2 }} €</span></div>
-          {% if status_code == "draft" %}
-          <p class="warn">Document encore en brouillon : il n'a pas encore été émis et n'a pas de valeur comptable.</p>
-          {% endif %}
+        <div class="rows">
+          <div class="row"><small>Émetteur</small><b>{{ issued_company }}</b></div>
+          <div class="row"><small>SIREN</small><b>{{ company_siren }}</b></div>
+          <div class="row"><small>Client</small><b>{{ client_name|default:"—" }}</b></div>
+          <div class="row"><small>Émise le</small><b>{{ created_at|date:"d/m/Y" }}</b></div>
+          <div class="row"><small>Statut</small><b>{{ status }}</b></div>
         </div>
-        <p class="foot">Vérification d'origine — document n° {{ invoice_number }} · SIREN {{ company_siren }}</p>
-        {% else %}
-        <div class="notfound">
-          <h1>Code non reconnu</h1>
-          <p class="sub">Aucune facture ne correspond à ce code. Vérifiez que le QR provient bien d'une facture Road Runner Solutions et qu'il est complet.</p>
-          <div class="rows">
-            <div class="row"><small>Statut</small><b>Introuvable</b></div>
-          </div>
-          <a class="cta" href="/">Découvrir RRS →</a>
-        </div>
+        <div class="total"><span>Montant TTC</span><span>{{ amount_ttc|floatformat:2 }} €</span></div>
+        {% if status_code == "draft" %}
+        <p class="warn">Document encore en brouillon : il n'a pas encore été émis et n'a pas de valeur comptable.</p>
         {% endif %}
       </div>
+      <p class="foot">Vérification d'origine — document n° {{ invoice_number }} · SIREN {{ company_siren }}</p>
+      {% else %}
+      <div class="notfound">
+        <h1>Code non reconnu</h1>
+        <p class="sub">Aucune facture ne correspond à ce code. Vérifiez que le QR provient bien d'une facture Road Runner Solutions et qu'il est complet.</p>
+        <div class="rows">
+          <div class="row"><small>Statut</small><b>Introuvable</b></div>
+        </div>
+        <a class="cta" href="/inscription/">Découvrir RRS →</a>
+      </div>
+      {% endif %}
     </div>
   </div>
-  <script>
-    /* Ouverture dynamique : "vérification en cours" ~10 s, puis l'écran
-       professionnel avec la facture vérifiée et l'invitation RRS. */
-    window.setTimeout(function () {
-      document.body.classList.add("reveal");
-    }, 10000);
-  </script>
 </body>
 </html>
