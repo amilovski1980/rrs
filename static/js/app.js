@@ -1245,6 +1245,30 @@
     }
   }
 
+  function initAgentBubble() {
+    /* La bulle Aminia : un appui sur la bulle replie l'agrandit en carte.
+       Les actions internes (micro, terminer, brouillon) restent celles
+       du flux vocal et ne declenchent pas l'agrandissement. */
+    var panel = document.querySelector("[data-agent-panel]");
+    if (!panel || panel.dataset.bubbleBound) return;
+    panel.dataset.bubbleBound = "1";
+    panel.addEventListener(
+      "click",
+      function (event) {
+        var actions = event.target.closest(
+          ".agent-mic, .agent-close, [data-agent-draft], [data-agent-reconnect]"
+        );
+        if (actions || event.target.closest("a")) return;
+        if (!panel.classList.contains("is-expanded")) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        panel.classList.toggle("is-expanded");
+      },
+      true
+    );
+  }
+
   function initTicketFormUx() {
     var form = document.querySelector("[data-ticket-form]");
     if (!form) return;
@@ -1850,6 +1874,7 @@
     initTicketCamera();
     initMobileNav();
     initPageActionMenus();
+    initAgentBubble();
     initTicketFormUx();
     initPhone();
 
