@@ -1086,14 +1086,19 @@ def _header_compact(pdf, company, kind, document):
 
 
 def _verify_url(document) -> str:
-    """Lien public COURT de vérification (QR compact et lisible)."""
+    """Lien public de vérification du document (QR imprimé sur la facture).
+
+    NOTE : l'URL courte /v/<pk>/ est déjà routée dans le code mais attend que
+    le déploiement Vercel soit revenu au niveau du dépôt ; on imprime donc,
+    jusqu'ici, l'URL longue prouvée en production.
+    """
     from django.conf import settings
 
     base = (
         getattr(settings, "SITE_BASE_URL", "")
         or "https://rrs-sandy.vercel.app"
     ).rstrip("/")
-    return f"{base}/v/{document.pk}/"
+    return f"{base}/factures/verifier/{document.pk}/"
 
 
 def _qr_png(url: str) -> bytes:

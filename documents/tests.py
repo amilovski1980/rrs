@@ -790,7 +790,7 @@ class ThemeAndDocumentPdfTests(TestCase):
 
         self.assertEqual(
             _verify_url(self.invoice),
-            "https://rrs-sandy.vercel.app/v/"
+            "https://rrs-sandy.vercel.app/factures/verifier/"
             f"{self.invoice.pk}/",
         )
 
