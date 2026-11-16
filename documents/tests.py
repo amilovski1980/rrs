@@ -799,8 +799,8 @@ class ThemeAndDocumentPdfTests(TestCase):
         self.client.logout()
         response = self.client.get(reverse("invoice_verify", args=[self.invoice.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Recherche de la facture en cours")
-        self.assertContains(response, "Vérification")
+        self.assertContains(response, "Vérification de la facture en cours")
+        self.assertContains(response, "Essayez RRS pour votre facturation")
 
     def test_sheet_shows_invoice_lines(self):
         response = self.http.get(f"/factures/{self.invoice.id}/")
