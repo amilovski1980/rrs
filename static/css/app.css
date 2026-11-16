@@ -1548,19 +1548,22 @@ html[data-theme="dark"] .bank-item-amount.is-pos { color: #34d399; }
 .company-active .m-company-logo { width: 28px; height: 28px; border-radius: 9px; }
 .company-active .company-switch-btn { width: 28px; height: 28px; font-size: 13px; }
 
-/* Apparence : cartes modèles à gauche, aperçu desktop à droite, dans la même grille. */
-.apparence-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-  gap: 20px;
-  align-items: start;
+/* Apparence : aperçu de la facture en entière, miniature ajustée à la largeur. */
+.settings-sheet-preview {
+  margin: 0;
+  overflow: hidden;
+  padding: 6px;
+  background: var(--bg-2, #eef1f6);
+  border-radius: 12px;
 }
-.apparence-cards { min-width: 0; }
-.apparence-preview { min-width: 0; }
-.apparence-preview .sheet-stage { margin: 0; }
-.apparence-preview .settings-sheet-preview .sheet { width: 100%; transform-origin: top left; }
-@media (max-width: 1000px) {
-  .apparence-layout { grid-template-columns: 1fr; }
+.settings-sheet-preview .sheet-scale {
+  transform-origin: top left;
+}
+html[data-theme="dark"] .settings-sheet-preview {
+  background: rgba(255, 255, 255, 0.05);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-scale { transition: none; }
 }
 
 /* Ligne de facture : désignation en multiligne */
@@ -4756,4 +4759,39 @@ html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
 .agent-results,
 .live-invoice {
   position: fixed;
+}
+
+
+/* ---- PWA : pilule a Installer l application ---- */
+.pwa-install-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink); cursor: pointer;
+  font-family: var(--font-body); font-size: 13px; font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  animation: pwa-pill-in .3s var(--ease) both;
+  transition: border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.pwa-install-pill .icon { width: 17px; height: 17px; color: var(--blue); }
+.pwa-install-pill:hover { border-color: var(--line-2); box-shadow: var(--shadow-md); }
+@keyframes pwa-pill-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 768px) {
+  .pwa-install-pill {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(var(--m-footer-h) + env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 60;
+    box-shadow: 0 14px 30px -14px rgba(0, 20, 50, .45);
+  }
+  .pwa-install-pill .icon { display: none; }
+  @keyframes pwa-pill-in {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+}
+html[data-theme='dark'] .pwa-install-pill {
+  background: #141416; color: var(--ink); border-color: var(--line);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, .6);
 }
