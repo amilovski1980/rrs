@@ -136,6 +136,35 @@
   </div>
 </div>
 
+{% if deadlines %}
+<div class="card" style="margin-top:16px">
+  <div class="card-head">
+    <h3>Prochaines échéances</h3>
+    <span class="badge">Indicatif — dates légales usuelles</span>
+  </div>
+  <table>
+    <thead><tr><th>Date</th><th>Échéance</th><th>Détail</th><th>Quand</th></tr></thead>
+    <tbody>
+      {% for d in deadlines %}
+      <tr>
+        <td style="white-space:nowrap"><b>{{ d.date|date:"d/m/Y" }}</b></td>
+        <td>
+          <span class="tag{% if d.urgent %} tag-late{% endif %}">{{ d.kind_label }}</span>
+          {{ d.label }}
+        </td>
+        <td>{{ d.note }}</td>
+        <td style="white-space:nowrap">
+          {% if d.urgent %}<span class="badge" style="background:var(--red-soft);color:var(--red)">Dans {{ d.days }} j</span>
+          {% elif d.soon %}<span class="badge" style="background:var(--amber-soft);color:var(--amber)">Dans {{ d.days }} j</span>
+          {% else %}<span class="badge">Dans {{ d.days }} j</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 {% if companies|length > 1 %}
 <h2 style="margin:28px 0 12px">Changer de société</h2>
 <div class="companies">

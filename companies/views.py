@@ -175,6 +175,8 @@ def landing(request):
 @login_required
 def cockpit(request):
     """Pilotage d'une société : chiffres, dernières écritures, factures ouvertes."""
+    from .deadlines import upcoming
+
     companies = Company.objects.filter(owner=request.user)
     selected = resolve_company(request)
     figures = cockpit_figures(selected) if selected else None
@@ -188,6 +190,7 @@ def cockpit(request):
         "selected": selected,
         "figures": figures,
         "open_invoices": open_invoices,
+        "deadlines": upcoming(selected) if selected else [],
     })
 
 
