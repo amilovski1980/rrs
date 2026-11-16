@@ -659,6 +659,7 @@ class EveryAdminPageTests(TestCase):
         names = {pattern.name for pattern in urlpatterns if pattern.name not in (
             "settings_ai_models",
             "settings_ai_connection",
+            "settings_ai_voice_sync",
         )}
         self.assertEqual(covered, names, sorted(names - covered))
 
