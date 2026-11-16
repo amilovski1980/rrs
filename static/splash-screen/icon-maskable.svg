@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Road Runner Solutions">
+  <defs>
+    <linearGradient id="rrsGradM" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="50%" stop-color="#004192"/>
+      <stop offset="100%" stop-color="#ca1c60"/>
+    </linearGradient>
+  </defs>
+  <!-- Fond plein bord à bord : zone sûre maskable (le pictogramme est centré à 62 %) -->
+  <rect width="512" height="512" fill="url(#rrsGradM)"/>
+  <g transform="translate(0,70)">
+    <path fill="#ffffff" d="M272 96 L172 330 L246 330 L212 484 L398 234 L308 234 L358 96 Z"/>
+  </g>
+</svg>
