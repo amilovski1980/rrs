@@ -12,6 +12,15 @@
     if (!form) return;
     var inputs = form.querySelectorAll("[data-import-input]");
     var summary = form.querySelector("[data-import-summary]");
+    var box = form.querySelector("[data-upload-progress]");
+    var button = form.querySelector("[data-import-submit]");
+    if (form && box && button) {
+      form.addEventListener("submit", function () {
+        box.removeAttribute("hidden");
+        button.setAttribute("aria-busy", "true");
+        button.textContent = "Analyse en cours…";
+      });
+    };
     function update() {
       var total = 0;
       Array.prototype.forEach.call(inputs, function (input) {

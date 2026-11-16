@@ -26,10 +26,29 @@
     <p class="micro">{{ form.file.help_text }}</p>
     {% if form.file.errors %}<p class="error">{{ form.file.errors.0 }}</p>{% endif %}
   </div>
+  <div class="import-progress" data-import-progress hidden>
+    <div class="progressbar" role="progressbar" aria-label="Traitement du relevé en cours"><i></i></div>
+    <p class="micro" style="margin:6px 0 0">Lecture du relevé, toutes pages, puis rapprochement — ne fermez pas la page.</p>
+  </div>
   <div class="form-actions">
-    <button class="btn btn-primary" type="submit">Importer et rapprocher</button>
+    <button class="btn btn-primary" type="submit" data-import-submit>Importer et rapprocher</button>
   </div>
 </form>
+<script>
+  (function () {
+    var form = document.querySelector('form.card.form-stack');
+    if (!form) return;
+    var box = form.querySelector('[data-import-progress]');
+    var button = form.querySelector('[data-import-submit]');
+    form.addEventListener('submit', function () {
+      if (box) box.removeAttribute('hidden');
+      if (button) {
+        button.setAttribute('aria-busy', 'true');
+        button.textContent = 'Analyse en cours…';
+      }
+    });
+  })();
+</script>
 <p class="micro" style="margin-top:12px">
   CSV reconnu : colonnes date, libellé, débit/crédit ou montant, référence. Les formats
   français (1 234,56 €) et les dates JJ/MM/AAAA sont acceptés. Un PDF natif est lu
