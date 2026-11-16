@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     # Page publique de vérification (QR code imprimé sur les factures).
+    # Deux routes : l'URL courte (QR) et la longue (QR déjà imprimés).
+    path("v/<uuid:pk>/", views.invoice_verify, name="invoice_verify_short"),
     path("verifier/<uuid:pk>/", views.invoice_verify, name="invoice_verify"),
     path("", views.invoice_dashboard, name="invoices"),
     path("liste/", views.invoice_list, name="invoice_list"),

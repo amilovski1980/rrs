@@ -567,9 +567,26 @@ def invoice_verify(request, pk: str):
     Ouverture animée (recherche en cours ~10 s) puis l'aperçu léger s'affiche.
     Aucune donnée sensible : n°, émetteur, client, montants, statut.
     """
-    invoice = get_object_or_404(Invoice.objects.select_related("company", "client"), pk=pk)
+    invoice = Invoice.objects.select_related("company", "client").filter(pk=pk).first()
+    if invoice is None:
+        return render(request, "documents/invoice_verify.html", {
+            "found": False,
+            "invoice_number": "",
+            "status": "",
+            "status_code": "",
+            "issued_company": "",
+            "company_siren": "",
+            "client_name": "",
+            "amount_ttc": None,
+            "paid": None,
+            "remaining": None,
+            "vat_rate": None,
+            "created_at": None,
+            "due_date": None,
+        })
     company = invoice.company
     return render(request, "documents/invoice_verify.html", {
+        "found": True,
         "invoice_number": invoice.number,
         "status": invoice.get_status_display(),
         "status_code": invoice.status,

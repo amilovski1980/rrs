@@ -1075,20 +1075,31 @@ def _header_compact(pdf, company, kind, document):
 
 
 def _verify_url(document) -> str:
-    """Lien public de vérification du document (QR imprimé sur la facture)."""
+    """Lien public COURT de vérification (QR compact et lisible)."""
     from django.conf import settings
 
     base = (
         getattr(settings, "SITE_BASE_URL", "")
         or "https://rrs-sandy.vercel.app"
     ).rstrip("/")
-    return f"{base}/factures/verifier/{document.pk}/"
+    return f"{base}/v/{document.pk}/"
 
 
 def _qr_png(url: str) -> bytes:
     import qrcode
+    from qrcode.constants import ERROR_CORRECT_M
 
-    image = qrcode.make(url, box_size=8, border=1)
+    generator = qrcode.QRCode(
+        error_correction=ERROR_CORRECT_M,
+        box_size=10,
+        border=3,
+    )
+    generator.add_data(url)
+    generator.make(fit=True)
+    image = generator.make_image(fill_color="black", back_color="white")
+    # FPDF gère mal les PNG binaires (mode "1") : conversion explicite RVB,
+    # sinon le logo du code apparaît comme une trame illisible.
+    image = image.convert("RGB")
     from io import BytesIO
 
     buffer = BytesIO()
@@ -1109,12 +1120,12 @@ def _draw_verify_qr(pdf, document, x, y):
     pdf.set_fill_color(255, 255, 255)
     pdf.set_draw_color(*pdf.line_color)
     pdf.set_line_width(0.2)
-    pdf.rect(x - 2, y - 2, 26, 33, "F", round_corners=True, corner_radius=2)
-    pdf.image(BytesIO(png), x=x, y=y, w=22)
+    pdf.rect(x - 3, y - 3, 34, 44, "F", round_corners=True, corner_radius=2.5)
+    pdf.image(BytesIO(png), x=x, y=y, w=28)
     pdf.set_text_color(*MUTED)
-    pdf.set_font("DejaVu", size=5.2)
-    pdf.set_xy(x - 2, y + 24)
-    pdf.cell(26, 3, "Vérifier l'origine", align="C")
+    pdf.set_font("DejaVu", size=5.6)
+    pdf.set_xy(x - 3, y + 29.5)
+    pdf.cell(34, 3.2, "Vérifier l'origine", align="C")
 
 
 HEADER_BY_LAYOUT = {
@@ -1418,6 +1429,7 @@ def preview_invoice(company):
         ),
     ]
     return SimpleNamespace(
+        pk="00000000-0000-0000-0000-000000000000",
         number="FAC-2026-0042",
         client=client,
         client_name=client.name,
