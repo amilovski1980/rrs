@@ -574,9 +574,33 @@ class CompanyDeleteView(AdminStaffMixin, DeleteView):
         return context
 
     def form_valid(self, form):
+        from django.db.models import ProtectedError
+
+        self.object = self.get_object()
+        # Les avoirs pointent vers leur facture en PROTECT : dans la cascade,
+        # les factures peuvent partir avant les avoirs et la suppression
+        # explose en 500. On détache les avoirs du lot d'abord.
+        try:
+            self.object.credit_notes.all().delete()
+        except Exception:
+            pass
+        try:
+            response = super().form_valid(form)
+        except ProtectedError as exc:
+            blocked = ", ".join(
+                sorted({p.__class__.__name__ for p in getattr(exc, "protected_objects", [])[:6]})
+            )
+            messages.error(
+                self.request,
+                "Suppression impossible : des objets protégés subsistent"
+                + (f" ({blocked})" if blocked else "")
+                + ". Nettoyez-les puis relancez la suppression.",
+            )
+            journaliser(self.request, f"Suppression société impossible — {self.object}")
+            return redirect(self.success_url)
         messages.success(self.request, "Société supprimée.")
         journaliser(self.request, f"Société supprimée — {self.object}")
-        return super().form_valid(form)
+        return response
 
 
 class PlanListView(AdminStaffMixin, ListView):
