@@ -1,43 +1,32 @@
-{% comment %} Splash d'ouverture — palette claire par defaut, theme="dark" pour la monture sombre. Affiche une fois par session. {% endcomment %}
+{% comment %} Splash d'ouverture — vrai logo, theme clair par defaut, theme="dark" pour sombre.
+Joue au premier lancement apres fermeture (et re-joue apres une heure sans visite). {% endcomment %}
 <style>
   #rrs-splash {
     position: fixed; inset: 0; z-index: 300;
     display: grid; place-items: center;
     {% if theme == 'dark' %}
-    background:
-      radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .20) 0%, transparent 58%),
-      #070708;
+    background: radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .18) 0%, transparent 58%), #070708;
     {% else %}
-    background:
-      radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .14) 0%, transparent 58%),
-      #ffffff;
+    background: radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .12) 0%, transparent 58%), #ffffff;
     {% endif %}
-    animation: rrsSplashOut .55s cubic-bezier(.6, 0, .3, 1) 1.8s forwards;
+    animation: rrsSplashOut .55s cubic-bezier(.6, 0, .3, 1) 1.9s forwards;
   }
-  #rrs-splash .rrs-inner {
-    display: grid; justify-items: center; gap: 14px;
-    animation: rrsSplashIn .6s cubic-bezier(.2, .9, .3, 1) both;
+  #rrs-splash .rrs-logo-wrap {
+    position: relative; display: grid; place-items: center;
+    width: 118px; height: 118px;
+    animation: rrsIn .65s cubic-bezier(.2, .9, .3, 1) both, rrsFloat 3s ease-in-out .85s infinite;
   }
-  #rrs-splash .rrs-mark {
-    width: 78px; height: 78px; border-radius: 22px;
-    display: grid; place-items: center;
-    background: linear-gradient(160deg, #5aa0ff 0%, #2563eb 58%, #1d4ed8 100%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35),
-      0 24px 54px -20px rgba(37, 99, 235, .6);
-    position: relative;
-    font-family: "Segoe UI", Inter, system-ui, sans-serif;
-    animation: rrsSplashIn .7s cubic-bezier(.2, .9, .3, 1) both, rrsFloat 3s ease-in-out .8s infinite;
-  }
-  #rrs-splash .rrs-mark::before {
-    content: ""; position: absolute; inset: -6px; border-radius: 28px;
-    border: 1px solid rgba(90, 160, 255, .5);
+  #rrs-splash .rrs-logo-wrap::before {
+    content: ""; position: absolute; inset: -8px; border-radius: 32px;
+    border: 1px solid {% if theme == 'dark' %}rgba(207, 207, 207, .38){% else %}rgba(90, 160, 255, .45){% endif %};
     animation: rrsRing 2.2s ease-out infinite;
   }
-  #rrs-splash .rrs-mark span {
-    font-weight: 800; font-size: 34px; color: #fff;
-    letter-spacing: -.04em; text-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+  #rrs-splash .rrs-logo {
+    max-width: 108px; max-height: 108px; width: auto; height: auto;
+    object-fit: contain; display: block;
+    filter: drop-shadow(0 18px 42px rgba(0, 0, 0, .55));
   }
-  #rrs-splash .rrs-word { text-align: center; font-family: "Segoe UI", Inter, system-ui, sans-serif; }
+  #rrs-splash .rrs-word { text-align: center; font-family: "Segoe UI", Inter, system-ui, sans-serif; animation: rrsIn .7s ease both; }
   #rrs-splash .rrs-word b {
     display: block; font-size: 20px; letter-spacing: -.03em;
     {% if theme == 'dark' %}color: #f4f4f4;{% else %}color: #0f172a;{% endif %}
@@ -59,12 +48,12 @@
     {% else %}
     background-image: linear-gradient(90deg, #2563eb, #5aa0ff, #8fce9a);
     {% endif %}
-    animation: rrsFill 1.8s cubic-bezier(.4, 0, .2, 1) forwards, rrsGlow 1.3s linear infinite;
+    animation: rrsFill 1.9s cubic-bezier(.4, 0, .2, 1) forwards, rrsGlow 1.3s linear infinite;
   }
   @keyframes rrsSplashOut { 55% { opacity: 1; } 100% { opacity: 0; transform: scale(1.05); visibility: hidden; } }
-  @keyframes rrsSplashIn { from { opacity: 0; transform: translateY(10px) scale(.95); } to { opacity: 1; transform: none; } }
-  @keyframes rrsFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-  @keyframes rrsRing { 0% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.12); } }
+  @keyframes rrsIn { from { opacity: 0; transform: translateY(12px) scale(.92); } to { opacity: 1; transform: none; } }
+  @keyframes rrsFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes rrsRing { 0% { opacity: .9; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.14); } }
   @keyframes rrsFill { to { width: 100%; } }
   @keyframes rrsGlow { from { background-position: 0% 0; } to { background-position: 220% 0; } }
   @media (prefers-reduced-motion: reduce) {
@@ -73,7 +62,13 @@
 </style>
 <div id="rrs-splash" aria-label="Chargement de Road Runner Solutions">
   <div class="rrs-inner">
-    <div class="rrs-mark"><span>R</span></div>
+    <div class="rrs-logo-wrap">
+      {% if theme == 'dark' %}
+      <img class="rrs-logo" src="/static/img/dark/mark.png" alt="Road Runner Solutions">
+      {% else %}
+      <img class="rrs-logo" src="/static/img/logo-192.png" alt="Road Runner Solutions">
+      {% endif %}
+    </div>
     <div class="rrs-word"><b>Road Runner</b><small>Solutions</small></div>
     <div class="rrs-bar"><i></i></div>
   </div>
@@ -81,12 +76,15 @@
 <script>
   (function () {
     try {
-      if (sessionStorage.getItem("rrs-splash") === "1") {
+      var LAST = "rrs-splash-at";
+      var HOUR = 60 * 60 * 1000;
+      var last = Number(localStorage.getItem(LAST) || "0");
+      if (last && Date.now() - last < HOUR) {
         var s = document.getElementById("rrs-splash");
         if (s) s.style.display = "none";
         return;
       }
-      sessionStorage.setItem("rrs-splash", "1");
+      localStorage.setItem(LAST, String(Date.now()));
     } catch (e) {}
   })();
 </script>
