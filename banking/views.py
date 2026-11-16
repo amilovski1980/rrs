@@ -279,26 +279,34 @@ def transaction_list(request):
 @login_required
 @require_POST
 def transaction_bulk(request):
-    """Actions de masse sur les opérations sélectionnées."""
-    from django.http import JsonResponse
+    """Actions de masse sur les opérations sélectionnées : ignorer, rétablir,
+    supprimer. Redirige vers la liste avec un message (les boutons du
+    formulaire postent en navigation classique)."""
+    from django.contrib import messages
 
     company, bounce = _company_or_redirect(request)
     if bounce:
-        return JsonResponse({"error": "Aucune société."}, status=403)
+        messages.error(request, "Aucune société.")
+        return bounce
+    back = reverse("banking:transactions") + "?societe=" + str(company.pk)
     action = (request.POST.get("action") or "").strip()
     ids = [pk for pk in request.POST.getlist("ids") if pk]
     if not ids:
-        return JsonResponse({"error": "Aucune opération sélectionnée."}, status=400)
+        messages.error(request, "Aucune opération sélectionnée.")
+        return redirect(back)
     queryset = BankTransaction.objects.filter(company=company, pk__in=ids)
     if action == "ignore":
         updated = queryset.exclude(status="ignored").update(status="ignored")
+        messages.success(request, f"{updated} opération(s) ignorée(s).")
     elif action == "restore":
         updated = queryset.filter(status="ignored").update(status="unmatched")
+        messages.success(request, f"{updated} opération(s) rétablie(s).")
     elif action == "delete":
         updated = queryset.delete()[1].get("banking.BankTransaction", 0)
+        messages.success(request, f"{updated} opération(s) supprimée(s).")
     else:
-        return JsonResponse({"error": "Action inconnue."}, status=400)
-    return JsonResponse({"ok": True, "affected": updated})
+        messages.error(request, "Action inconnue.")
+    return redirect(back)
 
 
 @login_required
