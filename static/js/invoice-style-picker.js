@@ -89,7 +89,7 @@
           if (result.ok && result.data.ok) {
             applyStyle(result.data);
           } else {
-            status(result.data.error || "Impossible de changer ce modèle.", true);
+            status(result.data.message || result.data.error || "Impossible de changer ce modèle.", true);
           }
         })
         .catch(function () {

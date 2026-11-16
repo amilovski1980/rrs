@@ -316,8 +316,9 @@
     </header>
     <main class="content">
       {% if request.session.demo_mode %}
-      <div class="demo-readonly-banner" role="status">
+      <div class="demo-readonly-banner" role="alert">
         <b>Mode démo</b> — lecture seule. Aucune modification n'est enregistrée.
+        <a href="{% url 'logout' %}">Se déconnecter</a> puis se connecter avec un compte réel pour travailler sur vos documents.
       </div>
       {% endif %}
       {% if messages %}
