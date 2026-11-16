@@ -5266,32 +5266,39 @@ html[data-theme='dark'] .scan-popup .scan-text {
 }
 .agent-core::before { left: 26%; }
 .agent-core::after { right: 26%; }
-/* Bouche = la vague, placee en bas comme une bouche qui parle */
-.agent-wave {
-  position: absolute; bottom: 16%; left: 50%;
-  transform: translateX(-50%);
-  height: 12px; gap: 2px; align-items: center;
+/* Bouche simple : barre arrondie qui s ouvre et se ferme quand elle parle. */
+.agent-wave i { display: none; }
+.agent-wave { height: auto; bottom: 22%; }
+.agent-wave::before {
+  content: ''; display: block;
+  width: 12px; height: 4px; border-radius: 999px;
+  background: #e8e8ea; opacity: .92;
+  transform-origin: center;
+  transition: width .2s ease, background .3s ease;
 }
-.agent-wave i {
-  width: 3px; height: 4px; border-radius: 2px;
-  background: #e8e8ea; opacity: .9;
-}
-/* Pendant l'interaction : la bouche passe au vert 'ok' et ondes plus vives */
-.agent-dialog.is-listening .agent-wave i,
-.agent-dialog.is-thinking .agent-wave i,
-.agent-dialog.is-speaking .agent-wave i {
-  background: #8fce9a;
+/* Pendant l interaction : la bouche s ouvre, se ferme, passe au vert ok */
+.agent-dialog.is-listening .agent-wave::before,
+.agent-dialog.is-thinking .agent-wave::before,
+.agent-dialog.is-speaking .agent-wave::before {
+  background: #8fce9a; width: 14px; height: 6px;
+  animation: rrsTalk 380ms ease-in-out infinite;
 }
 .agent-dialog.is-listening .agent-core::before,
 .agent-dialog.is-listening .agent-core::after {
   animation: rrsLook .8s ease-in-out infinite alternate;
 }
+
 /* Anneau discret etoile or */
 .agent-ring { border-color: rgba(207, 207, 207, .32) !important; }
 @keyframes rrsBlink {
   0%, 90%, 100% { height: 22%; }
   94% { height: 6%; }
 }
+@keyframes rrsTalk {
+  0%, 100% { transform: scaleY(.35); }
+  50% { transform: scaleY(1.5); }
+}
+
 @keyframes rrsLook {
   from { transform: translateX(-22%); }
   to { transform: translateX(22%); }
