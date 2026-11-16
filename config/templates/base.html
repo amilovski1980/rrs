@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.26">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.27">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -284,6 +284,17 @@
         {% include "partials/icon.html" with name="list" %}
       </button>
       <div class="crumbs">{% block crumbs %}Cockpit{% endblock %}</div>
+      {% if top_company %}
+      <span class="company-active">
+        {% if top_company.logo %}
+        <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="28" height="28">
+        {% else %}
+        {% company_color_class top_company top_companies as active_cls %}
+        <span class="company-switch-btn {{ active_cls }} is-on" aria-hidden="true">{{ top_company|company_initial }}</span>
+        {% endif %}
+        <b> {{ top_company.denomination|truncatechars:24 }}</b>
+      </span>
+      {% endif %}
       {% if top_companies|length > 1 %}
       <nav class="company-switch" aria-label="Changer de société">
         {% for c in top_companies %}

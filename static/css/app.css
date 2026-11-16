@@ -1526,6 +1526,28 @@ html[data-theme="dark"] .bank-item-ico.is-in { background: rgba(52, 211, 153, 0.
 html[data-theme="dark"] .bank-item-amount.is-neg { color: var(--ink); }
 html[data-theme="dark"] .bank-item-amount.is-pos { color: #34d399; }
 
+/* Badge société active dans le topbar desktop (miroir du header mobile). */
+.m-company-logo {
+  width: 28px; height: 28px; flex: 0 0 28px;
+  border-radius: 9px;
+  object-fit: contain; background: #fff;
+  border: 1px solid var(--line); padding: 2px;
+}
+.company-active {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-left: auto;
+  padding: 4px 6px 4px 4px;
+  border-radius: 999px;
+  max-width: 260px;
+}
+.company-active b {
+  font-family: var(--font-head);
+  font-size: 13px; font-weight: 700; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.company-active .m-company-logo { width: 28px; height: 28px; border-radius: 9px; }
+.company-active .company-switch-btn { width: 28px; height: 28px; font-size: 13px; }
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;
