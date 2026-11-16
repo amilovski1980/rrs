@@ -5,10 +5,14 @@ Le SW est volontairement minuscule et prudent :
 - /static/ en stale-while-revalidate (cache d'abord, rafraîchi en fond) ;
 - navigation par défaut = réseau, repli sur la page hors-ligne.
 """
+import json
 import re
+from pathlib import Path
 
 from django.http import HttpResponse
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_control
+
+from core.public_theme import is_dark
 
 SW_SOURCE = r"""
 /* Road Runner Solutions — service worker minimal.
@@ -89,7 +93,7 @@ self.addEventListener("fetch", function (event) {
 """
 
 
-@cache_page(3600)
+@cache_control(max_age=3600)
 def serve_service_worker(request):
     """Fournit /sw.js à la racine (scope obligatoire — pas /static)."""
     return HttpResponse(
@@ -101,3 +105,52 @@ def serve_service_worker(request):
 
 #: petite garde de santé pour les tests : version bien formée
 _sw_version_ok = re.search(r"rrs-pwa-\d", SW_SOURCE) is not None
+
+#: Thèmes du manifeste : start_url, couleurs et icônes suivent l'écran
+#: depuis lequel l'app est installée (le mode dark, monté sous /dark,
+#: doit rester sombre une fois posé sur l'écran d'accueil).
+MANIFEST_THEMES = {
+    False: {
+        "start_url": "/cockpit/",
+        "theme_color": "#ffffff",
+        "background_color": "#ffffff",
+        "icons_extra": [],
+    },
+    True: {
+        "start_url": "/dark/cockpit/",
+        "theme_color": "#070708",
+        "background_color": "#070708",
+        "icons_extra": [
+            {
+                "src": "/static/img/dark/mark.png",
+                "sizes": "512x512",
+                "type": "image/png",
+            },
+        ],
+    },
+}
+
+
+def _static_manifest() -> dict:
+    path = Path(__file__).resolve().parent.parent / "static" / "site.webmanifest"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def serve_manifest(request):
+    """Manifeste PWA dynamique : le thème de la page d'installation suit
+    l'utilisateur. Installé depuis /dark, l'app s'ouvre /dark/cockpit/.
+    """
+    dark = is_dark(request)
+    theme = MANIFEST_THEMES[bool(dark)]
+    data = _static_manifest()
+    data["start_url"] = theme["start_url"]
+    data["theme_color"] = theme["theme_color"]
+    data["background_color"] = theme["background_color"]
+    icons = list(theme["icons_extra"]) + list(data.get("icons", []))
+    data["icons"] = icons
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    return HttpResponse(
+        payload,
+        content_type="application/manifest+json; charset=utf-8",
+        headers={"Vary": "Cookie", "X-Robots-Tag": "noindex"},
+    )
