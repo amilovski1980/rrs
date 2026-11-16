@@ -5244,3 +5244,55 @@ html[data-theme='dark'] .scan-popup .scan-text {
   }
   .scan-popup, .pwa-popup { padding: 16px 16px 14px; }
 }
+
+
+/* ---- Aminia a une tete : ecran noir, yeux ivoire qui clignent,
+   bouche-vague qui parle. Palette panel #111110 / ivoire / or. ---- */
+.agent-core {
+  background: linear-gradient(180deg, #1c1c1e 0%, #131314 56%, #0a0a0b 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 12px 26px -14px rgba(0, 0, 0, .85) !important;
+}
+/* Yeux */
+.agent-core::before,
+.agent-core::after {
+  content: ''; position: absolute; top: 28%;
+  width: 12%; height: 22%; min-width: 5px; min-height: 8px;
+  border-radius: 3px; background: #f4f4f4;
+  box-shadow: 0 0 8px rgba(244, 244, 244, .5);
+  animation: rrsBlink 4.6s ease-in-out infinite;
+}
+.agent-core::before { left: 26%; }
+.agent-core::after { right: 26%; }
+/* Bouche = la vague, placee en bas comme une bouche qui parle */
+.agent-wave {
+  position: absolute; bottom: 16%; left: 50%;
+  transform: translateX(-50%);
+  height: 12px; gap: 2px; align-items: center;
+}
+.agent-wave i {
+  width: 3px; height: 4px; border-radius: 2px;
+  background: #e8e8ea; opacity: .9;
+}
+/* Pendant l'interaction : la bouche passe au vert 'ok' et ondes plus vives */
+.agent-dialog.is-listening .agent-wave i,
+.agent-dialog.is-thinking .agent-wave i,
+.agent-dialog.is-speaking .agent-wave i {
+  background: #8fce9a;
+}
+.agent-dialog.is-listening .agent-core::before,
+.agent-dialog.is-listening .agent-core::after {
+  animation: rrsLook .8s ease-in-out infinite alternate;
+}
+/* Anneau discret etoile or */
+.agent-ring { border-color: rgba(207, 207, 207, .32) !important; }
+@keyframes rrsBlink {
+  0%, 90%, 100% { height: 22%; }
+  94% { height: 6%; }
+}
+@keyframes rrsLook {
+  from { transform: translateX(-22%); }
+  to { transform: translateX(22%); }
+}
