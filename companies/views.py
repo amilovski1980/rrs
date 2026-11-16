@@ -205,6 +205,8 @@ def cockpit_global(request):
     from documents.models import Invoice, InvoiceLine
     from purchases.models import PurchaseInvoice
 
+    from .deadlines import upcoming_all
+
     period = (request.GET.get("periode") or "annee").lower()
     if period not in ("semaine", "mois", "annee"):
         period = "annee"
@@ -430,6 +432,7 @@ def cockpit_global(request):
         },
         "series": series,
         "company_rows": company_rows,
+        "deadlines_all": upcoming_all(companies, today=today),
     })
 
 

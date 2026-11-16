@@ -65,6 +65,37 @@
   </div>
 </section>
 
+<section class="card" style="margin-top:16px">
+  <div class="card-head">
+    <h3>Prochaines échéances — toutes les sociétés</h3>
+    <span class="badge">Indicatif — dates légales usuelles</span>
+  </div>
+  <div class="card-body" style="padding:0">
+    <table>
+      <thead><tr><th>Date</th><th>Société</th><th>Échéance</th><th>Quand</th></tr></thead>
+      <tbody>
+        {% for d in deadlines_all %}
+        <tr>
+          <td style="white-space:nowrap"><b>{{ d.date|date:"d/m/Y" }}</b></td>
+          <td><a href="{% url 'cockpit' %}?societe={{ d.company.id }}" style="color:var(--ink);text-decoration:none">{{ d.company.denomination }}</a></td>
+          <td>
+            <span class="tag{% if d.urgent %} tag-late{% endif %}">{{ d.kind_label }}</span>
+            {{ d.label }}
+          </td>
+          <td style="white-space:nowrap">
+            {% if d.urgent %}<span class="badge" style="background:var(--red-soft);color:var(--red)">Dans {{ d.days }} j</span>
+            {% elif d.soon %}<span class="badge" style="background:var(--amber-soft);color:var(--amber)">Dans {{ d.days }} j</span>
+            {% else %}<span class="badge">Dans {{ d.days }} j</span>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">Aucune échéance à venir.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <div class="societes-grid">
   {% for row in company_rows %}
   <a class="card socie-row" href="{% url 'cockpit' %}?societe={{ row.company.id }}">
