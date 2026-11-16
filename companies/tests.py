@@ -128,9 +128,9 @@ class CompanySettingsTests(TestCase):
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_theme, "graphite")
 
-    def test_theme_choice_resets_mismatched_layout(self):
-        """Un modèle figé incompatible avec la nouvelle couleur retombe en
-        automatique : le PDF téléchargé doit ressembler à la vignette."""
+    def test_theme_choice_keeps_layout_with_new_color(self):
+        """Modèle et couleur sont indépendants : changer de couleur conserve
+        la mise en page figée (le PDF compose design + palette)."""
         self.company.invoice_theme = "indigo"
         self.company.invoice_layout = "sapphire"
         self.company.save(update_fields=["invoice_theme", "invoice_layout"])
@@ -141,8 +141,7 @@ class CompanySettingsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.company.refresh_from_db()
         self.assertEqual(self.company.invoice_theme, "carmin")
-        # bordeaux (auto de carmin) ≠ sapphire : le modèle figé est délié
-        self.assertEqual(self.company.invoice_layout, "")
+        self.assertEqual(self.company.invoice_layout, "sapphire")
 
     def test_theme_choice_keeps_matching_layout(self):
         """Choisir la couleur du modèle courant conserve cette mise en page."""

@@ -3,6 +3,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Page publique de vérification (QR code imprimé sur les factures).
+    path("verifier/<uuid:pk>/", views.invoice_verify, name="invoice_verify"),
     path("", views.invoice_dashboard, name="invoices"),
     path("liste/", views.invoice_list, name="invoice_list"),
     path("nouvelle/", views.invoice_create, name="invoice_create"),

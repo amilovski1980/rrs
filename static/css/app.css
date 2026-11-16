@@ -1839,6 +1839,18 @@ html[data-theme="dark"] .global-bar-prev { fill: rgba(255, 255, 255, .18); }
 .model-terra .mp-row { background: #e7cfc0; }
 .model-terra .mp-who, .model-terra .mp-row, .model-terra .mp-due { margin-left: 2px; }
 .model-terra .mp-due b { background: #b45331; }
+.model-vert { border-left: 3px solid #0f9d6a; background: linear-gradient(90deg, #e9faf2 16%, #fff 16%); }
+.model-vert .mp-logo { background: #0f9d6a; }
+.model-vert .mp-who i { background: #9adec8; }
+.model-vert .mp-row { background: #c8f0e1; }
+.model-vert .mp-who, .model-vert .mp-row, .model-vert .mp-due { margin-left: 2px; }
+.model-vert .mp-due b { background: #0f9d6a; }
+.model-monochrome { border-left: 3px solid #242424; background: linear-gradient(90deg, #f4f4f4 16%, #fff 16%); }
+.model-monochrome .mp-logo { background: #242424; }
+.model-monochrome .mp-who i { background: #bdbdbd; }
+.model-monochrome .mp-row { background: #d9d9d9; }
+.model-monochrome .mp-who, .model-monochrome .mp-row, .model-monochrome .mp-due { margin-left: 2px; }
+.model-monochrome .mp-due b { background: #242424; }
 /* Renfort des thèmes d'origine : barres toujours visibles */
 .model-carmin .mp-who i { background: #f0b4ae; }
 .model-carmin .mp-row { background: #f5d0cc; }
@@ -3976,6 +3988,25 @@ body.voice-shell-active .live-invoice { z-index: 125 !important; }
 .model-layout-sapphire .mp-top { padding: 3px; background: #4f46e5; }
 .model-layout-sapphire .mp-logo { background: #e2e8f0; }
 .model-layout-sapphire .mp-due b { background: #4f46e5; }
+
+/* Modèles basiques : sobres, lisibles, une signature discrète. */
+.model-layout-classique { padding: 0; background: #fff; border-color: #e2e8f0; }
+.model-layout-classique .mp-top { padding: 3px 2px; border-bottom: 1px solid #cbd5e1; }
+.model-layout-classique .mp-logo { background: #64748b; }
+.model-layout-classique .mp-due b { background: #334155; }
+.model-layout-minimal { padding: 0; background: #fff; border-color: #f1f5f9; }
+.model-layout-minimal .mp-top { padding: 1px 2px; border-bottom: 1px solid #94a3b8; }
+.model-layout-minimal .mp-logo { background: #94a3b8; }
+.model-layout-minimal .mp-who, .model-layout-minimal .mp-row { opacity: .8; }
+.model-layout-minimal .mp-due b { background: #94a3b8; }
+.model-layout-moderne { padding: 0; background: #fff; border-color: #dbeafe; }
+.model-layout-moderne .mp-top { padding: 3px 2px 3px 6px; border-left: 4px solid #2563eb; }
+.model-layout-moderne .mp-logo { background: #2563eb; }
+.model-layout-moderne .mp-due b { background: #2563eb; }
+.model-layout-compact { padding: 0; background: #fff; border-color: #e5e7eb; }
+.model-layout-compact .mp-top { padding: 2px; border-top: 3px solid #0f172a; background: #f1f5f9; }
+.model-layout-compact .mp-logo { background: #0f172a; }
+.model-layout-compact .mp-due b { background: #0f172a; }
 
 @media (max-width: 600px) {
   .agent-meta { gap: 7px; }

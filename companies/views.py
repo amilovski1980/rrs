@@ -813,23 +813,6 @@ def _settings_extra_context(company):
     }
 
 
-def _reconcile_invoice_layout(company) -> bool:
-    """Le PDF téléchargé doit ressembler à la vignette de la couleur choisie.
-
-    Chaque couleur a une mise en page automatique (PALETTES) : si un modèle
-    figé par un choix antérieur ne correspond pas, on repasse en automatique
-    (le champ invoice_layout porte l'aide « Vide = mise en page automatique
-    selon la couleur choisie »). Retourne True si invoice_layout a changé.
-    """
-    from documents.pdf import PALETTES
-
-    expected = (PALETTES.get(company.invoice_theme) or {}).get("layout", "")
-    if company.invoice_layout and company.invoice_layout != expected:
-        company.invoice_layout = ""
-        return True
-    return False
-
-
 @login_required
 def company_settings(request):
     """Logo, coordonnées et modèle de facture."""
@@ -875,10 +858,10 @@ def company_settings(request):
             return redirect("plan_upgrade")
         if theme in dict(INVOICE_THEMES):
             company.invoice_theme = theme
-            if _reconcile_invoice_layout(company):
-                company.save(update_fields=["invoice_theme", "invoice_layout"])
-            else:
-                company.save(update_fields=["invoice_theme"])
+            # Modèle et couleur sont indépendants : le PDF compose le design
+            # du modèle avec la palette choisie (chaque modèle accepte toutes
+            # les couleurs). La mise en page figée est conservée.
+            company.save(update_fields=["invoice_theme"])
         if is_ajax:
             return JsonResponse({
                 "ok": True,
@@ -924,8 +907,6 @@ def company_settings(request):
             messages.info(request, UPGRADE_MESSAGE)
             return redirect("plan_upgrade")
         company = form.save()
-        if _reconcile_invoice_layout(company):
-            company.save(update_fields=["invoice_layout"])
         if request.POST.get("remove_logo"):
             company.logo = None
             company.logo_type = ""

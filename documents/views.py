@@ -561,6 +561,30 @@ def invoice_detail(request, pk):
     })
 
 
+def invoice_verify(request, pk: str):
+    """Page publique de vérification : QR code → rendu de la facture d'origine.
+
+    Ouverture animée (recherche en cours ~10 s) puis l'aperçu léger s'affiche.
+    Aucune donnée sensible : n°, émetteur, client, montants, statut.
+    """
+    invoice = get_object_or_404(Invoice.objects.select_related("company", "client"), pk=pk)
+    company = invoice.company
+    return render(request, "documents/invoice_verify.html", {
+        "invoice_number": invoice.number,
+        "status": invoice.get_status_display(),
+        "status_code": invoice.status,
+        "issued_company": company.denomination,
+        "company_siren": company.siren,
+        "client_name": invoice.client_name or (invoice.client.name if invoice.client else ""),
+        "amount_ttc": invoice.amount_ttc,
+        "paid": invoice.amount_paid,
+        "remaining": invoice.amount_remaining,
+        "vat_rate": invoice.vat_rate,
+        "created_at": invoice.created_at,
+        "due_date": invoice.effective_due_date,
+    })
+
+
 @login_required
 def invoice_pdf(request, pk):
     company, bounce = _company_or_redirect(request)

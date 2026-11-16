@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import TestCase
+from django.urls import reverse
 
 from accounting.models import JournalEntry
 from accounting.services import generate_portal
@@ -764,6 +765,42 @@ class ThemeAndDocumentPdfTests(TestCase):
             payload = render_invoice_pdf(self.invoice, self.company)
             self.assertTrue(payload.startswith(b"%PDF"), code)
             self.assertGreater(len(payload), 500, code)
+
+    def test_all_layouts_render_pdf_bytes(self):
+        """Les 4 modèles basiques + les 5 signature génèrent un PDF."""
+        from companies.models import INVOICE_LAYOUTS
+        from documents.pdf import render_invoice_pdf
+
+        for code, _label in INVOICE_LAYOUTS:
+            self.company.invoice_layout = code
+            self.company.save(update_fields=["invoice_layout"])
+            payload = render_invoice_pdf(self.invoice, self.company)
+            self.assertTrue(payload.startswith(b"%PDF"), code)
+            self.assertGreater(len(payload), 500, code)
+
+    def test_invoice_pdf_contains_verify_qr(self):
+        """QR de vérification : une facture embarque une image (le code)."""
+        from documents.pdf import render_invoice_pdf
+
+        self.company.invoice_layout = "classique"
+        self.company.save(update_fields=["invoice_layout"])
+        payload = render_invoice_pdf(self.invoice, self.company)
+        self.assertIn(b"/Image", payload)
+        from documents.pdf import _verify_url
+
+        self.assertEqual(
+            _verify_url(self.invoice),
+            "https://rrs-sandy.vercel.app/factures/verifier/"
+            f"{self.invoice.pk}/",
+        )
+
+    def test_public_verify_page_shows_the_invoice_without_login(self):
+        """La page publique atteinte par le QR affiche la facture deorigine."""
+        self.client.logout()
+        response = self.client.get(reverse("invoice_verify", args=[self.invoice.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Recherche de la facture en cours")
+        self.assertContains(response, "Vérification")
 
     def test_sheet_shows_invoice_lines(self):
         response = self.http.get(f"/factures/{self.invoice.id}/")

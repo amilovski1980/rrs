@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Vérification — {{ invoice_number }} · Road Runner Solutions</title>
+  <link rel="icon" type="image/png" href="/static/img/dark/favicon-48.png">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: Outfit, "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(700px 340px at 0% -10%, rgba(16, 185, 129, .12), transparent 55%),
+        radial-gradient(700px 340px at 100% 0%, rgba(122, 60, 255, .16), transparent 50%),
+        #070708;
+      color: #f6f6f4;
+      display: grid; place-items: center;
+      padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    .card {
+      width: min(420px, 100%);
+      background: #121214;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
+    }
+    .mark { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .mark img { width: 30px; height: 30px; border-radius: 8px; }
+    .mark span { font-weight: 700; font-size: 13.5px; letter-spacing: .2px; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .sub { margin: 0 0 16px; color: #a4a4ab; font-size: 12.5px; }
+    .rows { display: grid; gap: 8px; margin: 0 0 16px; }
+    .row {
+      display: flex; justify-content: space-between; gap: 12px;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 12px; padding: 10px 12px;
+      font-size: 13px;
+    }
+    .row small { color: #a4a4ab; }
+    .row b { text-align: right; overflow: hidden; text-overflow: ellipsis; }
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      background: rgba(52, 211, 153, .16); color: #5ee7a8;
+    }
+    .warn {
+      margin: 14px 0 0; padding: 10px 12px; border-radius: 12px;
+      background: rgba(255, 154, 26, .12); color: #ffc56b; font-size: 12px;
+    }
+    .spinner {
+      width: 46px; height: 46px; margin: 26px auto;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, .12);
+      border-top-color: #34d399;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .searching {
+      text-align: center; color: #a4a4ab; font-size: 13px; margin: 8px 0 0;
+    }
+    body.reveal .spinner, body.reveal .searching { display: none; }
+    body.reveal #content { display: block; }
+    #content { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">
+      <img src="/static/img/dark/mark.png" alt="">
+      <span>Road Runner Solutions — vérification d'origine</span>
+    </div>
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="searching" role="status">Recherche de la facture en cours…</p>
+    <div id="content">
+      <h1>{{ invoice_number }}</h1>
+      <p class="sub">Facture vérifiée · émise par {{ issued_company }}</p>
+      <div class="rows">
+        <div class="row"><small>Émetteur</small><b>{{ issued_company }} (SIREN {{ company_siren }})</b></div>
+        <div class="row"><small>Client</small><b>{{ client_name|default:"—" }}</b></div>
+        <div class="row"><small>Date d'émission</small><b>{{ created_at|date:"d/m/Y" }}</b></div>
+        <div class="row"><small>Montant TTC</small><b>{{ amount_ttc|floatformat:2 }} €</b></div>
+        <div class="row"><small>Payé / reste</small><b>{{ paid|floatformat:2 }} € / {{ remaining|floatformat:2 }} €</b></div>
+        <div class="row"><small>Statut</small><b><span class="badge">{{ status }}</span></b></div>
+      </div>
+      {% if status_code == "draft" %}
+      <p class="warn">Document encore en brouillon : il n'a pas encore été émis et n'a pas de valeur comptable.</p>
+      {% endif %}
+    </div>
+  </div>
+  <script>
+    /* Ouverture dynamique : l'animation "recherche en cours" est maintenue
+       environ 10 secondes, puis la facture vérifiée s'affiche. */
+    window.setTimeout(function () {
+      document.body.classList.add("reveal");
+    }, 10000);
+  </script>
+</body>
+</html>

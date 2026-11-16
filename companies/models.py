@@ -39,6 +39,8 @@ INVOICE_THEMES = [
     ("graphite", "Graphite"),
     ("indigo", "Indigo"),
     ("terra", "Terra"),
+    ("vert", "Vert"),
+    ("monochrome", "Noir & Blanc"),
 ]
 
 INVOICE_LAYOUTS = [
@@ -47,6 +49,10 @@ INVOICE_LAYOUTS = [
     ("imperial", "Noir & Or Impérial"),
     ("bordeaux", "Bordeaux & Champagne"),
     ("sapphire", "Saphir & Argent"),
+    ("classique", "Classique"),
+    ("minimal", "Minimal"),
+    ("moderne", "Moderne"),
+    ("compact", "Compact"),
 ]
 
 INVOICE_LAYOUT_CODES = tuple(code for code, _label in INVOICE_LAYOUTS)
