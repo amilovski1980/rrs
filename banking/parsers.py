@@ -114,26 +114,25 @@ def _cell(row, mapping, field) -> str:
     return (row[index] or "").strip()
 
 
-def parse_csv(data: bytes) -> list[ParsedTransaction]:
-    text = _decode(data)
-    if not text.strip():
-        raise BankParseError("Fichier vide.")
-    delimiter = _guess_delimiter(text)
+def _rows_from_text(text: str, delimiter: str = ",", first_rows: int = 15):
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
     rows = list(reader)
     mapping = None
     header_index = 0
-    for index, row in enumerate(rows[:15]):
+    for index, row in enumerate(rows[:first_rows]):
         mapping = _detect_columns(row)
         if mapping:
             header_index = index
             break
+    return mapping, rows, header_index
+
+
+def _transactions_from_rows(rows, mapping, header_index) -> list[ParsedTransaction]:
     if mapping is None:
         raise BankParseError(
-            "En-têtes CSV non reconnus. Colonnes attendues : date, libellé, "
+            "En-têtes non reconnus. Colonnes attendues : date, libellé, "
             "débit/crédit ou montant, référence."
         )
-
     transactions: list[ParsedTransaction] = []
     for row in rows[header_index + 1 :]:
         if not any((cell or "").strip() for cell in row):
@@ -168,8 +167,17 @@ def parse_csv(data: bytes) -> list[ParsedTransaction]:
         )
 
     if not transactions:
-        raise BankParseError("Aucune opération valide trouvée dans le CSV.")
+        raise BankParseError("Aucune opération valide trouvée dans le relevé.")
     return transactions
+
+
+def parse_csv(data: bytes) -> list[ParsedTransaction]:
+    text = _decode(data)
+    if not text.strip():
+        raise BankParseError("Fichier vide.")
+    delimiter = _guess_delimiter(text)
+    mapping, rows, header_index = _rows_from_text(text, delimiter)
+    return _transactions_from_rows(rows, mapping, header_index)
 
 
 def _ofx_field(block: str, tag: str) -> str:
@@ -597,10 +605,88 @@ def parse_pdf(data: bytes) -> list[ParsedTransaction]:
     return transactions
 
 
+def parse_xlsx(data: bytes) -> list[ParsedTransaction]:
+    """Relevé Excel (.xlsx) : la première feuille est convertie en lignes CSV
+    puis relue par le parseur CSV (détection d'en-têtes incluse)."""
+    try:
+        import openpyxl
+    except ImportError as exc:  # pragma: no cover
+        raise BankParseError(
+            "Lecture Excel indisponible sur ce déploiement (openpyxl manquant)."
+        ) from exc
+    lines: list[str] = []
+    try:
+        workbook = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        for sheet in workbook.worksheets:
+            for values in sheet.iter_rows(values_only=True):
+                cells = []
+                for value in values or ():
+                    if value is None:
+                        cells.append("")
+                    elif hasattr(value, "strftime"):
+                        cells.append(value.strftime("%d/%m/%Y"))
+                    elif isinstance(value, (int, float)):
+                        cells.append(f"{value}".replace(",", "."))
+                    else:
+                        cells.append(str(value).replace(";", ",").replace("\n", " ").strip())
+                if any(cell for cell in cells):
+                    lines.append(";".join(cells))
+        workbook.close()
+    except BankParseError:
+        raise
+    except Exception as exc:
+        raise BankParseError(f"Lecture du fichier Excel impossible : {exc}") from exc
+    text = "\n".join(lines)
+    if not text.strip():
+        raise BankParseError("Fichier Excel vide.")
+    mapping, rows, header_index = _rows_from_text(text, delimiter=";")
+    return _transactions_from_rows(rows, mapping, header_index)
+
+
+def parse_docx(data: bytes) -> list[ParsedTransaction]:
+    """Relevé Word (.docx) : les tableaux puis les paragraphes deviennent des
+    lignes CSV, relues par le parseur CSV (détection d'en-têtes incluse)."""
+    try:
+        import docx  # python-docx
+    except ImportError as exc:  # pragma: no cover
+        raise BankParseError(
+            "Lecture Word indisponible sur ce déploiement (python-docx manquant)."
+        ) from exc
+    lines: list[str] = []
+    try:
+        document = docx.Document(io.BytesIO(data))
+        for table in document.tables:
+            for row in table.rows:
+                cells = [
+                    cell.text.replace(";", ",").replace("\n", " ").strip()
+                    for cell in row.cells
+                ]
+                if any(cells):
+                    lines.append(";".join(cells))
+        if not lines:
+            for para in document.paragraphs:
+                text = para.text.strip()
+                if text:
+                    lines.append(text.replace(";", ","))
+    except BankParseError:
+        raise
+    except Exception as exc:
+        raise BankParseError(f"Lecture du fichier Word impossible : {exc}") from exc
+    text = "\n".join(lines)
+    if not text.strip():
+        raise BankParseError("Fichier Word vide ou sans tableau d'opérations.")
+    mapping, rows, header_index = _rows_from_text(text, delimiter=";")
+    return _transactions_from_rows(rows, mapping, header_index)
+
+
 def parse_statement(data: bytes, filename: str = "") -> tuple[str, list[ParsedTransaction]]:
     lower = (filename or "").lower()
     if lower.endswith(".pdf") or data[:1024].lstrip().startswith(b"%PDF"):
         return "pdf", parse_pdf(data)
+    if lower.endswith(".xlsx"):
+        return "xlsx", parse_xlsx(data)
+    if lower.endswith(".docx"):
+        return "docx", parse_docx(data)
     head = _decode(data[:2048]).upper()
     if lower.endswith((".ofx", ".qfx")) or "OFXHEADER" in head or "<STMTTRN>" in head:
         return "ofx", parse_ofx(data)

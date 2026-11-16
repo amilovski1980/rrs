@@ -16,7 +16,7 @@ from purchases.models import PurchaseInvoice, SupplierPayment
 
 from .forms import ImportStatementForm, TransactionEntryForm
 from .models import BankAccount, BankRule, BankTransaction
-from .parsers import parse_csv, parse_ofx, parse_pdf
+from .parsers import parse_csv, parse_docx, parse_ofx, parse_pdf, parse_xlsx
 from .services import (
     create_entry_from_transaction,
     import_statement,
@@ -141,6 +141,67 @@ class BankTestCase(TestCase):
         self.assertEqual(rows[0].label, "VIREMENT DUPONT")
         self.assertEqual(rows[1].amount, Decimal("-89.90"))
         self.assertEqual(rows[2].amount, Decimal("-12.50"))
+
+    def test_xlsx_statement_is_parsed(self):
+        import openpyxl
+
+        from io import BytesIO
+
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.append(["Date", "Libellé", "Débit", "Crédit"])
+        sheet.append([date(2026, 2, 1), "VIREMENT FOURNISSEUR", 250.5, None])
+        sheet.append([date(2026, 2, 3), "REMISE CLIENT", None, 1800])
+        buffer = BytesIO()
+        workbook.save(buffer)
+        rows = parse_xlsx(buffer.getvalue())
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].amount, Decimal("-250.50"))
+        self.assertEqual(rows[1].amount, Decimal("1800.00"))
+
+    def test_docx_table_statement_is_parsed(self):
+        import docx
+
+        from io import BytesIO
+
+        document = docx.Document()
+        table = document.add_table(rows=1, cols=4)
+        cells = table.rows[0].cells
+        cells[0].text = "Date"
+        cells[1].text = "Libellé"
+        cells[2].text = "Débit"
+        cells[3].text = "Crédit"
+        for values in (
+            ("03/02/2026", "PRLV ASSURANCE", "45,20", ""),
+            ("05/02/2026", "REMISE CHÈQUE", "", "320,00"),
+        ):
+            row = table.add_row()
+            for cell, value in zip(row.cells, values):
+                cell.text = value
+        buffer = BytesIO()
+        document.save(buffer)
+        rows = parse_docx(buffer.getvalue())
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].amount, Decimal("-45.20"))
+        self.assertEqual(rows[1].amount, Decimal("320.00"))
+
+    def test_multipage_pdf_keeps_every_page(self):
+        pdf = FPDF(format="A4", unit="mm")
+        for page_no in range(1, 4):
+            pdf.add_page()
+            pdf.set_font("Helvetica", size=9)
+            pdf.text(15, 20, "Date")
+            pdf.text(38, 20, "Libelle")
+            pdf.text(105, 20, "Debit")
+            pdf.text(135, 20, "Credit")
+            for i in range(3):
+                y = 30 + i * 7
+                pdf.text(15, y, f"1{page_no}/01/2026")
+                pdf.text(38, y, f"OPERATION {page_no}-{i}")
+                pdf.text(105, y, "10,00")
+        rows = parse_pdf(bytes(pdf.output()))
+        self.assertEqual(len(rows), 9)
+        self.assertEqual({row.date.day for row in rows}, {11, 12, 13})
 
     def test_pdf_import_is_idempotent_and_keeps_statement(self):
         first = import_statement(self.account, pdf_statement(), "releve.pdf")

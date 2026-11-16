@@ -466,7 +466,7 @@ def transcribe_with_agent(data: bytes, filename: str = "") -> str:
 def _pdf_page_images(reader) -> list[tuple[str, bytes]]:
     """Images incorporées dans un PDF (souvent une page scannée = une image)."""
     images: list[tuple[str, bytes]] = []
-    for page in reader.pages:
+    for page_index, page in enumerate(reader.pages[:16]):
         try:
             page_images = list(page.images)
         except Exception:
@@ -474,8 +474,13 @@ def _pdf_page_images(reader) -> list[tuple[str, bytes]]:
         for image in page_images[:4]:
             data = getattr(image, "data", b"") or b""
             if data:
-                images.append((getattr(image, "name", "") or "page.jpg", data))
-        if len(images) >= 8:
+                images.append(
+                    (
+                        getattr(image, "name", "") or f"page-{page_index + 1}.jpg",
+                        data,
+                    )
+                )
+        if len(images) >= 12:
             break
     return images
 
