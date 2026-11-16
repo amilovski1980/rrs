@@ -5076,3 +5076,28 @@ html[data-theme='dark'] .pwa-popup {
 html[data-theme='dark'] .pwa-popup-progress {
   background: rgba(255, 255, 255, .08);
 }
+
+
+/* ---- Popup de scan de ticket: centre, au-dessus de tout. ---- */
+.scan-popup-backdrop {
+  position: fixed; inset: 0; z-index: 130;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(7, 7, 8, .52);
+  -webkit-backdrop-filter: blur(6px) saturate(140%);
+  backdrop-filter: blur(6px) saturate(140%);
+}
+.scan-popup {
+  width: min(400px, 100%); padding: 20px 20px 14px;
+  border-radius: 22px; text-align: left;
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 40px 110px -30px rgba(0, 20, 50, .55);
+  animation: pwaPopupIn .28s var(--ease, ease) both;
+}
+.scan-popup .scan-head { margin-bottom: 12px; }
+.scan-popup .scan-text { max-height: 190px; margin-bottom: 4px; }
+.scan-popup .scan-foot { display: flex; justify-content: center; margin-top: 8px; min-height: 34px; }
+html[data-theme='dark'] .scan-popup {
+  background: #141416; color: var(--ink); border-color: var(--line);
+  box-shadow: 0 40px 110px -30px rgba(0, 0, 0, .85);
+}

@@ -1501,10 +1501,44 @@
     var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
     var csrfInput = form.querySelector("[name=csrfmiddlewaretoken]");
     var scanning = false;
+    var popup = null;
+
+    function scanPopupOf() {
+      if (popup) return popup;
+      popup = document.createElement("div");
+      popup.className = "scan-popup-backdrop";
+      popup.hidden = true;
+      popup.innerHTML =
+        '<div class="scan-popup" role="status" aria-label="Lecture du ticket">' +
+        '  <div class="scan-head">' +
+        '    <span class="scan-orb" aria-hidden="true"></span>' +
+        '    <b data-scan-label>L\'agent IA lit votre ticket…</b>' +
+        '    <span class="scan-pct" data-scan-pct>0 %</span>' +
+        '  </div>' +
+        '  <div class="scan-progress" role="progressbar" aria-label="Progression de la lecture">' +
+        '    <i data-scan-fill></i>' +
+        '  </div>' +
+        '  <pre class="scan-text" data-scan-text></pre>' +
+        '  <div class="scan-foot" data-scan-actions>' +
+        '    <button class="btn btn-ghost btn-sm" type="button" data-scan-close hidden>Fermer</button>' +
+        '  </div>' +
+        '</div>';
+      var slot = document.querySelector(".shell[data-app-shell]") || document.body;
+      slot.appendChild(popup);
+      var closeBtn = popup.querySelector("[data-scan-close]");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function () {
+          popup.hidden = true;
+          scanning = false;
+          scanUi(false);
+        });
+      }
+      return popup;
+    }
 
     function scanUi(show) {
-      var panel = form.querySelector("[data-ticket-skeleton]");
-      if (panel) panel.hidden = !show;
+      var box = show ? scanPopupOf() : popup;
+      if (box) box.hidden = !show;
       if (submitBtn) {
         submitBtn.disabled = show;
         submitBtn.setAttribute("aria-busy", show ? "true" : "false");
@@ -1553,10 +1587,11 @@
   }
 
   function paint(event) {
-      var fill = form.querySelector("[data-scan-fill]");
-      var label = form.querySelector("[data-scan-label]");
-      var pct = form.querySelector("[data-scan-pct]");
-      var text = form.querySelector("[data-scan-text]");
+      var box = popup || scanPopupOf();
+      var fill = box.querySelector("[data-scan-fill]");
+      var label = box.querySelector("[data-scan-label]");
+      var pct = box.querySelector("[data-scan-pct]");
+      var text = box.querySelector("[data-scan-text]");
       if (event.progress != null && fill) {
         fill.style.width = event.progress + "%";
       }
@@ -1579,12 +1614,15 @@
       }
       scanning = true;
       scanUi(true);
-      var fill = form.querySelector("[data-scan-fill]");
-      var label = form.querySelector("[data-scan-label]");
-      var pct = form.querySelector("[data-scan-pct]");
+      var box = scanPopupOf();
+      var fill = box.querySelector("[data-scan-fill]");
+      var label = box.querySelector("[data-scan-label]");
+      var pct = box.querySelector("[data-scan-pct]");
+      var closeBtn = box.querySelector("[data-scan-close]");
       if (fill) fill.style.width = "6%";
       if (label) label.textContent = "Optimisation de la photo…";
       if (pct) pct.textContent = "6 %";
+      if (closeBtn) closeBtn.hidden = true;
       compressImage(file).then(function (prepared) {
         var body = new FormData();
         body.append("fichier", prepared);
@@ -1616,11 +1654,14 @@
                   try { payload = JSON.parse(raw.slice(5).trim()); } catch (e) { return; }
                   paint(payload);
                   if (payload.stage === "fin" && payload.redirect) {
-                    window.location.href = payload.redirect;
+                    /* Le brouillon est pret : la popup reste un instant a l'ecran. */
+                    window.setTimeout(function () {
+                      window.location.href = payload.redirect;
+                    }, 900);
                   }
                   if (payload.stage === "erreur") {
                     scanning = false;
-                    window.setTimeout(function () { scanUi(false); }, 2500);
+                    if (closeBtn) closeBtn.hidden = false;
                   }
                 });
               });
@@ -1629,11 +1670,13 @@
           }
           return read().catch(function () {
             scanning = false;
+            scanUi(false);
             if (typeof form.requestSubmit === "function") form.requestSubmit();
             else form.submit();
           });
         }).catch(function () {
           scanning = false;
+          scanUi(false);
           if (typeof form.requestSubmit === "function") form.requestSubmit();
           else form.submit();
         });
