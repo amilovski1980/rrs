@@ -3,8 +3,10 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 from core import demo
+from core.pwa import serve_service_worker
 
 urlpatterns = [
+    path("sw.js", serve_service_worker, name="service_worker"),
     path("admin-backoffice/", include("admin_backoffice.urls", namespace="admin_backoffice")),
     path("admin/", admin.site.urls),
     path("", include("companies.urls")),      # cockpit + onboarding
