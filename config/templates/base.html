@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.30">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.31">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -386,13 +386,10 @@
         pill.setAttribute("data-pwa-install", "1");
         pill.setAttribute("aria-label", "Installer l'application Road Runner Solutions");
         pill.innerHTML =
-          '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' +
-          '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>' +
+          '<span class="pwa-pill-emoji" aria-hidden="true">📲</span>' +
           '<span>Installer l\'application</span>';
-        var slot =
-          document.querySelector(".top-actions") ||
-          document.querySelector(".m-header-right");
-        (slot || document.body).appendChild(pill);
+        var slot = document.querySelector(".shell[data-app-shell]") || document.body;
+        slot.appendChild(pill);
         pill.addEventListener("click", function () {
           if (!deferred) { pill.hidden = true; return; }
           deferred.prompt();
@@ -443,6 +440,7 @@
             banner.className = "pwa-ios-hint";
             banner.setAttribute("role", "status");
             banner.innerHTML =
+              '<span class="pwa-banner-emoji" aria-hidden="true">📲</span>' +
               '<span class="pwa-ios-hint-copy">Installez RRS sur votre écran ' +
               "d'accueil : <b>Partager</b> " +
               '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' +
