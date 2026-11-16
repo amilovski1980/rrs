@@ -430,6 +430,7 @@ class DocumentPDF(FPDF):
 # Briques de mise en page
 # ---------------------------------------------------------------------------
 def _logo(pdf: DocumentPDF, company, x, y, height, on_dark=False):
+    """Dessine le logo à la hauteur demandée et renvoie sa LARGEUR réelle (mm)."""
     if not company.logo:
         return 0
     try:
@@ -444,8 +445,14 @@ def _logo(pdf: DocumentPDF, company, x, y, height, on_dark=False):
                 round_corners=True,
                 corner_radius=1.5,
             )
+        from io import BytesIO
+
+        from PIL import Image
+
+        image = Image.open(BytesIO(bytes(company.logo)))
+        width = image.width * height / max(image.height, 1)
         pdf.image(BytesIO(bytes(company.logo)), x=x, y=y, h=height)
-        return height
+        return width
     except Exception:
         return 0
 
@@ -946,34 +953,35 @@ def _header_sapphire(pdf, company, kind, document):
 def _header_classique(pdf, company, kind, document):
     pdf.set_draw_color(*pdf.accent)
     pdf.set_line_width(0.8)
-    pdf.line(16, 30, 194, 30)
-    _logo(pdf, company, 16, 10, 10)
+    pdf.line(16, 32, 194, 32)
+    logo_w = _logo(pdf, company, 16, 8, 15)
+    text_x = 20 + logo_w
     pdf.set_text_color(*pdf.ink)
     pdf.set_font("DejaVu", size=13)
-    pdf.set_xy(31, 11)
-    pdf.cell(90, 6, _fit(pdf, company.denomination or "", 88, 13))
-    company_lines, _color = _company_lines(pdf, company, 88)
+    pdf.set_xy(text_x, 10)
+    pdf.cell(98, 6, _fit(pdf, company.denomination or "", 96, 13))
+    company_lines, _color = _company_lines(pdf, company, 96)
     pdf.set_text_color(*MUTED)
     pdf.set_font("DejaVu", size=7.4)
-    y = 18
+    y = 17
     for line in company_lines[:3]:
-        pdf.set_xy(31, y)
-        pdf.cell(88, 4, line)
+        pdf.set_xy(text_x, y)
+        pdf.cell(98, 4, line)
         y += 4
     pdf.set_text_color(*pdf.ink)
     pdf.set_font("DejaVu", size=20)
-    pdf.set_xy(120, 10)
+    pdf.set_xy(120, 12)
     pdf.cell(74, 8, pdf.kind_title, align="R")
     pdf.set_text_color(*MUTED)
     pdf.set_font("DejaVu", size=7.4)
-    pdf.set_xy(120, 19)
+    pdf.set_xy(120, 21)
     pdf.cell(74, 4, f"N° {document.number}", align="R")
-    _meta_block(pdf, document, kind, 120, 24, 74, MUTED, pdf.ink, pdf.line_color)
+    _meta_block(pdf, document, kind, 120, 26, 74, MUTED, pdf.ink, pdf.line_color)
     client_name, _siren, _address = _client_fields(document)
     _card(
         pdf,
         16,
-        36,
+        38,
         102,
         32,
         KIND_CLIENT_LABELS.get(kind, "FACTURÉ À"),
@@ -984,41 +992,44 @@ def _header_classique(pdf, company, kind, document):
         label_color=pdf.ink,
         name_color=pdf.ink,
     )
-    pdf.set_y(74)
+    pdf.set_y(76)
 
 
 def _header_minimal(pdf, company, kind, document):
+    logo_w = _logo(pdf, company, 16, 7, 14)
     pdf.set_draw_color(*pdf.ink)
     pdf.set_line_width(0.5)
-    pdf.line(16, 24, 194, 24)
+    pdf.line(16, 25, 194, 25)
     pdf.set_text_color(*pdf.ink)
     pdf.set_font("DejaVu", size=10)
-    pdf.set_xy(16, 10)
+    pdf.set_xy(20 + logo_w, 10)
     pdf.cell(104, 5, (company.denomination or "").upper())
     pdf.set_font("DejaVu", size=9)
-    pdf.set_xy(120, 9)
+    pdf.set_xy(120, 10)
     pdf.cell(74, 5, pdf.kind_title, align="R")
     pdf.set_text_color(*MUTED)
     pdf.set_font("DejaVu", size=7.4)
-    pdf.set_xy(120, 15)
+    pdf.set_xy(120, 16)
     pdf.cell(74, 4, f"N° {document.number}", align="R")
-    _meta_block(pdf, document, kind, 16, 26, 178, MUTED, pdf.ink, pdf.line_color)
-    pdf.set_y(38)
+    _meta_block(pdf, document, kind, 16, 27, 178, MUTED, pdf.ink, pdf.line_color)
+    pdf.set_y(39)
 
 
 def _header_moderne(pdf, company, kind, document):
     pdf.set_fill_color(*pdf.accent)
     pdf.rect(0, 0, 3.2, 120, "F")
+    logo_w = _logo(pdf, company, 13, 8, 16)
+    text_x = 18 + logo_w
     pdf.set_text_color(*pdf.ink)
     pdf.set_font("DejaVu", size=12)
-    pdf.set_xy(14, 10)
+    pdf.set_xy(text_x, 10)
     pdf.cell(96, 6, _fit(pdf, company.denomination or "", 94, 12))
     company_lines, _color = _company_lines(pdf, company, 94)
     pdf.set_text_color(*MUTED)
     pdf.set_font("DejaVu", size=7.2)
     y = 17
     for line in company_lines[:3]:
-        pdf.set_xy(14, y)
+        pdf.set_xy(text_x, y)
         pdf.cell(96, 4, line)
         y += 4
     pdf.set_text_color(*pdf.ink)
@@ -1034,7 +1045,7 @@ def _header_moderne(pdf, company, kind, document):
     _card(
         pdf,
         14,
-        34,
+        36,
         96,
         28,
         KIND_CLIENT_LABELS.get(kind, "FACTURÉ À"),
@@ -1045,33 +1056,33 @@ def _header_moderne(pdf, company, kind, document):
         label_color=pdf.ink,
         name_color=pdf.ink,
     )
-    pdf.set_y(66)
+    pdf.set_y(68)
 
 
 def _header_compact(pdf, company, kind, document):
     pdf.set_fill_color(*pdf.ink)
     pdf.rect(0, 0, 210, 3.4, "F")
     pdf.set_fill_color(*pdf.soft)
-    pdf.rect(0, 3.4, 210, 26, "F")
-    _logo(pdf, company, 16, 8, 9)
+    pdf.rect(0, 3.4, 210, 30, "F")
+    logo_w = _logo(pdf, company, 16, 7, 13)
     pdf.set_text_color(*pdf.ink)
     pdf.set_font("DejaVu", size=11.5)
-    pdf.set_xy(28, 9)
+    pdf.set_xy(22 + logo_w, 9)
     pdf.cell(80, 5.5, _fit(pdf, company.denomination or "", 78, 11.5))
     company_lines, _color = _company_lines(pdf, company, 80)
     pdf.set_text_color(*MUTED)
     pdf.set_font("DejaVu", size=6.9)
     y = 15
     for line in company_lines[:2]:
-        pdf.set_xy(28, y)
+        pdf.set_xy(22 + logo_w, y)
         pdf.cell(80, 3.6, line)
         y += 3.6
     pdf.set_text_color(*pdf.accent)
     pdf.set_font("DejaVu", size=14)
-    pdf.set_xy(118, 9)
+    pdf.set_xy(118, 10)
     pdf.cell(76, 6, pdf.kind_title, align="R")
-    _meta_block(pdf, document, kind, 118, 16, 76, MUTED, pdf.ink, pdf.line_color)
-    pdf.set_y(34)
+    _meta_block(pdf, document, kind, 118, 17, 76, MUTED, pdf.ink, pdf.line_color)
+    pdf.set_y(38)
 
 
 def _verify_url(document) -> str:
