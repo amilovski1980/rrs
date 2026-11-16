@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.33">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.34">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -315,6 +315,16 @@
       </div>
     </header>
     <main class="content">
+    {% if top_company and deadline_alert %}
+    <div class="deadline-strip" role="status">
+      <span class="deadline-strip-ico" aria-hidden="true">⏰</span>
+      <span class="deadline-strip-copy">
+        <b>{{ deadline_alert.label }}</b>
+        — {{ deadline_alert.date|date:"d/m/Y" }} (dans {{ deadline_alert.days }} j)
+      </span>
+      <a class="deadline-strip-link" href="{% url 'cockpit' %}?societe={{ top_company.id }}">Voir</a>
+    </div>
+    {% endif %}
       {% if request.session.demo_mode %}
       <div class="demo-readonly-banner" role="alert">
         <b>Mode démo</b> — lecture seule. Aucune modification n'est enregistrée.

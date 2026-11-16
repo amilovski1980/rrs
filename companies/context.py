@@ -18,4 +18,26 @@ def company_switcher(request):
     return {
         "top_companies": companies,
         "top_company": resolve_company(request),
+        "deadline_alert": deadline_alert(resolve_company(request)),
     }
+
+
+def deadline_alert(company):
+    """Première échéance à moins de 14 jours, pour le bandeau du shell."""
+    if company is None:
+        return None
+    try:
+        from .deadlines import upcoming
+
+        items = upcoming(company, count=3)
+    except Exception:
+        return None
+    for item in items:
+        if item.get("urgent"):
+            return {
+                "label": item["label"],
+                "date": item["date"],
+                "days": item["days"],
+                "kind": item.get("kind", ""),
+            }
+    return None
