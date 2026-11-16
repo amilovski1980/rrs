@@ -5225,3 +5225,22 @@ html[data-theme='dark'] .scan-popup .scan-text {
     max-width: 100% !important;
   }
 }
+
+
+/* ---- Densite mobile : cartes et pages plus compactes (gagne sur tout). ---- */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    gap: 12px !important;
+    padding: 12px 0 !important;
+  }
+  .stat-card {
+    padding: 16px 14px !important;
+  }
+  .legal-doc {
+    padding: 18px 16px !important;
+  }
+  .ticket-upload-form {
+    padding: 16px 14px !important;
+  }
+  .scan-popup, .pwa-popup { padding: 16px 16px 14px; }
+}
