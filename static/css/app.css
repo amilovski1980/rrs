@@ -2905,47 +2905,63 @@ label.ticket-camera-btn.btn-primary:hover {
   .form-actions-bar .btn-primary { flex: 2 1 auto; }
 
   .ticket-filters {
-    padding: 24px !important;
+    padding: 14px 14px 12px !important;
     background: var(--surface) !important;
-    border-radius: var(--radius-lg) !important;
+    border-radius: 16px !important;
   }
   .ticket-filters .form-grid {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    gap: 32px !important;
-    align-items: flex-end !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 10px !important;
+    align-items: end !important;
   }
   .ticket-filters .form-grid > div {
     display: flex !important;
     flex-direction: column !important;
-    gap: 10px !important;
-    flex: 0 1 220px !important;
+    gap: 5px !important;
   }
   .ticket-filters label {
-    font-size: 0.85rem !important;
-    font-weight: 500 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: .02em;
     color: var(--muted) !important;
     margin-bottom: 2px !important;
   }
-  .ticket-filters input, 
+  .ticket-filters input,
   .ticket-filters select {
     width: 100% !important;
-    padding: 10px 14px !important;
+    min-height: 42px !important;
+    padding: 8px 10px !important;
     border: 1px solid var(--line-2) !important;
-    border-radius: var(--radius) !important;
-    font-size: 15px !important;
+    border-radius: 11px !important;
+    font-size: 14px !important;
     transition: all 0.2s ease !important;
   }
-  .ticket-filters input:focus, 
+  .ticket-filters input:focus,
   .ticket-filters select:focus {
     border-color: var(--blue-2) !important;
     box-shadow: 0 0 0 3px rgba(37, 99, 235,0.1) !important;
     outline: none !important;
   }
+  /* Le statut se place sous la categorie ; boutons en ligne : Filtrer large
+     + Reinitialiser compact, une seule rangee. */
   .ticket-filters .form-grid > .tf-span,
   .ticket-filters .form-grid > div:nth-child(5) {
-    flex: 1 1 100% !important;
+    grid-column: 1 / -1;
+  }
+  .ticket-filters .ticket-filter-actions {
+    margin-top: 12px !important;
+    display: flex !important;
+    gap: 10px !important;
+  }
+  .ticket-filters .ticket-filter-actions .btn {
+    min-height: 46px; margin: 0;
+  }
+  .ticket-filters .ticket-filter-actions .btn-primary {
+    flex: 2 1 auto;
+  }
+  .ticket-filters .ticket-filter-actions .btn-ghost {
+    flex: 1 1 auto;
   }
 
   /* page-actions — pleine largeur au-dessus du footer ; menu VERS LE HAUT */
