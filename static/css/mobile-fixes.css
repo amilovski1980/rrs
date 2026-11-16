@@ -573,3 +573,18 @@
   }
 }
 
+/* Wizard d'ajout de société : la carte officielle ne doit pas imposer sa
+   largeur (tableau INSEE) ; la grille se resserre et le tableau défile. */
+@media (max-width: 768px) {
+  .grid.g2 > * {
+    min-width: 0;
+  }
+
+  .grid.g2 .card table,
+  .grid.g2 .card .table-wrap {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+

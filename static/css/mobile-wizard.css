@@ -6,6 +6,29 @@
   display: contents;
 }
 
+/* Rail de progression statique, hors formulaire (recherche de société). */
+.wizard-stage-rail {
+  display: block; margin: 0 0 16px;
+}
+.wizard-stage-rail .wizard-head-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 8px;
+}
+.wizard-stage-rail .wizard-kicker {
+  text-transform: uppercase; letter-spacing: .06em;
+  font-size: 11px; font-weight: 800; color: var(--muted);
+}
+.wizard-stage-rail .wizard-label {
+  font-size: 15px; font-weight: 800; color: var(--ink);
+}
+.wizard-stage-rail .wizard-track {
+  height: 6px; min-width: 220px; max-width: 420px;
+}
+.wizard-stage-rail .wizard-track i {
+  display: block; width: 0; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4f8dff);
+}
+
 /* La barre d'étapes n'existe que lorsque le JS a activé le mode mobile. */
 .wizard-head,
 .wizard-nav {
