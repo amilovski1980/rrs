@@ -103,3 +103,18 @@ def upcoming(company, today: date | None = None, count: int = 5) -> list[dict]:
         if len(result) >= count:
             break
     return result
+
+
+def upcoming_all(
+    companies, today: date | None = None, per_company: int = 2, count: int = 8
+) -> list[dict]:
+    """Échéances rapprochées de plusieurs sociétés, mélangées triées par date."""
+    today = today or timezone.localdate()
+    merged: list[tuple[date, dict]] = []
+    for company in companies:
+        for item in upcoming(company, today=today, count=per_company):
+            item = dict(item)
+            item["company"] = company
+            merged.append((item["date"], item))
+    merged.sort(key=lambda row: row[0])
+    return [item for _, item in merged[:count]]

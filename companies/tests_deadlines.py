@@ -64,3 +64,49 @@ class DeadlinesTests(TestCase):
         today = date(2026, 11, 16)
         items = upcoming(company, today=today)
         self.assertTrue(all(i["date"] >= today for i in items))
+
+
+class UpcomingAllTests(TestCase):
+    def setUp(self):
+        from companies.deadlines import upcoming_all
+        from companies.models import Company
+        from django.contrib.auth import get_user_model
+
+        self.upcoming_all = upcoming_all
+        self.Company = Company
+        self.user = get_user_model().objects.create_user("global@exemple.fr")
+
+    def _company(self, denomination, tva="reel", exercice_debut=date(2025, 6, 1)):
+        import hashlib
+
+        suffix = hashlib.sha1(denomination.encode()).hexdigest()[:8]
+        siren = str(int(suffix, 16) % 900000000 + 100000000)[:9]
+        return self.Company.objects.create(
+            owner=self.user,
+            siren=siren[:9],
+            denomination=denomination,
+            forme="SARL",
+            regime="reel_simple",
+            tva=tva,
+            exercice_debut=exercice_debut,
+        )
+
+    def test_merges_and_orders_companies(self):
+        today = date(2026, 11, 16)
+        alpha = self._company("Alpha SARL", exercice_debut=date(2025, 12, 10))
+        beta = self._company("Beta SAS", tva="franchise", exercice_debut=date(2025, 3, 20))
+        items = self.upcoming_all([alpha, beta], today=today)
+        dates = [i["date"] for i in items]
+        self.assertEqual(dates, sorted(dates))
+        self.assertTrue(all(i["date"] >= today for i in items))
+        # au moins une ligne par société
+        names = {i["company"].denomination for i in items}
+        self.assertIn("Alpha SARL", names)
+        self.assertIn("Beta SAS", names)
+
+    def test_cap_limits_rows(self):
+        today = date(2026, 11, 16)
+        alpha = self._company("Alpha SARL", exercice_debut=date(2025, 12, 10))
+        beta = self._company("Beta SAS", tva="franchise", exercice_debut=date(2025, 3, 20))
+        items = self.upcoming_all([alpha, beta], today=today, per_company=1, count=2)
+        self.assertEqual(len(items), 2)
