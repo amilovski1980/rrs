@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.28">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.29">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -418,7 +418,51 @@
       window.addEventListener("appinstalled", function () {
         deferred = null;
         if (pill) pill.hidden = true;
+        try { localStorage.setItem("rrs-install-hint", "done"); } catch (e) {}
       });
+
+      /* iOS : Safari ne déclenche jamais beforeinstallprompt. Une bannière
+         discrète montre le chemin (Partager → Sur l'écran d'accueil),
+         une seule fois, cachée si l'app est déjà installée. */
+      var isIOSLike =
+        /iphone|ipad|ipod/i.test(navigator.userAgent || "") ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var isStandalone =
+        (window.matchMedia &&
+          window.matchMedia("(display-mode: standalone)").matches) ||
+        window.navigator.standalone === true;
+      if (isIOSLike && !isStandalone && !deferred) {
+        var hintSeen = null;
+        try { hintSeen = localStorage.getItem("rrs-install-hint"); } catch (e) {}
+        if (hintSeen !== "seen" && hintSeen !== "done") {
+          var banner = null;
+          function bannerOf() {
+            if (banner) return banner;
+            banner = document.createElement("div");
+            banner.className = "pwa-ios-hint";
+            banner.setAttribute("role", "status");
+            banner.innerHTML =
+              '<span class="pwa-ios-hint-copy">Installez RRS sur votre écran ' +
+              "d'accueil : <b>Partager</b> " +
+              '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path d="M12 3v12M8 7l4-4 4 4M9 21h6"/></svg> puis ' +
+              "<b>Sur l'écran d'accueil</b></span>" +
+              '<button class="pwa-ios-hint-close" type="button" aria-label="Fermer l\'invite d\'installation">×</button>';
+            var slot = document.querySelector(".shell[data-app-shell]") || document.body;
+            slot.appendChild(banner);
+            banner
+              .querySelector(".pwa-ios-hint-close")
+              .addEventListener("click", function () {
+                banner.hidden = true;
+                try { localStorage.setItem("rrs-install-hint", "seen"); } catch (e) {}
+              });
+            return banner;
+          }
+          setTimeout(function () {
+            bannerOf().hidden = false;
+          }, 2400);
+        }
+      }
     })();
   </script>
   {% block scripts %}{% endblock %}
