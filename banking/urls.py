@@ -12,6 +12,7 @@ urlpatterns = [
     path("comptes/<uuid:pk>/modifier/", views.account_edit, name="account_edit"),
     path("import/", views.statement_import, name="import"),
     path("transactions/", views.transaction_list, name="transactions"),
+    path("transactions/bulk/", views.transaction_bulk, name="transaction_bulk"),
     path("transactions/<uuid:pk>/", views.transaction_detail, name="transaction_detail"),
     path("transactions/<uuid:pk>/rapprocher/", views.transaction_match, name="transaction_match"),
     path("transactions/<uuid:pk>/creer-ecriture/", views.transaction_create_entry, name="transaction_entry"),

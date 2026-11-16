@@ -36,45 +36,156 @@
         {% endfor %}
       </select>
     </div>
+    <div class="form-grid">
+      <div>
+        <label for="du">Date du</label>
+        <input type="date" id="du" name="du" value="{{ date_from }}">
+      </div>
+      <div>
+        <label for="au">Au</label>
+        <input type="date" id="au" name="au" value="{{ date_to }}">
+      </div>
+    </div>
+    <div>
+      <label for="pp">Par page</label>
+      <select id="pp" name="par_page" onchange="this.form.submit()">
+        <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        <option value="200" {% if per_page == 200 %}selected{% endif %}>200</option>
+      </select>
+    </div>
     <div style="display:flex;align-items:flex-end">
       <button class="btn btn-ghost" type="submit">Filtrer</button>
     </div>
   </div>
 </form>
 
-<div class="card card-tight">
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Date</th><th>Compte</th><th>Libellé</th><th>Tiers</th><th class="num">Montant</th><th>État</th><th></th></tr></thead>
-      <tbody>
-        {% for transaction in transactions %}
-        <tr>
-          <td>{{ transaction.date|date:"d/m/Y" }}</td>
-          <td>{{ transaction.account.label }}</td>
-          <td>{{ transaction.label|truncatechars:55 }}</td>
-          <td>{{ transaction.counterparty|default:"—"|truncatechars:30 }}</td>
-          <td class="num">{{ transaction.amount|floatformat:2 }} €</td>
-          <td>
-            {% if transaction.status == "matched" %}<span class="badge badge-green">Rapproché</span>
-            {% elif transaction.status == "ignored" %}<span class="badge">Ignoré</span>
-            {% else %}<span class="badge badge-blue">À rapprocher</span>{% endif %}
-          </td>
-          <td>
-            <div class="bank-row-actions">
-              <a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a>
-              <form method="post" action="{% url 'banking:transaction_delete' transaction.pk %}?societe={{ company.id }}" onsubmit="return confirm('Supprimer cette opération importée ? L\'écriture comptable liée, si elle existe, sera conservée.');">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button class="btn btn-ghost btn-sm" type="submit">Supprimer</button>
-              </form>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="7" class="empty">Aucune opération.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="card" style="padding:12px 16px;margin-bottom:14px">
+  <span class="micro">État des opérations affichées{% if date_from or date_to %} · du {{ date_from|date:"d/m/Y" }} au {{ date_to|date:"d/m/Y" }}{% endif %}</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+    {% for code, entry in state_totals.items %}
+    <a class="badge badge-blue" href="?societe={{ company.id }}{% if query %}&q={{ query }}{% endif %}{% if account_id %}&compte={{ account_id }}{% endif %}{% if date_from %}&du={{ date_from }}{% endif %}{% if date_to %}&au={{ date_to }}{% endif %}&statut={{ code }}">
+      {{ entry.label }} · {{ entry.count }} · {{ entry.amount|floatformat:2 }} €
+    </a>
+    {% empty %}
+    <span class="badge">Aucune opération affichée</span>
+    {% endfor %}
+    <span class="badge badge-green">Solde net de la sélection : {{ matched_total|floatformat:2 }} €</span>
   </div>
 </div>
+
+<form method="post" action="{% url 'banking:transaction_bulk' %}?societe={{ company.id }}" data-bulk-form>
+  {% csrf_token %}
+  <div class="card card-tight">
+    <div class="card-head" style="gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" data-bulk-select-all style="width:16px;height:16px">
+        <b style="font-size:13px">Tout sélectionner</b>
+        <span class="micro" data-bulk-count hidden></span>
+      </div>
+      <div class="bank-bulk-actions" style="display:flex;gap:8px" hidden>
+        <button class="btn btn-ghost btn-sm" type="submit" name="action" value="ignore">Ignorer la sélection</button>
+        <button class="btn btn-primary btn-sm" type="submit" name="action" value="restore">Rétablir les ignorées</button>
+        <button class="btn btn-danger btn-sm" type="submit" name="action" value="delete"
+                onclick="return confirm('Supprimer définitivement les opérations sélectionnées ?');">
+          Supprimer la sélection
+        </button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:34px"><span class="sr-only">Sélection</span></th>
+          <th>Date</th><th>Compte</th><th>Libellé</th><th>Tiers</th>
+          <th class="num">Montant</th><th>État</th><th></th>
+        </tr></thead>
+        <tbody>
+          {% for transaction in page_items %}
+          <tr>
+            <td><input type="checkbox" name="ids" value="{{ transaction.pk }}" data-bulk-check style="width:16px;height:16px"></td>
+            <td style="white-space:nowrap">{{ transaction.date|date:"d/m/Y" }}</td>
+            <td>{{ transaction.account.label|truncatechars:16 }}</td>
+            <td>{{ transaction.label|truncatechars:55 }}</td>
+            <td>{{ transaction.counterparty|default:"—"|truncatechars:26 }}</td>
+            <td class="num">{{ transaction.amount|floatformat:2 }} €</td>
+            <td>
+              {% if transaction.status == "matched" %}<span class="badge badge-green">Rapproché</span>
+              {% elif transaction.status == "ignored" %}<span class="badge">Ignoré</span>
+              {% elif transaction.status == "draft" %}<span class="badge badge-blue">Brouillon</span>
+              {% else %}<span class="badge badge-blue">À rapprocher</span>{% endif %}
+            </td>
+            <td>
+              <div class="bank-row-actions">
+                <a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_detail' transaction.pk %}?societe={{ company.id }}">Ouvrir</a>
+                <a class="btn btn-ghost btn-sm" href="{% url 'banking:transaction_entry' transaction.pk %}?societe={{ company.id }}">Corriger</a>
+                <button class="btn btn-ghost btn-sm" type="button" data-row-delete
+                        data-url="{% url 'banking:transaction_delete' transaction.pk %}?societe={{ company.id }}">Supprimer</button>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="empty">Aucune opération pour ces filtres.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</form>
+
+{% if transactions.paginator.num_pages > 1 %}
+<nav style="display:flex;align-items:center;gap:12px;justify-content:center;margin:16px 0;flex-wrap:wrap">
+  <span class="micro">{{ transactions.paginator.count }} opération(s) au total</span>
+  <div style="display:flex;gap:6px">
+    {% if transactions.has_previous %}
+    <a class="btn btn-ghost btn-sm" href="{{ base_url }}page={{ transactions.previous_page_number }}">←</a>
+    {% endif %}
+    <span class="badge">{{ transactions.number }} / {{ transactions.paginator.num_pages }}</span>
+    {% if transactions.has_next %}
+    <a class="btn btn-ghost btn-sm" href="{{ base_url }}page={{ transactions.next_page_number }}">→</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+
+<script>
+  (function () {
+    "use strict";
+    var form = document.querySelector("[data-bulk-form]");
+    if (!form) return;
+    var checks = form.querySelectorAll("[data-bulk-check]");
+    var selectAll = form.querySelector("[data-bulk-select-all]");
+    var actions = form.querySelector(".bank-bulk-actions");
+    var count = form.querySelector("[data-bulk-count]");
+    function refresh() {
+      var selected = 0;
+      checks.forEach(function (check) { if (check.checked) selected += 1; });
+      if (actions) actions.hidden = selected === 0;
+      if (count) {
+        count.textContent = selected ? selected + " sélectionnée(s)" : "";
+        count.hidden = !selected;
+      }
+      if (selectAll) selectAll.checked = selected === checks.length && selected > 0;
+    }
+    if (selectAll) {
+      selectAll.addEventListener("change", function () {
+        checks.forEach(function (check) { check.checked = selectAll.checked; });
+        refresh();
+      });
+    }
+    checks.forEach(function (check) { check.addEventListener("change", refresh); });
+    refresh();
+    var csrfInput = form.querySelector("[name=csrfmiddlewaretoken]");
+    document.querySelectorAll("[data-row-delete]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (!window.confirm("Supprimer cette opération importée ? L'écriture comptable liée, si elle existe, sera conservée.")) return;
+        fetch(button.dataset.url, {
+          method: "POST",
+          headers: csrfInput ? { "X-CSRFToken": csrfInput.value } : {},
+          body: ""
+        }).then(function () { window.location.reload(); });
+      });
+    });
+  })();
+</script>
 {% endblock %}

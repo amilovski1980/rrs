@@ -184,6 +184,10 @@ def statement_import(request):
 
 @login_required
 def transaction_list(request):
+    """Opérations bancaires : filtres, pagination, totaux par état affiché."""
+    from django.core.paginator import Paginator
+    from django.db.models import Q, Sum
+
     company, bounce = _company_or_redirect(request)
     if bounce:
         return bounce
@@ -193,31 +197,108 @@ def transaction_list(request):
     status = (request.GET.get("statut") or "").strip()
     account_id = (request.GET.get("compte") or "").strip()
     query = (request.GET.get("q") or "").strip()
+    date_from = (request.GET.get("du") or "").strip()
+    date_to = (request.GET.get("au") or "").strip()
+    try:
+        per_page = int(request.GET.get("par_page") or 25)
+    except (TypeError, ValueError):
+        per_page = 25
+    if per_page not in (25, 50, 100, 200):
+        per_page = 25
     if status:
         queryset = queryset.filter(status=status)
     if account_id:
         queryset = queryset.filter(account_id=account_id)
     if query:
-        from django.db.models import Q
-
         queryset = queryset.filter(
             Q(label__icontains=query)
             | Q(counterparty__icontains=query)
             | Q(reference__icontains=query)
         )
+    if date_from:
+        try:
+            from datetime import datetime
+
+            queryset = queryset.filter(
+                date__gte=datetime.strptime(date_from, "%Y-%m-%d").date()
+            )
+        except ValueError:
+            date_from = ""
+    if date_to:
+        try:
+            from datetime import datetime
+
+            queryset = queryset.filter(
+                date__lte=datetime.strptime(date_to, "%Y-%m-%d").date()
+            )
+        except ValueError:
+            date_to = ""
+
+    matched_total = (
+        queryset.aggregate(matched=Sum("amount"))["matched"] or Decimal("0.00")
+    )
+    paginator = Paginator(queryset, per_page)
+    page_items = list(paginator.get_page(request.GET.get("page") or "1").object_list)
+
+    status_by_code = dict(BankTransaction.STATUSES)
+    state_totals = {}
+    for transaction in page_items:
+        code = transaction.status or "unmatched"
+        entry = state_totals.setdefault(
+            code, {"label": status_by_code.get(code, code), "count": 0, "amount": Decimal("0.00")}
+        )
+        entry["count"] += 1
+        entry["amount"] += transaction.amount
+
+    params = request.GET.copy()
+    params.pop("page", None)
+    base_url = request.path + "?" + params.urlencode() + "&"
+
     return render(
         request,
         "banking/transactions.html",
         {
             "company": company,
             "transactions": queryset,
+            "page_items": page_items,
             "status": status,
             "account_id": account_id,
             "query": query,
+            "date_from": date_from,
+            "date_to": date_to,
+            "per_page": per_page,
+            "state_totals": state_totals,
+            "matched_total": matched_total,
+            "base_url": base_url,
             "accounts": company.bank_accounts.all(),
             "statuses": BankTransaction.STATUSES,
         },
     )
+
+
+@login_required
+@require_POST
+def transaction_bulk(request):
+    """Actions de masse sur les opérations sélectionnées."""
+    from django.http import JsonResponse
+
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return JsonResponse({"error": "Aucune société."}, status=403)
+    action = (request.POST.get("action") or "").strip()
+    ids = [pk for pk in request.POST.getlist("ids") if pk]
+    if not ids:
+        return JsonResponse({"error": "Aucune opération sélectionnée."}, status=400)
+    queryset = BankTransaction.objects.filter(company=company, pk__in=ids)
+    if action == "ignore":
+        updated = queryset.exclude(status="ignored").update(status="ignored")
+    elif action == "restore":
+        updated = queryset.filter(status="ignored").update(status="unmatched")
+    elif action == "delete":
+        updated = queryset.delete()[1].get("banking.BankTransaction", 0)
+    else:
+        return JsonResponse({"error": "Action inconnue."}, status=400)
+    return JsonResponse({"ok": True, "affected": updated})
 
 
 @login_required
