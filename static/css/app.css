@@ -1548,6 +1548,21 @@ html[data-theme="dark"] .bank-item-amount.is-pos { color: #34d399; }
 .company-active .m-company-logo { width: 28px; height: 28px; border-radius: 9px; }
 .company-active .company-switch-btn { width: 28px; height: 28px; font-size: 13px; }
 
+/* Apparence : cartes modèles à gauche, aperçu desktop à droite, dans la même grille. */
+.apparence-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 20px;
+  align-items: start;
+}
+.apparence-cards { min-width: 0; }
+.apparence-preview { min-width: 0; }
+.apparence-preview .sheet-stage { margin: 0; }
+.apparence-preview .settings-sheet-preview .sheet { width: 100%; transform-origin: top left; }
+@media (max-width: 1000px) {
+  .apparence-layout { grid-template-columns: 1fr; }
+}
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;

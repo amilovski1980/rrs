@@ -212,6 +212,8 @@
     <details class="form-section settings-picker-section" data-mobile-collapse open>
       <summary class="form-header">Modèle et couleur de facture <span class="form-header-hint">Aperçu et PDF</span></summary>
       <div class="form-section-body">
+    <div class="apparence-layout">
+    <div class="apparence-cards">
     <h2 style="margin:0 0 12px;font-size:18px">Modèle de facture</h2>
     <div class="model-grid">
       <form method="post" class="model-pick">
@@ -276,20 +278,19 @@
       {% endfor %}
     </div>
       <p class="micro" data-style-status role="status" aria-live="polite"></p>
+      </div>{# /apparence-cards #}
+    <aside class="apparence-preview">
+      <h2 style="margin:0 0 12px;font-size:18px">Aperçu</h2>
+      <section class="sheet-stage settings-sheet-preview">
+        {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
+      </section>
+      <p class="micro" style="margin:10px 0 0">Version desktop — même rendu que le PDF exporté, avec le modèle et la couleur sélectionnés.</p>
+    </aside>
+    </div>{# /apparence-layout #}
       </div>
     </details>
   </div>
 </div>
-
-<details class="form-section settings-preview-section" data-mobile-collapse open>
-  <summary class="form-header">Aperçu de la facture <span class="form-header-hint">Modèle et couleur sélectionnés</span></summary>
-  <div class="form-section-body">
-    <p class="sub" style="margin:0">L'aperçu utilise le même modèle et les mêmes couleurs que le PDF exporté.</p>
-    <section class="sheet-stage settings-sheet-preview">
-      {% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}
-    </section>
-  </div>
-</details>
 
 <section class="card settings-danger">
   <h2>Supprimer la société</h2>
