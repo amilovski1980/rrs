@@ -12,20 +12,7 @@
   /* Aperçu miniature : la feuille entière est réduite à la largeur de la
      carte (références A4 conservées, transition douce). */
   function fitPreviewSheets(force) {
-    document.querySelectorAll("[data-sheet-fitter]").forEach(function (stage) {
-      var scale = stage.querySelector(".sheet-scale");
-      var sheet = stage.querySelector(".sheet");
-      if (!scale || !sheet) return;
-      if (force) sheet.style.transform = "none";
-      var naturalWidth = sheet.offsetWidth;
-      var naturalHeight = sheet.offsetHeight;
-      if (!naturalWidth || !naturalHeight) return;
-      var available = stage.clientWidth - 12;
-      var ratio = Math.min(1, available / naturalWidth);
-      scale.style.transform = "scale(" + ratio + ")";
-      stage.style.height = naturalHeight * ratio + 12 + "px";
-      stage.style.width = "100%";
-    });
+    return;
   }
   var fitTimer = null;
   window.addEventListener("resize", function () {
@@ -116,10 +103,6 @@
 
   function init() {
     document.querySelectorAll("form.model-pick").forEach(intercept);
-    fitPreviewSheets(false);
-    window.addEventListener("load", function () {
-      window.setTimeout(function () { fitPreviewSheets(false); }, 250);
-    });
   }
 
   if (document.readyState === "loading") {

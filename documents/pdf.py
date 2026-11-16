@@ -1161,16 +1161,35 @@ def render_credit_note_pdf(credit_note, company) -> bytes:
 def first_page_png(payload: bytes, zoom: float = 1.6) -> bytes:
     """Rend la première page du PDF en PNG, pour un aperçu fidèle à l'export."""
     try:
-        import pymupdf as fitz
-    except ImportError:  # compatibilité anciennes installations
-        import fitz
-    document = fitz.open(stream=payload, filetype="pdf")
+        import pypdfium2 as pdfium
+    except ImportError:
+        try:
+            import pymupdf as fitz
+        except ImportError:  # compatibilitéanciennes installations
+            import fitz
+        document = fitz.open(stream=payload, filetype="pdf")
+        try:
+            page = document.load_page(0)
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+            return pixmap.tobytes("png")
+        finally:
+            document.close()
+    document = pdfium.PdfDocument(payload)
     try:
-        page = document.load_page(0)
-        pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
-        return pixmap.tobytes("png")
+        page = document[0]
+        bitmap = page.render(scale=zoom)
+        return _pil_to_png(bitmap)
     finally:
         document.close()
+
+
+def _pil_to_png(bitmap) -> bytes:
+    from io import BytesIO
+
+    image = bitmap.to_pil().convert("RGB")
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def preview_invoice(company):

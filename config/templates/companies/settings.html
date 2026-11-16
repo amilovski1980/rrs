@@ -277,10 +277,15 @@
     </div>
       <p class="micro" data-style-status role="status" aria-live="polite"></p>
 
-    <section class="sheet-stage settings-sheet-preview" data-sheet-fitter>
-      <div class="sheet-scale">{% include "documents/document_sheet.html" with company=company kind_label="Facture" number="FAC-2026-0042" status_label="Payée" created_at=preview_date client_name="Client Exemple" client_siren="552100554" amount_ht=preview_amount_ht vat_rate=20 vat_amount=preview_vat_amount amount_ttc=preview_amount_ttc lines=preview_lines client_kicker="Facturé à" foot_note="Payable à réception." %}</div>
+    <section class="sheet-stage settings-sheet-preview">
+      <div data-invoice-preview>
+        <img class="settings-sheet-png"
+             data-preview-url="{% url 'invoice_sample_preview_png' %}?societe={{ company.id }}"
+             src="{% url 'invoice_sample_preview_png' %}?societe={{ company.id }}"
+             alt="Aperçu du modèle et de la couleur choisis — rendu identique au PDF téléchargé">
+      </div>
+      <p class="micro" style="margin:8px 0 0;text-align:center">Ceci est le rendu réel du PDF téléchargé pour la société.</p>
     </section>
-    <p class="micro" style="margin:10px 0 0">Aperçu complet — même rendu que le PDF exporté, miniature ajustée à l'écran avec le modèle et la couleur sélectionnés.</p>
       </div>
     </details>
   </div>
