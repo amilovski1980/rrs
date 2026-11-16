@@ -1437,6 +1437,35 @@ html[data-theme="dark"] .invoice-status-item {
 }
 html[data-theme="dark"] .invoice-status-item a { color: var(--ink); }
 
+/* ---------- Barre de progression des imports ---------- */
+.progressbar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+.progressbar > i {
+  display: block;
+  height: 100%;
+  width: 36%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4f8dff);
+  animation: progress-slide 1.2s ease-in-out infinite;
+}
+@keyframes progress-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+html[data-theme="dark"] .progressbar {
+  background: rgba(255, 255, 255, 0.08);
+}
+html[data-theme="dark"] .progressbar > i {
+  background: linear-gradient(100deg, #e6244d, #9e0320);
+}
+@media (prefers-reduced-motion: reduce) {
+  .progressbar > i { animation: none; width: 100%; }
+}
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;
