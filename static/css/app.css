@@ -5196,3 +5196,32 @@ html[data-theme='dark'] .scan-popup .scan-text {
   .agent-panel .agent-orb { width: 44px; height: 44px; }
   .agent-panel .agent-actions .btn-sm { min-height: 40px; }
 }
+
+
+/* ---- Champ date : aucun debordement sur telephone (tous ecrans). ---- */
+@media (max-width: 768px) {
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='month'] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    min-height: 42px;
+    padding: 6px 6px !important;
+    font-size: 13.5px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    flex-shrink: 0; width: 15px; height: 15px; opacity: .55;
+  }
+  /* Les conteneurs laissent leurs enfants retrecir (source des debordements). */
+  .form-grid > *, .field, form > div, label[for]:has(input[type='date']) {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+  .field input, .form-grid input, .form-grid select {
+    max-width: 100% !important;
+  }
+}
