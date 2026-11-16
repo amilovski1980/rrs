@@ -22,7 +22,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.34">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.35">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -381,34 +381,103 @@
   <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.4" defer></script>
   <script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>
   <script>
-    /* PWA : enregistrement du service worker (scope "/") + bouton « Installer ». */
+    /* PWA : service worker (scope "/") + popup d'installation centrée,
+       barre de progression + message. Plus rien d'ancré en bas d'écran. */
     (function () {
       "use strict";
       var deferred = null;
-      var pill = null;
+      var popup = null;
+      var REMEMBER = "rrs-install-popup";
+      var REMEMBER_DAYS = 30;
 
-      function pillOf() {
-        if (pill) return pill;
-        pill = document.createElement("button");
-        pill.type = "button";
-        pill.className = "pwa-install-pill";
-        pill.hidden = true;
-        pill.setAttribute("data-pwa-install", "1");
-        pill.setAttribute("aria-label", "Installer l'application Road Runner Solutions");
-        pill.innerHTML =
-          '<span class="pwa-pill-emoji" aria-hidden="true">📲</span>' +
-          '<span>Installer l\'application</span>';
+      function remembered() {
+        try {
+          var stamp = Number(localStorage.getItem(REMEMBER) || "0");
+          return stamp && Date.now() - stamp < REMEMBER_DAYS * 864e5;
+        } catch (e) { return false; }
+      }
+      function markRemembered() {
+        try { localStorage.setItem(REMEMBER, String(Date.now())); } catch (e) {}
+      }
+      function clearRemembered() {
+        try { localStorage.removeItem(REMEMBER); } catch (e) {}
+      }
+
+      function popupOf() {
+        if (popup) return popup;
+        popup = document.createElement("div");
+        popup.className = "pwa-popup-backdrop";
+        popup.hidden = true;
+        popup.innerHTML =
+          '<div class="pwa-popup" role="dialog" aria-label="Installer l\'application">' +
+          '  <span class="pwa-popup-emoji" aria-hidden="true">📲</span>' +
+          '  <h3>Installer Road Runner Solutions</h3>' +
+          '  <p class="pwa-popup-copy">Accédez à vos chiffres depuis l\'écran d\'accueil,' +
+          '  en plein écran — le mode d\'affichage actuel est conservé.</p>' +
+          '  <div class="pwa-popup-progress"><i data-popup-fill></i></div>' +
+          '  <p class="pwa-popup-state" data-popup-state>Ouverture…</p>' +
+          '  <div class="pwa-popup-actions">' +
+          '    <button class="btn btn-primary" type="button" data-popup-install hidden>Installer maintenant</button>' +
+          '    <button class="btn btn-ghost" type="button" data-popup-later>Plus tard</button>' +
+          '  </div>' +
+          "</div>";
         var slot = document.querySelector(".shell[data-app-shell]") || document.body;
-        slot.appendChild(pill);
-        pill.addEventListener("click", function () {
-          if (!deferred) { pill.hidden = true; return; }
+        slot.appendChild(popup);
+        popup.addEventListener("click", function (event) {
+          if (event.target === popup) closePopup(true);
+        });
+        popup.querySelector("[data-popup-later]").addEventListener("click", function () {
+          closePopup(true);
+        });
+        popup.querySelector("[data-popup-install]").addEventListener("click", function () {
+          if (!deferred) return;
+          var state = popup.querySelector("[data-popup-state]");
+          if (state) state.textContent = "Ouverture du menu système…";
           deferred.prompt();
-          deferred.userChoice.then(function () {
+          deferred.userChoice.then(function (choice) {
             deferred = null;
-            pill.hidden = true;
+            if (choice && choice.outcome === "accepted") clearRemembered();
+            else markRemembered();
+            closePopup(false);
           });
         });
-        return pill;
+        return popup;
+      }
+
+      function openPopup(mode) {
+        var box = popupOf();
+        box.hidden = false;
+        var fill = box.querySelector("[data-popup-fill]");
+        var state = box.querySelector("[data-popup-state]");
+        var installButton = box.querySelector("[data-popup-install]");
+        if (fill) fill.style.width = "0%";
+        if (state) state.textContent = "Préparation de l'application…";
+        if (installButton) installButton.hidden = mode !== "native";
+        /* La barre se remplit seule : elle annonce qu'on est prêt. */
+        requestAnimationFrame(function () {
+          setTimeout(function () {
+            if (fill) fill.style.width = "100%";
+          }, 60);
+        });
+        setTimeout(function () {
+          if (state) state.textContent = mode === "native"
+            ? "Prêt à installer ✓"
+            : "Prêt — suivez les 2 étapes ci-dessous ✓";
+        }, 1500);
+        if (mode === "ios") {
+          var copy = box.querySelector(".pwa-popup-copy");
+          if (copy) {
+            copy.innerHTML =
+              "Sur iPhone : touchez <b>Partager</b> " +
+              '<span aria-hidden="true">⬆️</span> en bas de Safari, puis ' +
+              "<b>Sur l'écran d'accueil</b>. L'app s'ouvrira en plein écran.";
+          }
+        }
+      }
+
+      function closePopup(remember) {
+        if (popup) popup.hidden = true;
+        if (remember) markRemembered();
       }
 
       if ("serviceWorker" in navigator) {
@@ -418,20 +487,22 @@
             .catch(function () {});
         });
       }
+
+      /* Android / Chrome : popup avec progress + bouton natif. */
       window.addEventListener("beforeinstallprompt", function (event) {
         event.preventDefault();
         deferred = event;
-        pillOf().hidden = false;
+        if (!remembered()) {
+          setTimeout(function () { openPopup("native"); }, 2500);
+        }
       });
       window.addEventListener("appinstalled", function () {
         deferred = null;
-        if (pill) pill.hidden = true;
-        try { localStorage.setItem("rrs-install-hint", "done"); } catch (e) {}
+        clearRemembered();
+        closePopup(false);
       });
 
-      /* iOS : Safari ne déclenche jamais beforeinstallprompt. Une bannière
-         discrète montre le chemin (Partager → Sur l'écran d'accueil),
-         une seule fois, cachée si l'app est déjà installée. */
+      /* iOS : Safari n'émet pas beforeinstallprompt — même popup, chemin manuel. */
       var isIOSLike =
         /iphone|ipad|ipod/i.test(navigator.userAgent || "") ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -439,38 +510,8 @@
         (window.matchMedia &&
           window.matchMedia("(display-mode: standalone)").matches) ||
         window.navigator.standalone === true;
-      if (isIOSLike && !isStandalone && !deferred) {
-        var hintSeen = null;
-        try { hintSeen = localStorage.getItem("rrs-install-hint"); } catch (e) {}
-        if (hintSeen !== "seen" && hintSeen !== "done") {
-          var banner = null;
-          function bannerOf() {
-            if (banner) return banner;
-            banner = document.createElement("div");
-            banner.className = "pwa-ios-hint";
-            banner.setAttribute("role", "status");
-            banner.innerHTML =
-              '<span class="pwa-banner-emoji" aria-hidden="true">📲</span>' +
-              '<span class="pwa-ios-hint-copy">Installez RRS sur votre écran ' +
-              "d'accueil : <b>Partager</b> " +
-              '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' +
-              '<path d="M12 3v12M8 7l4-4 4 4M9 21h6"/></svg> puis ' +
-              "<b>Sur l'écran d'accueil</b></span>" +
-              '<button class="pwa-ios-hint-close" type="button" aria-label="Fermer l\'invite d\'installation">×</button>';
-            var slot = document.querySelector(".shell[data-app-shell]") || document.body;
-            slot.appendChild(banner);
-            banner
-              .querySelector(".pwa-ios-hint-close")
-              .addEventListener("click", function () {
-                banner.hidden = true;
-                try { localStorage.setItem("rrs-install-hint", "seen"); } catch (e) {}
-              });
-            return banner;
-          }
-          setTimeout(function () {
-            bannerOf().hidden = false;
-          }, 2400);
-        }
+      if (isIOSLike && !isStandalone && !deferred && !remembered()) {
+        setTimeout(function () { openPopup("ios"); }, 2800);
       }
     })();
   </script>
