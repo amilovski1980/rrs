@@ -40,7 +40,7 @@ INVOICE_THEMES = [
     ("indigo", "Indigo"),
     ("terra", "Terra"),
     ("vert", "Vert"),
-    ("monochrome", "Noir & Blanc"),
+    ("monochrome", "Noir et Blanc"),
 ]
 
 INVOICE_LAYOUTS = [

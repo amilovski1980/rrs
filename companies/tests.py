@@ -374,10 +374,10 @@ class MobileNavChromeTests(TestCase):
             "Balance",
         ):
             self.assertIn(label, body)
-        # Footer mobile : raccourcis internes vers les modules
-        for label in ("Cockpit", "Achats", "Facturer", "Trésorerie"):
+        # Footer mobile : gestes quotidiens (accueil, factures, trésorerie, plus)
+        for label in ("Accueil", "Factures", "Trésorerie", "Aminia", "Plus"):
             self.assertIn(label, body)
-        for href in ("/cockpit/", "/achats/", "/factures/nouvelle/", "/tresorerie/"):
+        for href in ("/cockpit/", "/factures/liste/", "/tresorerie/"):
             self.assertIn(href, body)
         # Compte, paramètres, aide et mentions restent accessibles dans le drawer
         self.assertIn("Mon profil", body)
