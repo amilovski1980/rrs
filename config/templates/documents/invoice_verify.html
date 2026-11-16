@@ -75,6 +75,7 @@
     <div class="spinner" aria-hidden="true"></div>
     <p class="searching" role="status">Recherche de la facture en cours…</p>
     <div id="content">
+      {% if found %}
       <h1>{{ invoice_number }}</h1>
       <p class="sub">Facture vérifiée · émise par {{ issued_company }}</p>
       <div class="rows">
@@ -87,6 +88,13 @@
       </div>
       {% if status_code == "draft" %}
       <p class="warn">Document encore en brouillon : il n'a pas encore été émis et n'a pas de valeur comptable.</p>
+      {% endif %}
+      {% else %}
+      <h1>Code non reconnu</h1>
+      <p class="sub">Aucune facture ne correspond à ce code de vérification. Vérifiez que le QR provient bien d'une facture Road Runner Solutions et qu'il est complet.</p>
+      <div class="rows">
+        <div class="row"><small>Statut</small><b><span class="badge">Introuvable</span></b></div>
+      </div>
       {% endif %}
     </div>
   </div>
