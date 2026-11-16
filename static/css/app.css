@@ -4898,3 +4898,54 @@ html[data-theme='dark'] .pwa-install-pill {
 html[data-theme='dark'] .pwa-install-pill {
   background: #141416; color: var(--ink); border-color: var(--line);
 }
+
+
+/* ---- Scan de ticket en direct : barre de progression + texte qui defile. ---- */
+.scan-live {
+  margin-top: 16px; padding: 16px 18px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--card, var(--surface));
+}
+.scan-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.scan-orb {
+  flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #5aa0ff, var(--blue) 62%, #00306e);
+  animation: agentPulse 1.6s ease-out infinite;
+}
+.scan-pct {
+  margin-left: auto; font-weight: 800; font-size: 12.5px;
+  font-variant-numeric: tabular-nums; color: var(--blue);
+}
+.scan-progress {
+  height: 8px; border-radius: 999px; overflow: hidden;
+  background: rgba(15, 23, 42, .10);
+}
+.scan-progress i {
+  display: block; width: 0; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4f8dff, #7ba7ff);
+  background-size: 200% 100%;
+  animation: scanSweep 1.6s linear infinite;
+  transition: width .45s var(--ease, ease);
+}
+@keyframes scanSweep {
+  from { background-position: 200% 0; }
+  to { background-position: -60% 0; }
+}
+.scan-text {
+  margin: 12px 0 10px; max-height: 132px; overflow: auto;
+  padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(15, 23, 42, .035);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px; line-height: 1.55; color: var(--ink-2);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.scan-text span { white-space: nowrap; }
+html[data-theme='dark'] .scan-text {
+  background: rgba(255, 255, 255, .04); border-color: var(--line);
+  color: #c9c9cf;
+}
+html[data-theme='dark'] .scan-progress {
+  background: rgba(255, 255, 255, .08);
+}

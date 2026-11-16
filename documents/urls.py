@@ -75,6 +75,7 @@ urlpatterns = [
     path("tickets/", views.ticket_list, name="tickets"),
     path("tickets/nouveau/", views.ticket_create, name="ticket_create"),
     path("tickets/import/", views.ticket_upload, name="ticket_upload"),
+    path("tickets/scan/", views.ticket_scan, name="ticket_scan"),
     path("tickets/<uuid:pk>/", views.ticket_detail, name="ticket_detail"),
     path("tickets/<uuid:pk>/image/", views.ticket_image, name="ticket_image"),
     path("tickets/<uuid:pk>/modifier/", views.ticket_edit, name="ticket_edit"),
