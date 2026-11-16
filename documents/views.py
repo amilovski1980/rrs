@@ -1805,14 +1805,32 @@ def ticket_scan(request):
             )
             yield event({"stage": "extraction", "progress": 64, "label": "Extraction des montants…"})
             parsed = parse_receipt_text(text)
-            yield event({"stage": "texte", "progress": 74, "text": "▶ Début du texte extrait"})
-            lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
-            for line in lines[:40]:
-                yield event({"stage": "texte", "progress": None, "text": line})
-                time.sleep(0.09)
             cat = categorie or parsed.get("categorie") or "autre"
             ttc = parsed.get("montant_ttc") or Decimal("0.00")
             tva = parsed.get("montant_tva") or Decimal("0.00")
+            yield event({"stage": "texte", "progress": 74, "label": "Lignes détectées…", "text": "▶ Lignes extraites"})
+            items_l = parsed.get("line_items") or []
+            if items_l:
+                yield event({
+                    "stage": "texte",
+                    "progress": None,
+                    "text": "— "
+                    + (parsed.get("magasin") or "Ticket")
+                    + " : "
+                    + str(ttc)
+                    + " €",
+                })
+                for item in items_l[:24]:
+                    line = "· " + (item.get("description") or "").strip()
+                    if item.get("montant"):
+                        line += " — " + item.get("montant") + " €"
+                    if line.strip() != "·":
+                        yield event({"stage": "texte", "progress": None, "text": line})
+                        time.sleep(0.09)
+            else:
+                for line in [l.strip() for l in (text or "").splitlines() if l.strip()][:40]:
+                    yield event({"stage": "texte", "progress": None, "text": line})
+                    time.sleep(0.06)
             duplicate = _find_duplicate_ticket(company, parsed, ttc)
             upload.seek(0)
             ticket = TicketDeCaisse(
