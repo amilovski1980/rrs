@@ -29,10 +29,44 @@
       border-radius: 20px;
       padding: 22px 20px 20px;
       box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
-      animation: rise .45s ease-out both;
+      animation: rise .6s ease-out both;
     }
+    /* Intro 4 s : le logo RRS en centre d'écran, anneau de vérification. */
+    #intro {
+      position: fixed; inset: 0; z-index: 90;
+      background:
+        radial-gradient(760px 380px at 0% -10%, rgba(16, 185, 129, .12), transparent 55%),
+        radial-gradient(820px 400px at 100% 0%, rgba(122, 60, 255, .16), transparent 50%),
+        #070708;
+      display: grid; place-items: center;
+      transition: opacity .45s ease;
+    }
+    body.reveal #intro { opacity: 0; pointer-events: none; }
+    .intro-core { display: grid; place-items: center; gap: 16px; text-align: center; }
+    .intro-logo {
+      width: 92px; height: 92px; border-radius: 26px;
+      box-shadow: 0 18px 44px -18px rgba(0, 0, 0, .8);
+      animation: intro-pop 1.6s ease-in-out infinite alternate;
+    }
+    @keyframes intro-pop {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+    .intro-ring {
+      width: 122px; height: 122px; place-self: center;
+      grid-area: 1 / 1; border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, .1);
+      border-top-color: #34d399;
+      animation: spin 1.1s linear infinite;
+    }
+    .intro-core { display: grid; }
+    .intro-ring { display: block; }
+    .intro-text { color: #a4a4ab; font-size: 13px; letter-spacing: .3px; }
+    .cta-row { position: relative; display: grid; place-items: center; width: 122px; height: 122px; }
+    .cta-row > img { grid-area: 1 / 1; }
+    .cta-row > .intro-ring { grid-area: 1 / 1; }
     @keyframes rise {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(14px); }
       to { opacity: 1; transform: none; }
     }
     .features {
@@ -109,6 +143,15 @@
   </style>
 </head>
 <body>
+  <div id="intro" aria-hidden="true">
+    <div class="intro-core">
+      <div class="cta-row">
+        <img class="intro-logo" src="/static/img/dark/mark.png" alt="">
+        <span class="intro-ring" aria-hidden="true"></span>
+      </div>
+      <p class="intro-text">Vérification en cours…</p>
+    </div>
+  </div>
   <div class="wrap">
     <div class="brandline">
       <img src="/static/img/dark/mark.png" alt="">
@@ -159,5 +202,20 @@
       {% endif %}
     </div>
   </div>
+  <script>
+    /* Intro 4 s : le logo RRS au centre écran avec l'anneau de vérification,
+       puis fondu et défilement vers la facture + la présentation. */
+    document.body.style.overflow = "hidden";
+    window.setTimeout(function () {
+      document.body.classList.add("reveal");
+      document.body.style.overflow = "";
+      var cible = document.querySelector(".invoice") || document.querySelector(".hero");
+      if (cible && cible.scrollIntoView) {
+        window.setTimeout(function () {
+          cible.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 420);
+      }
+    }, 4000);
+  </script>
 </body>
 </html>
