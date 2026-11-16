@@ -5194,3 +5194,35 @@ html[data-theme='dark'] .scan-popup {
     background: rgba(255, 255, 255, .06);
   }
 }
+
+
+/* ---- Popup de scan revoque: verre liquide, largeur adaptee,
+   hauteur fixe (le texte defile a l'interieur, la carte ne bouge plus). ---- */
+.scan-popup {
+  width: min(92vw, 380px);
+  height: 322px;
+  display: flex; flex-direction: column;
+  padding: 18px 18px 12px;
+  background: rgba(255, 255, 255, .68);
+  border: 1px solid rgba(255, 255, 255, .55);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 34px 90px -28px rgba(0, 20, 50, .5);
+}
+.scan-popup .scan-text {
+  flex: 1 1 auto; min-height: 0; height: auto;
+  max-height: none; overflow: auto;
+  background: rgba(255, 255, 255, .35);
+  border-color: rgba(15, 23, 42, .08);
+}
+html[data-theme='dark'] .scan-popup {
+  background: rgba(23, 23, 26, .66);
+  border-color: rgba(255, 255, 255, .14);
+  box-shadow: 0 34px 90px -28px rgba(0, 0, 0, .85);
+  color: var(--ink, #f4f4f5);
+}
+html[data-theme='dark'] .scan-popup .scan-text {
+  background: rgba(255, 255, 255, .05);
+  border-color: rgba(255, 255, 255, .09);
+  color: #c9c9cf;
+}
