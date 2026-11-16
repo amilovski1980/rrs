@@ -1749,6 +1749,112 @@ def ticket_upload(request):
 
 
 @login_required
+@require_POST
+def ticket_scan(request):
+    """Scan de ticket avec progression en direct (text/event-stream).
+
+    L'assistant IA lit la photo ; la réponse est streamée : étapes de
+    progression, lignes du texte extrait qui défilent, puis création du
+    brouillon et URL de la fiche.
+    """
+    import json
+    import time
+
+    from django.http import StreamingHttpResponse
+
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    upload = request.FILES.get("fichier")
+    categorie = (request.POST.get("categorie") or "").strip() or None
+
+    def event(payload: dict) -> str:
+        return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
+
+    def stream():
+        if not upload:
+            yield event({"stage": "erreur", "progress": 100, "label": "Aucune photo reçue."})
+            return
+        try:
+            yield event({"stage": "reception", "progress": 12, "label": "Photo reçue ✓"})
+            time.sleep(0.25)
+            validate_upload(upload.name, getattr(upload, "content_type", ""), upload.size)
+            yield event({"stage": "lecture", "progress": 34, "label": "L'agent IA lit votre ticket…"})
+            data = upload.read()
+            text = extract_receipt_text(
+                data,
+                filename=upload.name or "",
+                content_type=getattr(upload, "content_type", "") or "",
+            )
+            yield event({"stage": "extraction", "progress": 64, "label": "Extraction des montants…"})
+            parsed = parse_receipt_text(text)
+            yield event({"stage": "texte", "progress": 74, "text": "▶ Début du texte extrait"})
+            lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+            for line in lines[:40]:
+                yield event({"stage": "texte", "progress": None, "text": line})
+                time.sleep(0.09)
+            cat = categorie or parsed.get("categorie") or "autre"
+            ttc = parsed.get("montant_ttc") or Decimal("0.00")
+            tva = parsed.get("montant_tva") or Decimal("0.00")
+            duplicate = _find_duplicate_ticket(company, parsed, ttc)
+            upload.seek(0)
+            ticket = TicketDeCaisse(
+                company=company,
+                date=parsed.get("date") or timezone.localdate(),
+                magasin=parsed.get("magasin") or "",
+                montant_ttc=ttc,
+                montant_tva=tva,
+                taux_tva=parsed.get("taux_tva") or Decimal("20.00"),
+                categorie=cat,
+                moyen_paiement=parsed.get("moyen_paiement") or "",
+                statut="brouillon",
+                ocr_text=text,
+                line_items=parsed.get("line_items") or [],
+            )
+            ticket.save()
+            _store_ticket_image(ticket, upload)
+            try:
+                propose_ticket_entry(ticket)
+            except (ValueError, TypeError) as exc:
+                messages.warning(
+                    request,
+                    f"Ticket créé, mais écriture non proposée : {exc}",
+                )
+            if duplicate is not None:
+                messages.warning(
+                    request,
+                    f"Doublon possible : un ticket de {duplicate.montant_ttc} € du "
+                    f"{duplicate.date:%d/%m/%Y} chez {duplicate.magasin or 'ce magasin'} "
+                    "existe déjà. Vérifiez avant de valider.",
+                )
+            yield event({
+                "stage": "fin",
+                "progress": 100,
+                "label": "Brouillon prêt ✓",
+                "magasin": parsed.get("magasin") or "",
+                "montant": str(ttc),
+                "redirect": reverse("ticket_detail", args=[ticket.id])
+                + "?societe=" + str(company.id),
+            })
+        except ReceiptOcrError as exc:
+            yield event({"stage": "erreur", "progress": 100, "label": str(exc)})
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception("Scan de ticket en échec")
+            yield event({
+                "stage": "erreur",
+                "progress": 100,
+                "label": "Analyse impossible — réessayez ou utilisez « Fichier ».",
+            })
+
+    response = StreamingHttpResponse(stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
+
+
+@login_required
 def ticket_create(request):
     company, bounce = _company_or_redirect(request)
     if bounce:

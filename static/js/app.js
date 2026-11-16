@@ -1499,6 +1499,147 @@
     var camera = form.querySelector("[data-ticket-camera]");
     var fileInput = form.querySelector("#id_fichier") || form.querySelector('input[type="file"][name="fichier"]');
     var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
+    var csrfInput = form.querySelector("[name=csrfmiddlewaretoken]");
+    var scanning = false;
+
+    function scanUi(show) {
+      var panel = form.querySelector("[data-ticket-skeleton]");
+      if (panel) panel.hidden = !show;
+      if (submitBtn) {
+        submitBtn.disabled = show;
+        submitBtn.setAttribute("aria-busy", show ? "true" : "false");
+      }
+    }
+
+    function compressImage(file) {
+    /* Les photos téléphone font 3-8 Mo : l'infrastructure (plafond de
+       requête ~4,5 Mo) les refuse avant même le contrôle serveur. On
+       redimensionne côté navigateur (2000 px max, JPEG 0.82). */
+    return new Promise(function (resolve) {
+      try {
+        if (!file || file.type === "application/pdf") { resolve(file); return; }
+        if (!/^image\//i.test(file.type)) { resolve(file); return; }
+        if (file.size <= 1150 * 1024) { resolve(file); return; }
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var maxSide = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+            var scale = Math.min(1, 2000 / maxSide);
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(function (blob) {
+              URL.revokeObjectURL(url);
+              if (blob && blob.size < file.size) {
+                var name = String(file.name || "ticket").replace(/\.[^.]+$/i, "") + ".jpg";
+                resolve(new File([blob], name, { type: "image/jpeg", lastModified: Date.now() }));
+              } else {
+                resolve(file);
+              }
+            }, "image/jpeg", 0.82);
+          } catch (e) {
+            URL.revokeObjectURL(url);
+            resolve(file);
+          }
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      } catch (e) {
+        resolve(file);
+      }
+    });
+  }
+
+  function paint(event) {
+      var fill = form.querySelector("[data-scan-fill]");
+      var label = form.querySelector("[data-scan-label]");
+      var pct = form.querySelector("[data-scan-pct]");
+      var text = form.querySelector("[data-scan-text]");
+      if (event.progress != null && fill) {
+        fill.style.width = event.progress + "%";
+      }
+      if (event.label && label) label.textContent = event.label;
+      if (event.progress != null && pct) pct.textContent = event.progress + " %";
+      if (event.text && text) {
+        var line = document.createElement("span");
+        line.textContent = event.text;
+        text.appendChild(line);
+        text.scrollTop = text.scrollHeight;
+      }
+    }
+
+    function runScan(file) {
+      if (scanning || !file) return;
+      if (!window.fetch || !(window.TextDecoder)) {
+        if (typeof form.requestSubmit === "function") form.requestSubmit();
+        else form.submit();
+        return;
+      }
+      scanning = true;
+      scanUi(true);
+      var fill = form.querySelector("[data-scan-fill]");
+      var label = form.querySelector("[data-scan-label]");
+      var pct = form.querySelector("[data-scan-pct]");
+      if (fill) fill.style.width = "6%";
+      if (label) label.textContent = "Optimisation de la photo…";
+      if (pct) pct.textContent = "6 %";
+      compressImage(file).then(function (prepared) {
+        var body = new FormData();
+        body.append("fichier", prepared);
+        var category = form.querySelector('select[name="categorie"], input[name="categorie"]');
+        if (category && category.value) body.append("categorie", category.value);
+        var scanner = fetch("/factures/tickets/scan/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfInput ? csrfInput.value : "",
+            "Accept": "text/event-stream"
+          },
+          credentials: "same-origin",
+          body: body
+        }).then(function (response) {
+          var reader = response.body && response.body.getReader ? response.body.getReader() : null;
+          if (!reader) throw new Error("stream-indisponible");
+          var decoder = new TextDecoder();
+          var buffer = "";
+          function read() {
+            return reader.read().then(function (chunk) {
+              if (chunk.done) return null;
+              buffer += decoder.decode(chunk.value, { stream: true });
+              var parts = buffer.split("\n\n");
+              buffer = parts.pop() || "";
+              parts.forEach(function (block) {
+                block.split("\n").forEach(function (raw) {
+                  if (raw.indexOf("data:") !== 0) return;
+                  var payload;
+                  try { payload = JSON.parse(raw.slice(5).trim()); } catch (e) { return; }
+                  paint(payload);
+                  if (payload.stage === "fin" && payload.redirect) {
+                    window.location.href = payload.redirect;
+                  }
+                  if (payload.stage === "erreur") {
+                    scanning = false;
+                    window.setTimeout(function () { scanUi(false); }, 2500);
+                  }
+                });
+              });
+              return read();
+            });
+          }
+          return read().catch(function () {
+            scanning = false;
+            if (typeof form.requestSubmit === "function") form.requestSubmit();
+            else form.submit();
+          });
+        }).catch(function () {
+          scanning = false;
+          if (typeof form.requestSubmit === "function") form.requestSubmit();
+          else form.submit();
+        });
+      });
+    }
+
     if (!camera || !fileInput) return;
 
     camera.addEventListener("change", function () {
@@ -1511,15 +1652,19 @@
         /* Safari ancien : soumettre via le champ camera en lui donnant le name */
         camera.setAttribute("name", "fichier");
         fileInput.removeAttribute("name");
+        runScan(camera.files[0]);
+        return;
       }
-      if (submitBtn) {
-        submitBtn.textContent = "Analyse OCR…";
-        submitBtn.setAttribute("aria-busy", "true");
-      }
-      var skeleton = form.querySelector("[data-ticket-skeleton]");
-      if (skeleton) skeleton.removeAttribute("hidden");
-      if (typeof form.requestSubmit === "function") form.requestSubmit();
-      else form.submit();
+      if (submitBtn) submitBtn.textContent = "Lecture en cours…";
+      runScan(camera.files[0]);
+    });
+
+    form.addEventListener("submit", function (event) {
+      var file = fileInput.files && fileInput.files[0];
+      if (!file || scanning) return;
+      event.preventDefault();
+      if (submitBtn) submitBtn.textContent = "Lecture en cours…";
+      runScan(file);
     });
 
     var params = new URLSearchParams(window.location.search || "");

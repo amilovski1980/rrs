@@ -52,9 +52,17 @@
   <button class="btn btn-primary btn-lg ticket-upload-submit" type="submit" data-ticket-ocr-submit>
     Lire le ticket avec l'agent IA
   </button>
-  <div class="skeleton-ocr" data-ticket-skeleton hidden>
-    <i class="skeleton"></i><i class="skeleton"></i><i class="skeleton"></i>
-    <p class="micro" style="text-align:center;margin:0;color:var(--muted);">Lecture du ticket par l'agent…</p>
+  <div class="skeleton-ocr scan-live" data-ticket-skeleton hidden>
+    <div class="scan-head">
+      <span class="scan-orb" aria-hidden="true"></span>
+      <b data-scan-label>L'agent IA lit votre ticket…</b>
+      <span class="scan-pct" data-scan-pct>0 %</span>
+    </div>
+    <div class="scan-progress" role="progressbar" aria-label="Progression de la lecture du ticket">
+      <i data-scan-fill></i>
+    </div>
+    <pre class="scan-text" data-scan-text></pre>
+    <p class="micro" style="text-align:center;margin:0;color:var(--muted);">L'agent extrait magasin, date, TTC, TVA et lignes en temps réel.</p>
   </div>
   <p class="ticket-upload-safe">Aucune écriture comptable avant votre validation.</p>
 </form>
