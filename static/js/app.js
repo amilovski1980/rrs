@@ -1328,6 +1328,34 @@
       if (mq.addEventListener) mq.addEventListener("change", sync);
       else if (mq.addListener) mq.addListener(sync);
     }
+
+    /* Bottom sheet mobile : fermeture au scrim, sur une rangée, ou Escape. */
+    Array.prototype.forEach.call(menus, function (menu) {
+      menu.addEventListener("click", function (event) {
+        var insideList = event.target.closest
+          ? event.target.closest(".actions-list")
+          : null;
+        var onSummary = event.target.closest
+          ? event.target.closest("summary.actions-summary")
+          : null;
+        if (insideList) {
+          var row = event.target.closest("a, button");
+          if (row) {
+            window.setTimeout(function () { menu.open = false; }, 140);
+          }
+          return;
+        }
+        if (!onSummary && event.target === menu && menu.open) {
+          menu.open = false;
+        }
+      });
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      Array.prototype.forEach.call(menus, function (menu) {
+        if (menu.open) menu.open = false;
+      });
+    });
   }
 
   function initMobileNav() {

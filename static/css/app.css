@@ -5101,3 +5101,96 @@ html[data-theme='dark'] .scan-popup {
   background: #141416; color: var(--ink); border-color: var(--line);
   box-shadow: 0 40px 110px -30px rgba(0, 0, 0, .85);
 }
+
+
+/* ---- Menu d'actions mobile : bottom-sheet moderne (poignee, scrim,
+   rangees icone + libelle + chevron, appui pres). ---- */
+@media (max-width: 768px) {
+  details.page-actions {
+    position: relative;
+  }
+  details.page-actions[open]::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 108;
+    background: rgba(7, 7, 8, .45);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    animation: sheetFade .22s ease both;
+  }
+  details.page-actions > summary.actions-summary {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 9px; width: 100%; min-height: 48px; padding: 12px 20px;
+    border-radius: 999px; list-style: none; cursor: pointer;
+    background: linear-gradient(180deg, var(--blue) 0%, #2563eb 62%, #3f7dff 100%);
+    color: #fff; font-size: 14.5px; font-weight: 800;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .28),
+      0 14px 34px -14px rgba(37, 99, 235, .55);
+    transition: transform .12s ease, filter .15s ease;
+  }
+  details.page-actions > summary.actions-summary::before {
+    content: "\26A1";
+    font-size: 15px;
+  }
+  details.page-actions > summary.actions-summary::-webkit-details-marker { display: none; }
+  details.page-actions > summary.actions-summary:active {
+    transform: scale(.977); filter: brightness(.96);
+  }
+
+  details.page-actions > .actions-list {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 110;
+    width: 100% !important;
+    display: grid !important; gap: 4px;
+    padding: 8px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0;
+    background: var(--card, #fff);
+    border: 1px solid var(--line); border-bottom: 0;
+    box-shadow: 0 -24px 70px -20px rgba(0, 20, 50, .5);
+    animation: sheetUp .26s cubic-bezier(.2,.9,.3,1) both;
+  }
+  details.page-actions > .actions-list::before {
+    content: "";
+    display: block; width: 44px; height: 4px; border-radius: 999px;
+    margin: 2px auto 10px; background: rgba(15, 23, 42, .16);
+  }
+  details.page-actions > .actions-list .btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; min-height: 54px; padding: 12px 14px;
+    border-radius: 16px; border: 0; cursor: pointer;
+    background: transparent; color: var(--ink);
+    font-size: 15px; font-weight: 700;
+    box-shadow: none; text-align: left;
+    transition: background .15s ease, transform .12s ease;
+  }
+  details.page-actions > .actions-list .btn .icon {
+    width: 21px; height: 21px; flex: 0 0 auto;
+  }
+  details.page-actions > .actions-list .btn::after {
+    content: "\2192";
+    margin-left: auto; color: var(--muted); font-weight: 800;
+    transition: transform .15s ease;
+  }
+  details.page-actions > .actions-list .btn:active {
+    background: rgba(15, 23, 42, .06); transform: scale(.985);
+  }
+  details.page-actions > .actions-list .btn:active::after { transform: translateX(3px); }
+  /* Premiere rangee = action principale : fond bleu doux, icone en pastille */
+  details.page-actions > .actions-list .btn-primary {
+    background: linear-gradient(135deg, var(--blue-soft, rgba(224, 239, 255, .95)), rgba(79, 141, 255, .10));
+    color: var(--blue); box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .22);
+  }
+  details.page-actions > .actions-list .btn-danger {
+    color: var(--red); background: rgba(220, 38, 38, .06);
+    box-shadow: inset 0 0 0 1px rgba(220, 38, 38, .18);
+  }
+  @keyframes sheetUp {
+    from { opacity: 0; transform: translateY(26px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes sheetFade { from { opacity: 0; } to { opacity: 1; } }
+  html[data-theme='dark'] details.page-actions > .actions-list {
+    background: #141416; border-color: var(--line);
+  }
+  html[data-theme='dark'] details.page-actions > .actions-list .btn:active {
+    background: rgba(255, 255, 255, .06);
+  }
+}
