@@ -22,7 +22,21 @@
 </ul>
 {% endif %}
 {% if document.error_message %}
-<ul class="form-errors"><li>{{ document.error_message }}</li></ul>
+<ul class="form-errors">
+  <li>{{ document.error_message }}</li>
+  {% if document.status == "error" %}
+  <li>
+    Causes fréquentes : PDF scanné ou photo → l'agent doit pouvoir lire les images.
+    {% if request.user.is_staff %}
+      Vérifiez-le dans <a href="{% url 'admin_backoffice:settings' %}#ia">Réglages IA → « Détecter les modèles vision (OCR) »</a>
+      et choisissez un modèle « ✓ vision ».
+    {% else %}
+      Demandez à votre administrateur d'activer un modèle qui lit les images.
+    {% endif %}
+    Sinon : exportez le document en CSV/OFX (texte) ou essayez une photo nette et cadrée.
+  </li>
+  {% endif %}
+</ul>
 {% endif %}
 
 <div class="import-review">

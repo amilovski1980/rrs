@@ -251,7 +251,7 @@ _TRANSCRIBE_PROMPT = (
     "transcription."
 )
 
-_VISION_TIMEOUT_SECONDS = 45
+_VISION_TIMEOUT_SECONDS = 25
 
 
 def _vision_candidates():
