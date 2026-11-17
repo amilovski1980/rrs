@@ -1,40 +1,40 @@
 name: VocalIA API Django tests
 
 on:
-  pull_request:
-    paths:
-      - 'accounts/voice_signup.py'
-      - 'accounts/test_voice_signup.py'
-      - 'config/urls.py'
-      - 'config/settings.py'
-      - '.github/workflows/vocalia-api-tests.yml'
   push:
     branches:
       - feature/vocalia-email-onboarding
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  voice-signup:
+  voice-signup-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      DJANGO_SETTINGS_MODULE: config.settings
-      DJANGO_SECRET_KEY: ci-only-secret-not-for-production
-      VOCALIA_API_TOKEN: test-secret
-      DATABASE_URL: sqlite:///:memory:
-      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-      - name: Django system checks
-        run: python manage.py check
-      - name: VocalIA onboarding tests
-        run: python manage.py test accounts.test_voice_signup --verbosity 2
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Run Django checks and VocalIA tests
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+          DJANGO_SECRET_KEY: ci-only-not-production
+          DJANGO_DEBUG: '0'
+          DATABASE_URL: sqlite:///ci_voice_signup.sqlite3
+          VOCALIA_API_TOKEN: test-secret
+          EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+        run: |
+          python manage.py check
+          python manage.py test accounts.test_voice_signup --verbosity 2
