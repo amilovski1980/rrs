@@ -53,7 +53,6 @@ def voice_signup(request):
     if not cache.add(throttle_key, "processing", timeout=60):
         return JsonResponse({"status": "already_requested"}, status=202)
 
-    created = False
     link = None
     try:
         with transaction.atomic():
@@ -61,7 +60,6 @@ def voice_signup(request):
             if user is None:
                 try:
                     user = User.objects.create_user(email=email)
-                    created = True
                 except IntegrityError:
                     user = User.objects.get(email__iexact=email)
             if not user.is_active:
@@ -79,4 +77,4 @@ def voice_signup(request):
             link.delete()
         cache.delete(throttle_key)
         return JsonResponse({"error": "email_delivery_failed"}, status=503)
-    return JsonResponse({"status": "email_sent", "account_prepared": created}, status=202)
+    return JsonResponse({"status": "email_sent"}, status=202)
