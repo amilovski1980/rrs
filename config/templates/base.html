@@ -31,6 +31,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+{% block body_open %}{% endblock %}
 {% if request.session.admin_impersonator_id %}
 <div class="impersonation-banner" role="status">
   <p>Consultation du cockpit de <strong>{{ request.user.email }}</strong>. Les actions sont celles de ce compte.</p>

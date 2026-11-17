@@ -1,0 +1,199 @@
+/* Écran d'ouverture du cockpit. La durée est dans cockpit-splash.js (SPLASH_MS). */
+
+.cockpit-splash {
+  display: none;
+}
+
+html.cockpit-splash-on,
+html.cockpit-splash-on body {
+  overflow: hidden;
+}
+
+html.cockpit-splash-on .cockpit-splash {
+  display: grid;
+  place-items: center;
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  padding:
+    max(28px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right))
+    max(28px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  background:
+    radial-gradient(ellipse 80% 50% at 88% 0%, rgba(202, 28, 96, .12), transparent 55%),
+    radial-gradient(ellipse 70% 48% at 0% 8%, rgba(0, 65, 146, .16), transparent 58%),
+    var(--bg, #f4f7fb);
+  color: var(--ink, #0f172a);
+  font-family: var(--font-head, "Outfit", "Inter", system-ui, sans-serif);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .56s cubic-bezier(.2, .7, .2, 1), visibility .56s linear;
+}
+
+html[data-theme="dark"].cockpit-splash-on .cockpit-splash,
+html[data-theme="dark"] .cockpit-splash {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 20%, rgba(122, 60, 255, .46), transparent 62%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(255, 77, 141, .16), transparent 58%),
+    radial-gradient(ellipse 42% 32% at 0% 100%, rgba(16, 185, 129, .12), transparent 55%),
+    #09070f;
+  color: #f6f6f4;
+}
+
+.cockpit-splash.is-done {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cockpit-splash-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #004192 0 33.34%, #ffffff 33.34% 66.67%, #ca1c60 66.67% 100%);
+}
+
+html[data-theme="dark"] .cockpit-splash-accent {
+  background: linear-gradient(90deg, #10b981, #a7f3d0 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff);
+}
+
+.cockpit-splash-stage {
+  width: min(440px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: clamp(18px, 4vh, 28px);
+  animation: cockpitSplashIn .55s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+@keyframes cockpitSplashIn {
+  from { opacity: 0; transform: translateY(12px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.cockpit-splash-logo {
+  width: min(300px, 78vw);
+  height: auto;
+  display: block;
+  background: #fff;
+  border-radius: 22px;
+  padding: 16px 18px;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, .16),
+    0 0 0 1px rgba(255, 255, 255, .6);
+}
+
+html[data-theme="dark"] .cockpit-splash-logo {
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, .45),
+    0 0 80px rgba(122, 60, 255, .28);
+}
+
+.cockpit-splash-track {
+  width: min(360px, 86vw);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, .10);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+html[data-theme="dark"] .cockpit-splash-track {
+  background: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .35);
+}
+
+.cockpit-splash-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #004192 0%, #2563eb 55%, #ca1c60 100%);
+  position: relative;
+}
+
+html[data-theme="dark"] .cockpit-splash-fill {
+  background: linear-gradient(90deg, #7a3cff 0%, #c084fc 46%, #ff4d8d 100%);
+}
+
+.cockpit-splash-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .55) 50%, transparent 80%);
+  background-size: 140px 100%;
+  background-repeat: no-repeat;
+  animation: cockpitSplashShimmer 1.4s linear infinite;
+}
+
+@keyframes cockpitSplashShimmer {
+  from { background-position: -140px 0; }
+  to { background-position: 220px 0; }
+}
+
+.cockpit-splash-status {
+  margin: 0;
+  min-height: 2.6em;
+  max-width: 34ch;
+  text-align: center;
+  font-size: clamp(14px, 3.6vw, 16px);
+  font-weight: 650;
+  letter-spacing: -.01em;
+  line-height: 1.35;
+  color: var(--muted, #64748b);
+}
+
+html[data-theme="dark"] .cockpit-splash-status {
+  color: #c4c4cc;
+}
+
+.cockpit-splash-status.is-swap {
+  animation: cockpitSplashSwap .35s ease;
+}
+
+@keyframes cockpitSplashSwap {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 480px) {
+  html.cockpit-splash-on .cockpit-splash {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .cockpit-splash-logo {
+    border-radius: 18px;
+    padding: 12px 14px;
+  }
+  .cockpit-splash-track {
+    height: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-splash-stage,
+  .cockpit-splash-fill::after,
+  .cockpit-splash-status.is-swap {
+    animation: none;
+  }
+  html.cockpit-splash-on .cockpit-splash,
+  .cockpit-splash.is-done {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  html.cockpit-splash-on .cockpit-splash {
+    background: Canvas;
+    color: CanvasText;
+  }
+  .cockpit-splash-fill {
+    background: Highlight;
+  }
+  .cockpit-splash-logo {
+    background: Canvas;
+    forced-color-adjust: none;
+  }
+}
