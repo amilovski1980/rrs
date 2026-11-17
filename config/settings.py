@@ -247,3 +247,6 @@ XAI_VOICE = env.get("XAI_VOICE", "eve")
 ELEVENLABS_API_KEY = env.get("ELEVENLABS_API_KEY", "")
 AI_TEXT_PROVIDER = env.get("AI_TEXT_PROVIDER", "qwen")
 
+
+# Shared server-to-server secret for the VocalIA demonstration agent.
+VOCALIA_API_TOKEN = env.get("VOCALIA_API_TOKEN", "")
