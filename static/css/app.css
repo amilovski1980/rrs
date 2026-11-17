@@ -5363,4 +5363,3 @@ html[data-theme='dark'] .scan-popup .scan-text {
 @keyframes rrsListen { 0%, 100% { opacity: .25; } 50% { opacity: .95; } }
 @keyframes rrsBlink { 0%, 90%, 100% { height: 22%; } 94% { height: 6%; } }
 @keyframes rrsLook { from { transform: translateX(-22%); } to { transform: translateX(22%); } }
-

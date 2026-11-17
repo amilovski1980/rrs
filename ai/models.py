@@ -30,6 +30,23 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class GreetingStamp(models.Model):
+    """Mémoire de la dernière salutation d'Aminia pour un utilisateur.
+
+    Premier appel après 24 h : « Bonjour, que puis-je faire pour vous ? »
+    Appel dans les 24 h : « Oui, je suis là. Que puis-je faire pour vous ? »
+    L'horodatage est conservé côté serveur, jamais réinitialisé par un rechargement.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="greeting_stamp"
+    )
+    last_greeted_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Horodatage de salutation Aminia"
+
+
 class AiDraftEntry(models.Model):
     """Brouillon préparé par l'agent IA. Toujours soumis à validation humaine."""
 

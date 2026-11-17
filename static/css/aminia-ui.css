@@ -1,0 +1,122 @@
+/* Mode Aminia : verrouillage + journal d'activités, clair et sombre. */
+
+/* ----- Journal d'activité ----- */
+.agent-log {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 150px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  list-style: none;
+  background: var(--blue-pale, #f2f6fc);
+  border: 1px solid var(--line, #e6eaf1);
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2, #334155);
+}
+
+[data-theme="dark"] .agent-log {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
+}
+
+.agent-dialog.is-live .agent-log {
+  display: flex;
+}
+
+.agent-log:empty {
+  display: none;
+}
+
+.agent-log li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.agent-log li::before {
+  content: "·";
+  color: var(--muted, #64748b);
+  flex: 0 0 auto;
+}
+
+.agent-log li.pending {
+  color: var(--muted, #64748b);
+}
+
+.agent-log li.ok {
+  color: var(--green, #15803d);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .agent-log li.ok {
+  color: #4ade80;
+}
+
+.agent-log li.error {
+  color: var(--red, #dc2626);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .agent-log li.error {
+  color: #f87171;
+}
+
+/* Pendant l'appel, la barre gagne une ligne d'analyse en cours. */
+.agent-dialog.is-executing .agent-status {
+  color: var(--amber, #a16207);
+}
+
+[data-theme="dark"] .agent-dialog.is-executing .agent-status {
+  color: #fbbf24;
+}
+
+/* ----- Verrouillage : le contenu sous-jacent ne répond plus ----- */
+.aminia-locked .voice-shell-frame {
+  pointer-events: none !important;
+  user-select: none !important;
+  cursor: default !important;
+}
+
+.aminia-locked .voice-shell-frame::after {
+  content: "";
+}
+
+/* Liseré discret : la communication est sous contrôle d'Aminia. */
+body.voice-shell-active.aminia-locked .agent-dialog {
+  border-top: 2px solid var(--blue-2, #2563eb);
+}
+
+body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
+[data-theme="dark"] body.voice-shell-active.aminia-locked .agent-dialog {
+  border-top: 2px solid #4f8dff;
+}
+
+/* ----- Responsive : journal un peu plus haut sur les larges écrans ----- */
+@media (min-width: 769px) {
+  .agent-log {
+    max-height: 190px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .agent-log {
+    max-height: 118px;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Le journal s'ajoute à la barre mobile : on limite la hauteur totale. */
+  .agent-dialog.is-live .agent-log:not(:empty) {
+    display: flex;
+  }
+}
