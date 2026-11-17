@@ -293,17 +293,32 @@ def render_email(code: str, context: dict | None = None, request=None) -> tuple[
 
 
 def send_template_email(code: str, recipient: str, context: dict | None = None, request=None) -> int:
-    """Envoie un email automatique avec le texte personnalisé ou par défaut."""
+    """Envoie un email automatique avec le texte personnalisé ou par défaut.
+
+    Inscription, bienvenue, lien de connexion et mot de passe passent ici.
+    Si le back-office a un SMTP, l'envoi utilise cette connexion (TLS/SSL
+    compris). Les tests restent sur le backend locmem.
+    """
+    from .integrations import open_configured_smtp, smtp_material, transactional_from_email
+
     subject, body = render_email(code, context=context, request=request)
-    config = _config()
-    from_email = (
-        getattr(config, "email_from", "")
-        or getattr(settings, "DEFAULT_FROM_EMAIL", "")
+    material = smtp_material()
+    from_email = transactional_from_email(material) or (
+        getattr(_config(), "email_from", "") or getattr(settings, "DEFAULT_FROM_EMAIL", "")
     ).strip()
+    connection = open_configured_smtp()
+    if connection is not None:
+        logger.info(
+            "Email %s via SMTP %s:%s",
+            code,
+            material["host"],
+            material["port"],
+        )
     return send_mail(
         subject=subject,
         message=body,
         from_email=from_email,
         recipient_list=[recipient],
         fail_silently=False,
+        connection=connection,
     )
