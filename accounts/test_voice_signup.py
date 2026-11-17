@@ -34,7 +34,7 @@ class VoiceSignupTests(TestCase):
     def test_creates_email_only_user_and_sends_link(self, send):
         response = self.post_signup({"email": "new@example.com", "consent": True})
         self.assertEqual(response.status_code, 202)
-        self.assertEqual(response.json()["status"], "email_sent")
+        self.assertEqual(response.json(), {"status": "email_sent"})
         self.assertTrue(User.objects.filter(email="new@example.com").exists())
         self.assertFalse(User.objects.get(email="new@example.com").has_usable_password())
         send.assert_called_once()
