@@ -106,6 +106,7 @@
         <small>SIREN {{ row.company.siren }} · {{ row.company.get_forme_display|default:row.company.forme }}{% if row.company.tva == "reel" %} · TVA réelle{% endif %}</small>
       </div>
       <span class="socie-share" title="Part du CA de la période">{{ row.share }} %</span>
+      {% if row.urgent %}<span class="socie-urgent" title="Echéance urgente"><b>⏰</b> {{ row.urgent.date|date:"d/m" }} · {{ row.urgent.days }} j</span>{% endif %}
     </div>
     <div class="socie-stats">
       <div><small>CA TTC</small><b>{{ row.ca|floatformat:2 }} €</b></div>
