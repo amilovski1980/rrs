@@ -14,6 +14,10 @@
     </p>
   </div>
   <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
+    <form method="post" action="{% url 'history_import:batch_agent' batch.pk %}?societe={{ company.id }}">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit"><span class="import-agent-dot" aria-hidden="true"></span> Analyse IA — tous documents</button>
+    </form>
     <a class="btn btn-ghost" href="{% url 'history_import:upload' %}?batch={{ batch.pk }}&societe={{ company.id }}">Ajouter des documents</a>
     <a class="btn btn-ghost" href="{% url 'history_import:upload' %}?societe={{ company.id }}">Nouveau lot</a>
   </div>
@@ -92,6 +96,10 @@
           {% if document.kind == "sale_invoice" and document.customer_name %}<span>{{ document.customer_name|truncatechars:30 }}</span>{% endif %}
           {% if document.kind == "purchase_invoice" and document.seller_name %}<span>{{ document.seller_name|truncatechars:30 }}</span>{% endif %}
         </div>
+        {% if document.agent_json %}
+        <p class="micro" style="margin:8px 0 0;color:var(--blue);">🤖 Aminia : {{ document.agent_json.explication|default:document.agent_json.kind|truncatechars:140 }}
+          {% if document.agent_json.montant_ttc %} · {{ document.agent_json.montant_ttc }} €{% endif %}</p>
+        {% endif %}
         {% if document.warnings %}
         <p class="micro import-doc-warning">{{ document.warnings|join:" · "|truncatechars:150 }}</p>
         {% endif %}
