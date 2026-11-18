@@ -187,6 +187,8 @@ class ImportDocument(models.Model):
     processed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    agent_json = models.JSONField(null=True, blank=True)
+    agent_text = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "Document importé"

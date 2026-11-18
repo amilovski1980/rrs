@@ -197,6 +197,43 @@ def batch_process(request, pk):
 @require_POST
 @login_required
 @plan_required
+def batch_agent(request, pk):
+    """Fait lire l'agent IA sur les documents non résolus du lot.
+
+    L'agent identifie le type de chaque document (factures, relevés,
+    produits, tickets…) et remplit les champs manquants, sans écraser
+    l'extraction déterministe.
+    """
+    from .agent_analysis import agent_analyze_batch
+
+    company, bounce = _company_or_redirect(request)
+    if bounce:
+        return bounce
+    batch = get_object_or_404(ImportBatch, pk=pk, company=company)
+    result = agent_analyze_batch(batch, user=request.user)
+    if result["done"]:
+        messages.success(
+            request,
+            "Aminia a analysé " + str(result["done"]) + " document(s)."
+            + (" " + result["details"][0] if result["details"] else ""),
+        )
+    if result["errors"]:
+        messages.warning(
+            request,
+            result["details"][0] if result["details"]
+            else "L'agent IA n'a pas pu analyser ces documents.",
+        )
+    if not result["done"] and not result["errors"]:
+        messages.info(request, "Aucun document à analyser pour l'instant.")
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if wants_json:
+        return JsonResponse({"batch": str(batch.pk), **result})
+    return redirect("history_import:batch", pk=batch.pk)
+
+
+@require_POST
+@login_required
+@plan_required
 def batch_import(request, pk):
     company, bounce = _company_or_redirect(request)
     if bounce:

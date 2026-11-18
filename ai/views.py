@@ -71,6 +71,22 @@ def _mint_secret():
     return {"token": token, "expires_at": payload.get("expires_at")}, None
 
 
+def _greeting_for(user) -> str:
+    """Accueil selon la règle des 24 h. Horodatage retenu côté serveur."""
+    from django.utils import timezone
+
+    stamp, created = GreetingStamp.objects.get_or_create(user=user)
+    just_created = created
+    if not just_created:
+        elapsed = timezone.now() - stamp.last_greeted_at
+        just_created = elapsed.total_seconds() >= 24 * 3600
+    if just_created:
+        text = "Bonjour, que puis-je faire pour vous ?"
+        stamp.save(update_fields=["last_greeted_at"])
+        return text
+    return "Oui, je suis là. Que puis-je faire pour vous ?"
+
+
 @require_POST
 def voice_session(request):
     denied = _auth_required(request)
@@ -86,6 +102,7 @@ def voice_session(request):
         "tools": [tool for tool in TOOLS if tool_allowed(request.user, tool["name"])],
         "company_id": str(company.id) if company else None,
         "company_name": company.denomination if company else "",
+        "greeting": _greeting_for(request.user),
     }
     from admin_backoffice.models import SiteConfiguration
     from .providers import ELEVENLABS_BASE, elevenlabs_signed_url, voice_config
@@ -335,6 +352,7 @@ from core.context import resolve_company as resolve_web_company_chat
 
 from .chat import get_or_create_conversation, run_chat_turn
 from .models import Conversation
+from .models import GreetingStamp
 
 
 @login_required

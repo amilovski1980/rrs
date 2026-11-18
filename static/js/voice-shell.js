@@ -1,8 +1,9 @@
-/* Coque vocale : conserve Aminia pendant la navigation interne dans un iframe. */
+/* Coque vocale : conserve Aminia pendant la navigation interne dans un iframe.
+   Pendant un appel, le contenu est verrouillé (inert + blocage centralisé). */
 (function () {
   "use strict";
 
-  var state = { iframe: null, active: false, entering: false };
+  var state = { iframe: null, active: false, entering: false, locked: false };
 
   function shellDocument() {
     if (!state.iframe) return document;
@@ -33,6 +34,17 @@
         /* URL non partageable : on garde l'adresse du shell. */
       }
     }
+  }
+
+  function applyLock() {
+    if (!state.iframe) return;
+    try { state.iframe.inert = state.locked; } catch (e) { /* navigateur ancien */ }
+    document.body.classList.toggle("aminia-locked", state.locked);
+  }
+
+  function setLock(locked) {
+    state.locked = !!locked;
+    applyLock();
   }
 
   function decorateFrame() {
@@ -86,6 +98,7 @@
     document.body.classList.add("voice-shell-active");
     state.iframe = frame;
     state.active = true;
+    applyLock();
   }
 
   function navigate(url) {
@@ -98,11 +111,12 @@
 
   function exit() {
     var url = currentUrl();
+    state.locked = false;
     if (state.iframe) state.iframe.remove();
     state.iframe = null;
     state.active = false;
     state.entering = false;
-    document.body.classList.remove("voice-shell-active");
+    document.body.classList.remove("voice-shell-active", "aminia-locked");
     if (url) window.location.href = url;
   }
 
@@ -164,5 +178,9 @@
     get active() {
       return state.active;
     },
+    get locked() {
+      return state.locked;
+    },
+    setLock: setLock,
   };
 })();

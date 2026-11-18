@@ -134,6 +134,74 @@
     var engine = "xai";
     var elevenOutRate = 24000;
     var sessionCompanyId = companyIdFromPage();
+    var logEl = root.querySelector("[data-agent-log]");
+    var pendingOps = 0;
+    var agentSpeakingUntil = 0;
+    var silenceTimer = null;
+    var farewellTimer = null;
+
+    function lockCall(on) {
+      if (window.AminiaShell && window.AminiaShell.active) {
+        window.AminiaShell.setLock(!!on);
+      }
+    }
+
+    function agentLog(text, kind) {
+      if (!logEl) return;
+      var li = document.createElement("li");
+      if (kind) li.className = kind;
+      li.textContent = text;
+      logEl.appendChild(li);
+      while (logEl.children.length > 50) logEl.removeChild(logEl.firstChild);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearSilence() {
+      if (silenceTimer) window.clearTimeout(silenceTimer);
+      if (farewellTimer) window.clearTimeout(farewellTimer);
+      silenceTimer = null;
+      farewellTimer = null;
+    }
+
+    function armSilence() {
+      clearSilence();
+      if (!ws || ws.readyState !== 1 || muted) return;
+      if (Date.now() < agentSpeakingUntil) return;
+      if (pendingOps > 0) return;
+      silenceTimer = window.setTimeout(function () {
+        silenceTimer = null;
+        setStatus("Vous êtes toujours là ?");
+        agentLog("Vous êtes toujours là ?", "pending");
+        try {
+          if (engine === "xai") {
+            ws.send(JSON.stringify({
+              type: "conversation.item.create",
+              item: {
+                type: "message",
+                role: "user",
+                content: [{
+                  type: "input_text",
+                  text: "Silence détecté. Dis à voix haute, en une courte phrase : « Vous êtes toujours là ? » Puis attends."
+                }]
+              }
+            }));
+            ws.send(JSON.stringify({ type: "response.create" }));
+          }
+        } catch (e) { /* socket fermé : le hangup suivra */ }
+        farewellTimer = window.setTimeout(function () {
+          farewellTimer = null;
+          setStatus("Je vous laisse, à bientôt.");
+          agentLog("Je vous laisse, à bientôt.", "pending");
+        }, 5000);
+        hangupTimer = window.setTimeout(function () {
+          hangupTimer = null;
+          hangup();
+          setStatus("Je vous laisse, à bientôt.");
+        }, 5600);
+      }, 4000);
+    }
+
+    var hangupTimer = null;
 
     function setStatus(text) {
       if (statusEl) statusEl.textContent = text;
@@ -335,6 +403,9 @@
         audioCtx.close().catch(function () {});
         audioCtx = null;
       }
+      pendingOps = 0;
+      agentSpeakingUntil = 0;
+      clearSilence();
     }
 
     function sendAudio(input) {
@@ -651,7 +722,44 @@
       });
     }
 
+    var TOOL_LOG = {
+      get_company_overview: "Recherche de la société…",
+      list_companies: "Recherche des sociétés…",
+      switch_company: "Changement de société…",
+      get_balance: "Vérification du solde…",
+      list_entries: "Lecture du grand livre…",
+      list_drafts: "Vérification des brouillons…",
+      propose_entry: "Préparation de l'écriture…",
+      draft_client: "Préparation du client…",
+      draft_invoice: "Préparation de la facture…",
+      search_french_companies: "Recherche officielle (annuaire INSEE)…",
+      choose_company_result: "Sélection de la fiche…",
+    };
+
+    function logToolOutcome(name, output) {
+      var kind = "ok";
+      var text = "";
+      if (!output || output.error) {
+        kind = "error";
+        text = typeof output.error === "string" ? output.error : (output.message || "Échec de l'opération.");
+      } else if (name === "draft_invoice" && output.invoice && output.invoice.number) {
+        text = "Facture " + output.invoice.number + " créée (brouillon).";
+      } else if (name === "propose_entry" || (output.entry && output.entry.label)) {
+        text = "Écriture proposée — à valider au grand livre.";
+      } else if (name === "draft_client") {
+        text = "Brouillon client créé — à valider.";
+      } else if (output.company && output.company.denomination) {
+        text = "Société : " + output.company.denomination + ".";
+      } else {
+        text = "Vérification terminée.";
+      }
+      agentLog(text, kind);
+    }
+
     function runTool(name, args, respond) {
+      agentLog(TOOL_LOG[name] || "Exécution en cours…", "pending");
+      pendingOps += 1;
+      clearSilence();
       postJson("/agent/outil/", { name: name, arguments: args }).then(function (data) {
         var output = data.output || { error: data.message || data.error || "outil indisponible" };
         if (name === "draft_invoice") finishLive(output);
@@ -660,7 +768,13 @@
         if (output.company && output.company.denomination) {
           setStatus("Société : " + output.company.denomination);
         }
+        pendingOps = Math.max(0, pendingOps - 1);
+        logToolOutcome(name, output);
         respond(output);
+        if (pendingOps === 0) armSilence();
+      }).catch(function () {
+        pendingOps = Math.max(0, pendingOps - 1);
+        agentLog("Échec de l'opération — réseau indisponible.", "error");
       });
     }
 
@@ -701,12 +815,16 @@
       var type = event.type || "";
       if (type === "input_audio_buffer.speech_started") {
         stopPlayback();
+        clearSilence();
         setListening(true);
         setStatus("Je vous écoute…");
       } else if (type === "input_audio_buffer.speech_stopped") {
         setListening(false);
         setStatus("Aminia réfléchit…");
+        agentLog("Analyse de votre demande…", "pending");
       } else if (type.indexOf("audio") !== -1 && type.indexOf("delta") !== -1 && (event.delta || event.audio)) {
+        clearSilence();
+        agentSpeakingUntil = Date.now() + 400;
         setStatus("Aminia parle…");
         try { playSamples(b64ToPcm(event.delta || event.audio)); } catch (e) { /* chunk illisible */ }
       } else if (type.indexOf("transcript") !== -1 && event.delta) {
@@ -720,9 +838,15 @@
       } else if (type === "response.function_call_arguments.done") {
         setStatus(event.name === "draft_invoice" ? "Aminia saisit la facture…" : "Je consulte la comptabilité…");
         handleTool(event);
+      } else if (type === "response.done") {
+        if (pendingOps === 0) {
+          agentLog("Écoute en cours…", "pending");
+          armSilence();
+        }
       } else if (type === "error") {
         var message = (event.error && (event.error.message || event.error)) || "Erreur vocale.";
         setStatus(typeof message === "string" ? message : "Erreur vocale.");
+        agentLog(typeof message === "string" ? message : "Erreur vocale.", "error");
       }
     }
 
@@ -741,6 +865,7 @@
         }
       }));
       var who = session.company_name ? " de " + session.company_name : "";
+      var greeting = session.greeting || "Bonjour, que puis-je faire pour vous ?";
       ws.send(JSON.stringify({
         type: "conversation.item.create",
         item: {
@@ -748,7 +873,7 @@
           role: "user",
           content: [{
             type: "input_text",
-            text: "L'utilisateur vient d'ouvrir l'assistant. Salue-le en une phrase et dis que tu gères la comptabilité" + who + "."
+            text: "L'utilisateur vient d'ouvrir Aminia. Dis d'abord exactement : « " + greeting + " » puis dis en une phrase que tu gères la comptabilité" + who + "."
           }]
         }
       }));
@@ -795,6 +920,8 @@
             startDuration();
             startWakeGuard();
             requestWakeLock();
+            lockCall(true);
+            agentLog("Communication établie avec Aminia.", "ok");
             var audioTrack = stream.getAudioTracks()[0];
             if (audioTrack) {
               audioTrack.onended = function () {
@@ -871,9 +998,15 @@
           startDuration();
           startWakeGuard();
           requestWakeLock();
+          lockCall(true);
+          agentLog("Communication établie avec Aminia.", "ok");
           socket.send(JSON.stringify({
             type: "conversation_initiation_client_data",
-            conversation_config_override: {},
+            conversation_config_override: {
+              agent: {
+                first_message: session.greeting || "Bonjour, que puis-je faire pour vous ?"
+              }
+            },
             custom_llm_extra_body: {
               societe_id: session.company_id || "",
               instructions: session.instructions || ""
@@ -947,6 +1080,8 @@
         if (rate > 0) elevenOutRate = rate;
         setStatus("Aminia est en ligne.");
       } else if (type === "audio" && evt.audio_event && evt.audio_event.audio_base_64) {
+        clearSilence();
+        agentSpeakingUntil = Date.now() + 400;
         setStatus("Aminia parle…");
         try { playSamples(b64ToPcm(evt.audio_event.audio_base_64)); } catch (e) { /* chunk illisible */ }
       } else if (type === "interruption") {
@@ -982,6 +1117,9 @@
             });
           }
         }
+      } else if (type === "agent_response_complete") {
+        agentLog("Écoute en cours…", "pending");
+        armSilence();
       } else if (type === "ping") {
         var pingPayload = evt.ping_event || {};
         try {
@@ -1004,7 +1142,10 @@
     });
     root.querySelectorAll("[data-agent-close]").forEach(function (button) {
       button.addEventListener("click", function () {
+        clearSilence();
+        if (hangupTimer) window.clearTimeout(hangupTimer);
         hangup();
+        lockCall(false);
         setStatus("Appuyez pour parler");
         if (window.AminiaShell && window.AminiaShell.active) {
           window.AminiaShell.exit();
