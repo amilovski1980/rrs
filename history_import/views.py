@@ -313,7 +313,7 @@ def document_apply(request, pk):
         return bounce
     document = get_object_or_404(ImportDocument, pk=pk, company=company)
 
-    if document.kind in ("catalogue", "sumup_transactions", "bank_statement"):
+    if document.kind in ("catalogue", "sumup_transactions", "bank_statement", "product_sales"):
         try:
             summary = apply_tabular(document)
         except HistoricalImportError as exc:
