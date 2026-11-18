@@ -26,5 +26,5 @@ class BankTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(BankRule)
 class BankRuleAdmin(admin.ModelAdmin):
-    list_display = ("name", "company", "label_contains", "counterpart_account", "is_active", "priority")
-    list_filter = ("is_active",)
+    list_display = ("name", "company", "label_contains", "counterpart_account", "auto_post", "is_active", "priority")
+    list_filter = ("is_active", "auto_post")
