@@ -141,6 +141,36 @@
           {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
         </form>
       </div>
+    {% elif document.status == "ready" and document.kind == "bank_statement" %}
+      <h2 style="margin-top:0">
+        Relevé bancaire détecté — {{ document.extracted.totals.count }} opérations
+      </h2>
+      <p class="micro">
+        Débits <b>{{ document.extracted.totals.debit }}</b> ·
+        Crédits <b>{{ document.extracted.totals.credit }}</b>.
+        La création alimente la trésorerie (opérations bancaires à rapprocher,
+        avec le sens crédit = encaissement, débit = dépense).
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>{% for column in document.extracted.columns|slice:":4" %}<th>{{ column }}</th>{% endfor %}</tr>
+          </thead>
+          <tbody>
+            {% for row in document.extracted.display_rows %}
+            <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="import-doc-actions" style="margin-top:12px">
+        <form method="post" action="{% url 'history_import:document_apply' document.pk %}?societe={{ company.id }}">
+          {% csrf_token %}<button class="btn btn-primary" type="submit">Créer les opérations bancaires</button>
+        </form>
+        <form method="post" action="{% url 'history_import:document_reject' document.pk %}?societe={{ company.id }}" onsubmit="return confirm('Exclure ce document du lot ?');">
+          {% csrf_token %}<button class="btn btn-danger btn-sm" type="submit">Exclure</button>
+        </form>
+      </div>
     {% elif document.status == "ready" and document.kind == "sumup_transactions" %}
       <h2 style="margin-top:0">Encaissements SUMUP détectés — {{ document.extracted.totals.count }} opérations</h2>
       <p class="micro">

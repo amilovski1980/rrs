@@ -742,10 +742,74 @@ def detect_tabular(text: str) -> dict | None:
         return {"kind": "catalogue", "columns": rows[0], "rows": parsed}
 
     lower = text.lower()
-    if ("libellé" in lower or "libelle" in lower) and ("débit" in lower or "debit" in lower or "crédit" in lower):
-        return {"kind": "bank_statement", "columns": rows[0], "rows": [
-            [cell.strip() for cell in row] for row in data_rows[:500]
-        ]}
+    if (
+        ("libellé" in lower or "libelle" in lower or "descript" in lower)
+        and (
+            "débit" in lower or "debit" in lower
+            or "crédit" in lower or "credit" in lower
+            or "virement" in lower or "montant" in lower
+        )
+    ):
+        idx_date = _find_col(header, "date")
+        idx_value = _find_col(header, "valeur", "date de valeur")
+        idx_label = _find_col(
+            header,
+            "libelle", "libellé", "label", "description",
+            "opération", "operation", "memo", "désignation",
+        )
+        idx_debit = _find_col(
+            header, "debit", "débit", "retrait", "montant debit", "somme debit",
+        )
+        idx_credit = _find_col(
+            header, "credit", "crédit", "dépôt", "versement",
+            "montant credit", "somme credit",
+        )
+        idx_amount = _find_col(header, "montant", "amount", "valeur")
+        if idx_label == -1:
+            idx_label = 1
+        parsed = []
+        for row in data_rows[:500]:
+            cells = [cell.strip() for cell in row]
+            if not any(cells):
+                continue
+            raw_date = cells[idx_date] if 0 <= idx_date < len(cells) else (
+                cells[idx_value] if 0 <= idx_value < len(cells) else ""
+            )
+            date_value = _tabular_date(raw_date)
+            label = (cells[idx_label] if 0 <= idx_label < len(cells) else "")[:255]
+            if date_value is None:
+                continue
+            debit = "0.00"
+            credit = "0.00"
+            debit_value = _amount(cells[idx_debit]) if idx_debit >= 0 and idx_debit < len(cells) else None
+            credit_value = _amount(cells[idx_credit]) if idx_credit >= 0 and idx_credit < len(cells) else None
+            if idx_debit >= 0 or idx_credit >= 0:
+                debit_num = debit_value or Decimal("0.00")
+                credit_num = credit_value or Decimal("0.00")
+                if debit_num == 0 and credit_num == 0:
+                    continue
+                debit = str(debit_num.quantize(Decimal("0.01")))
+                credit = str(credit_num.quantize(Decimal("0.01")))
+            elif idx_amount >= 0:
+                signed = _amount(cells[idx_amount])
+                if signed is None or signed == 0:
+                    continue
+                if signed >= 0:
+                    credit = str(signed.quantize(Decimal("0.01")))
+                else:
+                    debit = str((-signed).quantize(Decimal("0.01")))
+            else:
+                continue
+            if not label:
+                label = "Opération " + raw_date
+            parsed.append([raw_date, label, debit, credit])
+        if not parsed:
+            return None
+        return {
+            "kind": "bank_statement",
+            "columns": ["Date", "Libellé", "Débit", "Crédit"],
+            "rows": parsed,
+        }
     return None
 
 
@@ -781,6 +845,18 @@ def _analyse_tabular(document: ImportDocument) -> ImportDocument | None:
             "tax": str(sum((Decimal(item["tax"]) for item in rows), Decimal("0.00"))),
             "ttc": str(sum((Decimal(item["ttc"]) for item in rows), Decimal("0.00"))),
         }
+    elif detected["kind"] == "bank_statement":
+        debit_sum = sum(
+            (Decimal(row[2]) for row in rows), Decimal("0.00")
+        )
+        credit_sum = sum(
+            (Decimal(row[3]) for row in rows), Decimal("0.00")
+        )
+        totals = {
+            "count": len(rows),
+            "debit": str(debit_sum.quantize(Decimal("0.01"))),
+            "credit": str(credit_sum.quantize(Decimal("0.01"))),
+        }
 
     document.kind = detected["kind"]
     document.raw_text = text[:40000]
@@ -804,6 +880,8 @@ def _analyse_tabular(document: ImportDocument) -> ImportDocument | None:
                 item.get("quantity"), item.get("unit"), item.get("ht"),
                 item.get("tax"), item.get("ttc"), item.get("margin"),
             ])
+        elif detected["kind"] == "bank_statement":
+            display_rows.append(list(item)[:4])
         else:
             display_rows.append(list(item)[:8] if isinstance(item, (list, tuple)) else [str(item)[:80]])
     document.raw_text = text[:40000]
@@ -1095,14 +1173,11 @@ def import_document(document: ImportDocument, user=None):
         return document
     if document.status != "ready":
         raise HistoricalImportError("Ce document doit être vérifié avant import.")
-    if document.kind not in (
-        "sale_invoice",
-        "purchase_invoice",
-        "credit_note",
-        "ticket",
-        "other",
-    ):
-        raise HistoricalImportError("Ce type de document est archivé sans import métier.")
+    if document.kind in ("catalogue", "sumup_transactions", "bank_statement", "product_sales"):
+        raise HistoricalImportError(
+            "Pour ce document, utilisez le bouton « Appliquez les opérations / le catalogue » "
+            "plutôt que « Importer ce document »."
+        )
 
     existing = _find_existing_invoice(document)
     if existing is not None:
