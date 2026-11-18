@@ -17,10 +17,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
+  {% include "partials/ios_splash_links.html" with theme="dark" %}
   {% else %}
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
+  {% include "partials/ios_splash_links.html" %}
   {% endif %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.46">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
