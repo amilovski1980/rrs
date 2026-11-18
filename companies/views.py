@@ -384,8 +384,15 @@ def cockpit_global(request):
             "delta": delta(row["ca"], previous["ca"]),
         })
     total_ca = totals["ca"] or Decimal("0.00")
+    from .deadlines import upcoming as upcoming_deadlines
+
     for row in company_rows:
         row["share"] = int(round(float(row["ca"] / total_ca * 100))) if total_ca > 0 else 0
+        try:
+            items = upcoming_deadlines(row["company"], count=1)
+        except Exception:
+            items = []
+        row["urgent"] = items[0] if items and items[0].get("urgent") else None
         if row["delta"] is None:
             row["delta_display"] = "sans historique"
             row["delta_tone"] = "flat"

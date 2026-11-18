@@ -24,7 +24,7 @@
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% include "partials/ios_splash_links.html" %}
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.46">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.47">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
@@ -103,8 +103,9 @@
             <span class="company-switch-btn {{ co_cls }}" aria-hidden="true">{{ c|company_initial }}</span>
             <span class="m-company-row-text">
               <b>{{ c.denomination }}</b>
-              <small>SIREN {{ c.siren }}</small>
+              <small>SIREN {{ c.siren }}{% if c.deadline_info %} · ⏰ {{ c.deadline_info.label|truncatechars:18 }} ({{ c.deadline_info.days }} j){% endif %}</small>
             </span>
+            {% if c.deadline_info %}<span class="m-company-dot" aria-hidden="true"></span>{% endif %}
             {% if top_company and top_company.id == c.id %}<span class="m-company-check" aria-hidden="true">✓</span>{% endif %}
           </a>
           {% endfor %}

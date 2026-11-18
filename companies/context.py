@@ -15,11 +15,29 @@ def company_switcher(request):
     )
     if not companies:
         return {"top_companies": [], "top_company": None}
+    _attach_deadlines(companies)
     return {
         "top_companies": companies,
         "top_company": resolve_company(request),
         "deadline_alert": deadline_alert(resolve_company(request)),
     }
+
+
+def _attach_deadlines(companies):
+    """Marque chaque société avec sa premiere echeance urgente (<= 14 j)."""
+    from .deadlines import upcoming
+
+    for company in companies:
+        try:
+            items = upcoming(company, count=1)
+        except Exception:
+            items = []
+        if items and items[0].get("urgent"):
+            company.deadline_info = {
+                "label": items[0]["label"],
+                "date": items[0]["date"],
+                "days": items[0]["days"],
+            }
 
 
 def deadline_alert(company):
