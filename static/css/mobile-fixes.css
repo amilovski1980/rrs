@@ -589,3 +589,29 @@
   }
 }
 
+
+/* ---------- Assistant par étapes : barre toujours fixée en bas ----------
+   S'applique aussi au mode forcé sur desktop (data-wizard-mode="always"). */
+.wizard-mode .wizard-nav,
+.wizard-desktop.wizard-mode .wizard-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: calc(var(--z-page-actions) + 1);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: 0 -14px 34px -20px rgba(15, 23, 42, .5);
+}
+
+body.wizard-active .content {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
