@@ -105,6 +105,7 @@
     var mic = root.querySelector("[data-agent-mic]");
     var statusEl = root.querySelector("[data-agent-status]");
     var transcriptEl = root.querySelector("[data-agent-transcript]");
+    var replyEl = root.querySelector("[data-agent-reply]");
     var dialog = root.querySelector(".agent-dialog");
     if (!openBtn || !panel || !mic) return;
 
@@ -117,6 +118,7 @@
     var playAt = 0;
     var sources = [];
     var transcript = "";
+    var reply = "";
     var callNames = {};
     var argBuffers = {};
     var liveTargets = {};
@@ -230,6 +232,11 @@
     function setTranscript(text) {
       transcript = text;
       if (transcriptEl) transcriptEl.textContent = text;
+    }
+
+    function setReply(text) {
+      reply = text;
+      if (replyEl) replyEl.textContent = text;
     }
 
     function setListening(on) {
@@ -825,18 +832,27 @@
         stopPlayback();
         clearSilence();
         setListening(true);
+        setTranscript("");
+        setReply("");
         setStatus("Je vous écoute…");
       } else if (type === "input_audio_buffer.speech_stopped") {
         setListening(false);
         setStatus("Aminia réfléchit…");
         agentLog("Analyse de votre demande…", "pending");
+      } else if (type === "response.created") {
+        setReply("");
+      } else if (type.indexOf("transcript") !== -1) {
+        var piece = event.delta || event.transcript || "";
+        if (type.indexOf("input_audio_transcription") !== -1) {
+          setTranscript((event.delta ? transcript + piece : piece).slice(-400));
+        } else {
+          setReply((event.delta ? reply + piece : piece).slice(-800));
+        }
       } else if (type.indexOf("audio") !== -1 && type.indexOf("delta") !== -1 && (event.delta || event.audio)) {
         clearSilence();
         agentSpeakingUntil = Date.now() + 400;
         setStatus("Aminia parle…");
         try { playSamples(b64ToPcm(event.delta || event.audio)); } catch (e) { /* chunk illisible */ }
-      } else if (type.indexOf("transcript") !== -1 && event.delta) {
-        setTranscript((transcript + event.delta).slice(-400));
       } else if (type === "response.output_item.added" && event.item && event.item.name) {
         callNames[event.item.call_id || ""] = event.item.name;
       } else if (type === "response.function_call_arguments.delta") {
