@@ -876,6 +876,24 @@ class SchemaRepairTests(TransactionTestCase):
         self.assertEqual(settings_page.status_code, 200)
         self.assertContains(settings_page, "Paramètres")
 
+    def test_banking_rule_auto_post_column_is_healed(self):
+        """Migration 0007 notée appliquée mais colonne absente (prod Neon)."""
+        from django.db import connection
+
+        from core import deploy
+
+        self._exec(["ALTER TABLE banking_bankrule DROP COLUMN auto_post"])
+        self.assertFalse(deploy.schema_ready())
+        self.assertTrue(deploy.assurer_migrations(force=True))
+        with connection.cursor() as cursor:
+            columns = {
+                column.name
+                for column in connection.introspection.get_table_description(
+                    cursor, "banking_bankrule"
+                )
+            }
+        self.assertIn("auto_post", columns)
+
 
 class EmailTemplateAdminTests(TestCase):
     """Les modèles d'email sont éditables et réellement utilisés."""

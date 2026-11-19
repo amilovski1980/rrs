@@ -5,7 +5,7 @@ serverless réessaie. Si l'historique Django dit « déjà appliqué » alors qu
 manque une colonne (ou que les fichiers de migration n'étaient pas dans le
 bundle), on ajoute les tables et colonnes décrites par les modèles. Ce sont
 les colonnes lues par Forfaits, Abonnements, Paramètres, Intégrations,
-Consignes et SMS — les pages qui répondaient 500.
+Consignes, SMS et règles bancaires — les pages qui répondaient 500.
 """
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ KNOWN_MIGRATIONS = (
     ("admin_backoffice", "0002_backoffice_extensions"),
     ("billing", "0002_backoffice_extensions"),
     ("contacts", "0001_initial"),
+    ("banking", "0007_bankrule_auto_post"),
 )
 
 # (table, colonne ou None si seule la table doit exister)
@@ -52,6 +53,7 @@ REQUIRED_SCHEMA = (
     ("accounts_user", "job_title"),
     ("accounts_user", "email_signature"),
     ("contacts_contact", None),
+    ("banking_bankrule", "auto_post"),
 )
 
 # Ordre : les clés étrangères de SmsMessage exigent le modèle SMS et User.
@@ -64,6 +66,7 @@ HEAL_LABELS = (
     "admin_backoffice.SmsMessage",
     "billing.Plan",
     "contacts.Contact",
+    "banking.BankRule",
 )
 
 _state = {"ok": False}
