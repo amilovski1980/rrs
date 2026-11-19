@@ -123,6 +123,15 @@
           <span class="agent-close-x" aria-hidden="true">×</span>
         </button>
       </div>
+      <div class="voice-chat-box" data-agent-chat-box>
+        <div class="agent-chat-log" data-agent-chat-log aria-live="polite"></div>
+        <p class="agent-chat-error" data-agent-chat-error hidden role="alert"></p>
+        <form class="agent-chat-form" data-agent-chat-form>
+          <label class="sr-only" for="agent-voice-chat-input">Votre message</label>
+          <input id="agent-voice-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off">
+          <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
+        </form>
+      </div>
       <ol class="agent-log" data-agent-log aria-live="polite" aria-label="Journal d'activité d'Aminia"></ol>
     </div>
   </div>

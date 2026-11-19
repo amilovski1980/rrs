@@ -5484,6 +5484,42 @@ html[data-theme='dark'] .socie-urgent {
   background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95), rgba(255, 255, 255, .22) 36%, rgba(21, 128, 61, .62) 68%, rgba(6, 78, 59, .65));
   box-shadow: 0 0 60px rgba(94, 234, 178, .5), inset 0 0 40px rgba(255, 255, 255, .22);
 }
+.agent-dialog.voice-stage .voice-chat-box {
+  display: flex; flex-direction: column; gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, .14); padding-top: 12px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-log {
+  flex: 0 0 auto; max-height: 180px; overflow-y: auto;
+  padding: 4px 2px; background: transparent;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble {
+  max-width: 92%; font-size: 13px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble--user {
+  background: rgba(202, 28, 96, .85); color: #fff;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble--assistant {
+  background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .24); color: #f3f7ff;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-error { color: #ff9ab5; margin: 0; }
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form {
+  display: flex; gap: 8px; padding: 0; border-top: 0;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input {
+  flex: 1; min-width: 0; border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 12px; padding: 10px 12px; background: rgba(255, 255, 255, .12);
+  color: #fff; font: inherit;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input::placeholder {
+  color: rgba(255, 255, 255, .55);
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input:focus {
+  outline: 2px solid #9fc4ff; outline-offset: 1px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form .btn-primary {
+  background: var(--blue-2); color: #fff;
+}
 @media (max-width: 768px) {
   .agent-panel { padding: 12px !important; }
   .agent-panel .agent-dialog,

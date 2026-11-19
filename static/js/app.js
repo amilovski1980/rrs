@@ -899,6 +899,8 @@
     if (floating) wireChatForm(floating);
     var page = document.querySelector("[data-agent-chat-page]");
     if (page) wireChatForm(page);
+    var boxes = document.querySelectorAll("[data-agent-chat-box]");
+    for (var i = 0; i < boxes.length; i++) wireChatForm(boxes[i]);
   }
 
   function initPhone() {
