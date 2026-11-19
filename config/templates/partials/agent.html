@@ -99,11 +99,19 @@
       <div class="voice-chat">
         <div class="voice-msg user">
           <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
-          <p data-agent-transcript>Appuyez sur le micro et parlez&nbsp;: Aminia transcrit ici.</p>
+          <p data-agent-transcript>J'ai acheté une perceuse à 240 € chez Leroy Merlin hier.</p>
         </div>
         <div class="voice-msg agent">
           <span class="voice-role">Aminia</span>
-          <p>Je vous écoute. Parlez naturellement, je prépare l'écriture et je vous explique chaque étape.</p>
+          <p>J'ai trouvé la dépense : <strong>240 € TTC</strong>, fournisseur Leroy Merlin. Je la classe en <strong>outillage</strong> et je récupère <strong>40 € de TVA</strong>. Je crée le brouillon d'écriture ?</p>
+        </div>
+        <div class="voice-msg user">
+          <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
+          <p>Oui, et explique-moi où ça apparaît.</p>
+        </div>
+        <div class="voice-msg agent">
+          <span class="voice-role">Aminia</span>
+          <p>C'est fait. L'écriture est dans le journal des achats, compte <strong>6063</strong>. Elle attend votre validation dans le cockpit. Voulez-vous que je vous montre la ligne ?</p>
         </div>
       </div>
       <div class="voice-orb-wrap">
@@ -123,7 +131,7 @@
           <span data-voice-icon="pause" hidden>{% include "partials/icon.html" with name="pause" %}</span>
         </button>
         <div class="voice-dots" data-voice-dots></div>
-        <span class="voice-count"><span data-voice-index>1</span> / 2</span>
+        <span class="voice-count"><span data-voice-index>1</span> / 4</span>
         <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
         <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
       </div>
