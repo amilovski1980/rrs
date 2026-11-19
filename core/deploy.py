@@ -59,6 +59,7 @@ REQUIRED_SCHEMA = (
     ("companies_company", "capital"),
     ("companies_company", "rcs"),
     ("purchases_purchaseinvoiceline", None),
+    ("admin_backoffice_systemlog", "source"),
     ("admin_backoffice_bannedip", None),
     ("admin_backoffice_visitorhit", None),
 )
@@ -76,6 +77,7 @@ HEAL_LABELS = (
     "banking.BankRule",
     "companies.Company",
     "purchases.PurchaseInvoiceLine",
+    "admin_backoffice.SystemLog",
     "admin_backoffice.BannedIP",
     "admin_backoffice.VisitorHit",
 )
@@ -266,6 +268,9 @@ def _repair_migration_history() -> bool:
         return False  # cohérent : rien à réparer
     except InconsistentMigrationHistory:
         pass
+    except Exception:
+        logger.exception("Chargement du graphe de migrations impossible")
+        return False
     disk = getattr(executor.loader, "disk_migrations", {}) or {}
     by_key = {
         (migration.app_label, migration.name): migration
@@ -278,9 +283,14 @@ def _repair_migration_history() -> bool:
             continue
         for dependency in migration.dependencies:
             if dependency not in applied and dependency in by_key:
-                recorder.record_applied(*dependency)
+                try:
+                    recorder.record_applied(*dependency)
+                except Exception:
+                    logger.exception("Impossible d'enregistrer %s.%s", *dependency)
+                    continue
                 applied.add(dependency)
                 repaired = True
+                print(f"[migrations] dépendance recollée : {dependency[0]}.{dependency[1]}", flush=True)
     if repaired:
         print("[migrations] historique réparé", flush=True)
     return repaired
