@@ -36,15 +36,12 @@ class ImportResult:
     created: int
     duplicates: int
     matched: int
-    posted: int = 0
 
     def summary(self) -> str:
         parts = [f"{self.created} opération(s) importée(s)"]
         if self.duplicates:
             parts.append(f"{self.duplicates} doublon(s) ignoré(s)")
         parts.append(f"{self.matched} rapprochée(s) automatiquement")
-        if self.posted:
-            parts.append(f"dont {self.posted} par règle")
         return " · ".join(parts)
 
 
@@ -115,7 +112,7 @@ def import_statement(account: BankAccount, data: bytes, filename: str = "") -> I
             statement.file = None
     statement.save()
 
-    created = duplicates = matched = posted = 0
+    created = duplicates = matched = 0
     for row in rows:
         fingerprint = make_fingerprint(
             account.id, row.date, row.amount, row.label, row.external_id
@@ -142,26 +139,6 @@ def import_statement(account: BankAccount, data: bytes, filename: str = "") -> I
         created += 1
         if auto_match_transaction(bank_transaction) is not None:
             matched += 1
-            continue
-        rule = find_rule(bank_transaction)
-        if (
-            rule is not None
-            and rule.auto_post
-            and rule.counterpart_account_id is not None
-        ):
-            try:
-                create_entry_from_transaction(
-                    bank_transaction,
-                    counterpart_code=rule.counterpart_account.code,
-                    label=rule.entry_label or "",
-                    nature="other",
-                )
-            except BankError:
-                # Une règle mal paramétrée ne doit jamais bloquer l'import.
-                pass
-            else:
-                matched += 1
-                posted += 1
 
     return ImportResult(
         statement=statement,
@@ -169,7 +146,6 @@ def import_statement(account: BankAccount, data: bytes, filename: str = "") -> I
         created=created,
         duplicates=duplicates,
         matched=matched,
-        posted=posted,
     )
 
 

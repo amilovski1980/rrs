@@ -272,134 +272,18 @@ def transaction_list(request):
             "base_url": base_url,
             "accounts": company.bank_accounts.all(),
             "statuses": BankTransaction.STATUSES,
-            "reconcile_natures": [
-                (code, label)
-                for code, label in BankTransaction.NATURES
-                if code != "existing"
-            ],
-            "chart_accounts": company.accounts.order_by("code"),
         },
     )
-
-
-BULK_RECONCILE_NATURES = {
-    code for code, _label in BankTransaction.NATURES if code != "existing"
-}
-BULK_ACCOUNT_NATURES = {"expense", "other"}
-
-
-def _bulk_account_code(company, code):
-    """Code de compte existant (exact ou racine), ou None s'il est inconnu."""
-    code = (code or "").strip().upper()
-    if not code:
-        return None
-    if company.accounts.filter(code=code).exists():
-        return code
-    match = company.accounts.filter(code__startswith=code).order_by("code").first()
-    return match.code if match else None
-
-
-def _bulk_reconcile(request, company, queryset):
-    """Crée et rapproche une écriture par opération sélectionnée.
-
-    Retourne (rapprochées, motifs d'échec). Une opération en erreur n'empêche
-    pas les suivantes : chaque appel est isolé par son propre bloc atomique.
-    """
-    nature = (request.POST.get("bulk_nature") or "").strip()
-    if nature not in BULK_RECONCILE_NATURES:
-        return 0, {"Choisissez la nature des opérations.": 1}
-
-    counterpart_code = ""
-    if nature in BULK_ACCOUNT_NATURES:
-        counterpart_code = _bulk_account_code(
-            company, request.POST.get("bulk_counterpart_code")
-        )
-        if counterpart_code is None:
-            return 0, {
-                "Compte de charge ou de contrepartie introuvable dans le plan comptable.": 1
-            }
-
-    transfer_account = None
-    if nature == "internal_transfer":
-        transfer_account = company.bank_accounts.filter(
-            pk=(request.POST.get("bulk_transfer_account") or "").strip()
-        ).first()
-        if transfer_account is None:
-            return 0, {"Choisissez le compte bancaire de destination.": 1}
-
-    targets = list(
-        queryset.filter(status="unmatched").select_related("account", "company")
-    )
-    reconciled = 0
-    failures = {}
-    for bank_transaction in targets:
-        common = {
-            "label": bank_transaction.label or "",
-            "reference": bank_transaction.reference or "",
-        }
-        try:
-            if nature == "customer_receipt":
-                reconcile_customer_receipt(
-                    bank_transaction,
-                    gross_amount=None,
-                    fee_amount=Decimal("0.00"),
-                    fee_account_code="627000",
-                    **common,
-                )
-            elif nature == "supplier_payment":
-                reconcile_supplier_payment(
-                    bank_transaction,
-                    gross_amount=None,
-                    fee_amount=Decimal("0.00"),
-                    fee_account_code="627000",
-                    **common,
-                )
-            elif nature == "expense":
-                reconcile_expense(
-                    bank_transaction,
-                    charge_account_code=counterpart_code,
-                    **common,
-                )
-            elif nature == "bank_fee":
-                reconcile_bank_fee(bank_transaction, **common)
-            elif nature == "loan_payment":
-                reconcile_loan_payment(
-                    bank_transaction,
-                    principal=bank_transaction.absolute_amount,
-                    interest=Decimal("0.00"),
-                    **common,
-                )
-            elif nature == "internal_transfer":
-                reconcile_internal_transfer(
-                    bank_transaction,
-                    other_account=transfer_account,
-                    **common,
-                )
-            elif nature == "vat_payment":
-                reconcile_vat_payment(
-                    bank_transaction,
-                    vat_account_code="44571",
-                    **common,
-                )
-            else:
-                reconcile_other(
-                    bank_transaction,
-                    counterpart_code=counterpart_code,
-                    **common,
-                )
-        except BankError as exc:
-            failures[str(exc)] = failures.get(str(exc), 0) + 1
-        else:
-            reconciled += 1
-    return reconciled, failures
 
 
 @login_required
 @require_POST
 def transaction_bulk(request):
-    """Actions de masse sur les opérations sélectionnées : rapprocher,
-    ignorer, rétablir, supprimer. Redirige vers la liste avec un message
-    (les boutons du formulaire postent en navigation classique)."""
+    """Actions de masse sur les opérations sélectionnées : ignorer, rétablir,
+    supprimer. Redirige vers la liste avec un message (les boutons du
+    formulaire postent en navigation classique)."""
+    from django.contrib import messages
+
     company, bounce = _company_or_redirect(request)
     if bounce:
         messages.error(request, "Aucune société.")
@@ -411,29 +295,7 @@ def transaction_bulk(request):
         messages.error(request, "Aucune opération sélectionnée.")
         return redirect(back)
     queryset = BankTransaction.objects.filter(company=company, pk__in=ids)
-    if action == "reconcile":
-        skipped = queryset.exclude(status="unmatched").count()
-        reconciled, failures = _bulk_reconcile(request, company, queryset)
-        if reconciled:
-            messages.success(request, f"{reconciled} opération(s) rapprochée(s).")
-        if skipped:
-            messages.info(
-                request,
-                f"{skipped} opération(s) déjà rapprochée(s) ou ignorée(s), non modifiée(s).",
-            )
-        if failures:
-            total = sum(failures.values())
-            detail = " · ".join(
-                f"{count}× {reason}" for reason, count in list(failures.items())[:3]
-            )
-            if len(failures) > 3:
-                detail += f" · (+{len(failures) - 3} autre(s) motif(s))"
-            messages.warning(
-                request, f"{total} opération(s) non rapprochée(s) : {detail}"
-            )
-        if not reconciled and not failures and not skipped:
-            messages.info(request, "Aucune opération trouvée dans la sélection.")
-    elif action == "ignore":
+    if action == "ignore":
         updated = queryset.exclude(status="ignored").update(status="ignored")
         messages.success(request, f"{updated} opération(s) ignorée(s).")
     elif action == "restore":
