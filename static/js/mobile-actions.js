@@ -24,8 +24,28 @@
     );
   }
 
+  function bindFooterScanner() {
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-scan-open]"),
+      function (button) {
+        if (button.dataset.scanBound) return;
+        button.dataset.scanBound = "1";
+        button.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          var prefix =
+            document.documentElement.getAttribute("data-theme") === "dark"
+              ? "/dark"
+              : "";
+          window.location.href = prefix + "/factures/tickets/import/";
+        });
+      }
+    );
+  }
+
   function sync() {
     bindFooterAgent();
+    bindFooterScanner();
   }
 
   if (document.readyState === "loading") {

@@ -1,0 +1,108 @@
+/* =====================================================================
+   Liquid Glass — langage de design pour le thème clair ET le thème sombre.
+   Transparence réglable : --glass-alpha (0.00 = opaque, 1.00 = verre pur),
+   flou et saturation ajustables via --glass-blur / --glass-sat.
+   ===================================================================== */
+:root {
+  --glass-alpha: .58;               /* transparence réglable (clair) */
+  --glass-blur: 18px;
+  --glass-sat: 168%;
+  --glass-border: rgba(255, 255, 255, .6);
+  --glass-edge: rgba(255, 255, 255, .85);
+  --glass-shadow: 0 24px 52px -28px rgba(8, 22, 45, .5);
+  --glass-radius: 18px;
+  --radius-lg: 18px;                /* coins plus nets, mise en page plus propre */
+}
+
+html[data-theme="dark"] {
+  --glass-alpha: .3;                /* verre sombre plus transparent */
+  --glass-border: rgba(255, 255, 255, .15);
+  --glass-edge: rgba(255, 255, 255, .2);
+  --glass-shadow: 0 26px 58px -30px rgba(0, 0, 0, .85);
+}
+
+/* ---- Icônes plus nettes et plus précises ---- */
+svg.icon {
+  shape-rendering: geometricPrecision;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+.m-footer-ico .icon,
+.side-ico .icon,
+.m-nav-ico .icon {
+  stroke-width: 2;
+}
+
+/* ---- Surfaces en verre liquide — thème clair ---- */
+.m-header, .sidebar, .m-footer, .card, .kpi, .plan, .company, .auth-card,
+.glass-panel, .agent-chooser, .agent-chat-card, .agent-results-card,
+.live-invoice .card, .pwa-install-pill, .quick-card, .feature {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(var(--glass-alpha) + .16)),
+      rgba(255, 255, 255, var(--glass-alpha))
+    );
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-edge);
+  border-radius: var(--glass-radius);
+}
+
+/* ---- Surfaces en verre liquide — thème sombre ---- */
+html[data-theme="dark"] .m-header,
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .m-footer,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .kpi,
+html[data-theme="dark"] .plan,
+html[data-theme="dark"] .company,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .glass-panel,
+html[data-theme="dark"] .agent-chooser,
+html[data-theme="dark"] .agent-chat-card,
+html[data-theme="dark"] .agent-results-card,
+html[data-theme="dark"] .live-invoice .card,
+html[data-theme="dark"] .pwa-install-pill,
+html[data-theme="dark"] .quick-card,
+html[data-theme="dark"] .feature {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, calc(var(--glass-alpha) * .14)),
+      rgba(13, 14, 17, calc(.6 + var(--glass-alpha) * .3))
+    );
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, .06);
+  color: var(--ink, #f6f6f4);
+}
+
+/* ---- Repli sans backdrop-filter ---- */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .m-header, .sidebar, .m-footer, .card, .kpi, .plan, .company, .auth-card,
+  .glass-panel, .agent-chooser, .agent-chat-card, .agent-results-card,
+  .live-invoice .card, .pwa-install-pill, .quick-card, .feature {
+    background: rgba(255, 255, 255, .94);
+  }
+  html[data-theme="dark"] .m-header,
+  html[data-theme="dark"] .sidebar,
+  html[data-theme="dark"] .m-footer,
+  html[data-theme="dark"] .card,
+  html[data-theme="dark"] .kpi,
+  html[data-theme="dark"] .plan,
+  html[data-theme="dark"] .company,
+  html[data-theme="dark"] .auth-card,
+  html[data-theme="dark"] .glass-panel,
+  html[data-theme="dark"] .agent-chooser,
+  html[data-theme="dark"] .agent-chat-card,
+  html[data-theme="dark"] .agent-results-card,
+  html[data-theme="dark"] .live-invoice .card,
+  html[data-theme="dark"] .pwa-install-pill,
+  html[data-theme="dark"] .quick-card,
+  html[data-theme="dark"] .feature {
+    background: rgba(17, 18, 22, .94);
+  }
+}
