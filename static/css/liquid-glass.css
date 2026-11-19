@@ -21,6 +21,19 @@ html[data-theme="dark"] {
   --glass-shadow: 0 26px 58px -30px rgba(0, 0, 0, .85);
 }
 
+/* ---- Fond du mode sombre : noir profond + dégradé orange ---- */
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(880px 520px at 100% -6%, rgba(255, 138, 43, .18), transparent 58%),
+    radial-gradient(760px 480px at -4% 112%, rgba(255, 154, 26, .14), transparent 56%),
+    radial-gradient(640px 420px at 50% -12%, rgba(255, 154, 26, .08), transparent 60%),
+    #000;
+}
+html[data-theme="dark"] .shell,
+html[data-theme="dark"] .main {
+  background: transparent;
+}
+
 /* ---- Icônes plus nettes et plus précises ---- */
 svg.icon {
   shape-rendering: geometricPrecision;
