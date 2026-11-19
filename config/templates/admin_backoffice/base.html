@@ -107,7 +107,10 @@
 
       <div class="nav-sec">Système</div>
       <a class="side-link {% if admin_section == 'logs' %}active{% endif %}" href="{% url 'admin_backoffice:logs' %}">
-        <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Journal
+        <span class="side-ico">{% include "partials/icon.html" with name="list" %}</span> Log serveur
+      </a>
+      <a class="side-link {% if admin_section == 'analytics' %}active{% endif %}" href="{% url 'admin_backoffice:analytics' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="chart" %}</span> Analytique
       </a>
       <a class="side-link {% if admin_section == 'settings' %}active{% endif %}" href="{% url 'admin_backoffice:settings' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="lock" %}</span> Paramètres

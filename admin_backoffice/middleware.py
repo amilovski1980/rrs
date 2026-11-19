@@ -1,13 +1,91 @@
 import logging
+import time
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.http import HttpResponse, HttpResponseForbidden
 
-from .models import SiteConfiguration
+from .audit import client_ip
+from .models import BannedIP, SiteConfiguration, SystemLog, VisitorHit
 
 logger = logging.getLogger(__name__)
 
 _SCHEMA_ERRORS = (OperationalError, ProgrammingError)
+
+# Cache court des IP bannies (évite une requête à chaque hit).
+_banned_cache = {"at": 0.0, "ips": set()}
+_BANNED_TTL = 30.0
+
+
+def _banned_ips():
+    now = time.monotonic()
+    if now - _banned_cache["at"] > _BANNED_TTL:
+        try:
+            _banned_cache["ips"] = set(
+                BannedIP.objects.filter(active=True).values_list("ip", flat=True)
+            )
+            _banned_cache["at"] = now
+        except Exception:
+            return set()
+    return _banned_cache["ips"]
+
+
+class IPBanMiddleware:
+    """Bloque les adresses IP bannies (le personnel garde l'accès)."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        ip = client_ip(request)
+        if ip:
+            user = getattr(request, "user", None)
+            if not (user and getattr(user, "is_staff", False)):
+                if ip in _banned_ips():
+                    return HttpResponseForbidden(
+                        "<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"utf-8\">"
+                        "<title>Accès refusé</title></head><body>"
+                        "<h1>Accès refusé</h1><p>Cette adresse IP a été bloquée.</p>"
+                        "</body></html>",
+                        content_type="text/html; charset=utf-8",
+                    )
+        return self.get_response(request)
+
+
+class AnalyticsMiddleware:
+    """Enregistre le trafic (IP, ville, page, statut) et les erreurs serveur."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        try:
+            path = request.path or "/"
+            if (
+                not path.startswith("/static/")
+                and not path.startswith("/media/")
+                and path not in ("/favicon.ico", "/sw.js", "/_vercel/ping")
+            ):
+                ua = (request.META.get("HTTP_USER_AGENT") or "")[:255]
+                VisitorHit.objects.create(
+                    ip=client_ip(request) or "0.0.0.0",
+                    path=path[:255],
+                    method=(request.method or "GET")[:8],
+                    status=getattr(response, "status_code", 200),
+                    city=(request.META.get("HTTP_X_VERCEL_IP_CITY") or "")[:80],
+                    country=(request.META.get("HTTP_X_VERCEL_IP_COUNTRY") or "")[:8],
+                    user_agent=ua,
+                )
+            if getattr(response, "status_code", 200) >= 500:
+                SystemLog.objects.create(
+                    level="ERROR",
+                    source="server",
+                    message=f"{request.method} {path} → {response.status_code}",
+                    ip_address=client_ip(request),
+                )
+        except Exception:
+            logger.exception("Analytique indisponible")
+        return response
 
 
 class DynamicConfigMiddleware:

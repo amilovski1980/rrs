@@ -1,0 +1,176 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Analytique{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Analytique</h1>
+    <p class="sub">Monitoring système, trafic, villes des visiteurs et bannissement des IP.</p>
+  </div>
+</div>
+
+<div class="grid kpi-row">
+  <div class="kpi">
+    <div class="l">Requêtes (total)</div>
+    <div class="v">{{ hits_total }}</div>
+    <div class="d">{{ hits_24h }} sur 24 h</div>
+  </div>
+  <div class="kpi">
+    <div class="l">IP uniques</div>
+    <div class="v">{{ unique_ips }}</div>
+    <div class="d">{{ banned_count }} bannie(s)</div>
+  </div>
+  <div class="kpi">
+    <div class="l">Erreurs 5xx (24 h)</div>
+    <div class="v">{{ errors_24h }}</div>
+    <div class="d {% if errors_24h %}trend-bad{% else %}trend-up{% endif %}">
+      {% if errors_24h %}À surveiller{% else %}Aucune erreur{% endif %}
+    </div>
+  </div>
+  <div class="kpi">
+    <div class="l">Monitoring</div>
+    <div class="v">{% if errors_24h %}⚠{% else %}OK{% endif %}</div>
+    <div class="d">Serveur · base · agent</div>
+  </div>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <div class="card-head"><h2>Pages les plus vues (24 h)</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Page</th><th>Vues</th></tr></thead>
+        <tbody>
+          {% for row in top_paths %}
+          <tr><td>{{ row.path }}</td><td>{{ row.total }}</td></tr>
+          {% empty %}
+          <tr><td colspan="2" class="empty">Aucune donnée.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Villes des visiteurs (24 h)</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ville</th><th>Pays</th><th>Visites</th></tr></thead>
+        <tbody>
+          {% for row in top_cities %}
+          <tr><td>{{ row.city }}</td><td>{{ row.country|default:"—" }}</td><td>{{ row.total }}</td></tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">Aucune donnée de localisation.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Trafic récent — bannir une IP</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>IP</th><th>Ville</th><th>Page</th><th>Statut</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for hit in recent_hits %}
+        <tr>
+          <td>{{ hit.created_at|date:"d/m H:i:s" }}</td>
+          <td>{{ hit.ip }}</td>
+          <td>{{ hit.city|default:"—" }}{% if hit.country %} ({{ hit.country }}){% endif %}</td>
+          <td>{{ hit.method }} {{ hit.path }}</td>
+          <td>
+            <span class="badge {% if hit.status >= 500 %}badge-red{% elif hit.status >= 400 %}badge-amber{% else %}badge-blue{% endif %}">{{ hit.status }}</span>
+          </td>
+          <td>
+            <form method="post" action="{% url 'admin_backoffice:ban_ip' %}">
+              {% csrf_token %}
+              <input type="hidden" name="ip" value="{{ hit.ip }}">
+              <input type="hidden" name="reason" value="Banni depuis l'analytique ({{ hit.path }})">
+              <button class="btn btn-ghost btn-sm" type="submit">Bannir</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty">Aucune visite enregistrée.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid g2">
+  <div class="card">
+    <div class="card-head"><h2>IP bannies</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>IP</th><th>Motif</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for ip in banned %}
+          <tr>
+            <td>{{ ip.ip }}</td>
+            <td>{{ ip.reason|default:"—" }}</td>
+            <td>{{ ip.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              {% if ip.active %}
+              <form method="post" action="{% url 'admin_backoffice:unban_ip' ip.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-ghost btn-sm" type="submit">Débannir</button>
+              </form>
+              {% else %}
+              <span class="badge">Inactive</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="empty">Aucune IP bannie.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" action="{% url 'admin_backoffice:ban_ip' %}" class="filters" style="margin-top:12px">
+      {% csrf_token %}
+      <div class="filter-field">
+        <label for="ban-ip">Bannir une IP manuellement</label>
+        <input id="ban-ip" name="ip" placeholder="203.0.113.10" maxlength="45" required>
+      </div>
+      <div class="filter-field">
+        <label for="ban-reason">Motif</label>
+        <input id="ban-reason" name="reason" placeholder="Motif (optionnel)" maxlength="200">
+      </div>
+      <button class="btn btn-primary" type="submit">Bannir</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Dernières erreurs serveur</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Message</th><th>IP</th></tr></thead>
+        <tbody>
+          {% for log in server_logs %}
+          <tr><td>{{ log.timestamp|date:"d/m H:i" }}</td><td>{{ log.message }}</td><td>{{ log.ip_address|default:"—" }}</td></tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">Aucune erreur serveur.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-head" style="margin-top:14px"><h2>Dernières actions de l'agent</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for log in agent_logs %}
+          <tr><td>{{ log.timestamp|date:"d/m H:i" }}</td><td>{{ log.message }}</td></tr>
+          {% empty %}
+          <tr><td colspan="2" class="empty">Aucune action agent.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

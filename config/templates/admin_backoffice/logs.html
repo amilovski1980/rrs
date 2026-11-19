@@ -1,16 +1,25 @@
 {% extends "admin_backoffice/base.html" %}
-{% block title %}Journal{% endblock %}
+{% block title %}Log serveur{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Journal</h1>
-    <p class="sub">Actions d'administration, erreurs et avertissements. Aucun secret n'y est écrit.</p>
+    <h1>Log serveur</h1>
+    <p class="sub">Application, agent Aminia et erreurs serveur. Aucun secret n'y est écrit.</p>
   </div>
 </div>
 <form method="get" class="filters card">
   <div class="filter-field">
     <label for="q">Recherche</label>
     <input id="q" type="search" name="q" value="{{ q }}" placeholder="Message">
+  </div>
+  <div class="filter-field">
+    <label for="source">Source</label>
+    <select id="source" name="source">
+      <option value="">Toutes</option>
+      {% for code, label in sources %}
+      <option value="{{ code }}" {% if source == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
   </div>
   <div class="filter-field">
     <label for="level">Niveau</label>
@@ -28,19 +37,20 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Date</th><th>Niveau</th><th>Message</th><th>Auteur</th><th>IP</th></tr>
+        <tr><th>Date</th><th>Source</th><th>Niveau</th><th>Message</th><th>Auteur</th><th>IP</th></tr>
       </thead>
       <tbody>
         {% for log in logs %}
         <tr>
           <td>{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+          <td><span class="badge {% if log.source == 'server' %}badge-red{% elif log.source == 'agent' %}badge-amber{% else %}badge-blue{% endif %}">{{ log.get_source_display }}</span></td>
           <td><span class="badge {% if log.level == 'ERROR' or log.level == 'CRITICAL' %}badge-red{% elif log.level == 'WARNING' %}badge-amber{% else %}badge-blue{% endif %}">{{ log.get_level_display }}</span></td>
           <td>{{ log.message }}</td>
           <td>{{ log.user.email|default:"Système" }}</td>
           <td>{{ log.ip_address|default:"—" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="empty">Aucune entrée.</td></tr>
+        <tr><td colspan="6" class="empty">Aucune entrée.</td></tr>
         {% endfor %}
       </tbody>
     </table>

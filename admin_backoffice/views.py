@@ -65,7 +65,7 @@ from .integrations import (
     smtp_material,
     stripe_material,
 )
-from .models import EmailTemplate, SiteConfiguration, SmsMessage, SmsTemplate, SystemLog
+from .models import BannedIP, EmailTemplate, SiteConfiguration, SmsMessage, SmsTemplate, SystemLog, VisitorHit
 from .sms import (
     dispatch_sms,
     ensure_providers,
@@ -969,18 +969,106 @@ class SystemLogsView(AdminStaffMixin, ListView):
         qs = SystemLog.objects.select_related("user").order_by("-timestamp")
         self.q = (self.request.GET.get("q") or "").strip()
         self.level = (self.request.GET.get("level") or "").strip()
+        self.source = (self.request.GET.get("source") or "").strip()
         if self.q:
             qs = qs.filter(message__icontains=self.q)
         if self.level:
             qs = qs.filter(level=self.level)
+        if self.source:
+            qs = qs.filter(source=self.source)
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["q"] = self.q
         context["level"] = self.level
+        context["source"] = self.source
         context["levels"] = SystemLog.LEVELS
+        context["sources"] = SystemLog.SOURCES
         return context
+
+
+class AnalyticsView(AdminStaffMixin, TemplateView):
+    """Monitoring système : trafic, villes, erreurs et bannissement d'IP."""
+
+    template_name = "admin_backoffice/analytics.html"
+    admin_section = "analytics"
+    crumbs_label = "Analytique"
+
+    def get_context_data(self, **kwargs):
+        from datetime import timedelta
+
+        context = super().get_context_data(**kwargs)
+        day_ago = timezone.now() - timedelta(hours=24)
+        hits = VisitorHit.objects.all()
+        context["hits_total"] = hits.count()
+        context["hits_24h"] = hits.filter(created_at__gte=day_ago).count()
+        context["unique_ips"] = hits.exclude(ip="").values("ip").distinct().count()
+        context["errors_24h"] = hits.filter(
+            created_at__gte=day_ago, status__gte=500
+        ).count()
+        context["top_paths"] = list(
+            hits.filter(created_at__gte=day_ago)
+            .values("path")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:8]
+        )
+        context["top_cities"] = list(
+            hits.filter(created_at__gte=day_ago)
+            .exclude(city="")
+            .values("city", "country")
+            .annotate(total=Count("id"))
+            .order_by("-total")[:8]
+        )
+        context["recent_hits"] = hits.order_by("-created_at")[:40]
+        context["banned"] = BannedIP.objects.order_by("-created_at")
+        context["banned_count"] = BannedIP.objects.filter(active=True).count()
+        context["server_logs"] = (
+            SystemLog.objects.filter(source="server").order_by("-timestamp")[:12]
+        )
+        context["agent_logs"] = (
+            SystemLog.objects.filter(source="agent").order_by("-timestamp")[:12]
+        )
+        return context
+
+
+@staff_required
+@require_POST
+def ban_ip(request):
+    ip = (request.POST.get("ip") or "").strip()[:45]
+    reason = (request.POST.get("reason") or "").strip()[:200]
+    if ip:
+        BannedIP.objects.update_or_create(
+            ip=ip, defaults={"reason": reason, "active": True}
+        )
+        try:
+            from .middleware import _banned_cache
+
+            _banned_cache["at"] = 0.0
+        except Exception:
+            pass
+        journaliser(request, f"IP bannie — {ip} {reason}".strip(), source="server")
+        messages.success(request, f"Adresse IP {ip} bannie.")
+    else:
+        messages.warning(request, "Indiquez une adresse IP.")
+    return redirect("admin_backoffice:analytics")
+
+
+@staff_required
+@require_POST
+def unban_ip(request, pk):
+    entry = get_object_or_404(BannedIP, pk=pk)
+    entry.active = False
+    entry.save(update_fields=["active"])
+    try:
+        from .middleware import _banned_cache
+
+        _banned_cache["at"] = 0.0
+    except Exception:
+        pass
+    journaliser(request, f"IP débannie — {entry.ip}", source="server")
+    messages.success(request, f"Adresse IP {entry.ip} débannie.")
+    return redirect("admin_backoffice:analytics")
 
 
 class AiMonitoringView(AdminStaffMixin, TemplateView):

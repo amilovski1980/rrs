@@ -14,6 +14,9 @@ urlpatterns = [
     path("settings/ai/elevenagent/", views.settings_ai_voice_sync, name="settings_ai_voice_sync"),
     path("settings/tester/", views.settings_test, name="settings_test"),
     path("logs/", views.SystemLogsView.as_view(), name="logs"),
+    path("analytics/", views.AnalyticsView.as_view(), name="analytics"),
+    path("analytics/ip/ban/", views.ban_ip, name="ban_ip"),
+    path("analytics/ip/<int:pk>/unban/", views.unban_ip, name="unban_ip"),
 
     path("companies/", views.CompanyListView.as_view(), name="companies"),
     path("companies/list/", views.CompanyListView.as_view(), name="companies_list"),
