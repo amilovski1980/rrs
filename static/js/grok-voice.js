@@ -207,6 +207,12 @@
       if (statusEl) statusEl.textContent = text;
     }
 
+    /* Pendant une opération (brouillon, recherche…), l'overlay se réduit en
+       une petite carte pour laisser voir l'application derrière. */
+    function setMinimized(on) {
+      if (panel) panel.classList.toggle("is-minimized", !!on);
+    }
+
     /* Les URLs des outils sont sans préfixe : dans la coque dark, on les
        remonte sous /dark pour ne pas sauter à la version claire. */
     function themePath(path) {
@@ -406,6 +412,7 @@
       pendingOps = 0;
       agentSpeakingUntil = 0;
       clearSilence();
+      setMinimized(false);
     }
 
     function sendAudio(input) {
@@ -757,6 +764,7 @@
     }
 
     function runTool(name, args, respond) {
+      setMinimized(true);
       agentLog(TOOL_LOG[name] || "Exécution en cours…", "pending");
       pendingOps += 1;
       clearSilence();
@@ -1153,6 +1161,13 @@
       });
     });
     if (reconnectBtn) reconnectBtn.addEventListener("click", start);
+    if (dialog) {
+      dialog.addEventListener("click", function (event) {
+        if (!panel || !panel.classList.contains("is-minimized")) return;
+        if (event.target.closest("button, a, input, textarea, select")) return;
+        setMinimized(false);
+      });
+    }
     mic.addEventListener("click", function (event) {
       event.stopImmediatePropagation();
       if (!ws || ws.readyState !== 1) {
