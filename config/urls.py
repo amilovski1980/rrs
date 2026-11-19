@@ -24,6 +24,7 @@ urlpatterns = [
     path("fournisseurs/", include("suppliers.urls")),
     path("achats/", include("purchases.urls")),
     path("tresorerie/", include("treasury.urls")),
+    path("banque/", include("banking.urls")),
     path("migration/", include("history_import.urls")),
     path("agent/", include("ai.urls")),
     path("", include("billing.urls")),

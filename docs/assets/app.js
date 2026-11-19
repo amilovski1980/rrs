@@ -16,7 +16,7 @@
     var pauseIcon = stage.querySelector('[data-voice-icon="pause"]');
     var replay = document.querySelector("[data-voice-replay]");
     var current = 0;
-    var playing = !reduceMotion;
+    var playing = false;
     var timer = null;
     var inView = false;
 
