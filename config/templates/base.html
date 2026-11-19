@@ -24,13 +24,14 @@
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% include "partials/ios_splash_links.html" %}
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.47">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.19.8">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
-  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.16.14">
+  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.19.5">
   <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.17.1">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.7">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -384,11 +385,11 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.16.12" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.19.3" defer></script>
   <script src="{% static 'js/mobile-tables.js' %}?v=2026.11.16.4" defer></script>
-  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.16.9" defer></script>
+  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.19.1" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.17.3" defer></script>
-  <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.4" defer></script>
+  <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.19.2" defer></script>
   <script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>
   <script>
     /* PWA : service worker (scope "/") + popup d'installation centrée,

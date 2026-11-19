@@ -10,10 +10,7 @@
     return path;
   }
 
-  function initVoiceDemo(reduceMotion) {
-    var stage = document.querySelector("[data-voice-demo]");
-    if (!stage) return;
-
+  function initVoiceStage(stage, reduceMotion, allowGlobalReplay) {
     var messages = Array.prototype.slice.call(stage.querySelectorAll(".voice-msg"));
     var dotsWrap = stage.querySelector("[data-voice-dots]");
     var toggle = stage.querySelector("[data-voice-toggle]");
@@ -21,15 +18,18 @@
     var indexEl = stage.querySelector("[data-voice-index]");
     var playIcon = stage.querySelector('[data-voice-icon="play"]');
     var pauseIcon = stage.querySelector('[data-voice-icon="pause"]');
-    var replay = document.querySelector("[data-voice-replay]");
+    var replay = allowGlobalReplay ? document.querySelector("[data-voice-replay]") : null;
     var current = 0;
-    var playing = !reduceMotion;
+    var playing = false;
     var timer = null;
     var inView = false;
 
     if (reduceMotion) {
-      stage.classList.add("is-static");
-      if (status) status.textContent = "Démo vocale";
+      /* La fenêtre de l'agent reste pilotée par la voix réelle : pas de statique. */
+      if (!(stage.closest && stage.closest("[data-agent-panel]"))) {
+        stage.classList.add("is-static");
+        if (status) status.textContent = "Démo vocale";
+      }
       return;
     }
 
@@ -66,7 +66,7 @@
         dot.classList.toggle("is-on", i === current);
       });
       if (indexEl) indexEl.textContent = String(current + 1);
-      var isAgent = current % 2 === 1;
+      var isAgent = messages.length ? current % 2 === 1 : true;
       stage.classList.toggle("is-speaking", playing && isAgent);
       if (status) {
         status.textContent = !playing
@@ -85,7 +85,7 @@
 
     function schedule() {
       clearTimer();
-      if (!playing || !inView) return;
+      if (!playing || !inView || !messages.length) return;
       var delay = current === messages.length - 1 ? 5200 : 2400;
       timer = window.setTimeout(function () {
         current = current === messages.length - 1 ? 0 : current + 1;
@@ -135,6 +135,13 @@
     }
 
     paint();
+  }
+
+  function initVoiceDemo(reduceMotion) {
+    var stages = document.querySelectorAll("[data-voice-demo]");
+    for (var i = 0; i < stages.length; i++) {
+      initVoiceStage(stages[i], reduceMotion, i === 0);
+    }
   }
 
   function initSirenSearch() {
@@ -817,47 +824,6 @@
     var p = document.createElement("p");
     p.textContent = text;
     bubble.appendChild(p);
-    if (role === "assistant" && text) {
-      var speak = document.createElement("button");
-      speak.className = "agent-chat-speak";
-      speak.type = "button";
-      speak.textContent = "🔊 Écouter";
-      speak.addEventListener("click", function () {
-        speak.disabled = true;
-        fetch("/agent/tts/", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfTokenFrom(log),
-          },
-          body: JSON.stringify({ text: text }),
-        })
-          .then(function (response) {
-            if (!response.ok) {
-              return response
-                .json()
-                .then(function (data) {
-                  throw new Error(data.message || "Lecture indisponible.");
-                });
-            }
-            return response.blob();
-          })
-          .then(function (blob) {
-            var audio = new Audio(URL.createObjectURL(blob));
-            audio.play();
-          })
-          .catch(function (error) {
-            speak.textContent = "🔇 " + ((error && error.message) || "Lecture indisponible.");
-            window.setTimeout(function () {
-              speak.textContent = "🔊 Écouter";
-              speak.disabled = false;
-            }, 2600);
-            return;
-          });
-      });
-      bubble.appendChild(speak);
-    }
     log.appendChild(bubble);
     log.scrollTop = log.scrollHeight;
   }
@@ -940,6 +906,8 @@
     if (floating) wireChatForm(floating);
     var page = document.querySelector("[data-agent-chat-page]");
     if (page) wireChatForm(page);
+    var boxes = document.querySelectorAll("[data-agent-chat-box]");
+    for (var i = 0; i < boxes.length; i++) wireChatForm(boxes[i]);
   }
 
   function initPhone() {
