@@ -89,7 +89,7 @@
   </div>
 
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
-    <div class="agent-dialog voice-stage" data-voice-demo role="region" aria-labelledby="agent-title">
+    <div class="agent-dialog voice-stage" role="region" aria-labelledby="agent-title">
       <header class="voice-stage-head">
         <h2 id="agent-title" class="voice-agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
         <button class="agent-close-top" type="button" data-agent-close aria-label="Terminer l'appel" title="Terminer l'appel">
@@ -99,19 +99,11 @@
       <div class="voice-chat">
         <div class="voice-msg user">
           <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
-          <p data-agent-transcript>J'ai acheté une perceuse à 240 € chez Leroy Merlin hier.</p>
+          <p data-agent-transcript>Appuyez sur le micro ou écrivez votre demande.</p>
         </div>
         <div class="voice-msg agent">
           <span class="voice-role">Aminia</span>
-          <p>J'ai trouvé la dépense : <strong>240 € TTC</strong>, fournisseur Leroy Merlin. Je la classe en <strong>outillage</strong> et je récupère <strong>40 € de TVA</strong>. Je crée le brouillon d'écriture ?</p>
-        </div>
-        <div class="voice-msg user">
-          <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
-          <p>Oui, et explique-moi où ça apparaît.</p>
-        </div>
-        <div class="voice-msg agent">
-          <span class="voice-role">Aminia</span>
-          <p>C'est fait. L'écriture est dans le journal des achats, compte <strong>6063</strong>. Elle attend votre validation dans le cockpit. Voulez-vous que je vous montre la ligne ?</p>
+          <p>Je vous écoute. Parlez naturellement ou écrivez : je prépare l'écriture et je vous explique chaque étape.</p>
         </div>
       </div>
       <div class="voice-orb-wrap">
@@ -126,12 +118,6 @@
         <div class="voice-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</div>
       </div>
       <div class="voice-controls">
-        <button class="voice-play" type="button" data-voice-toggle aria-label="Lancer la démo">
-          <span data-voice-icon="play">{% include "partials/icon.html" with name="play" %}</span>
-          <span data-voice-icon="pause" hidden>{% include "partials/icon.html" with name="pause" %}</span>
-        </button>
-        <div class="voice-dots" data-voice-dots></div>
-        <span class="voice-count"><span data-voice-index>1</span> / 4</span>
         <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
         <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
       </div>
