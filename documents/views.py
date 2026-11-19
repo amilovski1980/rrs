@@ -517,6 +517,9 @@ def invoice_edit(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(Invoice, company, pk)
+    if invoice.status != "draft":
+        messages.error(request, "Une facture émise ne peut plus être modifiée. Utilisez un avoir.")
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
     formset = InvoiceLineFormSet(
         request.POST or None,
@@ -871,7 +874,11 @@ def invoice_issue(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(Invoice, company, pk)
-    issue_invoice(invoice)
+    try:
+        issue_invoice(invoice)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
     messages.success(request, f"Facture {invoice.number} émise et passée au journal des ventes.")
     return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
 
@@ -883,7 +890,11 @@ def invoice_pay(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(Invoice, company, pk)
-    pay_invoice(invoice)
+    try:
+        pay_invoice(invoice)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
     messages.success(request, f"Encaissement de {invoice.number} enregistré en banque.")
     return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
 
