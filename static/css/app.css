@@ -566,7 +566,7 @@ h1 .underlined::after {
 .voice-orb-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 0 4px; }
 .voice-orb { position: relative; width: 178px; height: 178px; display: grid; place-items: center; }
 .voice-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .20); }
-.voice-ring.r1 { inset: 0; animation: voiceSpin 26s linear infinite; }
+.voice-ring.r1 { inset: 0; animation: voiceSpin 26s linear infinite; border-color: var(--blue); }
 .voice-ring.r2 { inset: 13%; border-style: dashed; opacity: .55; animation: voiceSpin 34s linear infinite reverse; }
 .voice-ring.r3 { inset: 27%; opacity: .35; animation: voicePulse 4s ease-out infinite; }
 .voice-core {
@@ -1997,6 +1997,20 @@ details.page-actions > .actions-list {
 }
 .plan-banner p, .plan-banner-warn p { margin: 0; }
 .plan-banner-warn { background: var(--amber-soft); border-color: #e6d48a; }
+
+/* Overlay plein‑écran pour la démo vocale quand l’agent est activé */
+.voice-stage.reveal.is-visible {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 122, 255, 0.15); /* bleu transparent */
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .plan.is-current { outline: 2px solid var(--blue); }
 .agent-plan-note { margin: 12px 0 0; font-size: 13px; }
 .compare td, .compare th { white-space: nowrap; }
