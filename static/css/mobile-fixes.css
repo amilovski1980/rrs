@@ -515,14 +515,14 @@
     justify-content: space-between;
   }
 
-  /* ---------- Assistant par étapes : navigation toujours accessible ---------- */
+  /* ---------- Assistant par étapes : la barre Précédent/Suivant remplace la tab bar ---------- */
   body.wizard-active .m-footer,
   body.wizard-active .agent-fab {
     display: none !important;
   }
 
   body.wizard-active .content {
-    padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .wizard-mode .wizard-head {
@@ -531,20 +531,21 @@
 
   .wizard-mode .wizard-nav {
     position: fixed;
-    left: var(--space-3);
-    right: var(--space-3);
-    bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: calc(var(--z-page-actions) + 1);
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 8px;
     margin: 0;
-    padding: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
     background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 -18px 44px -26px rgba(15, 23, 42, .5);
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: 0 -14px 34px -20px rgba(15, 23, 42, .5);
   }
 
   .wizard-mode .wizard-nav .wizard-submit,
@@ -557,7 +558,7 @@
   }
 
   body.agent-open.wizard-active .wizard-nav {
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    bottom: 0;
     z-index: calc(var(--z-agent-panel) + 5);
   }
 }
