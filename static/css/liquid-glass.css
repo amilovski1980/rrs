@@ -48,6 +48,19 @@ svg.icon {
   stroke-width: 2;
 }
 
+/* ---- Alignement des icônes du pied de page ---- */
+@media (max-width: 768px) {
+  .m-footer-raised .m-footer-ico,
+  .m-footer-btn.active .m-footer-ico {
+    transform: none; /* le bouton central reste sur la même ligne que les autres */
+  }
+  .m-footer-ico .icon,
+  .m-footer-raised .m-footer-ico .icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 /* ---- Surfaces en verre liquide — thème clair ---- */
 .m-header, .sidebar, .m-footer, .card, .kpi, .plan, .company, .auth-card,
 .glass-panel, .agent-chooser, .agent-chat-card, .agent-results-card,
