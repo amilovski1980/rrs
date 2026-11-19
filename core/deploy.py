@@ -59,6 +59,8 @@ REQUIRED_SCHEMA = (
     ("companies_company", "capital"),
     ("companies_company", "rcs"),
     ("purchases_purchaseinvoiceline", None),
+    ("admin_backoffice_bannedip", None),
+    ("admin_backoffice_visitorhit", None),
 )
 
 # Ordre : les clés étrangères de SmsMessage exigent le modèle SMS et User.
@@ -74,6 +76,8 @@ HEAL_LABELS = (
     "banking.BankRule",
     "companies.Company",
     "purchases.PurchaseInvoiceLine",
+    "admin_backoffice.BannedIP",
+    "admin_backoffice.VisitorHit",
 )
 
 _state = {"ok": False}
