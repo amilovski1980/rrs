@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import models
 from django.db.models import Sum
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,7 +17,7 @@ from documents.models import TicketDeCaisse
 from documents.pdf_import import PdfImportError, extract_pdf_text, parse_invoice_text
 from mailsync.models import Supplier, SupplierInvoiceDraft
 
-from .forms import PurchaseInvoiceForm, SupplierPaymentForm
+from .forms import PurchaseInvoiceForm, SupplierPaymentForm, PurchaseInvoiceLineFormSet
 from .models import STATUSES, PurchaseInvoice, SupplierPayment
 from .services import (
     PurchaseError,
@@ -134,18 +135,34 @@ def invoice_create(request):
         company=company,
         initial={"supplier": request.GET.get("fournisseur") or None},
     )
+    line_formset = PurchaseInvoiceLineFormSet(request.POST or None) if request.method == "POST" else PurchaseInvoiceLineFormSet()
     if request.method == "POST" and form.is_valid():
         invoice = form.save(commit=False)
         invoice.company = company
         invoice.status = "draft"
         invoice.source = "manual"
         invoice.save()
+        # Bind the formset to the saved invoice
+        line_formset = PurchaseInvoiceLineFormSet(request.POST, instance=invoice)
+        if line_formset.is_valid():
+            line_formset.save()
+            # Recalculate totals from lines if any
+            from django.db.models import Sum
+            totals = invoice.lines.aggregate(total_ht=Sum('amount_ht'))
+            total_ht = totals['total_ht'] or Decimal('0.00')
+            total_vat = sum(line.amount_vat for line in invoice.lines.all())
+            total_ttc = total_ht + total_vat
+            if total_ht > 0:
+                invoice.amount_ht = total_ht
+                invoice.amount_vat = total_vat
+                invoice.amount_ttc = total_ttc
+                invoice.save(update_fields=['amount_ht', 'amount_vat', 'amount_ttc'])
         messages.success(request, "Facture fournisseur enregistrée en brouillon.")
         return redirect("purchases:detail", pk=invoice.pk)
     return render(
         request,
         "purchases/form.html",
-        {"company": company, "form": form, "invoice": None},
+        {"company": company, "form": form, "invoice": None, "line_formset": line_formset},
     )
 
 

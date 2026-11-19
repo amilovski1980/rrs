@@ -112,6 +112,7 @@
       <h2 class="wizard-step-title">Prestations & articles</h2>
       <p class="micro">Choisissez un produit du catalogue ou une ligne libre, puis le prix et la TVA.</p>
       <section class="card invoice-lines-card">
+        <h3>Lignes de facture</h3>
         {{ formset.management_form }}
         {% if formset.non_form_errors %}
         <ul class="form-errors">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>

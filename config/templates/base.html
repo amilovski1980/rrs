@@ -75,6 +75,7 @@
         <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
         {% elif request.dark_ui %}
         <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
+        <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
         {% else %}
         <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="" width="32" height="32">
         {% endif %}
@@ -370,6 +371,10 @@
     <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
       <span>Aminia</span>
+    </button>
+    <button class="m-footer-btn m-footer-scan" type="button" data-scan-open aria-label="Ouvrir le scanner">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="camera" %}</span>
+      <span>Scanner</span>
     </button>
     <button class="m-footer-btn" type="button" data-nav-toggle aria-label="Ouvrir le menu">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="list" %}</span>

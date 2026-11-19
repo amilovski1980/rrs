@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Compte annuel {{ account.year }}{% endblock %}
+{% block crumbs %}Comptes annuels / {{ account.year }}{% endblock %}
+{% block nav_cockpit %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Compte annuel {{ account.year }}</h1></div>
+<ul>
+  <li>Actif total : {{ account.total_assets }}</li>
+  <li>Passif total : {{ account.total_liabilities }}</li>
+  <li>Capitaux propres : {{ account.total_equity }}</li>
+</ul>
+{% endblock %}

@@ -1,12 +1,13 @@
 """Échéances comptables indicatives, dérivées du profil de la société.
 
 Calendrier simplifié pour artisans (régime micro ou réel simplifié) :
-TVA trimestrielle 3517S si assujetti, CFE (15/12, + déclaration initiale
-l'année de création), clôture de l'exercice puis liasse fiscale. Les dates
-sont indicatives et affichées comme telles dans le cockpit.
+TVA CA12 annuelle avec acomptes de juillet et décembre si assujetti, CFE
+(15/12, exonérée l'année de création), clôture de l'exercice puis liasse
+fiscale. Les dates sont indicatives et affichées comme telles dans le cockpit.
 """
 from __future__ import annotations
 
+import calendar
 from datetime import date, timedelta
 
 from django.utils import timezone

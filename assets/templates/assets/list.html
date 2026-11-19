@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Immobilisations{% endblock %}
+{% block crumbs %}Immobilisations{% endblock %}
+{% block nav_cockpit %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Liste des immobilisations</h1>
+  <a class="btn btn-primary" href="{% url 'assets:create' %}?societe={{ company.id }}">Nouvelle immobilisation</a>
+</div>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th>Date d'acquisition</th>
+      <th>Coût</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for asset in assets %}
+    <tr>
+      <td>{{ asset.name }}</td>
+      <td>{{ asset.acquisition_date }}</td>
+      <td>{{ asset.cost }}</td>
+      <td>
+        <a href="{% url 'assets:update' asset.id %}?societe={{ company.id }}">Modifier</a> |
+        <a href="{% url 'assets:delete' asset.id %}?societe={{ company.id }}">Supprimer</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Aucune immobilisation.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

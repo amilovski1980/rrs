@@ -7,6 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('purchases', '0002_purchaseinvoice_attachment_data_and_more'),
+        ('purchases', '0002_purchaseinvoiceline'),
     ]
 
     operations = [
