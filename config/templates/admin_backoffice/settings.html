@@ -183,6 +183,22 @@
         </div>
       </div>
 
+      <div class="card admin-form prompt-preview-card" style="margin:14px 0 4px">
+        <div class="settings-card-head">
+          <div>
+            <h3 style="margin:0">Instructions de l'agent</h3>
+            <p class="secret-hint">
+              Consignes actives envoyées à Aminia — modifiables dans
+              <a href="{% url 'admin_backoffice:ai_prompt' %}">Consignes de l'agent</a>.
+            </p>
+          </div>
+        </div>
+        <h4 style="margin:12px 0 6px;font-size:13px">Agent administrateur / développeur (réservé au personnel)</h4>
+        <pre class="prompt-preview">{{ ai_admin_prompt }}</pre>
+        <h4 style="margin:14px 0 6px;font-size:13px">Consigne générale (tous les utilisateurs)</h4>
+        <pre class="prompt-preview">{{ ai_global_prompt }}</pre>
+      </div>
+
       <div class="form-grid">
         <div>
           <label for="{{ form.ai_text_provider.id_for_label }}">{{ form.ai_text_provider.label }}</label>

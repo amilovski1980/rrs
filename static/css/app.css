@@ -5429,7 +5429,7 @@ html[data-theme='dark'] .socie-urgent {
   background:
     radial-gradient(680px 320px at 92% 4%, rgba(202, 28, 96, .38), transparent 62%),
     radial-gradient(760px 400px at 2% 100%, rgba(37, 99, 235, .38), transparent 66%),
-    var(--blue) !important;
+    #004192 !important;
   color: #fff;
   box-shadow: 0 32px 80px -44px rgba(0, 0, 0, .8);
   animation: agentIn .22s var(--ease) both;
@@ -5453,12 +5453,12 @@ html[data-theme='dark'] .socie-urgent {
 }
 .agent-dialog.voice-stage .agent-mic {
   width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
-  background: #fff; color: var(--blue);
+  background: #fff; color: #0b3d91;
   border: 1px solid rgba(255, 255, 255, .4);
   box-shadow: 0 8px 18px -10px rgba(0, 65, 146, .9);
   transition: transform .2s var(--ease), background .2s;
 }
-.agent-dialog.voice-stage .agent-mic:hover { transform: scale(1.05); background: var(--blue-soft); }
+.agent-dialog.voice-stage .agent-mic:hover { transform: scale(1.05); background: #dbe8ff; }
 .agent-dialog.voice-stage .agent-mic.is-listening {
   background: var(--pink); color: #fff; animation: pulse 1.4s infinite;
 }
@@ -5543,8 +5543,9 @@ html[data-theme='dark'] .socie-urgent {
   outline: 2px solid #9fc4ff; outline-offset: 1px;
 }
 .agent-dialog.voice-stage .voice-chat-box .agent-chat-form .btn-primary {
-  background: var(--blue-2); color: #fff;
+  background: #2563eb; color: #fff;
 }
+.agent-dialog.voice-stage .voice-ring.r1 { border-color: #4f8dff; }
 @media (max-width: 768px) {
   .agent-panel { padding: 12px !important; }
   .agent-panel .agent-dialog,
