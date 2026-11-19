@@ -517,6 +517,12 @@ def invoice_edit(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(Invoice, company, pk)
+    if invoice.status != "draft":
+        messages.error(
+            request,
+            "Une facture émise ne se modifie plus. Créez un avoir pour la corriger.",
+        )
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
     form = InvoiceForm(request.POST or None, instance=invoice, company=company)
     formset = InvoiceLineFormSet(
         request.POST or None,
@@ -871,6 +877,15 @@ def invoice_issue(request, pk):
     if bounce:
         return bounce
     invoice = _scoped(Invoice, company, pk)
+    if invoice.status != "draft":
+        messages.error(request, "Cette facture est déjà émise et ne peut plus l'être à nouveau.")
+        return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))
+    if not invoice.lines.exists():
+        messages.error(
+            request,
+            "Ajoutez au moins une ligne (désignation, quantité, prix unitaire) avant d'émettre la facture.",
+        )
+        return redirect(reverse("invoice_edit", args=[invoice.id]) + _qs(company))
     issue_invoice(invoice)
     messages.success(request, f"Facture {invoice.number} émise et passée au journal des ventes.")
     return redirect(reverse("invoice_detail", args=[invoice.id]) + _qs(company))

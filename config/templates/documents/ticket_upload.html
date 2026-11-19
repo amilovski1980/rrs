@@ -14,7 +14,7 @@
 <form class="card ticket-upload-form" method="post" enctype="multipart/form-data" data-ticket-upload-form>
   {% csrf_token %}
 
-  <label class="ticket-camera-cta" for="id_ticket_camera">
+  <label class="ticket-camera-cta mobile-only" for="id_ticket_camera">
     <span class="ticket-camera-orb" aria-hidden="true">
       {% include "partials/icon.html" with name="receipt" %}
     </span>

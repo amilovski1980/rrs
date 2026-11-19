@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Comptes annuels{% endblock %}
+{% block crumbs %}Comptes annuels{% endblock %}
+{% block nav_cockpit %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Comptes annuels</h1>
+</div>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Année</th>
+      <th>Actif total</th>
+      <th>Passif total</th>
+      <th>Capitaux propres</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for acc in accounts %}
+    <tr>
+      <td><a href="{% url 'annual_reports:detail' acc.year %}?societe={{ company.id }}">{{ acc.year }}</a></td>
+      <td>{{ acc.total_assets }}</td>
+      <td>{{ acc.total_liabilities }}</td>
+      <td>{{ acc.total_equity }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Aucun compte annuel.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

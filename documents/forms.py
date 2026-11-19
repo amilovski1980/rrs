@@ -374,7 +374,8 @@ class BaseInvoiceLineFormSet(BaseInlineFormSet):
             return
         # Une facture historique sans lignes peut encore être modifiée (client,
         # projet...) sans être bloquée ; une nouvelle facture doit avoir du détail.
-        if not self.instance.pk or self.initial_form_count() > 0:
+        # Soulevons une erreur uniquement si la facture est nouvelle (pas encore enregistrée).
+        if not self.instance.pk:
             raise forms.ValidationError(
                 "Ajoutez au moins une ligne : produit du catalogue ou désignation libre."
             )

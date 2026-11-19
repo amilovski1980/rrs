@@ -411,7 +411,7 @@ class HomepagePricingTests(TestCase):
         self.assertIn("Sociétés illimitées", section)
         self.assertIn("Factures illimitées", section)
         self.assertIn("Messages Aminia illimités", section)
-        self.assertIn("Les 7 modèles de facture", section)
+        self.assertIn("Les 9 modèles de facture", section)
         self.assertIn("Tickets de caisse", section)
         self.assertIn("Voix Aminia", section)
         self.assertIn("Tarifs mensuels hors taxes", section)

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{% if asset %}Modifier l'immobilisation{% else %}Nouvelle immobilisation{% endif %}{% endblock %}
+{% block crumbs %}Immobilisations / {% if asset %}Modifier{% else %}Nouvelle{% endif %}{% endblock %}
+{% block nav_cockpit %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{% if asset %}Modifier l'immobilisation{% else %}Nouvelle immobilisation{% endif %}</h1>
+  <a class="btn btn-ghost" href="{% url 'assets:list' %}?societe={{ company.id }}">Retour</a>
+</div>
+<form method="post" class="card form-stack">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <ul class="form-errors">
+    {% for error in form.non_field_errors %}
+    <li>{{ error }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <div class="form-grid">
+    {{ form.name.label_tag }} {{ form.name }}
+    {{ form.acquisition_date.label_tag }} {{ form.acquisition_date }}
+    {{ form.cost.label_tag }} {{ form.cost }}
+    {{ form.depreciation_rate.label_tag }} {{ form.depreciation_rate }}
+    {{ form.useful_life_years.label_tag }} {{ form.useful_life_years }}
+    {{ form.description.label_tag }} {{ form.description }}
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Enregistrer</button>
+  </div>
+</form>
+{% endblock %}

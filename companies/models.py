@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -79,7 +80,8 @@ class Company(models.Model):
     )
     siren = models.CharField(max_length=9, unique=True)
     denomination = models.CharField(max_length=255)
-    forme = models.CharField(max_length=10, default="SARL")
+    capital = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name='Capital social')
+    rcs = models.CharField(max_length=40, blank=True, verbose_name='RCS')
     address = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
