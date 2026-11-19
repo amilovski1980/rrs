@@ -107,10 +107,11 @@ def _schema_fallback():
 
 
 class SchemaRetryMiddleware:
-    """Si une page admin lit une colonne absente, on migre puis on réaffiche.
+    """Si une page lit une colonne absente, on migre puis on réaffiche.
 
-    C'est le cas des forfaits, abonnements, paramètres, intégrations et
-    consignes quand la migration du back-office n'est pas encore passée.
+    Vaut pour tout le site : le sélecteur de sociétés lit Company sur chaque
+    page, donc une seule colonne manquante (ex. capital) faisait tomber la
+    page d'accueil, la démo et le cockpit en 500.
     """
 
     def __init__(self, get_response):
@@ -122,14 +123,10 @@ class SchemaRetryMiddleware:
     def process_exception(self, request, exception):
         if not _is_schema_error(exception):
             return None
-        from core.dark_mount import app_path
-
-        if not app_path(request).startswith("/admin-backoffice/"):
-            return None
         if getattr(request, "_schema_retried", False):
             return _schema_fallback()
         request._schema_retried = True
-        logger.error("Admin : schéma incomplet (%s), nouvel essai de migration", exception)
+        logger.error("Schéma incomplet (%s), rattrapage", exception)
         from core.deploy import assurer_migrations
 
         assurer_migrations(force=True)
