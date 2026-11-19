@@ -21,6 +21,7 @@ urlpatterns = [
     path("mail/", include("mailsync.urls")),
     path("immobilisations/", include("assets.urls")),
     path("comptes-annuels/", include("accounting.annual_reports.urls")),
+    path("aminia/", RedirectView.as_view(url="/", permanent=False)),
     path("fournisseurs/", include("suppliers.urls")),
     path("achats/", include("purchases.urls")),
     path("tresorerie/", include("treasury.urls")),
