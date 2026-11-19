@@ -244,9 +244,15 @@ class SystemLog(models.Model):
         ('ERROR', 'Erreur'),
         ('CRITICAL', 'Critique'),
     ]
-    
+    SOURCES = [
+        ('app', 'Application'),
+        ('agent', 'Agent Aminia'),
+        ('server', 'Serveur'),
+    ]
+
     timestamp = models.DateTimeField(auto_now_add=True)
     level = models.CharField(max_length=10, choices=LEVELS, default='INFO')
+    source = models.CharField(max_length=10, choices=SOURCES, default='app')
     message = models.TextField()
     user = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -258,6 +264,44 @@ class SystemLog(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp}] {self.level}: {self.message[:50]}"
+
+
+class VisitorHit(models.Model):
+    """Trafic public : IP, ville (en-têtes Vercel), page et statut HTTP."""
+
+    ip = models.CharField(max_length=45, db_index=True)
+    path = models.CharField(max_length=255)
+    method = models.CharField(max_length=8, default="GET")
+    status = models.PositiveSmallIntegerField(default=200)
+    city = models.CharField(max_length=80, blank=True, default="")
+    country = models.CharField(max_length=8, blank=True, default="")
+    user_agent = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Visite"
+        verbose_name_plural = "Visites"
+
+    def __str__(self):
+        return f"{self.created_at:%d/%m %H:%M} {self.ip} {self.path}"
+
+
+class BannedIP(models.Model):
+    """Adresse IP bloquée côté site public (le personnel reste autorisé)."""
+
+    ip = models.CharField(max_length=45, unique=True)
+    reason = models.CharField(max_length=200, blank=True, default="")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "IP bannie"
+        verbose_name_plural = "IP bannies"
+
+    def __str__(self):
+        return self.ip
 
 
 class SmsProviderConfig(models.Model):

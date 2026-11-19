@@ -162,6 +162,31 @@ def _xai_payload(secret, request, voice: str | None = None) -> dict:
 
 
 @require_POST
+def _journal_agent(request, name, result, level="INFO"):
+    """Trace les outils exécutés par l'agent dans le log serveur (source=agent)."""
+    try:
+        from admin_backoffice.audit import journaliser
+
+        detail = ""
+        if isinstance(result, dict):
+            detail = result.get("message") or result.get("error") or ""
+            invoice = result.get("invoice") or {}
+            if not detail and isinstance(invoice, dict) and invoice.get("number"):
+                detail = f"facture {invoice['number']} (brouillon)"
+            if not detail and result.get("entry"):
+                detail = "écriture proposée"
+        elif result:
+            detail = str(result)
+        journaliser(
+            request,
+            f"Agent · {name} — {(detail or 'exécuté')[:300]}",
+            level=level,
+            source="agent",
+        )
+    except Exception:
+        pass
+
+
 def voice_tool(request):
     denied = _auth_required(request)
     if denied:
@@ -187,9 +212,12 @@ def voice_tool(request):
     try:
         result = execute_tool(request.user, company, name, args, remember, session=request.session)
     except PermissionError as exc:
+        _journal_agent(request, name, str(exc), level="WARNING")
         return JsonResponse({"error": str(exc)}, status=403)
     except Exception:
+        _journal_agent(request, name, "échec de l'outil", level="ERROR")
         return JsonResponse({"error": "L'outil comptable a échoué."}, status=500)
+    _journal_agent(request, name, result)
     return JsonResponse({"output": result})
 
 

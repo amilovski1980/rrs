@@ -645,11 +645,12 @@ class EveryAdminPageTests(TestCase):
             issued_at=timezone.now(),
             description="Abonnement Pro",
         )
-        from admin_backoffice.models import SmsTemplate
+        from admin_backoffice.models import BannedIP, SmsTemplate
 
         self.sms_template = SmsTemplate.objects.create(
             code="bienvenue", name="Bienvenue", body="Bonjour {prenom}",
         )
+        self.banned_ip = BannedIP.objects.create(ip="198.51.100.9", reason="test")
         self.client.login(email="pages-admin@rrs.fr", password="password123")
 
     def test_every_named_route_is_covered(self):
@@ -680,7 +681,8 @@ class EveryAdminPageTests(TestCase):
             "users": "Utilisateurs",
             "companies": "Sociétés",
             "sms": "SMS",
-            "logs": "Journal",
+            "logs": "Log serveur",
+            "analytics": "Analytique",
             "ai_monitoring": "Suivi de l'agent",
         }
         for name, kwargs in self._get_pages().items():
@@ -721,6 +723,7 @@ class EveryAdminPageTests(TestCase):
             "dashboard_url": {},
             "settings": {},
             "logs": {},
+            "analytics": {},
             "companies": {},
             "companies_list": {},
             "company_create": {},
@@ -765,6 +768,8 @@ class EveryAdminPageTests(TestCase):
             ("integrations_test", {"code": "insee"}, {}),
             ("sms_test", {"code": "ovh"}, {}),
             ("settings_test", {}, {"action": "einvoicing"}),
+            ("ban_ip", {}, {"ip": "198.51.100.10", "reason": "test"}),
+            ("unban_ip", {"pk": self.banned_ip.pk}, {}),
         ]
 
 
@@ -777,7 +782,7 @@ class AdminPagesWithoutBusinessDataTests(TestCase):
 
     def test_empty_admin_pages(self):
         names = [
-            "dashboard", "dashboard_url", "settings", "logs", "companies",
+            "dashboard", "dashboard_url", "settings", "logs", "analytics", "companies",
             "plans", "subscriptions", "billing", "billing_invoices",
             "users", "ai_monitoring", "ai_prompt",
             "integrations", "sms", "health", "company_create", "plan_create",
