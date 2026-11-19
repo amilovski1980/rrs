@@ -1999,7 +1999,7 @@ details.page-actions > .actions-list {
 .plan-banner-warn { background: var(--amber-soft); border-color: #e6d48a; }
 
 /* Overlay plein‑écran pour la démo vocale quand l’agent est activé */
-.voice-stage[data-voice-demo].reveal.is-visible {
+.voice .voice-stage.reveal.is-visible {
   position: fixed;
   inset: 0;
   z-index: 2000;

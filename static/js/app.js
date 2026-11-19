@@ -10,10 +10,7 @@
     return path;
   }
 
-  function initVoiceDemo(reduceMotion) {
-    var stage = document.querySelector("[data-voice-demo]");
-    if (!stage) return;
-
+  function initVoiceStage(stage, reduceMotion, allowGlobalReplay) {
     var messages = Array.prototype.slice.call(stage.querySelectorAll(".voice-msg"));
     var dotsWrap = stage.querySelector("[data-voice-dots]");
     var toggle = stage.querySelector("[data-voice-toggle]");
@@ -21,15 +18,18 @@
     var indexEl = stage.querySelector("[data-voice-index]");
     var playIcon = stage.querySelector('[data-voice-icon="play"]');
     var pauseIcon = stage.querySelector('[data-voice-icon="pause"]');
-    var replay = document.querySelector("[data-voice-replay]");
+    var replay = allowGlobalReplay ? document.querySelector("[data-voice-replay]") : null;
     var current = 0;
     var playing = false;
     var timer = null;
     var inView = false;
 
     if (reduceMotion) {
-      stage.classList.add("is-static");
-      if (status) status.textContent = "Démo vocale";
+      /* La fenêtre de l'agent reste pilotée par la voix réelle : pas de statique. */
+      if (!(stage.closest && stage.closest("[data-agent-panel]"))) {
+        stage.classList.add("is-static");
+        if (status) status.textContent = "Démo vocale";
+      }
       return;
     }
 
@@ -135,6 +135,13 @@
     }
 
     paint();
+  }
+
+  function initVoiceDemo(reduceMotion) {
+    var stages = document.querySelectorAll("[data-voice-demo]");
+    for (var i = 0; i < stages.length; i++) {
+      initVoiceStage(stages[i], reduceMotion, i === 0);
+    }
   }
 
   function initSirenSearch() {

@@ -89,7 +89,7 @@
   </div>
 
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
-    <div class="agent-dialog voice-stage" role="region" aria-labelledby="agent-title">
+    <div class="agent-dialog voice-stage" data-voice-demo role="region" aria-labelledby="agent-title">
       <header class="voice-stage-head">
         <h2 id="agent-title" class="voice-agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
         <button class="agent-close-top" type="button" data-agent-close aria-label="Terminer l'appel" title="Terminer l'appel">
@@ -118,6 +118,12 @@
         <div class="voice-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</div>
       </div>
       <div class="voice-controls">
+        <button class="voice-play" type="button" data-voice-toggle aria-label="Lancer la démo">
+          <span data-voice-icon="play">{% include "partials/icon.html" with name="play" %}</span>
+          <span data-voice-icon="pause" hidden>{% include "partials/icon.html" with name="pause" %}</span>
+        </button>
+        <div class="voice-dots" data-voice-dots></div>
+        <span class="voice-count"><span data-voice-index>1</span> / 2</span>
         <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
         <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
       </div>
