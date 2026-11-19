@@ -1,0 +1,35 @@
+{% load static %}
+{# Écran d'ouverture du cockpit. La durée est SPLASH_MS dans cockpit-splash.js. #}
+<div id="cockpit-splash" class="cockpit-splash" aria-busy="true">
+  <div class="cockpit-splash-accent" aria-hidden="true"></div>
+  <div class="cockpit-splash-stage">
+    <img
+      class="cockpit-splash-logo"
+      src="{% static 'img/logo.png' %}"
+      alt="Road Runner Solutions"
+      width="838"
+      height="562"
+    >
+    <div
+      class="cockpit-splash-track"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+      aria-labelledby="cockpit-splash-status"
+      data-splash-progress
+    >
+      <span class="cockpit-splash-fill" data-splash-bar></span>
+    </div>
+    <p id="cockpit-splash-status" class="cockpit-splash-status" role="status" aria-live="polite" aria-atomic="true">« Chargement des factures… »</p>
+  </div>
+</div>
+<script src="{% static 'js/cockpit-splash.js' %}?v=2026.11.17.1"></script>
+<script>
+(function () {
+  if (window.__rrsCockpitSplashStarted) return;
+  document.documentElement.classList.remove("cockpit-splash-on");
+  var missed = document.getElementById("cockpit-splash");
+  if (missed) missed.remove();
+})();
+</script>

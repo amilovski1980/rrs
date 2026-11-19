@@ -2,11 +2,13 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from accounts.voice_signup import voice_signup
 from core import demo
 from core.pwa import serve_manifest, serve_service_worker
 from documents.views import invoice_verify
 
 urlpatterns = [
+    path("api/v1/voice-signups/", voice_signup, name="vocalia_voice_signup"),
     # Vérification publique des factures (QR code) : URL courte à la racine.
     path("v/<uuid:pk>/", invoice_verify, name="invoice_verify_root"),
     path("sw.js", serve_service_worker, name="service_worker"),

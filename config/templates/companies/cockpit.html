@@ -1,8 +1,26 @@
 {% extends "base.html" %}
-{% load company_colors %}
+{% load static company_colors %}
 {% block title %}Cockpit{% endblock %}
 {% block crumbs %}Mon espace{% endblock %}
 {% block nav_cockpit %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/cockpit-splash.css' %}?v=2026.11.17.1">
+<script>
+(function () {
+  var key = "rrs-cockpit-splash";
+  try {
+    if (sessionStorage.getItem(key) === "1") return;
+  } catch (e) {
+    return;
+  }
+  document.documentElement.classList.add("cockpit-splash-on");
+  try { sessionStorage.setItem(key, "1"); } catch (e) {}
+})();
+</script>
+{% endblock %}
+{% block body_open %}
+{% include "partials/cockpit_splash.html" %}
+{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>

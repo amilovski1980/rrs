@@ -5,7 +5,7 @@
     "functions": {
         "api/index.py": {
             "maxDuration": 60,
-            "includeFiles": "config/**,admin_backoffice/**,companies/**,accounts/**,accounting/**,documents/**,ai/**,integrations/**,billing/**,core/**,static/**,requirements.txt,contacts/**,mailsync/**,assets/**,suppliers/**,purchases/**,treasury/**,banking/**,history_import/**"
+            "includeFiles": "config/**,admin_backoffice/**,companies/**,accounts/**,accounting/**,banking/**,documents/**,ai/**,integrations/**,billing/**,core/**,static/**,requirements.txt,contacts/**,mailsync/**,assets/**,suppliers/**,purchases/**,treasury/**,history_import/**"
         }
     },
     "routes": [

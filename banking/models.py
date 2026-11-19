@@ -252,6 +252,15 @@ class BankRule(models.Model):
     entry_label = models.CharField(
         max_length=200, blank=True, verbose_name="Libellé d'écriture"
     )
+    auto_post = models.BooleanField(
+        default=False,
+        verbose_name="Créer et rapprocher automatiquement",
+        help_text=(
+            "À l'import, crée l'écriture sur le compte de contrepartie et "
+            "rapproche l'opération. Sans cette option, la règle ne fait que "
+            "pré-remplir le formulaire."
+        ),
+    )
     is_active = models.BooleanField(default=True, verbose_name="Active")
     priority = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
