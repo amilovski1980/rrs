@@ -6,7 +6,8 @@ from django.utils import timezone
 
 from mailsync.models import Supplier
 
-from .models import PAYMENT_METHODS, PurchaseInvoice
+from django.forms import inlineformset_factory
+from .models import PAYMENT_METHODS, PurchaseInvoice, PurchaseInvoiceLine
 
 
 class PurchaseInvoiceForm(forms.ModelForm):
@@ -134,15 +135,50 @@ class PurchaseInvoiceForm(forms.ModelForm):
         return cleaned
 
 
+class PurchaseInvoiceLineForm(forms.ModelForm):
+    class Meta:
+        model = PurchaseInvoiceLine
+        fields = (
+            "description",
+            "charge_account_code",
+            "vat_account_code",
+            "amount_ht",
+            "vat_rate",
+        )
+        widgets = {
+            "amount_ht": forms.NumberInput(attrs={"step": "0.01"}),
+            "vat_rate": forms.NumberInput(attrs={"step": "0.01"}),
+        }
+        labels = {
+            "description": "Libellé",
+            "charge_account_code": "Compte de charge",
+            "vat_account_code": "Compte TVA déductible",
+            "amount_ht": "Montant HT",
+            "vat_rate": "Taux TVA (%)",
+        }
+
+PurchaseInvoiceLineFormSet = inlineformset_factory(
+    PurchaseInvoice,
+    PurchaseInvoiceLine,
+    form=PurchaseInvoiceLineForm,
+    fields=("description", "charge_account_code", "vat_account_code", "amount_ht", "vat_rate"),
+    extra=2,
+    can_delete=True,
+)
+
+
 class SupplierPaymentForm(forms.Form):
     amount = forms.DecimalField(label="Montant", max_digits=12, decimal_places=2)
     method = forms.ChoiceField(label="Mode", choices=PAYMENT_METHODS)
     paid_at = forms.DateField(
-        label="Date", widget=forms.DateInput(attrs={"type": "date"})
+        label="Date",
+        widget=forms.DateInput(attrs={"type": "date"}),
     )
     reference = forms.CharField(label="Référence", max_length=100, required=False)
     notes = forms.CharField(
-        label="Notes", max_length=255, required=False,
+        label="Notes",
+        max_length=255,
+        required=False,
         widget=forms.Textarea(attrs={"rows": 2}),
     )
 

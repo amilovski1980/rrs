@@ -103,14 +103,14 @@ class InvoiceFlowTests(TestCase):
         response = self.client.get("/factures/nouvelle/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "data-mobile-wizard")
-        self.assertContains(response, "data-wizard-step", count=3)
+        self.assertContains(response, "data-wizard-step", count=5)
 
     def test_detail_and_edit_pages(self):
         detail = self.client.get(f"/factures/{self.invoice.id}/")
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "Client Démo")
         self.assertContains(detail, "Modifier")
-        self.assertContains(detail, "model-pick")
+        self.assertContains(detail, "changer dans Configuration")
         edit = self.client.post(f"/factures/{self.invoice.id}/modifier/", {
             "client": "",
             "client_name": "Client Modifié",
@@ -136,6 +136,28 @@ class InvoiceFlowTests(TestCase):
         self.assertEqual(self.client.get("/compta/balance/").status_code, 200)
         self.assertEqual(self.client.get("/factures/").status_code, 200)
         self.assertContains(self.client.get("/factures/"), "Client Modifié")
+
+    def test_issued_invoice_is_immutable(self):
+        issue_invoice(self.invoice)
+        self.invoice.refresh_from_db()
+        self.assertNotEqual(self.invoice.status, "draft")
+        detail = self.client.get(f"/factures/{self.invoice.id}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertNotContains(detail, f"/factures/{self.invoice.id}/modifier/")
+        self.assertNotContains(detail, "Modifier les lignes")
+        edit = self.client.get(f"/factures/{self.invoice.id}/modifier/")
+        self.assertEqual(edit.status_code, 302)
+        self.assertEqual(
+            self.client.post(f"/factures/{self.invoice.id}/modifier/", {}).status_code,
+            302,
+        )
+
+    def test_issue_view_refuses_an_invoice_without_lines(self):
+        response = self.client.post(f"/factures/{self.invoice.id}/emettre/")
+        self.assertEqual(response.status_code, 302)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, "draft")
+        self.assertTrue(self.invoice.number.startswith("BR-"))
 
     def test_png_preview_matches_export_endpoint(self):
         response = self.client.get(f"/factures/{self.invoice.id}/apercu/")

@@ -11,7 +11,8 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% include "partials/ios_splash_links.html" %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.2">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.19.8">
+  <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -98,15 +99,15 @@
       </div>
       <div class="foot-bottom">
         <div>© {% now "Y" %} Road Runner One SAS — RCS Bobigny 951 386 127</div>
-        <div class="foot-flag" aria-label="Hébergé en France">
+        <div class="foot-flag" aria-label="Données en UE, diffusion Vercel">
           <i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i>
-          <span>Hébergé en France · RGPD · Données cloisonnées</span>
+          <span>Données en UE · Diffusion Vercel · RGPD · Données cloisonnées</span>
         </div>
       </div>
     </div>
   </footer>
   {% include "partials/agent.html" %}
-  <script src="{% static 'js/app.js' %}?v=2026.11.14.5" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.19.3" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.12.2" defer></script>
 </body>
 </html>

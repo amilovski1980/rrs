@@ -95,6 +95,32 @@
   </div>
   </div>
 
+  <div class="wizard-section" data-step-label="Lignes de facture">
+      {{ line_formset.management_form }}
+      {% for line_form in line_formset.forms %}
+        <div class="form-grid line-form">
+          <div>
+            {{ line_form.description.label_tag }} {{ line_form.description }}
+          </div>
+          <div>
+            {{ line_form.charge_account_code.label_tag }} {{ line_form.charge_account_code }}
+          </div>
+          <div>
+            {{ line_form.vat_account_code.label_tag }} {{ line_form.vat_account_code }}
+          </div>
+          <div>
+            {{ line_form.amount_ht.label_tag }} {{ line_form.amount_ht }}
+          </div>
+          <div>
+            {{ line_form.vat_rate.label_tag }} {{ line_form.vat_rate }}
+          </div>
+          {% if line_form.errors %}
+            <ul class="form-errors">{% for e in line_form.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+  </div>
+
   <div class="wizard-step" data-wizard-step data-step-label="Justificatif">
   <div class="wizard-recap" data-wizard-recap></div>
 

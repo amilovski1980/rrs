@@ -154,3 +154,25 @@ html[data-theme="dark"] .settings-kicker { color: #c6ffb1; }
   .settings-test-row { align-items: stretch; }
   .settings-test-row .btn { width: 100%; }
 }
+
+/* ---- Consignes de l'agent (lecture seule dans Configuration) ---- */
+.prompt-preview {
+  margin: 0;
+  padding: 12px 14px;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink, #0f172a);
+  background: rgba(255, 255, 255, .55);
+  border: 1px solid var(--line, #e6eaf1);
+  border-radius: 12px;
+}
+html[data-theme="dark"] .prompt-preview {
+  color: #d4d4d8;
+  background: rgba(255, 255, 255, .05);
+  border-color: rgba(255, 255, 255, .12);
+}

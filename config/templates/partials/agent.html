@@ -89,28 +89,53 @@
   </div>
 
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
-    <div class="agent-dialog" role="region" aria-labelledby="agent-title">
-      <div class="agent-orb" aria-hidden="true">
-        <span class="agent-ring r1"></span>
-        <span class="agent-core"><span class="agent-wave"><i></i><i></i><i></i><i></i><i></i></span></span>
-      </div>
-      <div class="agent-copy">
-        <h2 id="agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
-        <p class="agent-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</p>
-        <p class="agent-note" data-agent-transcript></p>
-      </div>
-      <div class="agent-actions">
-        <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
-        <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
-        <button class="agent-mic" type="button" data-agent-mic aria-label="Couper le microphone" title="Couper le microphone">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
-        </button>
-        <button class="btn btn-ghost agent-close" type="button" data-agent-close aria-label="Terminer l'appel">
-          <span class="agent-close-label">Terminer</span>
+    <div class="agent-dialog voice-stage" role="region" aria-labelledby="agent-title">
+      <header class="voice-stage-head">
+        <h2 id="agent-title" class="voice-agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
+        <button class="agent-close-top" type="button" data-agent-close aria-label="Terminer l'appel" title="Terminer l'appel">
           <span class="agent-close-x" aria-hidden="true">×</span>
         </button>
+      </header>
+      <div class="voice-chat">
+        <div class="voice-msg user">
+          <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
+          <p data-agent-transcript>Appuyez sur le micro ou écrivez votre demande.</p>
+        </div>
+        <div class="voice-msg agent">
+          <span class="voice-role">Aminia</span>
+          <p>Je vous écoute. Parlez naturellement ou écrivez : je prépare l'écriture et je vous explique chaque étape.</p>
+        </div>
+      </div>
+      <div class="voice-orb-wrap">
+        <div class="voice-orb" aria-hidden="true">
+          <span class="voice-ring r1"></span>
+          <span class="voice-ring r2"></span>
+          <span class="voice-ring r3"></span>
+          <span class="voice-core">
+            <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          </span>
+        </div>
+        <div class="voice-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</div>
+      </div>
+      <div class="voice-controls">
+        <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
+        <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
       </div>
       <ol class="agent-log" data-agent-log aria-live="polite" aria-label="Journal d'activité d'Aminia"></ol>
+      <div class="voice-chat-box" data-agent-chat-box>
+        <div class="agent-chat-log" data-agent-chat-log aria-live="polite"></div>
+        <p class="agent-chat-error" data-agent-chat-error hidden role="alert"></p>
+        <div class="voice-chat-actions">
+          <button class="agent-mic voice-play" type="button" data-agent-mic aria-label="Parler à Aminia" title="Parler à Aminia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+          </button>
+          <form class="agent-chat-form" data-agent-chat-form>
+            <label class="sr-only" for="agent-voice-chat-input">Votre message</label>
+            <input id="agent-voice-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off">
+            <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 

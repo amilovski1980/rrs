@@ -11,7 +11,9 @@ from django.utils import timezone
 from accounting.models import ChartAccount, EntryLine, Journal, JournalEntry
 from mailsync.matching import create_supplier, find_matching_supplier
 
-from .models import PurchaseInvoice, SupplierPayment
+from .models import PurchaseInvoice, SupplierPayment, PurchaseInvoiceLine
+from assets.models import Asset
+from assets.services import generate_depreciation_schedule
 
 STEP = Decimal("0.01")
 
@@ -79,6 +81,7 @@ def post_purchase(invoice: PurchaseInvoice) -> JournalEntry:
     if journal is None:
         raise PurchaseError("Aucun journal ACH : générez le portail comptable.")
 
+    # Resolve supplier (creation if missing)
     if invoice.supplier_id is None:
         supplier = find_matching_supplier(
             company, name=invoice.supplier_name or ""
@@ -94,51 +97,103 @@ def post_purchase(invoice: PurchaseInvoice) -> JournalEntry:
     if not invoice.supplier_name:
         invoice.supplier_name = supplier.name if supplier else "Fournisseur"
 
-    charge = resolve_account(
-        company,
-        invoice.charge_account_code or "606000",
-        label="Achats",
-        roots=("606", "60"),
-    )
+    # Resolve compte fournisseur (racine)
     supplier_account = resolve_account(
         company,
         invoice.supplier_account_root or "401",
         label="Fournisseurs",
         roots=("401",),
     )
-    if charge is None or supplier_account is None:
-        raise PurchaseError("Plan comptable incomplet (charge ou 401).")
+    if supplier_account is None:
+        raise PurchaseError("Plan comptable incomplet (compte fournisseur).")
 
-    if company.tva == "reel":
+    # Determine les lignes d'écriture à partir des lignes de facture ou, à défaut, des champs uniques
+    entry_lines = []
+    total_ht = Decimal("0.00")
+    total_vat = Decimal("0.00")
+    if invoice.lines.exists():
+        for line in invoice.lines.all():
+            # Charge
+            charge_account = resolve_account(
+                company,
+                line.charge_account_code or "606000",
+                label="Achats",
+                roots=("606", "60"),
+            )
+            if charge_account is None:
+                raise PurchaseError("Plan comptable incomplet (charge).")
+            line_ht = (line.amount_ht or Decimal("0.00")).quantize(STEP)
+            entry_lines.append((charge_account, line_ht, Decimal("0.00")))
+            total_ht += line_ht
+            # TVA
+            if company.tva == "reel" and line.vat_rate and line.amount_vat > 0:
+                vat_account = resolve_account(
+                    company,
+                    line.vat_account_code or "445660",
+                    label="TVA déductible",
+                    roots=("44566", "4456"),
+                )
+                if vat_account is None:
+                    raise PurchaseError("Plan comptable incomplet (TVA).")
+                line_vat = (line.amount_vat or Decimal("0.00")).quantize(STEP)
+                entry_lines.append((vat_account, line_vat, Decimal("0.00")))
+                total_vat += line_vat
+            # Asset creation (simplified : tout compte commençant par "2" est considéré comme un bien)
+            if line.charge_account_code and line.charge_account_code.upper().startswith("2"):
+                asset = Asset.objects.create(
+                    company=company,
+                    name=line.description or f"Asset {line.id}",
+                    description=line.description or "",
+                    acquisition_date=invoice.invoice_date or timezone.localdate(),
+                    cost=line.amount_ht,
+                )
+                generate_depreciation_schedule(asset)
+    else:
+        # Fallback aux champs uniques (compatibilité rétro‑active)
+        charge = resolve_account(
+            company,
+            invoice.charge_account_code or "606000",
+            label="Achats",
+            roots=("606", "60"),
+        )
+        if charge is None:
+            raise PurchaseError("Plan comptable incomplet (charge).")
         ht = (invoice.amount_ht or Decimal("0.00")).quantize(STEP)
-        vat = (invoice.amount_vat or Decimal("0.00")).quantize(STEP)
+        vat = Decimal("0.00")
+        vat_account = None
+        # For franchise regime, VAT is ignored; treat the total amount (TTC) as the expense amount.
+        if company.tva == "reel":
+            vat = (invoice.amount_vat or Decimal("0.00")).quantize(STEP)
+            if vat > 0:
+                vat_account = resolve_account(
+                    company,
+                    invoice.vat_account_code or "445660",
+                    label="TVA déductible",
+                    roots=("44566", "4456"),
+                )
         ttc = (invoice.amount_ttc or Decimal("0.00")).quantize(STEP)
+        # Validation des totaux
         if ht <= 0 and ttc > 0:
             ht = (ttc - vat).quantize(STEP)
         if ttc <= 0:
             ttc = (ht + vat).quantize(STEP)
+        if company.tva == "franchise":
+            # Ignore VAT difference; consider the whole TTC as the expense amount.
+            ht = ttc
+            vat = Decimal("0.00")
+            vat_account = None
         if ht <= 0 or ttc <= 0:
             raise PurchaseError("Montants incomplets : renseignez HT et TTC.")
-        if abs((ht + vat) - ttc) > Decimal("0.02"):
+        if company.tva != "franchise" and abs((ht + vat) - ttc) > Decimal("0.02"):
             raise PurchaseError("HT + TVA n'est pas égal au TTC.")
-        ttc = (ht + vat).quantize(STEP)
-        vat_account = (
-            resolve_account(
-                company,
-                invoice.vat_account_code or "445660",
-                label="TVA déductible",
-                roots=("44566", "4456"),
-            )
-            if vat > 0
-            else None
-        )
-    else:
-        vat = Decimal("0.00")
-        ttc = (invoice.amount_ttc or invoice.amount_ht + invoice.amount_vat).quantize(STEP)
-        ht = ttc
-        vat_account = None
-        if ttc <= 0:
-            raise PurchaseError("Renseignez le montant TTC de la facture.")
+        total_ht = ht
+        total_vat = vat
+        entry_lines.append((charge, ht, Decimal("0.00")))
+        if vat_account is not None and vat > 0:
+            entry_lines.append((vat_account, vat, Decimal("0.00")))
+    total_ttc = (total_ht + total_vat).quantize(STEP)
+    # Ajout du compte fournisseur (crédit)
+    entry_lines.append((supplier_account, Decimal("0.00"), total_ttc))
 
     reference = (invoice.number or f"ACH-{invoice.id.hex[:8]}").strip()[:50]
     entry = _entry(
@@ -146,22 +201,14 @@ def post_purchase(invoice: PurchaseInvoice) -> JournalEntry:
         "ACH",
         f"{invoice.supplier_name} — {invoice.number or 'facture'}",
         reference,
-        [
-            (charge, ht, Decimal("0.00")),
-            *(
-                [(vat_account, vat, Decimal("0.00"))]
-                if vat_account is not None and vat > 0
-                else []
-            ),
-            (supplier_account, Decimal("0.00"), ttc),
-        ],
+        entry_lines,
         invoice.invoice_date or timezone.localdate(),
     )
 
     invoice.journal_entry = entry
-    invoice.amount_ht = ht
-    invoice.amount_vat = vat
-    invoice.amount_ttc = ttc
+    invoice.amount_ht = total_ht
+    invoice.amount_vat = total_vat
+    invoice.amount_ttc = total_ttc
     invoice.status = "approved"
     invoice.save(
         update_fields=[

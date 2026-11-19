@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import PurchaseInvoice, SupplierPayment
+from .models import PurchaseInvoice, SupplierPayment, PurchaseInvoiceLine
+
+
+class PurchaseInvoiceLineInline(admin.TabularInline):
+    model = PurchaseInvoiceLine
+    extra = 0
+    readonly_fields = ("amount_vat", "amount_ttc")
+    fields = ("description", "charge_account_code", "vat_account_code", "amount_ht", "vat_rate")
+    show_change_link = True
 
 
 class SupplierPaymentInline(admin.TabularInline):
@@ -24,7 +32,7 @@ class PurchaseInvoiceAdmin(admin.ModelAdmin):
     list_filter = ("status", "source")
     search_fields = ("supplier_name", "number")
     readonly_fields = ("journal_entry", "created_at", "updated_at")
-    inlines = [SupplierPaymentInline]
+    inlines = [PurchaseInvoiceLineInline, SupplierPaymentInline]
 
 
 @admin.register(SupplierPayment)

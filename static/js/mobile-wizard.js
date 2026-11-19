@@ -185,9 +185,21 @@
     if (cancel) nav.appendChild(cancel);
 
     form.insertBefore(head, steps[0]);
-    form.appendChild(nav);
+
+    /* La barre est accrochée à <body> : certains conteneurs (cartes en
+       verre, backdrop-filter) créent un bloc conteneur qui casse le
+       positionnement fixed à l'intérieur du formulaire. */
+    var formId = form.id;
+    if (!formId) {
+      formId = "wizard-form-" + Math.random().toString(36).slice(2, 9);
+      form.id = formId;
+    }
+    submit.setAttribute("form", formId);
+    document.body.appendChild(nav);
+
     form.classList.add("wizard-mode");
     document.body.classList.add("wizard-active");
+    document.body.classList.add("wizard-mode");
 
     var index = 0;
 
@@ -316,6 +328,7 @@
     form._mobileWizard = null;
     if (!document.querySelector("[data-mobile-wizard].wizard-mode")) {
       document.body.classList.remove("wizard-active");
+      document.body.classList.remove("wizard-mode");
     }
   }
 

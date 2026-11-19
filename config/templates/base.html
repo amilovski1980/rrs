@@ -24,13 +24,14 @@
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% include "partials/ios_splash_links.html" %}
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.16.47">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.19.8">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
-  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.16.14">
+  <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.19.5">
   <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.17.1">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.7">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -75,6 +76,7 @@
         <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
         {% elif request.dark_ui %}
         <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
+        <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
         {% else %}
         <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="" width="32" height="32">
         {% endif %}
@@ -371,6 +373,10 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
       <span>Aminia</span>
     </button>
+    <button class="m-footer-btn m-footer-scan" type="button" data-scan-open aria-label="Ouvrir le scanner">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="camera" %}</span>
+      <span>Scanner</span>
+    </button>
     <button class="m-footer-btn" type="button" data-nav-toggle aria-label="Ouvrir le menu">
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="list" %}</span>
       <span>Plus</span>
@@ -379,11 +385,11 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.16.12" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.19.3" defer></script>
   <script src="{% static 'js/mobile-tables.js' %}?v=2026.11.16.4" defer></script>
-  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.16.9" defer></script>
+  <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.19.1" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.17.3" defer></script>
-  <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.4" defer></script>
+  <script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.19.2" defer></script>
   <script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>
   <script>
     /* PWA : service worker (scope "/") + popup d'installation centrée,

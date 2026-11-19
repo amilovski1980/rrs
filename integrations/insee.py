@@ -230,25 +230,32 @@ def _annuaire_get(params: dict) -> httpx.Response:
             ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
         )
     except httpx.HTTPError as first_error:
-        ips: list[str] = []
+        # Try a simple retry before fallback to IPv4 addresses
         try:
-            for info in socket.getaddrinfo(ANNUAIRE_HOST, 443, socket.AF_INET, socket.SOCK_STREAM):
-                ip = info[4][0]
-                if ip not in ips:
-                    ips.append(ip)
-        except socket.gaierror:
-            ips = []
-        last_error = first_error
-        for ip in ips:
+            return httpx.get(
+                ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
+            )
+        except httpx.HTTPError as second_error:
+            # Fallback to IPv4 addresses if retry also fails
+            ips: list[str] = []
             try:
-                with _use_ipv4(ANNUAIRE_HOST, ip):
-                    return httpx.get(
-                        ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
-                    )
-            except httpx.HTTPError as exc:
-                last_error = exc
-                logger.warning("Annuaire entreprises injoignable via %s", ip)
-        raise last_error
+                for info in socket.getaddrinfo(ANNUAIRE_HOST, 443, socket.AF_INET, socket.SOCK_STREAM):
+                    ip = info[4][0]
+                    if ip not in ips:
+                        ips.append(ip)
+            except socket.gaierror:
+                ips = []
+            last_error = second_error
+            for ip in ips:
+                try:
+                    with _use_ipv4(ANNUAIRE_HOST, ip):
+                        return httpx.get(
+                            ANNUAIRE_SEARCH_URL, params=params, headers=ANNUAIRE_HEADERS, timeout=12,
+                        )
+                except httpx.HTTPError as exc:
+                    last_error = exc
+                    logger.warning("Annuaire entreprises injoignable via %s", ip)
+            raise last_error
 
 
 def parse_company_query(raw: str) -> tuple[str, str]:

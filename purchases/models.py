@@ -188,7 +188,7 @@ class PurchaseInvoice(models.Model):
 
 
 class SupplierPayment(models.Model):
-    """Règlement d'une facture fournisseur, avec son écriture BQ."""
+    """Règlement fournisseur, lié à une facture."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey(
@@ -197,13 +197,16 @@ class SupplierPayment(models.Model):
     invoice = models.ForeignKey(
         PurchaseInvoice, on_delete=models.CASCADE, related_name="payments"
     )
-    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Montant")
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Montant"
+    )
     method = models.CharField(
         max_length=20, choices=PAYMENT_METHODS, default="transfer", verbose_name="Mode"
     )
     paid_at = models.DateField(default=timezone.localdate, verbose_name="Date")
     reference = models.CharField(max_length=100, blank=True, verbose_name="Référence")
     notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     journal_entry = models.ForeignKey(
         "accounting.JournalEntry",
         on_delete=models.SET_NULL,
@@ -212,7 +215,6 @@ class SupplierPayment(models.Model):
         related_name="supplier_payments",
         verbose_name="Écriture comptable",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Règlement fournisseur"
@@ -221,3 +223,32 @@ class SupplierPayment(models.Model):
 
     def __str__(self):
         return f"{self.amount} € — {self.invoice}"
+
+
+class PurchaseInvoiceLine(models.Model):
+    """Ligne détaillée d'une facture d'achat, permettant plusieurs comptes et taux de TVA."""
+
+    invoice = models.ForeignKey(
+        PurchaseInvoice, on_delete=models.CASCADE, related_name="lines"
+    )
+    description = models.CharField(max_length=255, blank=True, verbose_name="Libellé ligne")
+    charge_account_code = models.CharField(max_length=10, default="606000", verbose_name="Compte de charge")
+    vat_account_code = models.CharField(max_length=10, default="445660", verbose_name="Compte de TVA déductible")
+    amount_ht = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"), verbose_name="Montant HT")
+    vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("20.00"), verbose_name="Taux TVA (%)")
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Ligne facture d'achat"
+        verbose_name_plural = "Lignes factures d'achat"
+
+    @property
+    def amount_vat(self):
+        return (self.amount_ht * self.vat_rate / Decimal("100")).quantize(Decimal("0.01"))
+
+    @property
+    def amount_ttc(self):
+        return (self.amount_ht + self.amount_vat).quantize(Decimal("0.01"))
+
+    def __str__(self):
+        return f"{self.description or self.charge_account_code} – {self.amount_ht} € HT"

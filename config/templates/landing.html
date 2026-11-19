@@ -5,7 +5,7 @@
 <header class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="pill"><span class="dot"></span> Conforme facturation électronique 2026</span>
+      <span class="pill"><span class="dot"></span> Factur-X natif · facturation électronique</span>
       <h1>La comptabilité de vos sociétés,<br><span class="accent">enfin sans friction.</span></h1>
       <p class="lead">
         Recherchez votre société par son nom, son SIREN ou son SIRET. Road Runner Solutions
@@ -132,28 +132,10 @@
         <a class="btn btn-accent btn-lg" href="#recherche">Trouver ma société</a>
         <button class="btn btn-ghost btn-lg" type="button" data-voice-replay>Rejouer la démo</button>
       </div>
-      <p class="voice-note">Démo publicitaire — l'agent vocal sera intégré prochainement. <a href="{% static 'presentation-aminia.html' %}">Voir la présentation Aminia</a></p>
+      <p class="voice-note">Démo animée — dans l'application, Aminia vous écoute et répond à la voix. <a href="{% static 'presentation-aminia.html' %}">Voir la présentation Aminia</a></p>
     </div>
 
     <div class="voice-stage" data-voice-demo aria-label="Démonstration vocale d'Aminia">
-      <div class="voice-chat">
-        <div class="voice-msg user">
-          <span class="voice-role">Bâtisseur</span>
-          <p>J'ai acheté une perceuse à 240 € chez Leroy Merlin hier.</p>
-        </div>
-        <div class="voice-msg agent">
-          <span class="voice-role">Aminia</span>
-          <p>J'ai trouvé la dépense : <strong>240 € TTC</strong>, fournisseur Leroy Merlin. Je la classe en <strong>outillage</strong> et je récupère <strong>40 € de TVA</strong>. Je crée le brouillon d'écriture ?</p>
-        </div>
-        <div class="voice-msg user">
-          <span class="voice-role">Bâtisseur</span>
-          <p>Oui, et explique-moi où ça apparaît.</p>
-        </div>
-        <div class="voice-msg agent">
-          <span class="voice-role">Aminia</span>
-          <p>C'est fait. L'écriture est dans le journal des achats, compte <strong>6063</strong>. Elle attend votre validation dans le cockpit. Voulez-vous que je vous montre la ligne ?</p>
-        </div>
-      </div>
       <div class="voice-orb-wrap">
         <div class="voice-orb" aria-hidden="true">
           <span class="voice-ring r1"></span>
@@ -163,15 +145,13 @@
             <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
           </span>
         </div>
-        <div class="voice-status" data-voice-status role="status" aria-live="polite">Le bâtisseur parle</div>
+        <div class="voice-status" data-voice-status role="status" aria-live="polite">Démo en pause</div>
       </div>
       <div class="voice-controls">
-        <button class="voice-play" type="button" data-voice-toggle aria-label="Mettre la démo en pause">
-          <span data-voice-icon="play" hidden>{% include "partials/icon.html" with name="play" %}</span>
-          <span data-voice-icon="pause">{% include "partials/icon.html" with name="pause" %}</span>
+        <button class="voice-play" type="button" data-voice-toggle aria-label="Lancer la démo">
+          <span data-voice-icon="play">{% include "partials/icon.html" with name="play" %}</span>
+          <span data-voice-icon="pause" hidden>{% include "partials/icon.html" with name="pause" %}</span>
         </button>
-        <div class="voice-dots" data-voice-dots></div>
-        <span class="voice-count"><span data-voice-index>1</span> / 4</span>
       </div>
     </div>
   </div>
@@ -206,8 +186,8 @@
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="receipt" %}</div>
-        <h3>Factures conformes 2026</h3>
-        <p>Numérotation séquentielle sans trou, mentions obligatoires, TVA ou franchise en base. Prêt pour la facturation électronique.</p>
+        <h3>Factur-X natif, prêt pour 2026</h3>
+        <p>Numérotation séquentielle sans trou, mentions obligatoires, TVA ou franchise en base. XML CII et PDF Factur-X, dépôt sur plateforme agréée, Chorus Pro ou PPF.</p>
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="folder" %}</div>
@@ -216,8 +196,8 @@
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="mic" %}</div>
-        <h3>Agent vocal Aminia <span class="badge badge-blue">Bientôt</span></h3>
-        <p>Aperçu : Aminia propose le bon compte et prépare l'écriture. Vous validez, elle ne décide jamais seule.</p>
+        <h3>Agent vocal Aminia <span class="badge badge-blue">Disponible</span></h3>
+        <p>Aminia vous écoute, propose le bon compte et prépare l'écriture. Vous validez, elle ne décide jamais seule.</p>
       </div>
       <div class="feature">
         <div class="f-icon">{% include "partials/icon.html" with name="shield" %}</div>
@@ -272,7 +252,7 @@
   <div class="container">
     <div class="cta-band">
       <h2>Vos données restent vos données</h2>
-      <p>Hébergement en France, cloisonnement strict par activité, aucune revente. Aminia prépare, vous validez.</p>
+      <p>Données hébergées en UE, cloisonnement strict par activité, aucune revente — diffusion du site par Vercel. Aminia prépare, vous validez.</p>
       <a class="btn btn-primary btn-lg" href="#recherche">Trouver ma société</a>
     </div>
   </div>

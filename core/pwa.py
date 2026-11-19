@@ -47,9 +47,7 @@ self.addEventListener("activate", function (event) {
   );
 });
 
-self.addEventListener("message", function (event) {
-  if (event.data === "skip-waiting") self.skipWaiting();
-});
+
 
 self.addEventListener("fetch", function (event) {
   var request = event.request;

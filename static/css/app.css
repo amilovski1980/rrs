@@ -566,7 +566,7 @@ h1 .underlined::after {
 .voice-orb-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 0 4px; }
 .voice-orb { position: relative; width: 178px; height: 178px; display: grid; place-items: center; }
 .voice-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .20); }
-.voice-ring.r1 { inset: 0; animation: voiceSpin 26s linear infinite; }
+.voice-ring.r1 { inset: 0; animation: voiceSpin 26s linear infinite; border-color: var(--blue); }
 .voice-ring.r2 { inset: 13%; border-style: dashed; opacity: .55; animation: voiceSpin 34s linear infinite reverse; }
 .voice-ring.r3 { inset: 27%; opacity: .35; animation: voicePulse 4s ease-out infinite; }
 .voice-core {
@@ -608,6 +608,7 @@ h1 .underlined::after {
 .voice-count { font-size: 11px; color: #9fbcf0; font-variant-numeric: tabular-nums; }
 .voice-stage.is-static .voice-controls { display: none; }
 .voice-stage.is-static .voice-msg { animation: none; }
+.voice .voice-controls { justify-content: center; }
 
 @keyframes voiceMsg { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
 @keyframes voiceSpin { to { transform: rotate(360deg); } }
@@ -1997,6 +1998,7 @@ details.page-actions > .actions-list {
 }
 .plan-banner p, .plan-banner-warn p { margin: 0; }
 .plan-banner-warn { background: var(--amber-soft); border-color: #e6d48a; }
+
 .plan.is-current { outline: 2px solid var(--blue); }
 .agent-plan-note { margin: 12px 0 0; font-size: 13px; }
 .compare td, .compare th { white-space: nowrap; }
@@ -5381,4 +5383,164 @@ html[data-theme='dark'] .scan-popup .scan-text {
 }
 html[data-theme='dark'] .socie-urgent {
   background: rgba(220, 38, 38, .16); color: #ff8aa0;
+}
+
+
+/* =====================================================================
+   Aminia en plein écran — coque identique à la démo vocale (landing).
+   L'ouverture de l'agent verrouille l'écran : overlay bleu + vague.
+   ===================================================================== */
+.agent-panel {
+  position: fixed !important;
+  inset: 0 !important;
+  left: 0 !important; right: 0 !important; top: 0 !important; bottom: 0 !important;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px !important;
+  background: rgba(0, 122, 255, .18) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  z-index: var(--z-agent-panel);
+}
+.agent-panel[hidden] { display: none !important; }
+.agent-panel .agent-dialog,
+.agent-panel.is-expanded .agent-dialog {
+  position: relative !important;
+  pointer-events: auto;
+  opacity: 1 !important;
+  display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+  width: min(560px, 100%) !important; height: auto !important;
+  min-height: 0; max-height: calc(100vh - 48px);
+  padding: 18px 20px 16px !important; overflow-y: auto;
+  text-align: left; border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, .22) !important;
+  background:
+    radial-gradient(680px 320px at 92% 4%, rgba(202, 28, 96, .38), transparent 62%),
+    radial-gradient(760px 400px at 2% 100%, rgba(37, 99, 235, .38), transparent 66%),
+    #004192 !important;
+  color: #fff;
+  box-shadow: 0 32px 80px -44px rgba(0, 0, 0, .8);
+  animation: agentIn .22s var(--ease) both;
+  cursor: default;
+}
+.agent-panel .agent-dialog h2,
+.agent-dialog.voice-stage .voice-agent-title {
+  margin: 0; font-family: var(--font-head); font-size: 17px;
+  letter-spacing: -.2px; color: #fff; text-align: left;
+}
+.agent-dialog.voice-stage .voice-chat {
+  min-height: 0; max-height: 300px; overflow-y: auto; flex: 0 0 auto;
+}
+.agent-dialog.voice-stage .voice-orb-wrap { padding: 6px 0 2px; }
+.agent-dialog.voice-stage .voice-orb { width: 150px; height: 150px; }
+.agent-dialog.voice-stage .voice-core { width: 100px; height: 100px; }
+.agent-dialog.voice-stage .voice-status {
+  min-height: 16px; margin-top: 6px; color: #9fbcf0;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; text-align: center;
+}
+.agent-dialog.voice-stage .agent-mic {
+  width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
+  background: #fff; color: #0b3d91;
+  border: 1px solid rgba(255, 255, 255, .4);
+  box-shadow: 0 8px 18px -10px rgba(0, 65, 146, .9);
+  transition: transform .2s var(--ease), background .2s;
+}
+.agent-dialog.voice-stage .agent-mic:hover { transform: scale(1.05); background: #dbe8ff; }
+.agent-dialog.voice-stage .agent-mic.is-listening {
+  background: var(--pink); color: #fff; animation: pulse 1.4s infinite;
+}
+.agent-dialog.voice-stage .btn-ghost {
+  background: rgba(255, 255, 255, .08); color: #fff; border-color: rgba(255, 255, 255, .36);
+}
+.agent-dialog.voice-stage .btn-ghost:hover {
+  background: rgba(255, 255, 255, .16); color: #fff; border-color: #fff;
+}
+.agent-dialog.voice-stage .agent-log {
+  display: flex;
+  max-height: 150px;
+  background: rgba(255, 255, 255, .08);
+  border-color: rgba(255, 255, 255, .18);
+  color: #dbe8ff;
+}
+.agent-dialog.voice-stage .agent-log:empty { display: none; }
+.agent-dialog.voice-stage .voice-stage-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+}
+.agent-dialog.voice-stage .agent-close-top {
+  flex: 0 0 auto;
+  width: 34px; height: 34px; display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, .36); border-radius: 50%;
+  background: rgba(255, 255, 255, .08); color: #fff; cursor: pointer;
+  transition: background .2s;
+}
+.agent-dialog.voice-stage .agent-close-top:hover { background: rgba(255, 255, 255, .2); }
+.agent-dialog.voice-stage .agent-close-top .agent-close-x {
+  display: inline; font-size: 20px; line-height: 1; font-weight: 700;
+}
+.agent-dialog.voice-stage .agent-log li.ok { color: #9fe6c3; }
+.agent-dialog.voice-stage .agent-log li.error { color: #ff9ab5; }
+.agent-dialog.voice-stage.is-listening .voice-core {
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95), rgba(255, 255, 255, .22) 36%, rgba(202, 28, 96, .6) 68%, rgba(138, 14, 63, .65));
+  box-shadow: 0 0 60px rgba(255, 143, 189, .5), inset 0 0 40px rgba(255, 255, 255, .22);
+}
+.agent-dialog.voice-stage.is-thinking .voice-wave i { animation-duration: .55s; }
+.agent-dialog.voice-stage.is-done .voice-core {
+  background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95), rgba(255, 255, 255, .22) 36%, rgba(21, 128, 61, .62) 68%, rgba(6, 78, 59, .65));
+  box-shadow: 0 0 60px rgba(94, 234, 178, .5), inset 0 0 40px rgba(255, 255, 255, .22);
+}
+.agent-dialog.voice-stage .voice-chat-box {
+  display: flex; flex-direction: column; gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, .14); padding-top: 12px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-log {
+  flex: 0 0 auto; max-height: 180px; overflow-y: auto;
+  padding: 4px 2px; background: transparent;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble {
+  max-width: 92%; font-size: 13px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble--user {
+  background: rgba(202, 28, 96, .85); color: #fff;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-bubble--assistant {
+  background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .24); color: #f3f7ff;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-error { color: #ff9ab5; margin: 0; }
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form {
+  display: flex; gap: 8px; padding: 0; border-top: 0;
+}
+.agent-dialog.voice-stage .voice-controls:not(:has(> :not([hidden]))) { display: none; }
+.agent-dialog.voice-stage .voice-chat-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+.agent-dialog.voice-stage .voice-chat-actions .agent-chat-form {
+  flex: 1; min-width: 0;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input {
+  flex: 1; min-width: 0; border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 12px; padding: 10px 12px; background: rgba(255, 255, 255, .12);
+  color: #fff; font: inherit;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input::placeholder {
+  color: rgba(255, 255, 255, .55);
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input:focus {
+  outline: 2px solid #9fc4ff; outline-offset: 1px;
+}
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form .btn-primary {
+  background: #2563eb; color: #fff;
+}
+.agent-dialog.voice-stage .voice-ring.r1 { border-color: #4f8dff; }
+@media (max-width: 768px) {
+  .agent-panel { padding: 12px !important; }
+  .agent-panel .agent-dialog,
+  .agent-panel.is-expanded .agent-dialog {
+    max-height: calc(100vh - 24px); padding: 14px 14px 12px !important;
+  }
+  .agent-dialog.voice-stage .voice-chat { max-height: 220px; }
+  .agent-dialog.voice-stage .voice-orb { width: 128px; height: 128px; }
+  .agent-dialog.voice-stage .voice-core { width: 84px; height: 84px; }
 }

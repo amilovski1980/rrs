@@ -309,6 +309,10 @@ class SiteSettingsView(AdminStaffMixin, TemplateView):
             "voice": voice_config(),
             "speech": voice_agent_config(),
         }
+        # Instructions réellement envoyées à l'agent (lecture seule ici,
+        # modifiables sur la page « Consignes de l'agent »).
+        context["ai_admin_prompt"] = admin_prompt_text()
+        context["ai_global_prompt"] = global_prompt_text()
         return context
 
     def post(self, request, *args, **kwargs):
