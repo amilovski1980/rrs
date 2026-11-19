@@ -157,7 +157,15 @@ STRIPE_SECRET_KEY = env.get("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = env.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_WEBHOOK_SECRET = env.get("STRIPE_WEBHOOK_SECRET", "")
 
-# Email de connexion (dev : fichier EMAIL_FILE_PATH ; prod : Brevo, Postal…)
+# Email. Les réglages d'environnement existent toujours : le back-office
+# (SiteConfiguration) les recouvre à la requête dès qu'un compte SMTP est saisi.
+# Dev sans SMTP : fichiers dans EMAIL_FILE_PATH. Prod : SMTP (Brevo, Gmail, Postal…).
+EMAIL_HOST = env.get("EMAIL_HOST", "")
+EMAIL_PORT = int(env.get("EMAIL_PORT", "587") or 587)
+EMAIL_HOST_USER = env.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_SSL = EMAIL_PORT == 465
+EMAIL_USE_TLS = (not EMAIL_USE_SSL) and EMAIL_PORT != 25 and env.get("EMAIL_USE_TLS", "1") != "0"
 if env.get("EMAIL_BACKEND"):
     EMAIL_BACKEND = env.get("EMAIL_BACKEND")
 elif DEBUG:
@@ -166,11 +174,6 @@ elif DEBUG:
     EMAIL_FILE_PATH.mkdir(exist_ok=True)
 else:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_PORT = int(env.get("EMAIL_PORT", "587"))
-    EMAIL_HOST = env.get("EMAIL_HOST", "")
-    EMAIL_HOST_USER = env.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = env.get("EMAIL_HOST_PASSWORD", "")
-    EMAIL_USE_TLS = env.get("EMAIL_USE_TLS", "1") == "1"
 DEFAULT_FROM_EMAIL = env.get("DEFAULT_FROM_EMAIL", "no-reply@roadrunner-solutions.fr")
 SITE_NAME = "Road Runner Solutions"
 LOGIN_URL = "/compte/"

@@ -27,15 +27,24 @@ class DynamicConfigMiddleware:
             from django.conf import settings
 
             if config.smtp_user or config.smtp_password:
+                from .integrations import email_backend_is_sandbox, smtp_security
+
                 if config.smtp_host:
                     settings.EMAIL_HOST = config.smtp_host
-                if config.smtp_port:
-                    settings.EMAIL_PORT = config.smtp_port
+                port = int(config.smtp_port or getattr(settings, "EMAIL_PORT", 587) or 587)
+                settings.EMAIL_PORT = port
                 settings.EMAIL_HOST_USER = config.smtp_user
                 if config.smtp_password:
                     settings.EMAIL_HOST_PASSWORD = config.smtp_password
                 if config.email_from:
                     settings.DEFAULT_FROM_EMAIL = config.email_from
+                use_tls, use_ssl = smtp_security(port)
+                settings.EMAIL_USE_TLS = use_tls
+                settings.EMAIL_USE_SSL = use_ssl
+                # Le bac à sable des tests (locmem) reste en place. Partout ailleurs,
+                # un SMTP saisi dans le back-office devient le canal d'envoi.
+                if not email_backend_is_sandbox():
+                    settings.EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
             if config.stripe_secret_key:
                 settings.STRIPE_SECRET_KEY = config.stripe_secret_key
