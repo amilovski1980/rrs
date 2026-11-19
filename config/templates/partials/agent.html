@@ -90,9 +90,12 @@
 
   <div class="agent-panel" id="agent-panel" data-agent-panel hidden>
     <div class="agent-dialog voice-stage" role="region" aria-labelledby="agent-title">
-      <button class="agent-close-top" type="button" data-agent-close aria-label="Terminer l'appel" title="Terminer l'appel">
-        <span class="agent-close-x" aria-hidden="true">×</span>
-      </button>
+      <header class="voice-stage-head">
+        <h2 id="agent-title" class="voice-agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
+        <button class="agent-close-top" type="button" data-agent-close aria-label="Terminer l'appel" title="Terminer l'appel">
+          <span class="agent-close-x" aria-hidden="true">×</span>
+        </button>
+      </header>
       <div class="voice-chat">
         <div class="voice-msg user">
           <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
@@ -112,7 +115,6 @@
             <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
           </span>
         </div>
-        <h2 id="agent-title" class="voice-agent-title">Aminia <span class="agent-live-dot" data-agent-live-dot hidden aria-label="En communication"></span></h2>
         <div class="voice-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</div>
       </div>
       <div class="voice-controls">

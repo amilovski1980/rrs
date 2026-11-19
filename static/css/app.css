@@ -5438,7 +5438,7 @@ html[data-theme='dark'] .socie-urgent {
 .agent-panel .agent-dialog h2,
 .agent-dialog.voice-stage .voice-agent-title {
   margin: 0; font-family: var(--font-head); font-size: 17px;
-  letter-spacing: -.2px; color: #fff; text-align: center;
+  letter-spacing: -.2px; color: #fff; text-align: left;
 }
 .agent-dialog.voice-stage .voice-chat {
   min-height: 0; max-height: 300px; overflow-y: auto; flex: 0 0 auto;
@@ -5476,8 +5476,12 @@ html[data-theme='dark'] .socie-urgent {
   color: #dbe8ff;
 }
 .agent-dialog.voice-stage .agent-log:empty { display: none; }
+.agent-dialog.voice-stage .voice-stage-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+}
 .agent-dialog.voice-stage .agent-close-top {
-  position: absolute; top: 10px; right: 10px; z-index: 2;
+  flex: 0 0 auto;
   width: 34px; height: 34px; display: grid; place-items: center;
   border: 1px solid rgba(255, 255, 255, .36); border-radius: 50%;
   background: rgba(255, 255, 255, .08); color: #fff; cursor: pointer;
