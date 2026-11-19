@@ -444,6 +444,7 @@ class BankRuleForm(forms.ModelForm):
             "max_amount",
             "counterpart_account",
             "entry_label",
+            "auto_post",
             "is_active",
             "priority",
         ]
@@ -455,6 +456,7 @@ class BankRuleForm(forms.ModelForm):
             "max_amount": "Montant maximum",
             "counterpart_account": "Compte de contrepartie",
             "entry_label": "Libellé de l'écriture",
+            "auto_post": "Créer et rapprocher automatiquement",
             "is_active": "Règle active",
             "priority": "Priorité",
         }
@@ -463,3 +465,12 @@ class BankRuleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["counterpart_account"].queryset = company.accounts.order_by("code")
         self.fields["counterpart_account"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("auto_post") and not cleaned.get("counterpart_account"):
+            self.add_error(
+                "counterpart_account",
+                "Choisissez le compte à utiliser pour le rapprochement automatique.",
+            )
+        return cleaned

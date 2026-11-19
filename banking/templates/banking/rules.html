@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Règles bancaires</h1>
-    <p class="sub">Pré-remplissent le compte de contrepartie lors de la création d'une écriture.</p>
+    <p class="sub">Pré-remplissent le compte de contrepartie, ou créent et rapprochent l'écriture à l'import.</p>
   </div>
   <div class="page-actions" style="display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn btn-ghost" href="{% url 'banking:dashboard' %}?societe={{ company.id }}">Tableau de bord</a>
@@ -16,7 +16,7 @@
 <div class="card card-tight">
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Nom</th><th>Libellé contient</th><th>Tiers contient</th><th>Contrepartie</th><th>Priorité</th><th>Statut</th><th></th></tr></thead>
+      <thead><tr><th>Nom</th><th>Libellé contient</th><th>Tiers contient</th><th>Contrepartie</th><th>Rapprochement</th><th>Priorité</th><th>Statut</th><th></th></tr></thead>
       <tbody>
         {% for rule in rules %}
         <tr>
@@ -24,6 +24,7 @@
           <td>{{ rule.label_contains|default:"—" }}</td>
           <td>{{ rule.counterparty_contains|default:"—" }}</td>
           <td>{% if rule.counterpart_account %}{{ rule.counterpart_account.code }} — {{ rule.counterpart_account.label }}{% else %}—{% endif %}</td>
+          <td>{% if rule.auto_post %}<span class="badge badge-green">Automatique</span>{% else %}<span class="badge">Pré-remplissage</span>{% endif %}</td>
           <td>{{ rule.priority }}</td>
           <td>{% if rule.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
           <td style="display:flex;gap:6px;flex-wrap:wrap">
@@ -35,7 +36,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="empty">Aucune règle. Exemple : « frais bancaires » → 627000.</td></tr>
+        <tr><td colspan="8" class="empty">Aucune règle. Exemple : « frais bancaires » → 627000.</td></tr>
         {% endfor %}
       </tbody>
     </table>

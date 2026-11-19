@@ -84,15 +84,49 @@
         <b style="font-size:13px">Tout sélectionner</b>
         <span class="micro" data-bulk-count hidden></span>
       </div>
-      <div class="bank-bulk-actions" style="display:flex;gap:8px" hidden>
-        <button class="btn btn-ghost btn-sm" type="submit" name="action" value="ignore">Ignorer la sélection</button>
-        <button class="btn btn-primary btn-sm" type="submit" name="action" value="restore">Rétablir les ignorées</button>
-        <button class="btn btn-danger btn-sm" type="submit" name="action" value="delete"
-                onclick="return confirm('Supprimer définitivement les opérations sélectionnées ?');">
-          Supprimer la sélection
-        </button>
+      <div class="bank-bulk-actions" hidden>
+        <div class="bank-bulk-reconcile" style="border-top:1px dashed var(--line);margin-top:10px;padding-top:12px">
+          <b style="font-size:13px">Créer et rapprocher la sélection</b>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:8px">
+            <div>
+              <label class="micro" for="bulk-nature">Nature</label>
+              <select id="bulk-nature" name="bulk_nature" data-bulk-nature>
+                <option value="">— Choisir —</option>
+                {% for code, label in reconcile_natures %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div data-bulk-counterpart hidden>
+              <label class="micro" for="bulk-counterpart">Compte de charge / contrepartie</label>
+              <input id="bulk-counterpart" name="bulk_counterpart_code" list="bulk-counterpart-accounts" autocomplete="off" placeholder="Ex. 607000">
+            </div>
+            <div data-bulk-transfer hidden>
+              <label class="micro" for="bulk-transfer">Compte bancaire de destination</label>
+              <select id="bulk-transfer" name="bulk_transfer_account">
+                <option value="">— Choisir —</option>
+                {% for account in accounts %}
+                <option value="{{ account.pk }}">{{ account.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" type="submit" name="action" value="reconcile">Créer et rapprocher</button>
+          </div>
+          <p class="micro" style="margin:6px 0 0">Une écriture par opération, avec sa date et son libellé. Seules les opérations « À rapprocher » sont traitées.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" type="submit" name="action" value="ignore">Ignorer la sélection</button>
+          <button class="btn btn-primary btn-sm" type="submit" name="action" value="restore">Rétablir les ignorées</button>
+          <button class="btn btn-danger btn-sm" type="submit" name="action" value="delete"
+                  onclick="return confirm('Supprimer définitivement les opérations sélectionnées ?');">
+            Supprimer la sélection
+          </button>
+        </div>
       </div>
     </div>
+    <datalist id="bulk-counterpart-accounts">
+      {% for account in chart_accounts %}<option value="{{ account.code }}">{{ account.code }} — {{ account.label }}</option>{% endfor %}
+    </datalist>
     <div class="table-wrap bank-transactions-table-wrap">
       <table>
         <thead><tr>
@@ -193,6 +227,19 @@
     }
     checks.forEach(function (check) { check.addEventListener("change", refresh); });
     refresh();
+    var nature = form.querySelector("[data-bulk-nature]");
+    var counterpart = form.querySelector("[data-bulk-counterpart]");
+    var transfer = form.querySelector("[data-bulk-transfer]");
+    function refreshNature() {
+      if (!nature) return;
+      var value = nature.value;
+      if (counterpart) counterpart.hidden = !(value === "expense" || value === "other");
+      if (transfer) transfer.hidden = value !== "internal_transfer";
+    }
+    if (nature) {
+      nature.addEventListener("change", refreshNature);
+      refreshNature();
+    }
     var csrfInput = form.querySelector("[name=csrfmiddlewaretoken]");
     document.querySelectorAll("[data-row-delete]").forEach(function (button) {
       button.addEventListener("click", function () {

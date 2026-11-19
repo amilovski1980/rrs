@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>{% if rule %}Modifier {{ rule.name }}{% else %}Nouvelle règle bancaire{% endif %}</h1>
-    <p class="sub">Une règle propose le compte de contrepartie quand le libellé ou le tiers correspond.</p>
+    <p class="sub">Une règle propose le compte de contrepartie quand le libellé ou le tiers correspond — et peut créer l'écriture automatiquement à l'import.</p>
   </div>
   <a class="btn btn-ghost page-actions" href="{% url 'banking:rules' %}?societe={{ company.id }}">Retour</a>
 </div>
@@ -54,6 +54,8 @@
     <label for="{{ form.entry_label.id_for_label }}">{{ form.entry_label.label }}</label>
     {{ form.entry_label }}
   </div>
+  <label class="check-row">{{ form.auto_post }} <span>{{ form.auto_post.label }}</span></label>
+  <p class="micro" style="margin:0">{{ form.auto_post.help_text }}</p>
   <label class="check-row">{{ form.is_active }} <span>{{ form.is_active.label }}</span></label>
   <div class="form-actions">
     <button class="btn btn-primary" type="submit">Enregistrer</button>
