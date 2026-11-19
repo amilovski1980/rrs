@@ -5409,7 +5409,9 @@ html[data-theme='dark'] .socie-urgent {
   pointer-events: auto;
   opacity: 1 !important;
   display: flex; flex-direction: column; align-items: stretch; gap: 14px;
-  width: min(560px, 100%) !important; height: auto !important;
+  width: min(560px, 100%) !important;
+  height: min(660px, calc(100dvh - 48px)) !important;
+  margin: 0 auto;
   min-height: 0; max-height: calc(100vh - 48px);
   padding: 18px 20px 16px !important; overflow-y: auto;
   text-align: left; border-radius: 16px !important;
@@ -5431,14 +5433,12 @@ html[data-theme='dark'] .socie-urgent {
 .agent-dialog.voice-stage .voice-chat {
   min-height: 0; max-height: 300px; overflow-y: auto; flex: 0 0 auto;
 }
+/* Pas de bulle tant que la transcription en temps réel est vide. */
+.agent-dialog.voice-stage .voice-msg:has([data-agent-transcript]:empty) { display: none; }
 .agent-dialog.voice-stage .voice-orb-wrap { padding: 6px 0 2px; }
 .agent-dialog.voice-stage .voice-orb { width: 150px; height: 150px; }
 .agent-dialog.voice-stage .voice-core { width: 100px; height: 100px; }
-.agent-dialog.voice-stage .voice-status {
-  min-height: 16px; margin-top: 6px; color: #9fbcf0;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .8px;
-  text-transform: uppercase; text-align: center;
-}
+.agent-dialog.voice-stage .voice-status { display: none !important; }
 .agent-dialog.voice-stage .agent-mic {
   width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%;
   background: #fff; color: #0b3d91;
@@ -5534,6 +5534,40 @@ html[data-theme='dark'] .socie-urgent {
   background: #2563eb; color: #fff;
 }
 .agent-dialog.voice-stage .voice-ring.r1 { border-color: #4f8dff; }
+
+/* ---- Mode réduit : pendant une opération, l'overlay laisse voir l'app ---- */
+.agent-panel.is-minimized {
+  inset: auto !important;
+  left: auto !important;
+  top: auto !important;
+  right: 16px !important;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  pointer-events: none;
+}
+.agent-panel.is-minimized .agent-dialog,
+.agent-panel.is-minimized.is-expanded .agent-dialog {
+  pointer-events: auto;
+  width: min(360px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  max-height: min(46dvh, 420px) !important;
+  margin: 0;
+  padding: 14px 14px 12px !important;
+  overflow-y: auto;
+  cursor: pointer;
+}
+.agent-panel.is-minimized .voice-chat,
+.agent-panel.is-minimized .voice-orb-wrap,
+.agent-panel.is-minimized .voice-controls,
+.agent-panel.is-minimized .voice-chat-box { display: none; }
+.agent-panel.is-minimized .agent-log { display: flex; max-height: 34dvh; }
+
 @media (max-width: 768px) {
   .agent-panel { padding: 12px !important; }
   .agent-panel .agent-dialog,

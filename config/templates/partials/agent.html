@@ -98,12 +98,7 @@
       </header>
       <div class="voice-chat">
         <div class="voice-msg user">
-          <span class="voice-role">{{ top_company.denomination|default:"Vous" }}</span>
-          <p data-agent-transcript>Appuyez sur le micro ou écrivez votre demande.</p>
-        </div>
-        <div class="voice-msg agent">
-          <span class="voice-role">Aminia</span>
-          <p>Je vous écoute. Parlez naturellement ou écrivez : je prépare l'écriture et je vous explique chaque étape.</p>
+          <p data-agent-transcript></p>
         </div>
       </div>
       <div class="voice-orb-wrap">
@@ -115,7 +110,6 @@
             <span class="voice-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
           </span>
         </div>
-        <div class="voice-status" data-agent-status role="status" aria-live="polite">Appuyez pour parler</div>
       </div>
       <div class="voice-controls">
         <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
