@@ -161,6 +161,7 @@ def post_purchase(invoice: PurchaseInvoice) -> JournalEntry:
         ht = (invoice.amount_ht or Decimal("0.00")).quantize(STEP)
         vat = Decimal("0.00")
         vat_account = None
+        # For franchise regime, VAT is ignored; treat the total amount (TTC) as the expense amount.
         if company.tva == "reel":
             vat = (invoice.amount_vat or Decimal("0.00")).quantize(STEP)
             if vat > 0:
@@ -176,9 +177,14 @@ def post_purchase(invoice: PurchaseInvoice) -> JournalEntry:
             ht = (ttc - vat).quantize(STEP)
         if ttc <= 0:
             ttc = (ht + vat).quantize(STEP)
+        if company.tva == "franchise":
+            # Ignore VAT difference; consider the whole TTC as the expense amount.
+            ht = ttc
+            vat = Decimal("0.00")
+            vat_account = None
         if ht <= 0 or ttc <= 0:
             raise PurchaseError("Montants incomplets : renseignez HT et TTC.")
-        if abs((ht + vat) - ttc) > Decimal("0.02"):
+        if company.tva != "franchise" and abs((ht + vat) - ttc) > Decimal("0.02"):
             raise PurchaseError("HT + TVA n'est pas égal au TTC.")
         total_ht = ht
         total_vat = vat

@@ -185,8 +185,18 @@
       <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="lock" %}</span>
       <span>Paramètres</span>
     </a>
+    <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
+      <span>Aminia</span>
+    </button>
   </nav>
+  {% include "partials/agent.html" %}
 </div>
 <script src="{% static 'js/app.js' %}?v=2026.11.14.5" defer></script>
+<script src="{% static 'js/mobile-tables.js' %}?v=2026.11.16.4" defer></script>
+<script src="{% static 'js/mobile-actions.js' %}?v=2026.11.16.9" defer></script>
+<script src="{% static 'js/grok-voice.js' %}?v=2026.11.17.3" defer></script>
+<script src="{% static 'js/mobile-wizard.js' %}?v=2026.11.16.4" defer></script>
+<script src="{% static 'js/mobile-company-menu.js' %}?v=2026.11.16.3" defer></script>
 </body>
 </html>
