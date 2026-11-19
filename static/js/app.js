@@ -66,7 +66,7 @@
         dot.classList.toggle("is-on", i === current);
       });
       if (indexEl) indexEl.textContent = String(current + 1);
-      var isAgent = current % 2 === 1;
+      var isAgent = messages.length ? current % 2 === 1 : true;
       stage.classList.toggle("is-speaking", playing && isAgent);
       if (status) {
         status.textContent = !playing
@@ -85,7 +85,7 @@
 
     function schedule() {
       clearTimer();
-      if (!playing || !inView) return;
+      if (!playing || !inView || !messages.length) return;
       var delay = current === messages.length - 1 ? 5200 : 2400;
       timer = window.setTimeout(function () {
         current = current === messages.length - 1 ? 0 : current + 1;

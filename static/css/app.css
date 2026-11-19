@@ -608,6 +608,7 @@ h1 .underlined::after {
 .voice-count { font-size: 11px; color: #9fbcf0; font-variant-numeric: tabular-nums; }
 .voice-stage.is-static .voice-controls { display: none; }
 .voice-stage.is-static .voice-msg { animation: none; }
+.voice .voice-controls { justify-content: center; }
 
 @keyframes voiceMsg { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: none; } }
 @keyframes voiceSpin { to { transform: rotate(360deg); } }
@@ -1997,19 +1998,6 @@ details.page-actions > .actions-list {
 }
 .plan-banner p, .plan-banner-warn p { margin: 0; }
 .plan-banner-warn { background: var(--amber-soft); border-color: #e6d48a; }
-
-/* Overlay plein‑écran pour la démo vocale quand l’agent est activé */
-.voice .voice-stage.reveal.is-visible {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  background: rgba(0, 122, 255, 0.15); /* bleu transparent */
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
 
 .plan.is-current { outline: 2px solid var(--blue); }
 .agent-plan-note { margin: 12px 0 0; font-size: 13px; }
