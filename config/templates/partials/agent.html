@@ -120,19 +120,21 @@
       <div class="voice-controls">
         <a class="btn btn-ghost btn-sm" data-agent-draft href="#" hidden>Brouillon</a>
         <button class="btn btn-ghost btn-sm" type="button" data-agent-reconnect hidden>Reconnecter</button>
-        <button class="agent-mic voice-play" type="button" data-agent-mic aria-label="Parler à Aminia" title="Parler à Aminia">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
-        </button>
       </div>
       <ol class="agent-log" data-agent-log aria-live="polite" aria-label="Journal d'activité d'Aminia"></ol>
       <div class="voice-chat-box" data-agent-chat-box>
         <div class="agent-chat-log" data-agent-chat-log aria-live="polite"></div>
         <p class="agent-chat-error" data-agent-chat-error hidden role="alert"></p>
-        <form class="agent-chat-form" data-agent-chat-form>
-          <label class="sr-only" for="agent-voice-chat-input">Votre message</label>
-          <input id="agent-voice-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off">
-          <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
-        </form>
+        <div class="voice-chat-actions">
+          <button class="agent-mic voice-play" type="button" data-agent-mic aria-label="Parler à Aminia" title="Parler à Aminia">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+          </button>
+          <form class="agent-chat-form" data-agent-chat-form>
+            <label class="sr-only" for="agent-voice-chat-input">Votre message</label>
+            <input id="agent-voice-chat-input" data-agent-chat-input type="text" maxlength="2000" placeholder="Écrire à Aminia…" autocomplete="off">
+            <button class="btn btn-primary" type="submit" data-agent-chat-send>Envoyer</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>

@@ -5524,6 +5524,13 @@ html[data-theme='dark'] .socie-urgent {
 .agent-dialog.voice-stage .voice-chat-box .agent-chat-form {
   display: flex; gap: 8px; padding: 0; border-top: 0;
 }
+.agent-dialog.voice-stage .voice-controls:not(:has(> :not([hidden]))) { display: none; }
+.agent-dialog.voice-stage .voice-chat-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+.agent-dialog.voice-stage .voice-chat-actions .agent-chat-form {
+  flex: 1; min-width: 0;
+}
 .agent-dialog.voice-stage .voice-chat-box .agent-chat-form input {
   flex: 1; min-width: 0; border: 1px solid rgba(255, 255, 255, .3);
   border-radius: 12px; padding: 10px 12px; background: rgba(255, 255, 255, .12);
