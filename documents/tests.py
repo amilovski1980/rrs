@@ -65,7 +65,24 @@ class InvoiceFlowTests(TestCase):
             status="draft",
         )
 
+    def test_issue_without_lines_is_rejected(self):
+        with self.assertRaises(ValueError):
+            issue_invoice(self.invoice)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.status, "draft")
+
+    def test_issued_invoice_edit_is_blocked(self):
+        InvoiceLine.objects.create(invoice=self.invoice, description="Prestation", quantity=1, unit_price=Decimal("100.00"))
+        issue_invoice(self.invoice)
+        response = self.client.get(f"/factures/{self.invoice.id}/modifier/")
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(f"/factures/{self.invoice.id}/modifier/", {"client_name": "Altéré"})
+        self.assertEqual(response.status_code, 302)
+        self.invoice.refresh_from_db()
+        self.assertEqual(self.invoice.client_name, "Client Démo")
+
     def test_issue_then_pay_posts_balanced_entries(self):
+        InvoiceLine.objects.create(invoice=self.invoice, description="Prestation", quantity=1, unit_price=Decimal("100.00"))
         issue_invoice(self.invoice)
         self.invoice.refresh_from_db()
         self.assertTrue(self.invoice.number.startswith("FAC-"))

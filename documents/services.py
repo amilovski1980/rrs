@@ -103,6 +103,10 @@ def sync_sale(invoice):
 
 def issue_invoice(invoice):
     """Attribue le numéro définitif et passe la vente au journal."""
+    if invoice.status == "draft":
+        lines = list(invoice.lines.all())
+        if not lines or any(not line.description.strip() or line.quantity <= 0 or line.unit_price < 0 for line in lines):
+            raise ValueError("Ajoutez au moins une ligne valide avant d’émettre la facture.")
     if invoice.status != "draft":
         post_sale(invoice)
         return invoice

@@ -122,11 +122,7 @@
       <h2 style="margin:0 0 4px;font-size:18px">Lignes de facture</h2>
       <p class="sub" style="margin:0 0 12px">Chaque ligne est reliée à son produit catalogue ou reste libre.</p>
     </div>
-    {% if invoice.status == "draft" %}
-    <a class="btn btn-ghost btn-sm" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">Modifier les lignes</a>
-    {% else %}
-    <span class="micro">Facture émise — correction par avoir uniquement.</span>
-    {% endif %}
+    {% if invoice.status == "draft" %}<a class="btn btn-ghost btn-sm" href="{% url 'invoice_edit' invoice.id %}?societe={{ company.id }}">Modifier les lignes</a>{% endif %}
   </div>
   {% if lines %}
   <table>
