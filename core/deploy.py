@@ -17,6 +17,8 @@ from django.apps import apps
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connections
+from django.db.migrations.exceptions import InconsistentMigrationHistory
+from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,9 @@ REQUIRED_SCHEMA = (
     ("accounts_user", "email_signature"),
     ("contacts_contact", None),
     ("banking_bankrule", "auto_post"),
+    ("companies_company", "capital"),
+    ("companies_company", "rcs"),
+    ("purchases_purchaseinvoiceline", None),
 )
 
 # Ordre : les clés étrangères de SmsMessage exigent le modèle SMS et User.
@@ -67,6 +72,8 @@ HEAL_LABELS = (
     "billing.Plan",
     "contacts.Contact",
     "banking.BankRule",
+    "companies.Company",
+    "purchases.PurchaseInvoiceLine",
 )
 
 _state = {"ok": False}
@@ -235,6 +242,46 @@ def _mark_known_applied() -> None:
             recorder.record_applied(app_label, name)
 
 
+def _repair_migration_history() -> bool:
+    """Débloque un historique incohérent (ex. purchases.0003 enregistrée
+    avant sa dépendance purchases.0002) : les dépendances déjà présentes
+    sur disque sont marquées appliquées (fake), puis migrate reprend.
+
+    Retourne True si au moins une dépendance a été recollée.
+    """
+    connection = connections["default"]
+    recorder = MigrationRecorder(connection)
+    try:
+        applied = set(recorder.applied_migrations())
+    except Exception:
+        logger.exception("Lecture de l'historique des migrations impossible")
+        return False
+    executor = MigrationExecutor(connection)
+    try:
+        executor.loader.build_graph()
+        return False  # cohérent : rien à réparer
+    except InconsistentMigrationHistory:
+        pass
+    disk = getattr(executor.loader, "disk_migrations", {}) or {}
+    by_key = {
+        (migration.app_label, migration.name): migration
+        for migration in disk.values()
+    }
+    repaired = False
+    for app_label, name in list(applied):
+        migration = by_key.get((app_label, name))
+        if migration is None:
+            continue
+        for dependency in migration.dependencies:
+            if dependency not in applied and dependency in by_key:
+                recorder.record_applied(*dependency)
+                applied.add(dependency)
+                repaired = True
+    if repaired:
+        print("[migrations] historique réparé", flush=True)
+    return repaired
+
+
 def assurer_migrations(*, force: bool = False) -> bool:
     """Applique les migrations, puis rattrape le schéma s'il est encore en retard.
 
@@ -248,6 +295,15 @@ def assurer_migrations(*, force: bool = False) -> bool:
         _reset_connection()
         try:
             call_command("migrate", interactive=False, verbosity=1)
+        except InconsistentMigrationHistory:
+            logger.warning("Historique de migrations incohérent : tentative de réparation")
+            if _repair_migration_history():
+                try:
+                    call_command("migrate", interactive=False, verbosity=1)
+                except Exception:
+                    logger.exception("migrate a échoué après réparation de l'historique")
+            else:
+                logger.exception("Réparation de l'historique impossible")
         except Exception:
             logger.exception("migrate a échoué")
         if not schema_ready():
