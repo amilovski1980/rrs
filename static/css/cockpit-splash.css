@@ -85,10 +85,23 @@ html[data-theme="dark"] .cockpit-splash-accent {
     0 0 0 1px rgba(255, 255, 255, .6);
 }
 
+/* Logo sombre : le fichier img/dark/mark.png est déjà sur fond transparent,
+   on retire donc la plaque blanche héritée du thème clair. */
 html[data-theme="dark"] .cockpit-splash-logo {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  filter: drop-shadow(0 18px 42px rgba(0, 0, 0, .55));
   box-shadow:
     0 28px 70px rgba(0, 0, 0, .45),
     0 0 80px rgba(122, 60, 255, .28);
+}
+
+@media (max-width: 480px) {
+  html[data-theme="dark"] .cockpit-splash-logo {
+    border-radius: 0;
+    padding: 0;
+  }
 }
 
 .cockpit-splash-track {
