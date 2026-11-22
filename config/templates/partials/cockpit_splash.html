@@ -1,5 +1,8 @@
 {% load static %}
 {# Écran d'ouverture du cockpit. La durée est SPLASH_MS dans cockpit-splash.js. #}
+{# La feuille du splash est chargée ici : elle n'est pas dans base.html et sans
+   elle les règles light/dark des logos ne s'appliquent pas. #}
+<link rel="stylesheet" href="{% static 'css/cockpit-splash.css' %}?v=2026.11.20.2">
 <div id="cockpit-splash" class="cockpit-splash" aria-busy="true">
   <div class="cockpit-splash-accent" aria-hidden="true"></div>
   <div class="cockpit-splash-stage">
