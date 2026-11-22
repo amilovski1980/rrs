@@ -3,13 +3,32 @@
 <div id="cockpit-splash" class="cockpit-splash" aria-busy="true">
   <div class="cockpit-splash-accent" aria-hidden="true"></div>
   <div class="cockpit-splash-stage">
+    {% if request.dark_ui %}
+    <div class="cockpit-splash-logo cockpit-splash-logo--dark">
+      <img
+        class="cockpit-splash-mark"
+        src="{% static 'img/dark/mark.png' %}"
+        alt=""
+        width="132"
+        height="132"
+      >
+      <img
+        class="cockpit-splash-wordmark"
+        src="{% static 'img/dark/wordmark.png' %}"
+        alt="Road Runner Solutions"
+        width="272"
+        height="59"
+      >
+    </div>
+    {% else %}
     <img
       class="cockpit-splash-logo"
-      src="{% if request.dark_ui %}{% static 'img/dark/mark.png' %}{% else %}{% static 'img/logo.png' %}{% endif %}"
+      src="{% static 'img/logo.png' %}"
       alt="Road Runner Solutions"
       width="838"
       height="562"
     >
+    {% endif %}
     <div
       class="cockpit-splash-track"
       role="progressbar"
