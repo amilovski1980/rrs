@@ -5,7 +5,7 @@
   <div class="cockpit-splash-stage">
     <img
       class="cockpit-splash-logo"
-      src="{% static 'img/logo.png' %}"
+      src="{% if request.dark_ui %}{% static 'img/dark/mark.png' %}{% else %}{% static 'img/logo.png' %}{% endif %}"
       alt="Road Runner Solutions"
       width="838"
       height="562"
