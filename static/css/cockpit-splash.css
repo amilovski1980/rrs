@@ -91,6 +91,12 @@ html[data-theme="dark"] .cockpit-splash-accent {
 /* Le thème décide quel logo est visible (indépendant du rendu serveur). */
 .cockpit-splash-logo--dark {
   display: none;
+  justify-items: center;
+  gap: clamp(10px, 2.4vh, 16px);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .cockpit-splash-logo--light,
@@ -103,16 +109,6 @@ html[data-theme="dark"] .cockpit-splash-logo--dark,
 html[data-bs-theme="dark"] .cockpit-splash-logo--dark,
 html.dark .cockpit-splash-logo--dark {
   display: grid;
-}
-
-.cockpit-splash-logo--dark {
-  display: none;
-  justify-items: center;
-  gap: clamp(10px, 2.4vh, 16px);
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
 }
 
 .cockpit-splash-mark {
