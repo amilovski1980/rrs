@@ -121,6 +121,19 @@ def stripe_material():
     }
 
 
+def smtp_security(port) -> tuple[bool, bool]:
+    """(use_tls, use_ssl) selon le port. 465 = SSL, 25 = clair, le reste = STARTTLS."""
+    try:
+        number = int(port or 587)
+    except (TypeError, ValueError):
+        number = 587
+    if number == 465:
+        return False, True
+    if number == 25:
+        return False, False
+    return True, False
+
+
 def smtp_material():
     """Réglages SMTP effectifs : la base prime sur l'environnement."""
     config = _config()
@@ -140,8 +153,7 @@ def smtp_material():
         getattr(settings, "DEFAULT_FROM_EMAIL", ""),
         getattr(config, "email_from", "") if config else "",
     )
-    use_ssl = int(port) == 465
-    use_tls = int(port) == 587
+    use_tls, use_ssl = smtp_security(port)
     return {
         "host": host,
         "port": int(port),
@@ -152,6 +164,52 @@ def smtp_material():
         "use_ssl": use_ssl,
         "configured": bool(host and (user or password)),
     }
+
+
+def email_backend_is_sandbox() -> bool:
+    """Locmem, console et dummy ne doivent jamais ouvrir une vraie connexion."""
+    backend = getattr(settings, "EMAIL_BACKEND", "") or ""
+    return any(token in backend for token in ("locmem", "console", "dummy"))
+
+
+def transactional_from_email(material=None) -> str:
+    """Expéditeur des emails du site.
+
+    Gmail refuse toute adresse différente du compte authentifié : on envoie
+    alors depuis l'utilisateur SMTP plutôt que depuis l'adresse par défaut.
+    """
+    material = material or smtp_material()
+    configured = (material.get("from_email") or "").strip()
+    user = (material.get("user") or "").strip()
+    chosen = configured or user or (getattr(settings, "DEFAULT_FROM_EMAIL", "") or "").strip()
+    host = (material.get("host") or "").lower()
+    gmail = "gmail.com" in host or "googlemail.com" in host
+    if gmail and "@" in user and chosen.lower() != user.lower():
+        return user
+    return chosen
+
+
+def open_configured_smtp(*, force=False):
+    """Connexion SMTP du back-office, ou None pour laisser le backend Django.
+
+    ``force`` sert au bouton de test, qui doit joindre le serveur même quand
+    les tests utilisent le backend locmem.
+    """
+    if not force and email_backend_is_sandbox():
+        return None
+    material = smtp_material()
+    if not material["configured"]:
+        return None
+    return get_connection(
+        backend="django.core.mail.backends.smtp.EmailBackend",
+        host=material["host"],
+        port=material["port"],
+        username=material["user"],
+        password=material["password"],
+        use_tls=material["use_tls"],
+        use_ssl=material["use_ssl"],
+        timeout=20,
+    )
 
 
 def probe_smtp(recipient: str) -> dict:
@@ -179,20 +237,13 @@ def probe_smtp(recipient: str) -> dict:
     )
     secrets = [material["password"]]
     try:
-        connection = get_connection(
-            backend="django.core.mail.backends.smtp.EmailBackend",
-            host=material["host"],
-            port=material["port"],
-            username=material["user"],
-            password=material["password"],
-            use_tls=material["use_tls"],
-            use_ssl=material["use_ssl"],
-            timeout=15,
-        )
+        connection = open_configured_smtp(force=True)
+        if connection is None:
+            return {"ok": False, "message": "SMTP : aucun hôte configuré."}
         message = EmailMessage(
             subject=subject,
             body=body,
-            from_email=material["from_email"] or material["user"],
+            from_email=transactional_from_email(material),
             to=[recipient],
             connection=connection,
         )

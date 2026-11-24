@@ -573,6 +573,110 @@ class BackofficeAccessAndSectionsTests(TestCase):
         self.assertTrue(connection.send_messages.called)
         self.assertNotIn("smtp-secret-123", result["message"])
 
+    def test_signup_and_password_emails_use_saved_smtp_outside_tests(self):
+        """Hors bac à sable, bienvenue et mot de passe partent par le SMTP enregistré."""
+        from unittest import mock
+
+        from django.core import mail
+        from django.test import override_settings
+
+        from admin_backoffice.email_templates import send_template_email
+        from admin_backoffice.models import SiteConfiguration
+
+        config, _ = SiteConfiguration.objects.get_or_create(pk=1)
+        config.smtp_host = "smtp.example.fr"
+        config.smtp_port = 587
+        config.smtp_user = "mailer@example.fr"
+        config.smtp_password = "smtp-secret-123"
+        config.email_from = "no-reply@example.fr"
+        config.save()
+
+        send_template_email("welcome", "ada@example.fr", {
+            "name": "Ada",
+            "company_name": "Atelier Ada",
+        })
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Atelier Ada", mail.outbox[0].body)
+
+        with override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"):
+            with mock.patch("admin_backoffice.integrations.get_connection") as get_connection:
+                connection = mock.Mock()
+                connection.send_messages.return_value = 1
+                get_connection.return_value = connection
+                send_template_email("password_reset", "ada@example.fr", {
+                    "name": "Ada",
+                    "email": "ada@example.fr",
+                    "reset_url": "https://rrs.example/compte/reset/abc/",
+                })
+                send_template_email("signup_confirmation", "ada@example.fr", {
+                    "name": "Ada",
+                    "email": "ada@example.fr",
+                    "signup_url": "https://rrs.example/inscription/verifier/abc/",
+                })
+        self.assertEqual(get_connection.call_count, 2)
+        kwargs = get_connection.call_args.kwargs
+        self.assertEqual(kwargs["host"], "smtp.example.fr")
+        self.assertEqual(kwargs["port"], 587)
+        self.assertEqual(kwargs["username"], "mailer@example.fr")
+        self.assertEqual(kwargs["password"], "smtp-secret-123")
+        self.assertTrue(kwargs["use_tls"])
+        self.assertFalse(kwargs["use_ssl"])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_gmail_smtp_sends_from_the_authenticated_mailbox(self):
+        from unittest import mock
+
+        from django.test import override_settings
+
+        from admin_backoffice.email_templates import send_template_email
+        from admin_backoffice.models import SiteConfiguration
+
+        config, _ = SiteConfiguration.objects.get_or_create(pk=1)
+        config.smtp_host = "smtp.gmail.com"
+        config.smtp_port = 587
+        config.smtp_user = "boite@gmail.com"
+        config.smtp_password = "app-password"
+        config.email_from = "no-reply@roadrunner-solutions.fr"
+        config.save()
+        with override_settings(EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"):
+            with mock.patch("admin_backoffice.integrations.get_connection") as get_connection:
+                connection = mock.Mock()
+                connection.send_messages.return_value = 1
+                get_connection.return_value = connection
+                send_template_email("welcome", "ada@example.fr", {
+                    "name": "Ada",
+                    "company_name": "Atelier Ada",
+                })
+        sent = connection.send_messages.call_args.args[0][0]
+        self.assertEqual(sent.from_email, "boite@gmail.com")
+        self.assertEqual(sent.to, ["ada@example.fr"])
+
+    def test_saved_smtp_is_applied_on_the_request_without_replacing_locmem(self):
+        from django.conf import settings
+        from django.test import override_settings
+
+        from admin_backoffice.models import SiteConfiguration
+
+        config, _ = SiteConfiguration.objects.get_or_create(pk=1)
+        config.smtp_host = "smtp.example.fr"
+        config.smtp_port = 465
+        config.smtp_user = "mailer@example.fr"
+        config.smtp_password = "smtp-secret-123"
+        config.email_from = "no-reply@example.fr"
+        config.save()
+        with override_settings(
+            EMAIL_HOST="localhost",
+            EMAIL_PORT=25,
+            EMAIL_USE_TLS=False,
+            EMAIL_USE_SSL=False,
+        ):
+            self.client.get("/compte/")
+            self.assertIn("locmem", settings.EMAIL_BACKEND)
+            self.assertEqual(settings.EMAIL_HOST, "smtp.example.fr")
+            self.assertEqual(settings.EMAIL_PORT, 465)
+            self.assertFalse(settings.EMAIL_USE_TLS)
+            self.assertTrue(settings.EMAIL_USE_SSL)
+
     def test_prompt_editor_saves_global_and_plan_layers(self):
         from admin_backoffice.agent_prompts import layers_for_user
 
