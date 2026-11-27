@@ -719,6 +719,7 @@ class EveryAdminPageTests(TestCase):
     def _get_pages(self):
         return {
             "health": {},
+            "maintenance_purge": {},
             "dashboard": {},
             "dashboard_url": {},
             "settings": {},

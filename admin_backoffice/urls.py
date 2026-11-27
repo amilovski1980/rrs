@@ -6,6 +6,7 @@ app_name = "admin_backoffice"
 
 urlpatterns = [
     path("health/", views.health_check, name="health"),
+    path("maintenance/purge/", views.maintenance_purge, name="maintenance_purge"),
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard_url"),
     path("settings/", views.SiteSettingsView.as_view(), name="settings"),

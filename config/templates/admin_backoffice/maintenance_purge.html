@@ -1,0 +1,50 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Purge des données de test{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Purge des données de test</h1>
+    <p class="sub">Supprime, pour toutes les sociétés d'un compte : factures, écritures comptables (grand livre), opérations et relevés bancaires. Les clients, produits, sociétés et réglages sont conservés.</p>
+  </div>
+</div>
+
+<div class="card" style="max-width:720px">
+  <form method="get" class="form-stack" style="gap:10px">
+    <label for="purge-email">E-mail du compte</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="purge-email" type="email" name="email" value="{{ email }}" placeholder="exemple@gmail.com" style="flex:1 1 240px" required>
+      <button class="btn btn-ghost" type="submit">Inventorier</button>
+    </div>
+  </form>
+
+  {% if email and not target %}
+  <p class="error" style="margin-top:14px">Aucun compte trouvé pour « {{ email }} » sur cette base.</p>
+  {% endif %}
+
+  {% if target and stats %}
+  <div style="margin-top:16px">
+    <p><b>Compte :</b> {{ target.email }} — <b>{{ stats.companies }}</b> société(s)</p>
+    <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px">
+      <div class="card" style="padding:12px 14px"><small class="micro">Factures</small><br><b>{{ stats.invoices }}</b></div>
+      <div class="card" style="padding:12px 14px"><small class="micro">Écritures (grand livre)</small><br><b>{{ stats.entries }}</b> <small class="micro">({{ orphan_lines }} lignes)</small></div>
+      <div class="card" style="padding:12px 14px"><small class="micro">Opérations bancaires</small><br><b>{{ stats.bank }}</b></div>
+      <div class="card" style="padding:12px 14px"><small class="micro">Relevés importés</small><br><b>{{ stats.statements }}</b></div>
+    </div>
+
+    <form method="post" style="margin-top:18px" onsubmit="return confirm('Supprimer définitivement ces données ? Cette action est irréversible.');">
+      {% csrf_token %}
+      <input type="hidden" name="email" value="{{ target.email }}">
+      <label for="purge-confirm">Pour confirmer, tapez <b>SUPPRIMER</b></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        <input id="purge-confirm" name="confirm" style="flex:1 1 220px" placeholder="SUPPRIMER" autocomplete="off" required>
+        <button class="btn btn-danger" type="submit">Purger ces données</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <p class="micro" style="margin-top:16px">
+    Ne sont pas touchés : factures d'achat (module Achats), catalogue, clients, fournisseurs, catalogue produits et paramètres des sociétés.
+  </p>
+</div>
+{% endblock %}

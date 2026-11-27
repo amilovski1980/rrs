@@ -115,6 +115,9 @@
       <a class="side-link {% if admin_section == 'settings' %}active{% endif %}" href="{% url 'admin_backoffice:settings' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="lock" %}</span> Paramètres
       </a>
+      <a class="side-link {% if admin_section == 'maintenance' %}active{% endif %}" href="{% url 'admin_backoffice:maintenance_purge' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="alert" %}</span> Purge de test
+      </a>
     </div>
 
     <div class="sidebar-foot">

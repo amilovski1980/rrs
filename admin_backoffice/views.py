@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q, Sum
 from django.db.models.deletion import ProtectedError
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -373,6 +373,76 @@ def settings_test(request):
     else:
         messages.warning(request, result["message"])
     return redirect(reverse("admin_backoffice:settings") + f"#{anchors.get(action, 'top')}")
+
+
+@staff_required
+def maintenance_purge(request):
+    """Purge des données de test d'un compte : factures, écritures, banque.
+
+    Accessible au staff uniquement. Double confirmation : saisir l'e-mail du
+    compte ET le mot « SUPPRIMER ». Supprime, pour toutes les sociétés du
+    compte : factures (lignes/paiements/avoirs en cascade), écritures
+    comptables (grand livre), opérations et relevés bancaires.
+    Clients, produits, société et paramètres sont CONSERVÉS.
+    """
+    from django.db import transaction
+
+    from accounting.models import EntryLine, JournalEntry
+    from banking.models import BankStatement, BankTransaction
+    from companies.models import Company
+    from documents.models import Invoice
+
+    email = (request.POST.get("email") or request.GET.get("email") or "").strip()
+    stats = None
+    target = None
+    if email:
+        target = User.objects.filter(email__iexact=email).first()
+        if target is not None:
+            companies = Company.objects.filter(owner=target)
+            stats = {
+                "companies": companies.count(),
+                "invoices": Invoice.objects.filter(company__in=companies).count(),
+                "entries": JournalEntry.objects.filter(company__in=companies).count(),
+                "bank": BankTransaction.objects.filter(company__in=companies).count(),
+                "statements": BankStatement.objects.filter(company__in=companies).count(),
+            }
+
+    if request.method == "POST" and request.POST.get("confirm") == "SUPPRIMER":
+        if target is None:
+            messages.error(request, f"Aucun compte pour l'e-mail « {email} ».")
+        else:
+            companies = Company.objects.filter(owner=target)
+            counts = {
+                "invoices": Invoice.objects.filter(company__in=companies).count(),
+                "entries": JournalEntry.objects.filter(company__in=companies).count(),
+                "bank": BankTransaction.objects.filter(company__in=companies).count(),
+                "statements": BankStatement.objects.filter(company__in=companies).count(),
+            }
+            with transaction.atomic():
+                Invoice.objects.filter(company__in=companies).delete()
+                JournalEntry.objects.filter(company__in=companies).delete()
+                BankTransaction.objects.filter(company__in=companies).delete()
+                BankStatement.objects.filter(company__in=companies).delete()
+            messages.success(
+                request,
+                "Purge terminée pour {email} : {i} facture(s), {e} écriture(s), "
+                "{b} opération(s) bancaire(s), {s} relevé(s) supprimés.".format(
+                    email=target.email,
+                    i=counts["invoices"], e=counts["entries"],
+                    b=counts["bank"], s=counts["statements"],
+                ),
+            )
+            journaliser(request, f"Purge données de test — {target.email}")
+            return redirect(reverse("admin_backoffice:maintenance_purge") + f"?email={target.email}")
+
+    return render(request, "admin_backoffice/maintenance_purge.html", {
+        "email": email,
+        "target": target,
+        "stats": stats,
+        "orphan_lines": EntryLine.objects.filter(
+            entry__company__owner__email__iexact=email
+        ).count() if email and target else 0,
+    })
 
 
 @staff_required
