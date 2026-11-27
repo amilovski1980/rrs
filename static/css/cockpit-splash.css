@@ -85,10 +85,56 @@ html[data-theme="dark"] .cockpit-splash-accent {
     0 0 0 1px rgba(255, 255, 255, .6);
 }
 
-html[data-theme="dark"] .cockpit-splash-logo {
-  box-shadow:
-    0 28px 70px rgba(0, 0, 0, .45),
-    0 0 80px rgba(122, 60, 255, .28);
+/* ---- Logo en thème sombre ----------------------------------------------
+   img/dark/mark.png et img/dark/wordmark.png sont détourés : aucune plaque
+   blanche, on empile la marque au-dessus du logotype. */
+/* Le thème décide quel logo est visible (indépendant du rendu serveur). */
+.cockpit-splash-logo--dark {
+  display: none;
+  justify-items: center;
+  gap: clamp(10px, 2.4vh, 16px);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .cockpit-splash-logo--light,
+html[data-bs-theme="dark"] .cockpit-splash-logo--light,
+html.dark .cockpit-splash-logo--light {
+  display: none;
+}
+
+html[data-theme="dark"] .cockpit-splash-logo--dark,
+html[data-bs-theme="dark"] .cockpit-splash-logo--dark,
+html.dark .cockpit-splash-logo--dark {
+  display: grid;
+}
+
+.cockpit-splash-mark {
+  width: clamp(84px, 22vw, 116px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 16px 34px rgba(0, 0, 0, .55));
+}
+
+.cockpit-splash-wordmark {
+  width: clamp(180px, 52vw, 248px);
+  height: auto;
+  display: block;
+  opacity: .96;
+}
+
+html[data-theme="dark"] .cockpit-splash-logo--dark {
+  box-shadow: none;
+  background: transparent;
+}
+
+@media (max-width: 480px) {
+  .cockpit-splash-logo--dark {
+    border-radius: 0;
+    padding: 0;
+  }
 }
 
 .cockpit-splash-track {

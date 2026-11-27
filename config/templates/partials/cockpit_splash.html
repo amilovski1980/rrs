@@ -3,13 +3,30 @@
 <div id="cockpit-splash" class="cockpit-splash" aria-busy="true">
   <div class="cockpit-splash-accent" aria-hidden="true"></div>
   <div class="cockpit-splash-stage">
+    {# Les deux logos sont rendus ; le CSS affiche celui du thème actif. #}
     <img
-      class="cockpit-splash-logo"
+      class="cockpit-splash-logo cockpit-splash-logo--light"
       src="{% static 'img/logo.png' %}"
       alt="Road Runner Solutions"
       width="838"
       height="562"
     >
+    <div class="cockpit-splash-logo cockpit-splash-logo--dark">
+      <img
+        class="cockpit-splash-mark"
+        src="{% static 'img/dark/mark.png' %}"
+        alt=""
+        width="132"
+        height="132"
+      >
+      <img
+        class="cockpit-splash-wordmark"
+        src="{% static 'img/dark/wordmark.png' %}"
+        alt="Road Runner Solutions"
+        width="272"
+        height="59"
+      >
+    </div>
     <div
       class="cockpit-splash-track"
       role="progressbar"
@@ -24,7 +41,7 @@
     <p id="cockpit-splash-status" class="cockpit-splash-status" role="status" aria-live="polite" aria-atomic="true">« Chargement des factures… »</p>
   </div>
 </div>
-<script src="{% static 'js/cockpit-splash.js' %}?v=2026.11.17.1"></script>
+<script src="{% static 'js/cockpit-splash.js' %}?v=2026.11.20.1"></script>
 <script>
 (function () {
   if (window.__rrsCockpitSplashStarted) return;
