@@ -938,6 +938,21 @@ def company_settings(request):
     })
 
 
+def delete_company_with_dependencies(company):
+    """Supprime une société en respectant l'ordre des protections.
+
+    Les avoirs (facture PROTECT), les écritures (journal & compte PROTECT)
+    doivent partir AVANT la cascade, sinon Django lève ProtectedError.
+    """
+    from accounting.models import ChartAccount, Journal, JournalEntry
+
+    company.credit_notes.all().delete()
+    JournalEntry.objects.filter(company=company).delete()
+    Journal.objects.filter(company=company).delete()
+    ChartAccount.objects.filter(company=company).delete()
+    company.delete()
+
+
 @login_required
 def company_delete(request):
     """Supprime définitivement la société courante et ses données rattachées."""
@@ -963,7 +978,7 @@ def company_delete(request):
         with transaction.atomic():
             if request.session.get("societe_id") == str(company.id):
                 request.session.pop("societe_id", None)
-            company.delete()
+            delete_company_with_dependencies(company)
     except Exception as exc:
         # Aucun 500 : certaines données rattachées peuvent encore exister
         # (rapprochements, documents protégés…). Message lisible et sortie propre.

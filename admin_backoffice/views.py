@@ -581,15 +581,15 @@ class CompanyDeleteView(AdminStaffMixin, DeleteView):
         from django.db.models import ProtectedError
 
         self.object = self.get_object()
-        # Les avoirs pointent vers leur facture en PROTECT : dans la cascade,
-        # les factures peuvent partir avant les avoirs et la suppression
-        # explose en 500. On détache les avoirs du lot d'abord.
+        # Suppression dans l'ordre des protections (avoirs, écritures,
+        # journaux, comptes) : évite la course de cascade → 500.
         try:
-            self.object.credit_notes.all().delete()
-        except Exception:
-            pass
-        try:
-            response = super().form_valid(form)
+            from django.db import transaction
+
+            from companies.views import delete_company_with_dependencies
+
+            with transaction.atomic():
+                delete_company_with_dependencies(self.object)
         except ProtectedError as exc:
             blocked = ", ".join(
                 sorted({p.__class__.__name__ for p in getattr(exc, "protected_objects", [])[:6]})
@@ -604,7 +604,7 @@ class CompanyDeleteView(AdminStaffMixin, DeleteView):
             return redirect(self.success_url)
         messages.success(self.request, "Société supprimée.")
         journaliser(self.request, f"Société supprimée — {self.object}")
-        return response
+        return redirect(self.success_url)
 
 
 class PlanListView(AdminStaffMixin, ListView):
