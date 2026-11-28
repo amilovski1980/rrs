@@ -1,0 +1,22 @@
+[Unit]
+Description=Road Runner Solutions (Django + Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=rrs
+Group=rrs
+WorkingDirectory=/srv/rrs/app
+EnvironmentFile=/srv/rrs/app/.env
+ExecStart=/srv/rrs/app/.venv/bin/gunicorn config.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 3 \
+    --timeout 90 \
+    --access-logfile - \
+    --error-logfile -
+Restart=always
+RestartSec=3
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
