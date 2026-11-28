@@ -45,7 +45,7 @@
         {% if has_logo_light %}
         <img class="brand-mark theme-light-only" src="{% url 'admin_backoffice:public_site_logo' 'light' %}" alt="" width="42" height="42">
         {% else %}
-        <img class="brand-mark theme-light-only" src="{% static 'img/mark-light.png' %}" alt="" width="42" height="42">
+        <img class="brand-mark theme-light-only" src="{% static 'img/mark-light.png' %}?v=2026.11.28.1" alt="" width="42" height="42">
         {% endif %}
       </a>
       <nav class="nav-inline" aria-label="Navigation">
@@ -106,12 +106,12 @@
             {% if has_wordmark_dark %}
             <img class="brand-word theme-dark-only" src="{% url 'admin_backoffice:public_site_wordmark' 'dark' %}" alt="Road Runner" width="148" height="32">
             {% else %}
-            <img class="brand-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="148" height="32">
+            <img class="brand-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}?v=2026.11.28.1" alt="Road Runner" width="148" height="32">
             {% endif %}
             {% if has_wordmark_light %}
             <img class="brand-word theme-light-only" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="Road Runner" width="148" height="32">
             {% else %}
-            <img class="brand-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="148" height="32">
+            <img class="brand-word theme-light-only" src="{% static 'img/wordmark-light.png' %}?v=2026.11.28.1" alt="Road Runner" width="148" height="32">
             {% endif %}
           </a>
           <p>Factures, grand livre et TVA pour les sociétés qui démarrent. Fiche officielle, écritures contrôlées, hébergement en France.</p>
