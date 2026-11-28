@@ -129,11 +129,12 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
     position: fixed;
     left: 50%;
     right: auto;
+    top: 50%;
+    bottom: auto;
     margin: 0;
-    transform: translateX(-50%);
-    bottom: calc(var(--m-footer-h, 56px) + 14px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, -50%);
     width: min(356px, calc(100vw - 24px));
-    max-height: 68vh;
+    max-height: min(80vh, 720px);
     overflow-y: auto;
     border-radius: 22px;
     padding: 12px 14px 14px;
@@ -145,7 +146,7 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
   }
   .agent-dialog.voice-stage .voice-stage-head { padding: 0 0 2px; }
   .agent-dialog.voice-stage .voice-agent-title { font-size: 15px; }
-  .agent-dialog.voice-stage .voice-chat { max-height: 20vh; overflow-y: auto; }
+  .agent-dialog.voice-stage .voice-chat { max-height: 18vh; overflow-y: auto; flex: 0 1 auto; }
   .agent-dialog.voice-stage .voice-orb-wrap { padding: 2px 0 0; }
   .agent-dialog.voice-stage .voice-orb { width: 92px; height: 92px; }
   .agent-dialog.voice-stage .voice-core { width: 62px; height: 62px; }
@@ -176,6 +177,18 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
   backdrop-filter: blur(24px) saturate(160%);
   border-color: rgba(255, 255, 255, 0.14);
   color: #ffffff;
+}
+
+/* Le voile derrière la carte Aminia reste sombre, jamais bleu. */
+.agent-panel {
+  background: rgba(7, 7, 8, 0.52) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  backdrop-filter: blur(10px) saturate(130%);
+}
+.agent-panel.is-minimized {
+  background: transparent !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .agent-dialog.voice-stage .voice-orb {

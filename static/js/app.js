@@ -1934,5 +1934,9 @@ document.addEventListener("click", function (event) {
   event.preventDefault();
   var next = button.getAttribute("data-theme-next") || "light";
   document.cookie = "rrs_app_theme=" + next + "; path=/; max-age=31536000; samesite=lax";
-  window.location.reload();
+  var path = window.location.pathname;
+  if (next === "light" && (path === "/dark" || path.indexOf("/dark/") === 0)) {
+    path = path === "/dark" ? "/" : path.slice(5);
+  }
+  window.location.href = path + window.location.search + window.location.hash;
 });
