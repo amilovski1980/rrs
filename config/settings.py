@@ -179,7 +179,7 @@ else:
     EMAIL_USE_TLS = env.get("EMAIL_USE_TLS", "1") == "1"
 DEFAULT_FROM_EMAIL = env.get("DEFAULT_FROM_EMAIL", "no-reply@roadrunner-solutions.fr")
 SITE_NAME = "Road Runner Solutions"
-LOGIN_URL = "/compte/"
+LOGIN_URL = "/dark/compte/"
 
 
 # --- Déploiement (Render / Railway / VPS) ---

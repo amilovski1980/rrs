@@ -136,7 +136,7 @@ def magic_link_verify(request, token):
 @require_POST
 def logout_view(request):
     logout(request)
-    return redirect("magic_link_request")
+    return redirect("/dark/compte/")
 
 
 @login_required
