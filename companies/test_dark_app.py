@@ -13,7 +13,7 @@ class DarkApplicationTests(TestCase):
             "staff-dark@exemple.fr", password=PASSWORD, is_staff=True,
         )
 
-    def test_light_cockpit_keeps_the_original_chrome(self):
+    def test_authenticated_cockpit_uses_the_dark_layout(self):
         home = self.client.get("/")
         self.assertContains(home, "dark.css")
         self.assertContains(home, 'data-theme="dark"')
@@ -23,11 +23,11 @@ class DarkApplicationTests(TestCase):
         self.client.force_login(self.client_user)
         cockpit = self.client.get("/cockpit/")
         self.assertEqual(cockpit.status_code, 200)
-        self.assertContains(cockpit, "img/logo-96.png")
+        self.assertContains(cockpit, "dark-app.css")
+        self.assertContains(cockpit, 'data-theme="dark"')
+        self.assertContains(cockpit, "img/dark/mark.png")
         self.assertContains(cockpit, "Ajoutez une société")
-        self.assertNotContains(cockpit, "dark-app.css")
-        self.assertNotContains(cockpit, 'data-theme="dark"')
-        self.assertNotContains(cockpit, "img/dark/mark.png")
+        self.assertNotContains(cockpit, "img/logo-96.png")
 
     def test_dark_cockpit_and_inner_pages_use_the_dark_layout(self):
         self.client.force_login(self.client_user)
@@ -70,30 +70,34 @@ class DarkApplicationTests(TestCase):
         self.assertContains(login, "dark.css")
         self.assertNotContains(login, "dark-app.css")
 
-    def test_light_login_still_opens_the_light_cockpit(self):
+    def test_login_opens_the_dark_cockpit(self):
         signed = self.client.post("/compte/", {
             "email": "client-dark@exemple.fr",
             "password": PASSWORD,
         })
         self.assertRedirects(signed, "/cockpit/", fetch_redirect_response=False)
+        page = self.client.get(signed["Location"])
+        self.assertContains(page, "dark-app.css")
+        self.assertContains(page, 'data-theme="dark"')
 
     def test_anonymous_dark_cockpit_returns_to_dark_login(self):
         response = self.client.get("/dark/cockpit/")
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response["Location"].startswith("/dark/compte/"))
 
-    def test_admin_stays_light_and_dark_admin_rejects_clients(self):
+    def test_admin_uses_the_dark_layout_and_rejects_clients(self):
         self.client.force_login(self.client_user)
         self.assertEqual(self.client.get("/admin-backoffice/").status_code, 403)
         self.assertEqual(self.client.get("/dark/admin-backoffice/").status_code, 403)
 
         self.client.force_login(self.staff)
-        light = self.client.get("/admin-backoffice/")
-        self.assertEqual(light.status_code, 200)
-        self.assertContains(light, "img/logo-96.png")
-        self.assertContains(light, "Vue d'ensemble")
-        self.assertNotContains(light, "dark-app.css")
-        self.assertNotContains(light, 'data-theme="dark"')
+        admin = self.client.get("/admin-backoffice/")
+        self.assertEqual(admin.status_code, 200)
+        self.assertContains(admin, "dark-app.css")
+        self.assertContains(admin, 'data-theme="dark"')
+        self.assertContains(admin, "img/dark/mark.png")
+        self.assertContains(admin, "Vue d'ensemble")
+        self.assertNotContains(admin, "img/logo-96.png")
 
         dark = self.client.get("/dark/admin-backoffice/")
         self.assertEqual(dark.status_code, 200)

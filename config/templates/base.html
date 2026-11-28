@@ -10,7 +10,7 @@
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="{% url 'pwa_manifest' %}">
   {% if request.dark_ui %}<meta name="theme-color" content="#070708">{% else %}<meta name="theme-color" content="#ffffff">{% endif %}
-  <title>{% block title %}Cockpit{% endblock %} â€” Road Runner Solutions</title>
+  <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {% if request.dark_ui %}
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.19.5">
   <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.28.5">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.28.2">{% endif %}
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.28.3">{% endif %}
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
 </head>
@@ -58,7 +58,7 @@
 </style>
 {% endif %}
 <div class="shell" data-app-shell>
-  {# â€”â€” Header mobile (â‰¤768px) : toggle à gauche, logo à droite â€”â€” #}
+  {# —— Header mobile (â‰¤768px) : toggle à gauche, logo à droite —— #}
   <header class="m-header" data-m-header>
     <button
       type="button"
@@ -327,14 +327,14 @@
       <span class="deadline-strip-ico" aria-hidden="true">â°</span>
       <span class="deadline-strip-copy">
         <b>{{ deadline_alert.label }}</b>
-        â€” {{ deadline_alert.date|date:"d/m/Y" }} (dans {{ deadline_alert.days }} j)
+        — {{ deadline_alert.date|date:"d/m/Y" }} (dans {{ deadline_alert.days }} j)
       </span>
       <a class="deadline-strip-link" href="{% url 'cockpit' %}?societe={{ top_company.id }}">Voir</a>
     </div>
     {% endif %}
       {% if request.session.demo_mode %}
       <div class="demo-readonly-banner" role="alert">
-        <b>Mode démo</b> â€” lecture seule. Aucune modification n'est enregistrée.
+        <b>Mode démo</b> — lecture seule. Aucune modification n'est enregistrée.
         <a href="{% url 'logout' %}">Se déconnecter</a> puis se connecter avec un compte réel pour travailler sur vos documents.
       </div>
       {% endif %}
@@ -349,7 +349,7 @@
     </main>
   </div>
 
-  {# â€”â€” Footer mobile (â‰¤768px) : gestes quotidiens façon app bancaire â€”â€” #}
+  {# —— Footer mobile (â‰¤768px) : gestes quotidiens façon app bancaire —— #}
   {# Accueil · Trésorerie · Factures (centre surélevé) · Aminia · Plus (tiroir) #}
   <nav class="m-footer" data-m-footer aria-label="Navigation principale">
     <a class="m-footer-btn {% if request.resolver_match.url_name == 'cockpit' %}active{% endif %}" href="{% url 'cockpit' %}"{% if request.resolver_match.url_name == 'cockpit' %} aria-current="page"{% endif %}>
@@ -385,7 +385,7 @@
 
   {% include "partials/agent.html" %}
 </div>
-  <script src="{% static 'js/app.js' %}?v=2026.11.19.3" defer></script>
+  <script src="{% static 'js/app.js' %}?v=2026.11.28.1" defer></script>
   <script src="{% static 'js/mobile-tables.js' %}?v=2026.11.16.4" defer></script>
   <script src="{% static 'js/mobile-actions.js' %}?v=2026.11.19.1" defer></script>
   <script src="{% static 'js/grok-voice.js' %}?v=2026.11.28.1" defer></script>
@@ -424,9 +424,9 @@
           '  <span class="pwa-popup-emoji" aria-hidden="true">ðŸ“²</span>' +
           '  <h3>Installer Road Runner Solutions</h3>' +
           '  <p class="pwa-popup-copy">Accédez à vos chiffres depuis l\'écran d\'accueil,' +
-          '  en plein écran â€” le mode d\'affichage actuel est conservé.</p>' +
+          '  en plein écran — le mode d\'affichage actuel est conservé.</p>' +
           '  <div class="pwa-popup-progress"><i data-popup-fill></i></div>' +
-          '  <p class="pwa-popup-state" data-popup-state>Ouvertureâ€¦</p>' +
+          '  <p class="pwa-popup-state" data-popup-state>Ouverture…</p>' +
           '  <div class="pwa-popup-actions">' +
           '    <button class="btn btn-primary" type="button" data-popup-install hidden>Installer maintenant</button>' +
           '    <button class="btn btn-ghost" type="button" data-popup-later>Plus tard</button>' +
@@ -443,7 +443,7 @@
         popup.querySelector("[data-popup-install]").addEventListener("click", function () {
           if (!deferred) return;
           var state = popup.querySelector("[data-popup-state]");
-          if (state) state.textContent = "Ouverture du menu systèmeâ€¦";
+          if (state) state.textContent = "Ouverture du menu système…";
           deferred.prompt();
           deferred.userChoice.then(function (choice) {
             deferred = null;
@@ -462,7 +462,7 @@
         var state = box.querySelector("[data-popup-state]");
         var installButton = box.querySelector("[data-popup-install]");
         if (fill) fill.style.width = "0%";
-        if (state) state.textContent = "Préparation de l'applicationâ€¦";
+        if (state) state.textContent = "Préparation de l'application…";
         if (installButton) installButton.hidden = mode !== "native";
         /* La barre se remplit seule : elle annonce qu'on est prêt. */
         requestAnimationFrame(function () {
@@ -473,7 +473,7 @@
         setTimeout(function () {
           if (state) state.textContent = mode === "native"
             ? "Prêt à installer âœ“"
-            : "Prêt â€” suivez les 2 étapes ci-dessous âœ“";
+            : "Prêt — suivez les 2 étapes ci-dessous âœ“";
         }, 1500);
         if (mode === "ios") {
           var copy = box.querySelector(".pwa-popup-copy");
@@ -513,7 +513,7 @@
         closePopup(false);
       });
 
-      /* iOS : Safari n'émet pas beforeinstallprompt â€” même popup, chemin manuel. */
+      /* iOS : Safari n'émet pas beforeinstallprompt — même popup, chemin manuel. */
       var isIOSLike =
         /iphone|ipad|ipod/i.test(navigator.userAgent || "") ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);

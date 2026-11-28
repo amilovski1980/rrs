@@ -920,7 +920,7 @@
                 resetPhone("Appel terminé");
               },
               onRegistered: function () {
-                setStatus("SIP enregistrǸ " + " " + "l'appel du poste " + callee + "�?�");
+                setStatus("SIP enregistré — appel du poste " + callee);
                 simple.call("sip:" + callee + "@" + host, {}).catch(function () {
                   tryWss(i + 1);
                 });

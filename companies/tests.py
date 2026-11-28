@@ -290,8 +290,12 @@ class LogoBrandTests(TestCase):
         self.assertIn(legacy.status_code, (301, 302))
         self.assertEqual(legacy["Location"], "/")
 
-    def test_cockpit_uses_png_logo(self):
-        self._assert_png_logo(self.client.get(f"/cockpit/?societe={self.company.id}"))
+    def test_cockpit_uses_dark_logo(self):
+        response = self.client.get(f"/cockpit/?societe={self.company.id}")
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("img/dark/mark.png", body)
+        self.assertNotIn("img/logo-96.png", body)
 
     def test_login_uses_png_logo(self):
         self.client.logout()

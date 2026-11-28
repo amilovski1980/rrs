@@ -51,3 +51,21 @@ class DarkMountMiddleware:
         if location:
             response["Location"] = _keep_in_dark(location)
         return response
+
+
+class AuthenticatedDarkMiddleware:
+    """Une fois connecté, toute l'application garde l'habillage sombre officiel.
+
+    Les pages publiques (accueil, connexion anonyme, inscription) restent dans
+    le flux sombre via /dark ou la vitrine. À la connexion, plus aucune page de
+    l'application ne repasse en clair par accident.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            request.dark_ui = True
+        return self.get_response(request)

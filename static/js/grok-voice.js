@@ -245,7 +245,7 @@
         path &&
         path.charAt(0) === "/" &&
         path.indexOf("/dark") !== 0 &&
-        document.documentElement.getAttribute("data-theme") === "dark"
+        window.location.pathname.indexOf("/dark") === 0
       ) {
         return "/dark" + path;
       }

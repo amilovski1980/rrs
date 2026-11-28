@@ -22,7 +22,8 @@ class CockpitSplashTests(TestCase):
         self.assertContains(page, "« Chargement des factures… »")
         self.assertContains(page, 'aria-live="polite"')
         self.assertContains(page, 'role="progressbar"')
-        self.assertNotContains(page, "img/dark/mark.png")
+        self.assertContains(page, "dark-app.css")
+        self.assertContains(page, "img/dark/mark.png")
 
         js = Path(settings.BASE_DIR, "static/js/cockpit-splash.js").read_text(encoding="utf-8")
         self.assertIn("var SPLASH_MS = 10000;", js)

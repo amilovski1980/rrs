@@ -70,6 +70,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.dark_mount.AuthenticatedDarkMiddleware",
     "admin_backoffice.middleware.IPBanMiddleware",
     "admin_backoffice.middleware.AnalyticsMiddleware",
     "admin_backoffice.middleware.DynamicConfigMiddleware",
