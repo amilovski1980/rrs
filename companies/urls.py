@@ -4,6 +4,7 @@ from . import signup, views
 
 urlpatterns = [
     path("", views.landing, name="landing"),
+    path("clair/", views.landing_light, name="landing_light"),
     path("recherche/", signup.company_search, name="company_search"),
     path("inscription/", signup.signup_wizard, name="signup_wizard"),
     path("inscription/choisir/", signup.signup_start, name="signup_start"),

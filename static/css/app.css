@@ -1568,6 +1568,38 @@ html[data-theme="dark"] .settings-sheet-preview {
   .settings-sheet-png { max-width: 100%; }
 }
 
+/* Camembert CA par société (cockpit global) */
+.global-donut {
+  display: flex; align-items: center; gap: 22px;
+  flex-wrap: wrap;
+}
+.global-donut svg {
+  width: 210px; height: 210px; flex: 0 0 auto;
+  color: var(--ink);
+}
+.donut-total {
+  font-family: var(--font-head); font-size: 15px; font-weight: 800;
+  fill: var(--ink);
+}
+.donut-sub {
+  font-size: 8.5px; letter-spacing: .8px; text-transform: uppercase;
+  fill: var(--muted);
+}
+.donut-legend {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 7px; flex: 1 1 200px; min-width: 180px;
+}
+.donut-legend li {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.donut-legend li b {
+  margin-left: auto; font-family: var(--font-head); color: var(--ink);
+}
+.donut-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px;
+}
+
 /* Ligne de facture : désignation en multiligne */
 .invoice-lines-table textarea[data-multiline] {
   resize: vertical;

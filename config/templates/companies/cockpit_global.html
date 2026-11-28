@@ -50,18 +50,33 @@
 
 <section class="card global-chart">
   <div class="card-head">
-    <h3>Chiffre d'affaires TTC — comparaison</h3>
-    <span class="micro">barre claire = période précédente</span>
+    <h3>Répartition du chiffre d'affaires</h3>
+    <span class="micro">part de chaque société — {{ window_label }}</span>
   </div>
-  <div class="card-body">
-    <svg class="global-bars" viewBox="0 0 720 176" role="img" aria-label="Chiffre d'affaires par période">
-      <line class="global-axis" x1="0" y1="148.5" x2="720" y2="148.5"></line>
-      {% for point in series %}
-        <rect class="global-bar-prev" x="{{ point.x }}" y="{{ point.prev_y }}" width="{{ point.w }}" height="{{ point.prev_h }}"></rect>
-        <rect class="global-bar" x="{{ point.x }}" y="{{ point.ca_y }}" width="{{ point.w }}" height="{{ point.ca_h }}"></rect>
-        <text class="global-bar-label" x="{{ point.x }}" y="172">{{ point.label|slice:":5" }}</text>
+  <div class="card-body global-donut">
+    {% if donut %}
+    <svg viewBox="0 0 160 160" role="img" aria-label="Camembert du chiffre d'affaires par société">
+      <circle cx="80" cy="80" r="60" fill="none" stroke="currentColor" stroke-opacity=".08" stroke-width="26"></circle>
+      {% for part in donut %}
+      <circle cx="80" cy="80" r="60" fill="none" stroke="{{ part.color }}" stroke-width="26"
+              stroke-dasharray="{{ part.length }} {{ part.gap }}" stroke-dashoffset="-{{ part.offset }}"
+              transform="rotate(-90 80 80)"></circle>
       {% endfor %}
+      <text x="80" y="78" text-anchor="middle" class="donut-total">{{ totals.ca|floatformat:0 }} €</text>
+      <text x="80" y="93" text-anchor="middle" class="donut-sub">CA TTC</text>
     </svg>
+    <ul class="donut-legend">
+      {% for part in donut %}
+      <li>
+        <span class="donut-dot" style="background: {{ part.color }}"></span>
+        {{ part.name|truncatechars:24 }}
+        <b>{{ part.share }} %</b>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty" style="padding:18px">Aucun chiffre d'affaires sur la période — le camembert apparaîtra dès la première facture.</p>
+    {% endif %}
   </div>
 </section>
 

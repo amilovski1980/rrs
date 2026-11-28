@@ -162,14 +162,19 @@ class CompanyProfileForm(forms.Form):
 
 
 def landing(request):
-    """Vitrine publique : promesse produit, forfaits, recherche de société."""
+    """Vitrine officielle : version SOMBRE par défaut (la claire reste sur /clair/)."""
     from billing.public_pricing import pricing_context
-    from core.public_theme import is_dark, themed_template, with_dark_voice
+    from core.public_theme import with_dark_voice
 
-    context = pricing_context()
-    if is_dark(request):
-        context = with_dark_voice(context)
-    return render(request, themed_template(request, "landing.html"), context)
+    context = with_dark_voice(pricing_context())
+    return render(request, "dark/landing.html", context)
+
+
+def landing_light(request):
+    """Version claire historique, conservée et accessible via le bouton « Mode clair »."""
+    from billing.public_pricing import pricing_context
+
+    return render(request, "landing.html", pricing_context())
 
 
 @login_required
@@ -423,6 +428,31 @@ def cockpit_global(request):
         point["ca_y"] = 148 - ca_height
         point["prev_y"] = 148 - prev_height
 
+    # Camembert : part de CA de chaque société sur la période.
+    palette = [
+        "#e6244d", "#4f8dff", "#34d399", "#f59e0b", "#7a3cff",
+        "#ff4d8d", "#0ea5e9", "#84cc16", "#f97316", "#64748b",
+    ]
+    import math
+
+    circumference = 2 * math.pi * 60
+    donut = []
+    donut_offset = 0.0
+    for index, row in enumerate(company_rows):
+        share = row.get("share") or 0
+        if share <= 0:
+            continue
+        length = circumference * share / 100
+        donut.append({
+            "name": row["company"].denomination,
+            "share": share,
+            "color": palette[index % len(palette)],
+            "length": round(length, 2),
+            "gap": round(circumference, 2),
+            "offset": round(donut_offset, 2),
+        })
+        donut_offset += length
+
     return render(request, "companies/cockpit_global.html", {
         "companies_count": len(companies),
         "period": period,
@@ -437,6 +467,7 @@ def cockpit_global(request):
             "vat": delta_display(delta(totals["vat"], prev_totals["vat"]), totals["vat"], prev_totals["vat"]),
             "achats": delta_display(delta(totals["achats"], prev_totals["achats"]), totals["achats"], prev_totals["achats"]),
         },
+        "donut": donut,
         "series": series,
         "company_rows": company_rows,
         "deadlines_all": upcoming_all(companies, today=today),
