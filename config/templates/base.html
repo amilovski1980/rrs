@@ -24,7 +24,7 @@
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% include "partials/ios_splash_links.html" %}
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.28.9">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.28.11">
   <link rel="stylesheet" href="{% static 'css/mobile-wizard.css' %}?v=2026.11.16.24">
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.28.5">
@@ -103,7 +103,11 @@
              href="{% url 'cockpit' %}?societe={{ c.id }}"
              title="{{ c.denomination }}"
              {% if top_company and top_company.id == c.id %}aria-current="true"{% endif %}>
-            <span class="company-switch-btn {{ co_cls }}" aria-hidden="true">{{ c|company_initial }}</span>
+            {% if c.logo %}
+          <img class="company-switch-btn {{ co_cls }}" src="{% url 'company_logo' %}?societe={{ c.id }}" alt="" loading="lazy">
+          {% else %}
+          <span class="company-switch-btn {{ co_cls }}" aria-hidden="true">{{ c|company_initial }}</span>
+          {% endif %}
             <span class="m-company-row-text">
               <b>{{ c.denomination }}</b>
               <small>SIREN {{ c.siren }}{% if c.deadline_info %} · â° {{ c.deadline_info.label|truncatechars:18 }} ({{ c.deadline_info.days }} j){% endif %}</small>
@@ -316,7 +320,9 @@
       <nav class="company-switch" aria-label="Changer de société">
         {% for c in top_companies %}
         {% company_color_class c top_companies as co_cls %}
-        <a class="company-switch-btn {{ co_cls }}{% if top_company and top_company.id == c.id %} is-on{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}" title="{{ c.denomination }}" aria-label="Passer à {{ c.denomination }}"{% if top_company and top_company.id == c.id %} aria-current="true"{% endif %}>{{ c|company_initial }}</a>
+        <a class="company-switch-btn {{ co_cls }}{% if top_company and top_company.id == c.id %} is-on{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}" title="{{ c.denomination }}" aria-label="Passer à {{ c.denomination }}"{% if top_company and top_company.id == c.id %} aria-current="true"{% endif %}>
+          {% if c.logo %}<img class="company-switch-photo" src="{% url 'company_logo' %}?societe={{ c.id }}" alt="" loading="lazy">{% else %}{{ c|company_initial }}{% endif %}
+        </a>
         {% endfor %}
       </nav>
       {% endif %}

@@ -115,7 +115,7 @@
   {% for row in company_rows %}
   <a class="card socie-row" href="{% url 'cockpit' %}?societe={{ row.company.id }}">
     <div class="socie-head">
-      <span class="socie-avatar">{{ row.company.denomination|first|upper }}</span>
+      <span class="socie-avatar">{% if row.company.logo %}<img src="{% url 'company_logo' %}?societe={{ row.company.id }}" alt="" loading="lazy">{% else %}{{ row.company.denomination|first|upper }}{% endif %}</span>
       <div class="socie-titlebox">
         <b>{{ row.company.denomination }}</b>
         <small>SIREN {{ row.company.siren }} · {{ row.company.get_forme_display|default:row.company.forme }}{% if row.company.tva == "reel" %} · TVA réelle{% endif %}</small>

@@ -5648,7 +5648,20 @@ html[data-theme='dark'] .socie-urgent {
   }
 }
 
-/* Montants : taille fluide pour les longues valeurs sur mobile. */
+/* Logo de société : remplace l'initiale partout où il existe. */
+img.company-switch-btn { object-fit: cover; }
+.company-switch-photo,
+.co-avatar img,
+.socie-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+.kpi .v,
+.inv-dash-kpis .kpi .v,
+.global-kpi .v,
 .v {
   font-size: clamp(17px, 4.4vw, 26px);
   line-height: 1.05;

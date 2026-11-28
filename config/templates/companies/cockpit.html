@@ -189,7 +189,7 @@
   {% for c in companies %}
   {% company_color_class c companies as co_cls %}
   <a class="company {{ co_cls }} {% if selected.id == c.id %}sel{% endif %}" href="{% url 'cockpit' %}?societe={{ c.id }}">
-    <span class="co-avatar" aria-hidden="true">{{ c|company_initial }}</span>
+    <span class="co-avatar" aria-hidden="true">{% if c.logo %}<img src="{% url 'company_logo' %}?societe={{ c.id }}" alt="" loading="lazy">{% else %}{{ c|company_initial }}{% endif %}</span>
     <span class="co-body">
       <h3>{{ c.denomination }}</h3>
       <div class="s">{{ c.forme }} — SIREN {{ c.siren }}</div>
