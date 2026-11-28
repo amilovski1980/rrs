@@ -5641,6 +5641,13 @@ html[data-theme='dark'] .socie-urgent {
   .agent-dialog.voice-stage .voice-core { width: 84px; height: 84px; }
 }
 
+@media (max-width: 768px) {
+  .g3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
 /* Wordmark de la barre latérale : desktop uniquement (le header mobile reste sans). */
 @media (max-width: 900px) {
   .sidebar .brand-word { display: none; }
@@ -5655,6 +5662,14 @@ html[data-theme='dark'] .socie-urgent {
   max-width: 100%;
   margin: 16px auto 0;
   display: flex;
+}
+[data-import-submit] {
+  width: auto !important;
+  min-width: 220px;
+  max-width: 100%;
+  margin: 16px auto 0 !important;
+  display: flex;
+  justify-self: center;
 }
 
 @media (max-width: 768px) {
@@ -5671,6 +5686,11 @@ html[data-theme='dark'] .socie-urgent {
     padding: 0 16px;
   }
   .ticket-upload-submit {
+    min-width: 0;
+    width: auto;
+    padding: 0 20px;
+  }
+  [data-import-submit] {
     min-width: 0;
     width: auto;
     padding: 0 20px;

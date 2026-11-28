@@ -345,6 +345,15 @@ html[data-theme="light"] .btn-auth:hover {
 
 .auth-links { text-align: center; }
 
+/* Boutons des écrans de connexion : contenus et centrés, pas pleine largeur. */
+.auth-card .btn-block {
+  width: auto;
+  min-width: 180px;
+  max-width: 100%;
+  margin: 18px auto 0;
+  display: flex;
+}
+
 .hero { padding: 28px 0 12px; }
 
 #pricing,

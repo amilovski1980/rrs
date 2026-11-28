@@ -242,6 +242,12 @@ html[data-theme="dark"] .m-footer-ico {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 html[data-theme="dark"] .m-footer-btn.active { color: #fff; }
+html[data-theme="dark"] .m-footer-agent .m-footer-ico {
+  color: var(--muted);
+}
+html[data-theme="dark"] body.agent-open .m-footer-agent .m-footer-ico {
+  color: #ffd2a8;
+}
 html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
   color: #ffffff;
   background:
