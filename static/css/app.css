@@ -2901,7 +2901,9 @@ label.ticket-camera-btn.btn-primary:hover {
   }
   textarea { min-height: 96px; }
   input[type="checkbox"], input[type="radio"] {
-    width: auto; min-width: var(--tap); min-height: var(--tap);
+    width: 20px; height: 20px;
+    min-width: 20px; min-height: 20px;
+    accent-color: #ff7a45;
   }
   input[type="file"]:not(.ticket-camera-input) {
     min-height: 0; padding: var(--space-2) 0; max-width: 100%;
@@ -5183,6 +5185,34 @@ html[data-theme='dark'] .scan-popup .scan-text {
   border-color: rgba(255, 255, 255, .09);
   color: #c9c9cf;
 }
+
+/* Fermeture du popup de scan, visible pendant toute la lecture. */
+.scan-popup { position: relative; }
+.scan-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(15, 23, 42, .12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .72);
+  color: #334155;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.scan-close:hover { background: #fff; color: #0f172a; }
+html[data-theme='dark'] .scan-close {
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .18);
+  color: #f4f4f5;
+}
+html[data-theme='dark'] .scan-close:hover { background: rgba(255, 255, 255, .18); color: #ffffff; }
 
 
 /* ---- Aminia en bulle ronde flottante : jamais au-dessus des contenus,

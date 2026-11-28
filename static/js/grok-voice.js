@@ -1194,6 +1194,10 @@
         hangup();
         lockCall(false);
         setStatus("Appuyez pour parler");
+        setMinimized(false);
+        if (panel) panel.hidden = true;
+        document.body.classList.remove("agent-open");
+        if (openBtn) openBtn.setAttribute("aria-expanded", "false");
         if (window.AminiaShell && window.AminiaShell.active) {
           window.AminiaShell.exit();
         }

@@ -204,6 +204,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 html[data-theme="light"] .nav-theme .ico-sun { display: none; }
 html[data-theme="light"] .nav-theme .ico-moon { display: inline; }
 
+/* Bascule discrète dans le header mobile, à côté du menu. */
+.nav-theme-header { display: none; }
+@media (max-width: 959px) {
+  .nav-theme-header { display: inline-flex; margin-left: auto; }
+  .nav-menu { margin-left: 6px; }
+}
+
 .nav-menu { position: relative; }
 
 .nav-menu summary {
@@ -751,6 +758,15 @@ input[type="radio"] {
 
 @media (max-width: 959px) {
   .pricing { display: grid; gap: 16px; }
+  .foot-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+  }
+  .foot-brand { grid-column: 1 / -1; }
+}
+
+@media (min-width: 600px) and (max-width: 959px) {
+  .foot-main { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* ---------- Bascule de thème : même HTML, deux jeux de logos ---------- */

@@ -592,6 +592,88 @@ html[data-theme="dark"] .ticket-camera-orb {
   box-shadow: 0 10px 26px -12px rgba(255, 122, 69, 0.55);
 }
 
+/* Ticket : petite pastille ronde transparente devant le texte, pas un gros carré. */
+html[data-theme="dark"] label.ticket-camera-cta.mobile-only {
+  display: flex !important;
+  align-items: center;
+}
+html[data-theme="dark"] .ticket-camera-cta {
+  padding: 10px 12px;
+  gap: 10px;
+  border: 1px solid rgba(255, 154, 26, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 154, 26, 0.08);
+}
+html[data-theme="dark"] .ticket-camera-cta:hover {
+  background: rgba(255, 154, 26, 0.12);
+  border-color: rgba(255, 154, 26, 0.42);
+}
+html[data-theme="dark"] .ticket-camera-orb {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 154, 26, 0.12);
+  border: 1px solid rgba(255, 154, 26, 0.35);
+  color: #ff9a1a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+html[data-theme="dark"] .ticket-camera-text b { font-size: 14px; }
+html[data-theme="dark"] .ticket-camera-text small { font-size: 11px; }
+html[data-theme="dark"] .ticket-camera-arrow { color: #ff9a1a; font-size: 16px; }
+
+/* Mobile : footer rond, menu d'actions compact et pro. */
+@media (max-width: 768px) {
+  html[data-theme="dark"] .m-footer-ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  html[data-theme="dark"] .m-footer-raised .m-footer-ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  html[data-theme="dark"] .ticket-camera-cta {
+    padding: 9px 12px;
+  }
+  html[data-theme="dark"] .ticket-camera-orb {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+  details.page-actions > .actions-list {
+    left: auto;
+    right: 10px;
+    width: min(300px, calc(100vw - 20px));
+    padding: 8px;
+    gap: 4px;
+    border-radius: 16px;
+    background: rgba(18, 18, 20, 0.82);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--line);
+  }
+  details.page-actions[open] > .actions-list .btn {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    justify-content: flex-start;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 13px;
+    box-shadow: none;
+  }
+  details.page-actions[open] > .actions-list .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  details.page-actions[open] > .actions-list .btn-primary {
+    background: rgba(255, 154, 26, 0.14);
+    border-color: rgba(255, 154, 26, 0.3);
+  }
+}
+
 /* Mobile : boutons compacts en pilules, actions de page scrollables. */
 @media (max-width: 768px) {
   .btn {

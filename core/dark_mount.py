@@ -54,11 +54,10 @@ class DarkMountMiddleware:
 
 
 class AuthenticatedDarkMiddleware:
-    """Une fois connecté, toute l'application garde l'habillage sombre officiel.
+    """Une fois connecté, l'application garde l'habillage sombre officiel.
 
-    Les pages publiques (accueil, connexion anonyme, inscription) restent dans
-    le flux sombre via /dark ou la vitrine. À la connexion, plus aucune page de
-    l'application ne repasse en clair par accident.
+    Le bouton « Mode clair » du tiroir pose un cookie : l'app bascule alors
+    réellement en clair, page par page, jusqu'au retour en sombre.
     """
 
     def __init__(self, get_response):
@@ -67,5 +66,7 @@ class AuthenticatedDarkMiddleware:
     def __call__(self, request):
         user = getattr(request, "user", None)
         if user is not None and user.is_authenticated:
-            request.dark_ui = True
+            prefixed = bool(getattr(request, "dark_ui", False))
+            choice = request.COOKIES.get("rrs_app_theme", "dark")
+            request.dark_ui = prefixed or choice != "light"
         return self.get_response(request)

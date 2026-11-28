@@ -1489,6 +1489,7 @@
     var submitBtn = form.querySelector("[data-ticket-ocr-submit]");
     var csrfInput = form.querySelector("[name=csrfmiddlewaretoken]");
     var scanning = false;
+    var scanRun = 0;
     var popup = null;
 
     function scanPopupOf() {
@@ -1498,6 +1499,7 @@
       popup.hidden = true;
       popup.innerHTML =
         '<div class="scan-popup" role="status" aria-label="Lecture du ticket">' +
+        '  <button class="scan-close" type="button" data-scan-close-x aria-label="Fermer la lecture du ticket">×</button>' +
         '  <div class="scan-head">' +
         '    <span class="scan-orb" aria-hidden="true"></span>' +
         '    <b data-scan-label>L\'agent IA lit votre ticket…</b>' +
@@ -1514,13 +1516,15 @@
       var slot = document.querySelector(".shell[data-app-shell]") || document.body;
       slot.appendChild(popup);
       var closeBtn = popup.querySelector("[data-scan-close]");
-      if (closeBtn) {
-        closeBtn.addEventListener("click", function () {
-          popup.hidden = true;
-          scanning = false;
-          scanUi(false);
-        });
+      var closeX = popup.querySelector("[data-scan-close-x]");
+      function closeScan() {
+        scanRun += 1;
+        scanning = false;
+        if (popup) popup.hidden = true;
+        scanUi(false);
       }
+      if (closeBtn) closeBtn.addEventListener("click", closeScan);
+      if (closeX) closeX.addEventListener("click", closeScan);
       return popup;
     }
 
@@ -1601,6 +1605,8 @@
         return;
       }
       scanning = true;
+      var run = scanRun + 1;
+      scanRun = run;
       scanUi(true);
       var box = scanPopupOf();
       var fill = box.querySelector("[data-scan-fill]");
@@ -1612,6 +1618,7 @@
       if (pct) pct.textContent = "6 %";
       if (closeBtn) closeBtn.hidden = true;
       compressImage(file).then(function (prepared) {
+        if (run !== scanRun) return;
         var body = new FormData();
         body.append("fichier", prepared);
         var category = form.querySelector('select[name="categorie"], input[name="categorie"]');
@@ -1636,6 +1643,7 @@
               var parts = buffer.split("\n\n");
               buffer = parts.pop() || "";
               parts.forEach(function (block) {
+                if (run !== scanRun) return;
                 block.split("\n").forEach(function (raw) {
                   if (raw.indexOf("data:") !== 0) return;
                   var payload;
@@ -1643,9 +1651,11 @@
                   paint(payload);
                   if (payload.stage === "fin" && payload.redirect) {
                     /* Le brouillon est pret : la popup reste un instant a l'ecran. */
-                    window.setTimeout(function () {
-                      window.location.href = payload.redirect;
-                    }, 900);
+                    if (run === scanRun) {
+                      window.setTimeout(function () {
+                        if (run === scanRun) window.location.href = payload.redirect;
+                      }, 900);
+                    }
                   }
                   if (payload.stage === "erreur") {
                     scanning = false;
@@ -1915,3 +1925,14 @@
     });
   });
 })();
+
+/* Bascule clair / sombre de l'application : cookie posé côté client pour
+   fonctionner même quand un service worker contrôle la navigation. */
+document.addEventListener("click", function (event) {
+  var button = event.target.closest && event.target.closest("[data-app-theme-toggle]");
+  if (!button) return;
+  event.preventDefault();
+  var next = button.getAttribute("data-theme-next") || "light";
+  document.cookie = "rrs_app_theme=" + next + "; path=/; max-age=31536000; samesite=lax";
+  window.location.reload();
+});
