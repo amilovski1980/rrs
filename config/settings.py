@@ -97,6 +97,7 @@ TEMPLATES = [
                 "billing.context.forfait",
                 "companies.context.company_switcher",
                 "core.public_theme.public_theme_context",
+                "core.public_theme.public_appearance_context",
             ],
         },
     },

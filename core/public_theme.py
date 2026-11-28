@@ -57,6 +57,42 @@ def public_theme_context(request) -> dict:
     return {"public_dark_prefix": "" if dark else "/dark", "public_dark_path": dark}
 
 
+def public_appearance_context(request) -> dict:
+    """Logos, wordmarks et textes d'accueil disponibles sur toutes les pages publiques."""
+    try:
+        from admin_backoffice.models import SiteConfiguration
+
+        config = SiteConfiguration.objects.filter(pk=1).first()
+    except Exception:
+        config = None
+    accent = (getattr(config, "site_accent", "") or "").strip()
+    accent = accent if accent.startswith("#") and len(accent) in (4, 7) else ""
+    return {
+        "site_accent": accent,
+        "site_accent_light": _readable_on_light(accent) if accent else "",
+        "home_title": (getattr(config, "home_title", "") or "").strip(),
+        "home_subtitle": (getattr(config, "home_subtitle", "") or "").strip(),
+        "has_logo_dark": bool(getattr(config, "logo_dark", None)),
+        "has_logo_light": bool(getattr(config, "logo_light", None)),
+        "has_wordmark_dark": bool(getattr(config, "wordmark_dark", None)),
+        "has_wordmark_light": bool(getattr(config, "wordmark_light", None)),
+    }
+
+
+def _readable_on_light(hex_color: str) -> str:
+    value = (hex_color or "").strip().lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    if len(value) != 6:
+        return hex_color
+    try:
+        red, green, blue = (int(value[index:index + 2], 16) for index in (0, 2, 4))
+    except ValueError:
+        return hex_color
+    factor = 0.55
+    return "#{:02x}{:02x}{:02x}".format(int(red * factor), int(green * factor), int(blue * factor))
+
+
 
 def with_dark_voice(context: dict) -> dict:
     """Même faits (prix, plafonds, matrice), autre phrase d'accroche."""
