@@ -256,13 +256,15 @@ class LogoBrandTests(TestCase):
         self.assertNotIn("img/logo.svg", body)
 
     def test_landing_uses_png_logo(self):
-        """La vitrine officielle est la version SOMBRE (PNG dark) ; la claire
-        est conservée sur /clair/ avec son logo PNG clair."""
+        """La vitrine officielle est la version sombre ; l'ancienne page claire
+        est archivée et redirige vers l'accueil sombre."""
         dark = self.client.get("/")
         self.assertEqual(dark.status_code, 200)
         body = dark.content.decode()
         self.assertTrue("img/dark/" in body and ".png" in body, msg="PNG sombre attendu sur la vitrine")
-        self._assert_png_logo(self.client.get("/clair/"))
+        legacy = self.client.get("/clair/")
+        self.assertIn(legacy.status_code, (301, 302))
+        self.assertEqual(legacy["Location"], "/")
 
     def test_cockpit_uses_png_logo(self):
         self._assert_png_logo(self.client.get(f"/cockpit/?societe={self.company.id}"))

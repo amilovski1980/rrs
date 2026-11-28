@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <h1>Apparence du site</h1>
-    <p class="sub">Page d'accueil, couleur d'accent et logos — appliqués à la vitrine publique (version sombre officielle, la claire reste archivée).</p>
+    <p class="sub">Page d'accueil, couleur d'accent et logo — appliqués à la vitrine publique officielle (thème sombre).</p>
   </div>
 </div>
 
@@ -30,27 +30,15 @@
       </div>
     </div>
 
-    <div class="form-grid">
-      <div>
-        <label for="logo-dark">Logo version sombre (site /dark)</label>
-        <input id="logo-dark" type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-        {% if config.logo_dark %}
-        <p class="micro">Logo actuel : <a href="{% url 'admin_backoffice:public_site_logo' 'dark' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
-          · <label class="check-row"><input type="checkbox" name="remove_logo_dark"> Supprimer</label></p>
-        {% else %}
-        <p class="micro">Vide = logo Road Runner par défaut.</p>
-        {% endif %}
-      </div>
-      <div>
-        <label for="logo-light">Logo version claire</label>
-        <input id="logo-light" type="file" name="logo_light" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-        {% if config.logo_light %}
-        <p class="micro">Logo actuel : <a href="{% url 'admin_backoffice:public_site_logo' 'light' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
-          · <label class="check-row"><input type="checkbox" name="remove_logo_light"> Supprimer</label></p>
-        {% else %}
-        <p class="micro">Vide = logo Road Runner par défaut.</p>
-        {% endif %}
-      </div>
+    <div>
+      <label for="logo-dark">Logo du site</label>
+      <input id="logo-dark" type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+      {% if config.logo_dark %}
+      <p class="micro">Logo actuel : <a href="{% url 'admin_backoffice:public_site_logo' 'dark' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
+        · <label class="check-row"><input type="checkbox" name="remove_logo_dark"> Supprimer</label></p>
+      {% else %}
+      <p class="micro">Vide = logo Road Runner par défaut.</p>
+      {% endif %}
     </div>
 
     <button class="btn btn-primary" type="submit">Enregistrer l'apparence</button>

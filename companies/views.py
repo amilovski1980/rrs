@@ -187,22 +187,13 @@ def _seo_context() -> dict:
 
 
 def landing(request):
-    """Vitrine officielle : version SOMBRE par défaut (la claire reste sur /clair/)."""
+    """Vitrine officielle — version sombre unique (la version claire est archivée)."""
     from billing.public_pricing import pricing_context
     from core.public_theme import with_dark_voice
 
     context = with_dark_voice(pricing_context())
     context.update(_site_appearance_context())
     return render(request, "dark/landing.html", context)
-
-
-def landing_light(request):
-    """Version claire historique, conservée et accessible via le bouton « Mode clair »."""
-    from billing.public_pricing import pricing_context
-
-    context = pricing_context()
-    context.update(_site_appearance_context())
-    return render(request, "landing.html", context)
 
 
 @login_required

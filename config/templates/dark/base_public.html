@@ -33,12 +33,6 @@
         <a class="nav-text" href="{% url 'landing' %}#produit">Produit</a>
         <a class="nav-text" href="{% url 'landing' %}#pricing">Forfaits</a>
         <a class="nav-text" href="{% url 'landing' %}#aminia">Aminia</a>
-        <a class="nav-theme" href="{% url 'landing_light' %}" aria-label="Basculer en version claire" title="Version claire" rel="nofollow">
-          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <circle cx="12" cy="12" r="4.2"></circle>
-            <path d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"></path>
-          </svg>
-        </a>
         {% if request.user.is_authenticated %}
           <a class="btn btn-white" href="{% url 'cockpit' %}">Mon cockpit</a>
         {% else %}
@@ -53,13 +47,6 @@
           <a href="{% url 'landing' %}#pricing">Forfaits</a>
           <a href="{% url 'landing' %}#aminia">Aminia</a>
           <a href="{% url 'landing' %}#recherche">Trouver ma boîte</a>
-          <a href="{% url 'landing_light' %}" rel="nofollow">
-            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align:-2px;margin-right:6px">
-              <circle cx="12" cy="12" r="4.2"></circle>
-              <path d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"></path>
-            </svg>
-            Version claire
-          </a>
           {% if request.user.is_authenticated %}
             <a href="{% url 'cockpit' %}">Mon cockpit</a>
           {% else %}

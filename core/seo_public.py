@@ -10,7 +10,7 @@ def robots_txt(request):
 
 def sitemap_xml(request):
     base = request.build_absolute_uri("/").rstrip("/")
-    urls = [base + "/", base + "/clair/", base + "/inscription/"]
+    urls = [base + "/", base + "/inscription/"]
     body = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'

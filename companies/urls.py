@@ -1,10 +1,13 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import signup, views
 
 urlpatterns = [
     path("", views.landing, name="landing"),
-    path("clair/", views.landing_light, name="landing_light"),
+    # Ancienne vitrine claire : archivée (backups/vitrine-claire-20261128.zip),
+    # redirigée vers le site officiel sombre pour les liens indexés.
+    path("clair/", RedirectView.as_view(pattern_name="landing", permanent=True), name="landing_light"),
     path("recherche/", signup.company_search, name="company_search"),
     path("inscription/", signup.signup_wizard, name="signup_wizard"),
     path("inscription/choisir/", signup.signup_start, name="signup_start"),

@@ -458,7 +458,7 @@ def site_appearance(request):
         config.site_accent = accent[:7]
         fields = ["home_title", "home_subtitle", "site_accent"]
 
-        for theme in ("dark", "light"):
+        for theme in ("dark",):
             if request.POST.get(f"remove_logo_{theme}"):
                 setattr(config, f"logo_{theme}", None)
                 setattr(config, f"logo_{theme}_type", "")
