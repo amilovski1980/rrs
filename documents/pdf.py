@@ -464,14 +464,16 @@ def _company_lines(pdf: DocumentPDF, company, width, *, dark=False):
     if company.address:
         lines.extend(_wrap(pdf, company.address, width, 2))
     siret = _siret(company)
-    identity = [f"SIRET {_format_siret(siret)}" if siret else f"SIREN {company.siren}"]
+    if siret:
+        lines.append(f"SIRET {_format_siret(siret)}")
+    else:
+        lines.append(f"SIREN {company.siren}")
     tva_number = _tva_number(company)
     if tva_number:
-        identity.append(f"TVA {tva_number}")
-    lines.append(" · ".join(identity))
+        lines.append(f"TVA {tva_number}")
     slogan = (getattr(company, "slogan", "") or "").strip()
     if slogan:
-        lines.append(slogan[:100])
+        lines.append(_fit(pdf, slogan[:100], width, 7.5))
     return lines[:4], color
 
 
