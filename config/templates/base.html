@@ -29,9 +29,10 @@
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.19.5">
-  <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.28.11">
+  <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.28.13">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.28.10">{% endif %}
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.28.1">
+  {% if not request.dark_ui %}<link rel="stylesheet" href="{% static 'css/light-app.css' %}?v=2026.11.28.1">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -139,10 +140,11 @@
       <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}?v=2026.11.28.1" alt="Road Runner" width="120" height="26">
       {% else %}
       <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
-      <span class="brand-text">
-        <b>Road Runner</b>
-        <small>Solutions</small>
-      </span>
+      {% if has_wordmark_light %}
+      <img class="brand-word" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="Road Runner" width="120" height="26">
+      {% else %}
+      <img class="brand-word" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="120" height="26">
+      {% endif %}
       {% endif %}
     </a>
 
@@ -267,6 +269,14 @@
       <a class="side-link" href="{% url 'legal_notice' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Mentions légales
       </a>
+      <form method="post" action="{% url 'toggle_app_theme' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="side-link" type="submit" data-app-theme-toggle data-theme-next="{% if request.dark_ui %}light{% else %}dark{% endif %}">
+          <span class="side-ico">{% if request.dark_ui %}{% include "partials/icon.html" with name="sun" %}{% else %}{% include "partials/icon.html" with name="moon" %}{% endif %}</span>
+          {% if request.dark_ui %}Mode clair{% else %}Mode sombre{% endif %}
+        </button>
+      </form>
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button class="side-link" type="submit">

@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.28.2">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.28.10">{% endif %}
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.28.1">
+  {% if not request.dark_ui %}<link rel="stylesheet" href="{% static 'css/light-app.css' %}?v=2026.11.28.1">{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
 <body>

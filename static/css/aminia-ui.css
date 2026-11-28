@@ -127,7 +127,7 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
 @media (max-width: 768px) {
   .agent-panel .agent-dialog.voice-stage {
     position: fixed !important;
-    left: 50% !important;
+    left: 50vw !important;
     right: auto !important;
     top: 50% !important;
     bottom: auto !important;
@@ -191,6 +191,11 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
   background: transparent !important;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+}
+
+/* Le champ de saisie reste collé au bas de la carte. */
+.agent-dialog.voice-stage .voice-chat-box {
+  margin-top: auto;
 }
 
 .agent-dialog.voice-stage .voice-orb {

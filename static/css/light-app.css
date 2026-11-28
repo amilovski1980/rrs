@@ -1,0 +1,62 @@
+/* Application en mode clair : même palette chaude que la vitrine. */
+html:not([data-theme="dark"]) {
+  --bg: #f8f5f0;
+  --bg-2: #fff4ec;
+  --surface: #fffdfa;
+  --card: #fffdfa;
+  --thead-bg: #f3ece4;
+  --ink: #17120e;
+  --ink-2: #4a3f37;
+  --muted: #6b5e54;
+  --line: rgba(23, 18, 14, 0.12);
+  --line-2: rgba(23, 18, 14, 0.2);
+  --blue: #ff7a45;
+  --blue-2: #e25822;
+  --blue-soft: #fff1e8;
+  --blue-pale: #fff7f2;
+  --green: #b3400f;
+  --red: #c0264a;
+  --red-soft: #fdecef;
+  --amber: #b36b00;
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgba(255, 154, 26, 0.1), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(122, 60, 255, 0.08), transparent 50%),
+    var(--bg);
+  color: var(--ink);
+}
+
+html:not([data-theme="dark"]) .sidebar,
+html:not([data-theme="dark"]) .topbar,
+html:not([data-theme="dark"]) .m-header,
+html:not([data-theme="dark"]) .m-footer {
+  background: rgba(255, 253, 249, 0.84);
+  border-color: var(--line);
+}
+
+html:not([data-theme="dark"]) .sidebar {
+  border-right: 1px solid var(--line);
+}
+
+html:not([data-theme="dark"]) .side-link.active {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+html:not([data-theme="dark"]) .btn-primary {
+  background: linear-gradient(135deg, #ffb020, #ff7a45);
+  color: #2b0e02;
+  box-shadow: 0 10px 24px -16px rgba(255, 122, 69, 0.75);
+}
+
+html:not([data-theme="dark"]) .btn-primary:hover {
+  background: linear-gradient(135deg, #ffc04a, #ff8a2b);
+  color: #2b0e02;
+}
+
+html:not([data-theme="dark"]) .btn-ghost {
+  background: rgba(255, 122, 69, 0.08);
+  color: #8a3b12;
+}

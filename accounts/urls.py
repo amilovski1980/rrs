@@ -18,5 +18,6 @@ urlpatterns = [
     ),
     path("mot-de-passe/modifie/", views.FrenchPasswordResetCompleteView.as_view(), name="password_reset_complete"),
     path("logout/", views.logout_view, name="logout"),
+    path("theme/", views.toggle_app_theme, name="toggle_app_theme"),
     path("profil/", views.profile, name="profile"),
 ]

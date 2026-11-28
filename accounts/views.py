@@ -138,6 +138,21 @@ def logout_view(request):
     return redirect("/dark/compte/")
 
 
+@require_POST
+def toggle_app_theme(request):
+    """Bascule clair / sombre de l'application, mémorisée par cookie."""
+    current = "light" if request.COOKIES.get("rrs_app_theme") == "light" else "dark"
+    new = "dark" if current == "light" else "light"
+    next_url = (request.POST.get("next") or "").strip()
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/cockpit/"
+    if new == "light" and next_url.startswith("/dark/"):
+        next_url = next_url[5:] or "/"
+    response = redirect(next_url)
+    response.set_cookie("rrs_app_theme", new, max_age=31536000, samesite="Lax")
+    return response
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def profile(request):
