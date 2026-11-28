@@ -215,7 +215,7 @@
       {% if forfait.locks.treasury %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
     <a class="side-link {% block nav_ai_drafts %}{% endblock %}{% if forfait.locks.ai_drafts %} is-locked{% endif %}" href="{% if forfait.locks.ai_drafts %}{% url 'plan_upgrade' %}{% else %}{% url 'ai_drafts' %}{% endif %}" {% if forfait.locks.ai_drafts %}title="Mettre à jour le forfait"{% endif %}>
-      <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Brouillons IA
+      <span class="side-ico">{% include "partials/icon.html" with name="ai" %}</span> Brouillons IA
       {% if forfait.locks.ai_drafts %}<span class="lock-pill">Mettre à jour le forfait</span>{% endif %}
     </a>
     <a class="side-link {% block nav_mail %}{% endblock %}" href="{% url 'mailsync:drafts' %}">
@@ -370,7 +370,7 @@
       <span>Factures</span>
     </a>
     <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="ai" %}</span>
       <span>Aminia</span>
     </button>
     <button class="m-footer-btn m-footer-scan" type="button" data-scan-open aria-label="Ouvrir le scanner">

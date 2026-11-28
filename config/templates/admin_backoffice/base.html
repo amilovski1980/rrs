@@ -103,7 +103,7 @@
 
       <div class="nav-sec">Intelligence</div>
       <a class="side-link {% if admin_section == 'ai' %}active{% endif %}" href="{% url 'admin_backoffice:ai_monitoring' %}">
-        <span class="side-ico">{% include "partials/icon.html" with name="bot" %}</span> Suivi IA
+        <span class="side-ico">{% include "partials/icon.html" with name="ai" %}</span> Suivi IA
       </a>
       <a class="side-link {% if admin_section == 'prompts' %}active{% endif %}" href="{% url 'admin_backoffice:ai_prompt' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="pencil" %}</span> Consignes de l'agent
@@ -203,7 +203,7 @@
       <span>Paramètres</span>
     </a>
     <button class="m-footer-btn m-footer-agent" type="button" data-agent-footer-open aria-label="Ouvrir Aminia">
-      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="bot" %}</span>
+      <span class="m-footer-ico" aria-hidden="true">{% include "partials/icon.html" with name="ai" %}</span>
       <span>Aminia</span>
     </button>
   </nav>

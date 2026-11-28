@@ -1347,7 +1347,7 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
       inset 0 1px 0 rgba(255, 255, 255, 0.32),
       0 14px 28px -12px rgba(199, 4, 36, 0.6);
   }
-  .m-footer-raised .m-footer-ico .icon { width: 21px; height: 21px; }
+  .m-footer-raised .m-footer-ico .icon { width: 22px; height: 22px; }
   html[data-theme="dark"] .m-footer-raised .m-footer-ico {
     color: #fff;
     border-color: transparent;
