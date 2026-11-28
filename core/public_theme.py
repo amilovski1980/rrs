@@ -54,7 +54,11 @@ def public_theme_context(request) -> dict:
     même habillage. Sous /dark, Django ajoute déjà le préfixe aux {% url %}.
     """
     dark = bool(getattr(request, "dark_ui", False))
-    return {"public_dark_prefix": "" if dark else "/dark", "public_dark_path": dark}
+    return {
+        "public_dark_prefix": "" if dark else "/dark",
+        "public_dark_path": dark,
+        "allow_light_theme": (not dark) or request.path == "/",
+    }
 
 
 def public_appearance_context(request) -> dict:

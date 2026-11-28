@@ -267,14 +267,6 @@
       <a class="side-link" href="{% url 'legal_notice' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="scales" %}</span> Mentions légales
       </a>
-      <form method="post" action="{% url 'toggle_app_theme' %}">
-        {% csrf_token %}
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
-        <button class="side-link" type="submit" data-app-theme-toggle data-theme-next="{% if request.dark_ui %}light{% else %}dark{% endif %}">
-          <span class="side-ico">{% if request.dark_ui %}{% include "partials/icon.html" with name="sun" %}{% else %}{% include "partials/icon.html" with name="moon" %}{% endif %}</span>
-          {% if request.dark_ui %}Mode clair{% else %}Mode sombre{% endif %}
-        </button>
-      </form>
       <form method="post" action="{% url 'logout' %}">
         {% csrf_token %}
         <button class="side-link" type="submit">

@@ -7,6 +7,7 @@
   <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}Compta des startups{% endblock %} - Road Runner{% endif %}</title>
   <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}Road Runner pour les jeunes sociétés : factures, grand livre et TVA, à partir du nom, du SIREN ou du SIRET.{% endif %}">
   <meta name="theme-color" id="rrs-theme-color" content="#070708">
+  {% if allow_light_theme %}
   <script>
     (function () {
       try {
@@ -18,6 +19,7 @@
       } catch (e) {}
     })();
   </script>
+  {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -52,6 +54,7 @@
         <a class="nav-text" href="{% url 'landing' %}#produit">Produit</a>
         <a class="nav-text" href="{% url 'landing' %}#pricing">Forfaits</a>
         <a class="nav-text" href="{% url 'landing' %}#aminia">Aminia</a>
+        {% if allow_light_theme %}
         <button class="nav-theme" type="button" data-theme-toggle aria-pressed="false" aria-label="Passer en version claire" title="Version claire">
           <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <circle cx="12" cy="12" r="4.2"></circle>
@@ -61,6 +64,7 @@
             <path d="M20.4 14.3A8.5 8.5 0 0 1 9.7 3.6a8.5 8.5 0 1 0 10.7 10.7Z"></path>
           </svg>
         </button>
+        {% endif %}
         {% if request.user.is_authenticated %}
           <a class="btn btn-white" href="{{ public_dark_prefix }}{% url 'cockpit' %}">Mon cockpit</a>
         {% else %}
@@ -68,6 +72,7 @@
           <a class="btn btn-white" href="{% url 'landing' %}#recherche">Trouver ma boîte</a>
         {% endif %}
       </nav>
+      {% if allow_light_theme %}
       <button class="nav-theme nav-theme-header" type="button" data-theme-toggle aria-pressed="false" aria-label="Passer en version claire" title="Version claire">
         <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
           <circle cx="12" cy="12" r="4.2"></circle>
@@ -77,6 +82,7 @@
           <path d="M20.4 14.3A8.5 8.5 0 0 1 9.7 3.6a8.5 8.5 0 1 0 10.7 10.7Z"></path>
         </svg>
       </button>
+      {% endif %}
       <details class="nav-menu">
         <summary>Menu</summary>
         <div class="nav-panel">
@@ -150,6 +156,6 @@
       </div>
     </div>
   </footer>
-  <script src="{% static 'js/public-theme.js' %}?v=2026.11.28.1" defer></script>
+  {% if allow_light_theme %}<script src="{% static 'js/public-theme.js' %}?v=2026.11.28.1" defer></script>{% endif %}
 </body>
 </html>

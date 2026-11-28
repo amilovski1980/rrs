@@ -54,11 +54,7 @@ class DarkMountMiddleware:
 
 
 class AuthenticatedDarkMiddleware:
-    """Une fois connecté, l'application garde l'habillage sombre officiel.
-
-    Le bouton « Mode clair » du tiroir pose un cookie : l'app bascule alors
-    réellement en clair, page par page, jusqu'au retour en sombre.
-    """
+    """Une fois connecté, l'application garde l'habillage sombre officiel."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -66,7 +62,5 @@ class AuthenticatedDarkMiddleware:
     def __call__(self, request):
         user = getattr(request, "user", None)
         if user is not None and user.is_authenticated:
-            prefixed = bool(getattr(request, "dark_ui", False))
-            choice = request.COOKIES.get("rrs_app_theme", "dark")
-            request.dark_ui = prefixed or choice != "light"
+            request.dark_ui = True
         return self.get_response(request)
