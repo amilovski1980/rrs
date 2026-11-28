@@ -5,8 +5,16 @@
 <header class="hero">
   <div class="container hero-grid">
     <div>
+      {% if has_wordmark_dark %}
+      <img class="hero-word theme-dark-only" src="{% url 'admin_backoffice:public_site_wordmark' 'dark' %}" alt="Road Runner" width="560" height="121">
+      {% else %}
       <img class="hero-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="560" height="121">
+      {% endif %}
+      {% if has_wordmark_light %}
+      <img class="hero-word theme-light-only" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="Road Runner" width="560" height="121">
+      {% else %}
       <img class="hero-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="560" height="121">
+      {% endif %}
       <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Facturation électronique 2026</p>
       <h1>{% if home_title %}{{ home_title }}{% else %}La compta de votre startup, <span class="accent">tenue nette.</span>{% endif %}</h1>
       <p class="lead">

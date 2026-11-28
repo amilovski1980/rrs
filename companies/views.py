@@ -195,6 +195,8 @@ def _site_appearance_context() -> dict:
         "home_subtitle": (getattr(config, "home_subtitle", "") or "").strip(),
         "has_logo_dark": bool(getattr(config, "logo_dark", None)),
         "has_logo_light": bool(getattr(config, "logo_light", None)),
+        "has_wordmark_dark": bool(getattr(config, "wordmark_dark", None)),
+        "has_wordmark_light": bool(getattr(config, "wordmark_light", None)),
     }
 
 

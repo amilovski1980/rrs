@@ -458,21 +458,23 @@ def site_appearance(request):
         config.site_accent = accent[:7]
         fields = ["home_title", "home_subtitle", "site_accent"]
 
-        for theme in ("dark", "light"):
-            if request.POST.get(f"remove_logo_{theme}"):
-                setattr(config, f"logo_{theme}", None)
-                setattr(config, f"logo_{theme}_type", "")
-                fields += [f"logo_{theme}", f"logo_{theme}_type"]
-            upload = request.FILES.get(f"logo_{theme}")
-            if upload is not None:
-                if upload.size and upload.size > 2 * 1024 * 1024:
-                    messages.error(request, "Logo trop lourd : 2 Mo maximum.")
-                elif not (upload.content_type or "").startswith("image/"):
-                    messages.error(request, "Le logo doit être une image (PNG/JPG/WEBP/SVG).")
-                else:
-                    setattr(config, f"logo_{theme}", upload.read())
-                    setattr(config, f"logo_{theme}_type", upload.content_type or "image/png")
-                    fields += [f"logo_{theme}", f"logo_{theme}_type"]
+        for prefix in ("logo", "wordmark"):
+            label = "Logo large" if prefix == "wordmark" else "Logo"
+            for theme in ("dark", "light"):
+                if request.POST.get(f"remove_{prefix}_{theme}"):
+                    setattr(config, f"{prefix}_{theme}", None)
+                    setattr(config, f"{prefix}_{theme}_type", "")
+                    fields += [f"{prefix}_{theme}", f"{prefix}_{theme}_type"]
+                upload = request.FILES.get(f"{prefix}_{theme}")
+                if upload is not None:
+                    if upload.size and upload.size > 2 * 1024 * 1024:
+                        messages.error(request, f"{label} trop lourd : 2 Mo maximum.")
+                    elif not (upload.content_type or "").startswith("image/"):
+                        messages.error(request, f"{label} : image PNG/JPG/WEBP/SVG attendue.")
+                    else:
+                        setattr(config, f"{prefix}_{theme}", upload.read())
+                        setattr(config, f"{prefix}_{theme}_type", upload.content_type or "image/png")
+                        fields += [f"{prefix}_{theme}", f"{prefix}_{theme}_type"]
 
         config.save(update_fields=list(dict.fromkeys(fields)))
         messages.success(request, "Apparence du site enregistrée.")
@@ -492,6 +494,19 @@ def public_site_logo(request, theme: str):
     if not data:
         return HttpResponse(status=404)
     kind = getattr(config, f"logo_{'dark' if theme == 'dark' else 'light'}_type", "") or "image/png"
+    response = HttpResponse(bytes(data), content_type=kind)
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+def public_site_wordmark(request, theme: str):
+    """Logo large (wordmark) public personnalisé — serviable sans connexion."""
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    field = "wordmark_dark" if theme == "dark" else "wordmark_light"
+    data = getattr(config, field, None) if config else None
+    if not data:
+        return HttpResponse(status=404)
+    kind = getattr(config, f"wordmark_{'dark' if theme == 'dark' else 'light'}_type", "") or "image/png"
     response = HttpResponse(bytes(data), content_type=kind)
     response["Cache-Control"] = "public, max-age=3600"
     return response

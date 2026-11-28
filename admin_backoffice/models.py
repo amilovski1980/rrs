@@ -232,6 +232,10 @@ class SiteConfiguration(models.Model):
     logo_dark_type = models.CharField(max_length=40, blank=True, default="")
     logo_light = models.BinaryField(null=True, blank=True, verbose_name="Logo version claire")
     logo_light_type = models.CharField(max_length=40, blank=True, default="")
+    wordmark_dark = models.BinaryField(null=True, blank=True, verbose_name="Logo large (wordmark) sombre")
+    wordmark_dark_type = models.CharField(max_length=40, blank=True, default="")
+    wordmark_light = models.BinaryField(null=True, blank=True, verbose_name="Logo large (wordmark) clair")
+    wordmark_light_type = models.CharField(max_length=40, blank=True, default="")
 
     # --- Coordonnées de contact (emails automatiques, mentions légales) ---
     contact_address = models.CharField(

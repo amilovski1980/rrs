@@ -24,7 +24,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
   {% include "partials/ios_splash_links.html" with theme="dark" %}
-  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.28.6">
+  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.28.8">
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
 </head>
 <body>
@@ -103,8 +103,16 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="brand" href="{% url 'landing' %}">
+            {% if has_wordmark_dark %}
+            <img class="brand-word theme-dark-only" src="{% url 'admin_backoffice:public_site_wordmark' 'dark' %}" alt="Road Runner" width="148" height="32">
+            {% else %}
             <img class="brand-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="148" height="32">
+            {% endif %}
+            {% if has_wordmark_light %}
+            <img class="brand-word theme-light-only" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="Road Runner" width="148" height="32">
+            {% else %}
             <img class="brand-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="148" height="32">
+            {% endif %}
           </a>
           <p>Factures, grand livre et TVA pour les sociétés qui démarrent. Fiche officielle, écritures contrôlées, hébergement en France.</p>
         </div>

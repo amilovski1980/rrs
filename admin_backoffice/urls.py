@@ -10,6 +10,7 @@ urlpatterns = [
     path("seo/", views.seo_console, name="seo"),
     path("apparence/", views.site_appearance, name="site_appearance"),
     path("apparence/logo/<str:theme>/", views.public_site_logo, name="public_site_logo"),
+    path("apparence/wordmark/<str:theme>/", views.public_site_wordmark, name="public_site_wordmark"),
     path("", views.DashboardView.as_view(), name="dashboard"),
     path("dashboard/", views.DashboardView.as_view(), name="dashboard_url"),
     path("settings/", views.SiteSettingsView.as_view(), name="settings"),

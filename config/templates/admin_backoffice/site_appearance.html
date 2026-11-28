@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <h1>Apparence du site</h1>
-    <p class="sub">Page d'accueil, couleur d'accent et logos — appliqués à la vitrine publique. Le thème sombre est officiel ; l'icône de la vitrine bascule vers le thème clair (mêmes pages, tokens inversés).</p>
+    <p class="sub">Page d'accueil, couleur d'accent, logos et logo large (wordmark) — appliqués à la vitrine publique. Le thème sombre est officiel ; l'icône de la vitrine bascule vers le thème clair (mêmes pages, tokens inversés).</p>
   </div>
 </div>
 
@@ -49,6 +49,29 @@
           · <label class="check-row"><input type="checkbox" name="remove_logo_light"> Supprimer</label></p>
         {% else %}
         <p class="micro">Vide = logo Road Runner par défaut (variante foncée).</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <label for="wordmark-dark">Logo large « Road Runner » (thème sombre)</label>
+        <input id="wordmark-dark" type="file" name="wordmark_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+        {% if config.wordmark_dark %}
+        <p class="micro">Wordmark actuel : <a href="{% url 'admin_backoffice:public_site_wordmark' 'dark' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
+          · <label class="check-row"><input type="checkbox" name="remove_wordmark_dark"> Supprimer</label></p>
+        {% else %}
+        <p class="micro">Vide = wordmark Road Runner par défaut.</p>
+        {% endif %}
+      </div>
+      <div>
+        <label for="wordmark-light">Logo large « Road Runner » (thème clair)</label>
+        <input id="wordmark-light" type="file" name="wordmark_light" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+        {% if config.wordmark_light %}
+        <p class="micro">Wordmark actuel : <a href="{% url 'admin_backoffice:public_site_wordmark' 'light' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
+          · <label class="check-row"><input type="checkbox" name="remove_wordmark_light"> Supprimer</label></p>
+        {% else %}
+        <p class="micro">Vide = wordmark Road Runner par défaut (variante foncée).</p>
         {% endif %}
       </div>
     </div>

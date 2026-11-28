@@ -2,6 +2,14 @@
 <div class="auth-brand">
   <img class="theme-dark-only" src="{% static 'img/dark/mark.png' %}" alt="Road Runner Solutions">
   <img class="theme-light-only" src="{% static 'img/mark-light.png' %}" alt="Road Runner Solutions">
+  {% if has_wordmark_dark %}
+  <img class="auth-brand-word theme-dark-only" src="{% url 'admin_backoffice:public_site_wordmark' 'dark' %}" alt="">
+  {% else %}
   <img class="auth-brand-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="">
+  {% endif %}
+  {% if has_wordmark_light %}
+  <img class="auth-brand-word theme-light-only" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="">
+  {% else %}
   <img class="auth-brand-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="">
+  {% endif %}
 </div>

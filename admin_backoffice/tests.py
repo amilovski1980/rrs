@@ -662,6 +662,7 @@ class EveryAdminPageTests(TestCase):
             "settings_ai_connection",
             "settings_ai_voice_sync",
             "public_site_logo",
+            "public_site_wordmark",
         )}
         self.assertEqual(covered, names, sorted(names - covered))
 
