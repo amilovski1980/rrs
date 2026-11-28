@@ -90,7 +90,7 @@
 
 /* Liseré discret : la communication est sous contrôle d'Aminia. */
 body.voice-shell-active.aminia-locked .agent-dialog {
-  border-top: 2px solid var(--blue-2, #2563eb);
+  border-top: 2px solid var(--orange, #ff7a45);
 }
 
 body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,

@@ -210,6 +210,7 @@ def landing(request):
 
     context = with_dark_voice(pricing_context())
     context.update(_site_appearance_context())
+    context["allow_light_theme"] = True
     return render(request, "dark/landing.html", context)
 
 
