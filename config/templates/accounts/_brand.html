@@ -1,5 +1,6 @@
 {% load static %}
-{# Logo complet (emblem + signature). Le mode sombre a son propre logo : dark/accounts/_brand.html #}
-<div style="display:flex;justify-content:center;margin-bottom:20px">
-  <img class="product-logo product-logo--lg" src="{% static 'img/logo.png' %}" alt="Road Runner Solutions" style="height:52px;width:auto;max-width:200px">
+{# Logo clair : marque détourée + wordmark, comme la vitrine. #}
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px">
+  <img class="product-logo" src="{% static 'img/mark-light.png' %}" alt="" style="height:44px;width:44px;object-fit:contain">
+  <img class="brand-word" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner Solutions" style="height:28px;width:auto;max-width:180px;object-fit:contain">
 </div>

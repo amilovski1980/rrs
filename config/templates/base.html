@@ -78,7 +78,7 @@
         {% elif request.dark_ui %}
         <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
         {% else %}
-        <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="" width="32" height="32">
+        <img class="product-logo product-logo--sm" src="{% static 'img/mark-light.png' %}" alt="" width="32" height="32">
         {% endif %}
         <span class="m-header-brand">
           <b>{% if top_company %}{{ top_company.denomination|truncatechars:26 }}{% else %}Road Runner{% endif %}</b>
@@ -143,7 +143,7 @@
       <img class="product-logo product-logo--md" src="{% static 'img/dark/mark.png' %}" alt="" width="40" height="40">
       <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}?v=2026.11.28.1" alt="Road Runner" width="120" height="26">
       {% else %}
-      <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
+      <img class="product-logo product-logo--md" src="{% static 'img/mark-light.png' %}" alt="Road Runner Solutions" width="40" height="40">
       {% if has_wordmark_light %}
       <img class="brand-word" src="{% url 'admin_backoffice:public_site_wordmark' 'light' %}" alt="Road Runner" width="120" height="26">
       {% else %}
