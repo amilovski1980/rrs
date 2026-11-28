@@ -5648,7 +5648,14 @@ html[data-theme='dark'] .socie-urgent {
   }
 }
 
-/* Wordmark de la barre latérale : desktop uniquement (le header mobile reste sans). */
+/* Montants : taille fluide pour les longues valeurs sur mobile. */
+.v {
+  font-size: clamp(17px, 4.4vw, 26px);
+  line-height: 1.05;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
 @media (max-width: 900px) {
   .sidebar .brand-word { display: none; }
 }
