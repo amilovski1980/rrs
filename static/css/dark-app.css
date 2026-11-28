@@ -650,25 +650,31 @@ html[data-theme="dark"] .ticket-camera-arrow { color: #ff9a1a; font-size: 16px; 
   }
   details.page-actions > .actions-list {
     left: auto;
-    right: 10px;
-    width: min(300px, calc(100vw - 20px));
-    padding: 8px;
-    gap: 4px;
-    border-radius: 16px;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px;
+    gap: 6px;
+    border-radius: 18px;
     background: rgba(18, 18, 20, 0.82);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     backdrop-filter: blur(20px) saturate(160%);
     border: 1px solid var(--line);
   }
   details.page-actions[open] > .actions-list .btn {
-    width: 100%;
-    min-height: 40px;
-    padding: 8px 12px;
-    justify-content: flex-start;
-    border-radius: 12px;
+    width: auto;
+    min-height: 34px;
+    height: 34px;
+    padding: 0 12px;
+    justify-content: center;
+    border-radius: 999px;
     border: 1px solid transparent;
     background: transparent;
-    font-size: 13px;
+    font-size: 12px;
+    white-space: nowrap;
     box-shadow: none;
   }
   details.page-actions[open] > .actions-list .btn:hover {
