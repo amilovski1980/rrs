@@ -161,12 +161,27 @@ class CompanyProfileForm(forms.Form):
     email = forms.EmailField(label="Email de facturation", required=False)
 
 
+def _seo_context() -> dict:
+    """Titre/description SEO de la vitrine gérés dans le back-office."""
+    try:
+        from admin_backoffice.models import SiteConfiguration
+
+        config = SiteConfiguration.objects.filter(pk=1).first()
+    except Exception:
+        config = None
+    return {
+        "seo_title": (getattr(config, "seo_title", "") or "").strip(),
+        "seo_description": (getattr(config, "seo_description", "") or "").strip(),
+    }
+
+
 def landing(request):
     """Vitrine officielle : version SOMBRE par défaut (la claire reste sur /clair/)."""
     from billing.public_pricing import pricing_context
     from core.public_theme import with_dark_voice
 
     context = with_dark_voice(pricing_context())
+    context.update(_seo_context())
     return render(request, "dark/landing.html", context)
 
 
@@ -174,7 +189,9 @@ def landing_light(request):
     """Version claire historique, conservée et accessible via le bouton « Mode clair »."""
     from billing.public_pricing import pricing_context
 
-    return render(request, "landing.html", pricing_context())
+    context = pricing_context()
+    context.update(_seo_context())
+    return render(request, "landing.html", context)
 
 
 @login_required

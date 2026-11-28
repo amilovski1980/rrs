@@ -1,0 +1,108 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}SEO & Search Console{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>SEO &amp; Google Search Console</h1>
+    <p class="sub">Analytics Google, configuration SEO du site et agent IA de « boost » — consultez, interrogez, agissez.</p>
+  </div>
+</div>
+
+{% if error %}<ul class="form-errors"><li>{{ error }}</li></ul>{% endif %}
+
+<div class="card" style="max-width:860px;margin-bottom:16px">
+  <div class="card-head"><h3>Connexion Search Console</h3>
+    <span class="badge {% if config.seo_gsc_site and config.seo_service_email and config.seo_private_key %}badge-green{% endif %}">
+      {% if config.seo_gsc_site and config.seo_service_email and config.seo_private_key %}configurée{% else %}à configurer{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save">
+      <div class="form-grid">
+        <div>
+          <label for="seo-site">Propriété Search Console</label>
+          <input id="seo-site" name="seo_gsc_site" value="{{ config.seo_gsc_site }}" placeholder="sc-domain:rrsolutions.io">
+        </div>
+        <div>
+          <label for="seo-email">E-mail du compte de service Google</label>
+          <input id="seo-email" type="email" name="seo_service_email" value="{{ config.seo_service_email }}" placeholder="rrs-seo@projet.iam.gserviceaccount.com">
+        </div>
+      </div>
+      <div>
+        <label for="seo-key">Clé privée du compte de service (PEM)</label>
+        <textarea id="seo-key" name="seo_private_key" rows="4" spellcheck="false" placeholder="-----BEGIN PRIVATE KEY-----…">{{ config.seo_private_key }}</textarea>
+        <p class="micro">Google Cloud → compte de service → clé JSON : copiez « private_key ». Ajoutez ensuite l'e-mail du compte comme utilisateur de la propriété dans Search Console.</p>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label for="seo-title">Titre SEO de la vitrine (balise title)</label>
+          <input id="seo-title" name="seo_title" maxlength="120" value="{{ config.seo_title }}" placeholder="Facturation artisans & TPE — Road Runner Solutions">
+        </div>
+        <div>
+          <label for="seo-desc">Meta description de la vitrine</label>
+          <input id="seo-desc" name="seo_description" maxlength="320" value="{{ config.seo_description }}" placeholder="Devis, factures, encaissements et comptabilité en temps réel. Essai gratuit.">
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">Enregistrer</button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="max-width:860px;margin-bottom:16px">
+  <div class="card-head"><h3>Analytics Google (28 jours)</h3>
+    <form method="post" style="display:flex;gap:8px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="analyse">
+      <select name="dimension" onchange="this.form.submit()">
+        <option value="query" {% if dimension == "query" %}selected{% endif %}>Requêtes</option>
+        <option value="page" {% if dimension == "page" %}selected{% endif %}>Pages</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" type="submit">Analyser</button>
+    </form>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% if analytics %}
+    <table>
+      <thead><tr><th>{% if dimension == "query" %}Requête{% else %}Page{% endif %}</th><th class="num">Clics</th><th class="num">Impressions</th><th class="num">CTR</th><th class="num">Position</th></tr></thead>
+      <tbody>
+        {% for row in analytics %}
+        <tr>
+          <td>{{ row.label|truncatechars:52 }}</td>
+          <td class="num">{{ row.clicks }}</td>
+          <td class="num">{{ row.impressions }}</td>
+          <td class="num">{{ row.ctr }} %</td>
+          <td class="num">{{ row.position }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty" style="padding:18px">Aucune donnée affichée — lancez « Analyser » une fois la connexion configurée.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="max-width:860px">
+  <div class="card-head"><h3>Agent IA — booster le site sur Google</h3></div>
+  <div class="card-body">
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="agent">
+      <input type="hidden" name="dimension" value="{{ dimension }}">
+      <div>
+        <label for="seo-question">Votre demande à l'agent SEO</label>
+        <textarea id="seo-question" name="question" rows="3" placeholder="Propose un plan de boost 30 jours, 10 mots-clés à viser et les titres/meta à adopter.">{{ question }}</textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">Interroger l'agent</button>
+    </form>
+    {% if advice %}
+    <div class="card" style="margin-top:14px;padding:14px 16px;background:var(--blue-pale)">
+      <p class="micro" style="margin:0 0 8px">Réponse de l'agent</p>
+      <div style="white-space:pre-wrap;font-size:13.5px;line-height:1.6">{{ advice }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

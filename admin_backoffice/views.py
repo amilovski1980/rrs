@@ -446,6 +446,66 @@ def maintenance_purge(request):
 
 
 @staff_required
+def seo_console(request):
+    """SEO & Google Search Console : configuration, analytics et agent IA."""
+    from .seo import SeoError, ask_seo_agent, fetch_search_analytics
+
+    config, _ = SiteConfiguration.objects.get_or_create(id=1)
+    analytics: list[dict] = []
+    error = ""
+    advice = ""
+    question = ""
+    dimension = (request.POST.get("dimension") or request.GET.get("dimension") or "query").strip()
+    if dimension not in ("query", "page"):
+        dimension = "query"
+
+    if request.method == "POST":
+        action = request.POST.get("action") or "save"
+        if action == "save":
+            config.seo_gsc_site = (request.POST.get("seo_gsc_site") or "").strip()
+            config.seo_service_email = (request.POST.get("seo_service_email") or "").strip()
+            config.seo_private_key = (request.POST.get("seo_private_key") or "").strip()
+            config.seo_title = (request.POST.get("seo_title") or "").strip()[:120]
+            config.seo_description = (request.POST.get("seo_description") or "").strip()[:320]
+            config.save(update_fields=[
+                "seo_gsc_site", "seo_service_email", "seo_private_key",
+                "seo_title", "seo_description",
+            ])
+            messages.success(request, "Configuration SEO enregistrée.")
+            journaliser(request, "Configuration SEO mise à jour")
+            return redirect(reverse("admin_backoffice:seo") + "?dimension=" + dimension)
+        if action == "analyse":
+            try:
+                analytics = fetch_search_analytics(config, dimension=dimension)
+            except SeoError as exc:
+                error = str(exc)
+            journaliser(request, f"Analyse Search Console ({dimension})")
+        elif action == "agent":
+            question = (request.POST.get("question") or "").strip() or (
+                "Analyse la situation et propose un plan de boost SEO concret pour les 30 prochains jours."
+            )
+            try:
+                analytics = fetch_search_analytics(config, dimension=dimension)
+            except SeoError as exc:
+                analytics = []
+                error = str(exc) + " (l'agent répond sans les données)"
+            try:
+                advice = ask_seo_agent(question, analytics, dimension=dimension)
+            except SeoError as exc:
+                error = str(exc)
+            journaliser(request, "Question à l'agent SEO")
+
+    return render(request, "admin_backoffice/seo.html", {
+        "config": config,
+        "analytics": analytics,
+        "error": error,
+        "advice": advice,
+        "question": question,
+        "dimension": dimension,
+    })
+
+
+@staff_required
 @require_POST
 def settings_ai_models(request):
     """Liste réelle des modèles exposés par l'API choisie (sans envoyer de secret)."""

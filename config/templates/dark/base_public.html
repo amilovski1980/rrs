@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block title %}Compta des startups{% endblock %} — Road Runner</title>
-  <meta name="description" content="Road Runner pour les jeunes sociétés : factures, grand livre et TVA, à partir du nom, du SIREN ou du SIRET.">
+  <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}Compta des startups{% endblock %} - Road Runner{% endif %}</title>
+  <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}Road Runner pour les jeunes sociétés : factures, grand livre et TVA, à partir du nom, du SIREN ou du SIRET.{% endif %}">
   <meta name="theme-color" content="#070708">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

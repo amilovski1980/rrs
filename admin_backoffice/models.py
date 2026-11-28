@@ -175,6 +175,38 @@ class SiteConfiguration(models.Model):
         ),
     )
 
+    # --- SEO & Google Search Console (agent SEO du back-office) ---
+    seo_gsc_site = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name="Propriété Search Console",
+        help_text="Ex. sc-domain:rrsolutions.io ou https://rrsolutions.io/",
+    )
+    seo_service_email = models.EmailField(
+        blank=True,
+        default="",
+        verbose_name="E-mail du compte de service Google",
+    )
+    seo_private_key = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Clé privée du compte de service (PEM)",
+        help_text="Collez la clé 'private_key' du fichier JSON du compte de service Google.",
+    )
+    seo_title = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        verbose_name="Titre SEO de la vitrine",
+    )
+    seo_description = models.CharField(
+        max_length=320,
+        blank=True,
+        default="",
+        verbose_name="Description SEO de la vitrine",
+    )
+
     # --- Coordonnées de contact (emails automatiques, mentions légales) ---
     contact_address = models.CharField(
         max_length=255,

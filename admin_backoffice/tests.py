@@ -720,6 +720,7 @@ class EveryAdminPageTests(TestCase):
         return {
             "health": {},
             "maintenance_purge": {},
+            "seo": {},
             "dashboard": {},
             "dashboard_url": {},
             "settings": {},
