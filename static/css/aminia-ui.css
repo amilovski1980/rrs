@@ -125,16 +125,18 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
    Demande utilisateur : centré horizontalement, taille réduite, noir transparent
    flouté conservé, uniquement la conversation — état de l'agent à la place du journal. */
 @media (max-width: 768px) {
-  .agent-dialog.voice-stage {
-    position: fixed;
-    left: 50%;
-    right: auto;
-    top: 50%;
-    bottom: auto;
-    margin: 0;
-    transform: translate(-50%, -50%);
-    width: min(356px, calc(100vw - 24px));
-    max-height: min(80vh, 720px);
+  .agent-panel .agent-dialog.voice-stage {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    top: 50% !important;
+    bottom: auto !important;
+    margin: 0 !important;
+    width: min(356px, calc(100vw - 24px)) !important;
+    max-height: min(80vh, 720px) !important;
+    transform: none !important;
+    translate: -50% -50%;
+    animation: none !important;
     overflow-y: auto;
     border-radius: 22px;
     padding: 12px 14px 14px;
