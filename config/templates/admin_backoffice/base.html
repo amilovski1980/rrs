@@ -30,7 +30,10 @@
     <a class="m-header-logo" href="{% url 'admin_backoffice:dashboard' %}" aria-label="Road Runner Solutions — Administration">
       {% if request.dark_ui %}
       <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
-      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
+      <span class="m-header-brand">
+        <b>Road Runner</b>
+        <small>Back-office</small>
+      </span>
       {% else %}
       <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="32" height="32">
       <span class="m-header-brand">
@@ -120,6 +123,9 @@
       </a>
       <a class="side-link {% if admin_section == 'seo' %}active{% endif %}" href="{% url 'admin_backoffice:seo' %}">
         <span class="side-ico">{% include "partials/icon.html" with name="search" %}</span> SEO &amp; Search Console
+      </a>
+      <a class="side-link {% if admin_section == 'appearance' %}active{% endif %}" href="{% url 'admin_backoffice:site_appearance' %}">
+        <span class="side-ico">{% include "partials/icon.html" with name="file" %}</span> Apparence du site
       </a>
     </div>
 

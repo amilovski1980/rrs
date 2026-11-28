@@ -207,6 +207,32 @@ class SiteConfiguration(models.Model):
         verbose_name="Description SEO de la vitrine",
     )
 
+    # --- Apparence du site public (éditeur du back-office) ---
+    site_accent = models.CharField(
+        max_length=7,
+        blank=True,
+        default="",
+        verbose_name="Couleur d'accent du site (HEX)",
+        help_text="Ex. #ff7a45. Vide = palette par défaut du thème sombre.",
+    )
+    home_title = models.CharField(
+        max_length=160,
+        blank=True,
+        default="",
+        verbose_name="Titre de la page d'accueil",
+        help_text="Remplace le grand titre de la vitrine. Vide = texte par défaut.",
+    )
+    home_subtitle = models.CharField(
+        max_length=260,
+        blank=True,
+        default="",
+        verbose_name="Sous-titre de la page d'accueil",
+    )
+    logo_dark = models.BinaryField(null=True, blank=True, verbose_name="Logo version sombre")
+    logo_dark_type = models.CharField(max_length=40, blank=True, default="")
+    logo_light = models.BinaryField(null=True, blank=True, verbose_name="Logo version claire")
+    logo_light_type = models.CharField(max_length=40, blank=True, default="")
+
     # --- Coordonnées de contact (emails automatiques, mentions légales) ---
     contact_address = models.CharField(
         max_length=255,

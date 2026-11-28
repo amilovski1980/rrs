@@ -446,6 +446,58 @@ def maintenance_purge(request):
 
 
 @staff_required
+def site_appearance(request):
+    """Apparence du site public : page d'accueil, couleur d'accent, logos."""
+    config, _ = SiteConfiguration.objects.get_or_create(id=1)
+    if request.method == "POST":
+        config.home_title = (request.POST.get("home_title") or "").strip()[:160]
+        config.home_subtitle = (request.POST.get("home_subtitle") or "").strip()[:260]
+        accent = (request.POST.get("site_accent") or "").strip()
+        if accent and not accent.startswith("#"):
+            accent = ""
+        config.site_accent = accent[:7]
+        fields = ["home_title", "home_subtitle", "site_accent"]
+
+        for theme in ("dark", "light"):
+            if request.POST.get(f"remove_logo_{theme}"):
+                setattr(config, f"logo_{theme}", None)
+                setattr(config, f"logo_{theme}_type", "")
+                fields += [f"logo_{theme}", f"logo_{theme}_type"]
+            upload = request.FILES.get(f"logo_{theme}")
+            if upload is not None:
+                if upload.size and upload.size > 2 * 1024 * 1024:
+                    messages.error(request, "Logo trop lourd : 2 Mo maximum.")
+                elif not (upload.content_type or "").startswith("image/"):
+                    messages.error(request, "Le logo doit être une image (PNG/JPG/WEBP/SVG).")
+                else:
+                    setattr(config, f"logo_{theme}", upload.read())
+                    setattr(config, f"logo_{theme}_type", upload.content_type or "image/png")
+                    fields += [f"logo_{theme}", f"logo_{theme}_type"]
+
+        config.save(update_fields=list(dict.fromkeys(fields)))
+        messages.success(request, "Apparence du site enregistrée.")
+        journaliser(request, "Apparence du site mise à jour")
+        return redirect(reverse("admin_backoffice:site_appearance"))
+
+    return render(request, "admin_backoffice/site_appearance.html", {
+        "config": config,
+    })
+
+
+def public_site_logo(request, theme: str):
+    """Logo public personnalisé (dark/light) — serviable sans connexion."""
+    config = SiteConfiguration.objects.filter(pk=1).first()
+    field = "logo_dark" if theme == "dark" else "logo_light"
+    data = getattr(config, field, None) if config else None
+    if not data:
+        return HttpResponse(status=404)
+    kind = getattr(config, f"logo_{'dark' if theme == 'dark' else 'light'}_type", "") or "image/png"
+    response = HttpResponse(bytes(data), content_type=kind)
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@staff_required
 def seo_console(request):
     """SEO & Google Search Console : configuration, analytics et agent IA."""
     from .seo import SeoError, ask_seo_agent, fetch_search_analytics

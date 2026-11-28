@@ -161,18 +161,29 @@ class CompanyProfileForm(forms.Form):
     email = forms.EmailField(label="Email de facturation", required=False)
 
 
-def _seo_context() -> dict:
-    """Titre/description SEO de la vitrine gérés dans le back-office."""
+def _site_appearance_context() -> dict:
+    """Apparence public gérée au back-office : logo, accent, titre d'accueil."""
     try:
         from admin_backoffice.models import SiteConfiguration
 
         config = SiteConfiguration.objects.filter(pk=1).first()
     except Exception:
         config = None
+    accent = (getattr(config, "site_accent", "") or "").strip()
     return {
         "seo_title": (getattr(config, "seo_title", "") or "").strip(),
         "seo_description": (getattr(config, "seo_description", "") or "").strip(),
+        "site_accent": accent if accent.startswith("#") and len(accent) in (4, 7) else "",
+        "home_title": (getattr(config, "home_title", "") or "").strip(),
+        "home_subtitle": (getattr(config, "home_subtitle", "") or "").strip(),
+        "has_logo_dark": bool(getattr(config, "logo_dark", None)),
+        "has_logo_light": bool(getattr(config, "logo_light", None)),
     }
+
+
+def _seo_context() -> dict:
+    """Compatibilité : contexte d'apparence (SEO inclus)."""
+    return _site_appearance_context()
 
 
 def landing(request):
@@ -181,7 +192,7 @@ def landing(request):
     from core.public_theme import with_dark_voice
 
     context = with_dark_voice(pricing_context())
-    context.update(_seo_context())
+    context.update(_site_appearance_context())
     return render(request, "dark/landing.html", context)
 
 
@@ -190,7 +201,7 @@ def landing_light(request):
     from billing.public_pricing import pricing_context
 
     context = pricing_context()
-    context.update(_seo_context())
+    context.update(_site_appearance_context())
     return render(request, "landing.html", context)
 
 

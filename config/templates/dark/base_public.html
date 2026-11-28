@@ -19,10 +19,15 @@
 <body>
   {% include "partials/splash_entry.html" with theme="dark" %}
   <div class="accent-bar" aria-hidden="true"></div>
+  {% if site_accent %}<style>:root { --lime: {{ site_accent }}; --emerald: {{ site_accent }}; }</style>{% endif %}
   <header class="nav">
     <div class="container nav-in">
       <a class="brand" href="{% url 'landing' %}" aria-label="Road Runner — accueil">
+        {% if has_logo_dark %}
+        <img class="brand-mark" src="{% url 'admin_backoffice:public_site_logo' 'dark' %}" alt="" width="42" height="42">
+        {% else %}
         <img class="brand-mark" src="{% static 'img/dark/mark.png' %}" alt="" width="42" height="42">
+        {% endif %}
       </a>
       <nav class="nav-inline" aria-label="Navigation">
         <a class="nav-text" href="{% url 'landing' %}#produit">Produit</a>

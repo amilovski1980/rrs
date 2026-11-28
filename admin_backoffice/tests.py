@@ -661,6 +661,7 @@ class EveryAdminPageTests(TestCase):
             "settings_ai_models",
             "settings_ai_connection",
             "settings_ai_voice_sync",
+            "public_site_logo",
         )}
         self.assertEqual(covered, names, sorted(names - covered))
 
@@ -721,6 +722,7 @@ class EveryAdminPageTests(TestCase):
             "health": {},
             "maintenance_purge": {},
             "seo": {},
+            "site_appearance": {},
             "dashboard": {},
             "dashboard_url": {},
             "settings": {},

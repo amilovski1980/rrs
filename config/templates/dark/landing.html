@@ -7,10 +7,10 @@
     <div>
       <img class="hero-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="560" height="121">
       <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Facturation électronique 2026</p>
-      <h1>La compta de votre startup, <span class="accent">tenue nette.</span></h1>
+      <h1>{% if home_title %}{{ home_title }}{% else %}La compta de votre startup, <span class="accent">tenue nette.</span>{% endif %}</h1>
       <p class="lead">
-        Vous lancez une société. Road Runner ouvre le cockpit à partir du nom, du SIREN ou du SIRET :
-        la fiche officielle, puis les factures, le grand livre et la TVA. Vous voyez les chiffres, vous validez, vous avancez.
+        {% if home_subtitle %}{{ home_subtitle }}{% else %}Vous lancez une société. Road Runner ouvre le cockpit à partir du nom, du SIREN ou du SIRET :
+        la fiche officielle, puis les factures, le grand livre et la TVA. Vous voyez les chiffres, vous validez, vous avancez.{% endif %}
       </p>
       <div class="hero-search" id="recherche">
         <p>Trouver ma boîte</p>

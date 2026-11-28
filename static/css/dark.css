@@ -1,4 +1,4 @@
-/* Vitrine /dark. Noir, blanc, dégradé ambre → violet, accent émeraude du roadrunner. */
+/* Vitrine /dark. Noir, blanc, dégradé ambre â†’ violet, accent émeraude du roadrunner. */
 :root {
   --bg: #070708;
   --bg-raise: #101012;
@@ -11,12 +11,12 @@
   --amber: #ff9a1a;
   --magenta: #ff3d78;
   --violet: #7a3cff;
-  --lime: #c6ffb1;
-  --emerald: #3ddc6a;
-  --emerald-deep: #063d1c;
+  --lime: #ffd2a8;
+  --emerald: #ff7a45;
+  --emerald-deep: #4a1a05;
   --grad: linear-gradient(100deg, #ff9a1a 0%, #ff4d6a 36%, #e23cff 68%, #6a4dff 100%);
-  --grad-bar: linear-gradient(90deg, #14b86a 0%, #d8ff86 14%, #ff9a1a 34%, #ff4d6a 62%, #7a3cff 100%);
-  --grad-green: linear-gradient(135deg, #083d22 0%, #18c26a 46%, #d8ff86 100%);
+  --grad-bar: linear-gradient(90deg, #ffb020 0%, #ff9a1a 22%, #ff4d6a 60%, #7a3cff 100%);
+  --grad-green: linear-gradient(135deg, #4a1a05 0%, #ff7a45 46%, #ffd2a8 100%);
   --danger: #ff8aa0;
   --radius: 22px;
   --font: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
@@ -207,7 +207,7 @@ summary:focus-visible {
 
 .btn-green {
   background: var(--grad-green);
-  color: #04140c;
+  color: #2b0e02;
 }
 
 .btn-ghost {
@@ -331,6 +331,8 @@ textarea { min-height: 120px; }
 }
 
 .hero-links a { color: var(--lime); font-weight: 650; }
+.hero-links a.btn-white { color: #0b0b0c; }
+.hero-links a.btn-ghost { color: var(--ink); }
 
 .preview {
   border-radius: 28px;
@@ -373,7 +375,7 @@ textarea { min-height: 120px; }
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(61, 220, 106, 0.14);
+  background: rgba(255, 122, 69, 0.14);
   color: var(--lime);
   font-size: 12px;
   font-weight: 700;
@@ -437,7 +439,7 @@ textarea { min-height: 120px; }
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--grad-green);
-  color: #04140c;
+  color: #2b0e02;
   font-size: 12px;
   font-weight: 750;
 }
@@ -508,7 +510,7 @@ textarea { min-height: 120px; }
   padding: 28px 22px;
   border-radius: 28px;
   background:
-    radial-gradient(500px 180px at 100% 0%, rgba(61, 220, 106, 0.2), transparent 60%),
+    radial-gradient(500px 180px at 100% 0%, rgba(255, 122, 69, 0.2), transparent 60%),
     #101012;
   border: 1px solid var(--line);
 }
@@ -585,7 +587,7 @@ footer { padding: 36px 0 28px; border-top: 1px solid var(--line); margin-top: 20
   font-weight: 700;
 }
 
-.badge.is-on, .badge-green { background: rgba(61, 220, 106, 0.16); color: var(--lime); }
+.badge.is-on, .badge-green { background: rgba(255, 122, 69, 0.16); color: var(--lime); }
 
 .badge-amber { background: rgba(255, 154, 26, 0.16); color: #ffc56b; }
 
@@ -612,7 +614,7 @@ input[type="checkbox"],
 input[type="radio"] {
   width: 1.15rem;
   height: 1.15rem;
-  accent-color: #3ddc6a;
+  accent-color: #ff7a45;
 }
 
 .error, .form-errors { color: var(--danger); margin: 6px 0 0; }
@@ -648,7 +650,7 @@ input[type="radio"] {
   border: 1px solid var(--line);
 }
 
-.flash-ok { border-color: rgba(61, 220, 106, 0.45); color: var(--lime); }
+.flash-ok { border-color: rgba(255, 122, 69, 0.45); color: var(--lime); }
 
 @media (max-width: 420px) {
   .brand-word { height: 28px; }

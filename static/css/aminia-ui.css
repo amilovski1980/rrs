@@ -120,3 +120,46 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
     display: flex;
   }
 }
+
+/* ---------- Panneau vocal Aminia sur téléphone : compact, centré, verre sombre ----------
+   Demande utilisateur : centré horizontalement, taille réduite, noir transparent
+   flouté conservé, uniquement la conversation — état de l'agent à la place du journal. */
+@media (max-width: 768px) {
+  .agent-dialog.voice-stage {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    margin: 0;
+    transform: translateX(-50%);
+    bottom: calc(var(--m-footer-h, 56px) + 14px + env(safe-area-inset-bottom, 0px));
+    width: min(356px, calc(100vw - 24px));
+    max-height: 68vh;
+    overflow-y: auto;
+    border-radius: 22px;
+    padding: 12px 14px 14px;
+    background: rgba(10, 10, 12, 0.68) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.75);
+  }
+  .agent-dialog.voice-stage .voice-stage-head { padding: 0 0 2px; }
+  .agent-dialog.voice-stage .voice-agent-title { font-size: 15px; }
+  .agent-dialog.voice-stage .voice-chat { max-height: 20vh; overflow-y: auto; }
+  .agent-dialog.voice-stage .voice-orb-wrap { padding: 2px 0 0; }
+  .agent-dialog.voice-stage .voice-orb { width: 92px; height: 92px; }
+  .agent-dialog.voice-stage .voice-core { width: 62px; height: 62px; }
+  .agent-dialog.voice-stage .voice-wave { height: 18px; }
+  /* Plus de journal d'activité affiché : l'état de l'agent suffit. */
+  .agent-dialog.voice-stage .agent-log { display: none !important; }
+  .agent-dialog.voice-stage .voice-status {
+    display: block !important;
+    text-align: center;
+    font-size: 11.5px;
+    letter-spacing: .2px;
+    color: rgba(255, 255, 255, 0.72);
+    margin: 2px 0 4px;
+  }
+  .agent-dialog.voice-stage .voice-chat-box .agent-chat-form input { height: 38px; }
+  .agent-dialog.voice-stage .voice-chat-actions { gap: 8px; }
+}

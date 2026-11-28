@@ -10,7 +10,7 @@
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="{% url 'pwa_manifest' %}">
   {% if request.dark_ui %}<meta name="theme-color" content="#070708">{% else %}<meta name="theme-color" content="#ffffff">{% endif %}
-  <title>{% block title %}Cockpit{% endblock %} — Road Runner Solutions</title>
+  <title>{% block title %}Cockpit{% endblock %} â€” Road Runner Solutions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   {% if request.dark_ui %}
@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="{% static 'css/invoice-preview.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-company-menu.css' %}?v=2026.11.16.3">
   <link rel="stylesheet" href="{% static 'css/mobile-fixes.css' %}?v=2026.11.19.5">
-  <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.17.1">
+  <link rel="stylesheet" href="{% static 'css/aminia-ui.css' %}?v=2026.11.28.2">
   {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.7">{% endif %}
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
@@ -58,7 +58,7 @@
 </style>
 {% endif %}
 <div class="shell" data-app-shell>
-  {# —— Header mobile (≤768px) : toggle à gauche, logo à droite —— #}
+  {# â€”â€” Header mobile (â‰¤768px) : toggle à gauche, logo à droite â€”â€” #}
   <header class="m-header" data-m-header>
     <button
       type="button"
@@ -76,7 +76,6 @@
         <img class="m-company-logo" src="{% url 'company_logo' %}?societe={{ top_company.id }}" alt="" width="32" height="32">
         {% elif request.dark_ui %}
         <img class="product-logo product-logo--sm" src="{% static 'img/dark/mark.png' %}" alt="" width="32" height="32">
-        <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
         {% else %}
         <img class="product-logo product-logo--sm" src="{% static 'img/logo-96.png' %}" alt="" width="32" height="32">
         {% endif %}
@@ -106,10 +105,10 @@
             <span class="company-switch-btn {{ co_cls }}" aria-hidden="true">{{ c|company_initial }}</span>
             <span class="m-company-row-text">
               <b>{{ c.denomination }}</b>
-              <small>SIREN {{ c.siren }}{% if c.deadline_info %} · ⏰ {{ c.deadline_info.label|truncatechars:18 }} ({{ c.deadline_info.days }} j){% endif %}</small>
+              <small>SIREN {{ c.siren }}{% if c.deadline_info %} · â° {{ c.deadline_info.label|truncatechars:18 }} ({{ c.deadline_info.days }} j){% endif %}</small>
             </span>
             {% if c.deadline_info %}<span class="m-company-dot" aria-hidden="true"></span>{% endif %}
-            {% if top_company and top_company.id == c.id %}<span class="m-company-check" aria-hidden="true">✓</span>{% endif %}
+            {% if top_company and top_company.id == c.id %}<span class="m-company-check" aria-hidden="true">âœ“</span>{% endif %}
           </a>
           {% endfor %}
           <a class="m-company-add" href="{% if forfait.locks.extra_company %}{% url 'plan_upgrade' %}{% else %}{% url 'onboarding' %}{% endif %}">
@@ -328,17 +327,17 @@
     <main class="content">
     {% if top_company and deadline_alert %}
     <div class="deadline-strip" role="status">
-      <span class="deadline-strip-ico" aria-hidden="true">⏰</span>
+      <span class="deadline-strip-ico" aria-hidden="true">â°</span>
       <span class="deadline-strip-copy">
         <b>{{ deadline_alert.label }}</b>
-        — {{ deadline_alert.date|date:"d/m/Y" }} (dans {{ deadline_alert.days }} j)
+        â€” {{ deadline_alert.date|date:"d/m/Y" }} (dans {{ deadline_alert.days }} j)
       </span>
       <a class="deadline-strip-link" href="{% url 'cockpit' %}?societe={{ top_company.id }}">Voir</a>
     </div>
     {% endif %}
       {% if request.session.demo_mode %}
       <div class="demo-readonly-banner" role="alert">
-        <b>Mode démo</b> — lecture seule. Aucune modification n'est enregistrée.
+        <b>Mode démo</b> â€” lecture seule. Aucune modification n'est enregistrée.
         <a href="{% url 'logout' %}">Se déconnecter</a> puis se connecter avec un compte réel pour travailler sur vos documents.
       </div>
       {% endif %}
@@ -353,7 +352,7 @@
     </main>
   </div>
 
-  {# —— Footer mobile (≤768px) : gestes quotidiens façon app bancaire —— #}
+  {# â€”â€” Footer mobile (â‰¤768px) : gestes quotidiens façon app bancaire â€”â€” #}
   {# Accueil · Trésorerie · Factures (centre surélevé) · Aminia · Plus (tiroir) #}
   <nav class="m-footer" data-m-footer aria-label="Navigation principale">
     <a class="m-footer-btn {% if request.resolver_match.url_name == 'cockpit' %}active{% endif %}" href="{% url 'cockpit' %}"{% if request.resolver_match.url_name == 'cockpit' %} aria-current="page"{% endif %}>
@@ -425,12 +424,12 @@
         popup.hidden = true;
         popup.innerHTML =
           '<div class="pwa-popup" role="dialog" aria-label="Installer l\'application">' +
-          '  <span class="pwa-popup-emoji" aria-hidden="true">📲</span>' +
+          '  <span class="pwa-popup-emoji" aria-hidden="true">ðŸ“²</span>' +
           '  <h3>Installer Road Runner Solutions</h3>' +
           '  <p class="pwa-popup-copy">Accédez à vos chiffres depuis l\'écran d\'accueil,' +
-          '  en plein écran — le mode d\'affichage actuel est conservé.</p>' +
+          '  en plein écran â€” le mode d\'affichage actuel est conservé.</p>' +
           '  <div class="pwa-popup-progress"><i data-popup-fill></i></div>' +
-          '  <p class="pwa-popup-state" data-popup-state>Ouverture…</p>' +
+          '  <p class="pwa-popup-state" data-popup-state>Ouvertureâ€¦</p>' +
           '  <div class="pwa-popup-actions">' +
           '    <button class="btn btn-primary" type="button" data-popup-install hidden>Installer maintenant</button>' +
           '    <button class="btn btn-ghost" type="button" data-popup-later>Plus tard</button>' +
@@ -447,7 +446,7 @@
         popup.querySelector("[data-popup-install]").addEventListener("click", function () {
           if (!deferred) return;
           var state = popup.querySelector("[data-popup-state]");
-          if (state) state.textContent = "Ouverture du menu système…";
+          if (state) state.textContent = "Ouverture du menu systèmeâ€¦";
           deferred.prompt();
           deferred.userChoice.then(function (choice) {
             deferred = null;
@@ -466,7 +465,7 @@
         var state = box.querySelector("[data-popup-state]");
         var installButton = box.querySelector("[data-popup-install]");
         if (fill) fill.style.width = "0%";
-        if (state) state.textContent = "Préparation de l'application…";
+        if (state) state.textContent = "Préparation de l'applicationâ€¦";
         if (installButton) installButton.hidden = mode !== "native";
         /* La barre se remplit seule : elle annonce qu'on est prêt. */
         requestAnimationFrame(function () {
@@ -476,15 +475,15 @@
         });
         setTimeout(function () {
           if (state) state.textContent = mode === "native"
-            ? "Prêt à installer ✓"
-            : "Prêt — suivez les 2 étapes ci-dessous ✓";
+            ? "Prêt à installer âœ“"
+            : "Prêt â€” suivez les 2 étapes ci-dessous âœ“";
         }, 1500);
         if (mode === "ios") {
           var copy = box.querySelector(".pwa-popup-copy");
           if (copy) {
             copy.innerHTML =
               "Sur iPhone : touchez <b>Partager</b> " +
-              '<span aria-hidden="true">⬆️</span> en bas de Safari, puis ' +
+              '<span aria-hidden="true">â¬†ï¸</span> en bas de Safari, puis ' +
               "<b>Sur l'écran d'accueil</b>. L'app s'ouvrira en plein écran.";
           }
         }
@@ -517,7 +516,7 @@
         closePopup(false);
       });
 
-      /* iOS : Safari n'émet pas beforeinstallprompt — même popup, chemin manuel. */
+      /* iOS : Safari n'émet pas beforeinstallprompt â€” même popup, chemin manuel. */
       var isIOSLike =
         /iphone|ipad|ipod/i.test(navigator.userAgent || "") ||
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);

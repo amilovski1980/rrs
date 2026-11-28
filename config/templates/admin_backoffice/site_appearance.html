@@ -1,0 +1,59 @@
+{% extends "admin_backoffice/base.html" %}
+{% block title %}Apparence du site{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Apparence du site</h1>
+    <p class="sub">Page d'accueil, couleur d'accent et logos — appliqués à la vitrine publique (version sombre officielle, la claire reste archivée).</p>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px">
+  <form method="post" enctype="multipart/form-data" class="form-stack">
+    {% csrf_token %}
+
+    <div>
+      <label for="home-title">Titre de la page d'accueil</label>
+      <input id="home-title" name="home_title" maxlength="160" value="{{ config.home_title }}" placeholder="La comptabilité de votre boîte, tenue nette.">
+      <p class="micro">Laissez vide pour garder le texte actuel de la vitrine.</p>
+    </div>
+    <div>
+      <label for="home-subtitle">Sous-titre</label>
+      <input id="home-subtitle" name="home_subtitle" maxlength="260" value="{{ config.home_subtitle }}" placeholder="Factures, encaissements, TVA et comptabilité — en temps réel.">
+    </div>
+
+    <div>
+      <label for="site-accent">Couleur d'accent du site</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input id="site-accent" type="color" name="site_accent" value="{% if config.site_accent %}{{ config.site_accent }}{% else %}#ff7a45{% endif %}" style="width:56px;height:44px;padding:4px">
+        <span class="micro">Liens, badges et accents de la vitrine. Vide = palette par défaut (orange → rouge → violet du logo).</span>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <label for="logo-dark">Logo version sombre (site /dark)</label>
+        <input id="logo-dark" type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+        {% if config.logo_dark %}
+        <p class="micro">Logo actuel : <a href="{% url 'admin_backoffice:public_site_logo' 'dark' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
+          · <label class="check-row"><input type="checkbox" name="remove_logo_dark"> Supprimer</label></p>
+        {% else %}
+        <p class="micro">Vide = logo Road Runner par défaut.</p>
+        {% endif %}
+      </div>
+      <div>
+        <label for="logo-light">Logo version claire</label>
+        <input id="logo-light" type="file" name="logo_light" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+        {% if config.logo_light %}
+        <p class="micro">Logo actuel : <a href="{% url 'admin_backoffice:public_site_logo' 'light' %}?v={{ config.pk }}" target="_blank" rel="noopener">voir</a>
+          · <label class="check-row"><input type="checkbox" name="remove_logo_light"> Supprimer</label></p>
+        {% else %}
+        <p class="micro">Vide = logo Road Runner par défaut.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Enregistrer l'apparence</button>
+  </form>
+</div>
+{% endblock %}
