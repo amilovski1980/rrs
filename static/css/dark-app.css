@@ -11,15 +11,15 @@ html[data-theme="dark"] {
   --thead-bg: rgba(255, 255, 255, 0.05);
   --scrollbar-thumb: rgba(255, 255, 255, 0.18);
   --blue: #f4f4f5;
-  --blue-2: #a7f3d0;
-  --blue-soft: rgba(52, 211, 153, 0.16);
+  --blue-2: #ffd2a8;
+  --blue-soft: rgba(255, 122, 69, 0.16);
   --blue-pale: rgba(255, 255, 255, 0.04);
   --pink: #ff4d8d;
   --pink-soft: rgba(255, 77, 141, 0.16);
   --red: #ff8aa0;
   --red-soft: rgba(255, 61, 120, 0.12);
   --green: #34d399;
-  --green-soft: rgba(52, 211, 153, 0.14);
+  --green-soft: rgba(255, 122, 69, 0.14);
   --amber: #ffb020;
   --amber-soft: rgba(255, 154, 26, 0.16);
   --line: rgba(255, 255, 255, 0.12);
@@ -60,7 +60,7 @@ html[data-theme="dark"] .module {
 html[data-theme="dark"] .sidebar {
   border-right: 1px solid var(--line);
   border-top: 3px solid transparent;
-  border-image: linear-gradient(90deg, #10b981, #a7f3d0 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff) 1;
+  border-image: linear-gradient(90deg, #ff7a45, #ffd2a8 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff) 1;
 }
 
 html[data-theme="dark"] .brand img,
@@ -93,8 +93,8 @@ html[data-theme="dark"] .user-chip {
 html[data-theme="dark"] .side-link { color: var(--ink-2); }
 html[data-theme="dark"] .side-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 html[data-theme="dark"] .side-link.active {
-  background: rgba(52, 211, 153, 0.14);
-  color: #a7f3d0;
+  background: rgba(255, 122, 69, 0.14);
+  color: #ffd2a8;
   box-shadow: inset 3px 0 0 #34d399;
 }
 
@@ -145,7 +145,7 @@ html[data-theme="dark"] .btn-danger {
 }
 html[data-theme="dark"] .btn-danger:hover { background: rgba(255, 61, 120, 0.16); color: #ffb3c4; }
 
-html[data-theme="dark"] a { color: #a7f3d0; }
+html[data-theme="dark"] a { color: #ffd2a8; }
 html[data-theme="dark"] a:hover { color: #fff; }
 html[data-theme="dark"] .side-link,
 html[data-theme="dark"] .m-footer-btn,
@@ -162,7 +162,7 @@ html[data-theme="dark"] input:focus,
 html[data-theme="dark"] select:focus,
 html[data-theme="dark"] textarea:focus {
   border-color: #34d399;
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+  box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.2);
 }
 
 html[data-theme="dark"] table,
@@ -183,7 +183,7 @@ html[data-theme="dark"] .invoice-preview-ttc { border-left-color: var(--line); }
 
 html[data-theme="dark"] .badge { border-color: transparent; }
 html[data-theme="dark"] .badge-blue { background: rgba(122, 60, 255, 0.25); color: #fff; }
-html[data-theme="dark"] .badge-green { background: rgba(52, 211, 153, 0.16); color: #a7f3d0; }
+html[data-theme="dark"] .badge-green { background: rgba(255, 122, 69, 0.16); color: #ffd2a8; }
 html[data-theme="dark"] .badge-amber { background: rgba(255, 154, 26, 0.18); color: #ffc56b; }
 
 html[data-theme="dark"] .kpi { border-top: 3px solid #34d399; }
@@ -267,7 +267,7 @@ html[data-theme="dark"] .agent-dialog {
   border: 1px solid var(--line);
 }
 html[data-theme="dark"] .agent-fab-orb {
-  background: linear-gradient(135deg, #064e3b, #10b981 50%, #a7f3d0);
+  background: linear-gradient(135deg, #4a1a05, #ff7a45 50%, #ffd2a8);
 }
 html[data-theme="dark"] .agent-chat-bubble--user {
   background: var(--blue-2);
@@ -308,7 +308,7 @@ html[data-theme="dark"] .client-lookup-card {
 }
 html[data-theme="dark"] .client-lookup-card:hover,
 html[data-theme="dark"] .client-lookup-card:focus-within { border-color: rgba(255, 255, 255, 0.36); }
-html[data-theme="dark"] .client-lookup-kicker { color: #a7f3d0; }
+html[data-theme="dark"] .client-lookup-kicker { color: #ffd2a8; }
 html[data-theme="dark"] .client-lookup-status.is-error { color: #ff8aa0; }
 html[data-theme="dark"] .client-lookup-row input { background: #0c0c0e; color: var(--ink); }
 
@@ -325,11 +325,11 @@ html[data-theme="dark"] .sheet-azur .sheet-head h2,
 html[data-theme="dark"] .sheet-graphite .sheet-head,
 html[data-theme="dark"] .sheet-graphite .sheet-head h2 { color: #fff; }
 
-html[data-theme="dark"] .admin-chart-bar { background: linear-gradient(180deg, #a7f3d0, #10b981); }
+html[data-theme="dark"] .admin-chart-bar { background: linear-gradient(180deg, #ffd2a8, #ff7a45); }
 html[data-theme="dark"] .impersonation-banner { background: #3a2a08; color: #ffe7b0; border-color: #8a6d00; }
 html[data-theme="dark"] .impersonation-banner button { background: transparent; color: #ffe7b0; border-color: #ffe7b0; }
 
-html[data-theme="dark"] ::selection { background: rgba(52, 211, 153, 0.35); color: #fff; }
+html[data-theme="dark"] ::selection { background: rgba(255, 122, 69, 0.35); color: #fff; }
 
 /* Contacts, signature et actions d'envoi sous /dark */
 html[data-theme="dark"] .signature-preview {
@@ -344,12 +344,12 @@ html[data-theme="dark"] .actions-list form .btn {
 /* Aminia et recherche sous /dark : le bleu clair du thème rendait le micro
    blanc sur fond blanc. On repasse sur le vert signature. */
 html[data-theme="dark"] .agent-mic {
-  background: linear-gradient(135deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #ff7a45, #34d399);
   color: #07140c;
-  box-shadow: 0 10px 22px -12px rgba(52, 211, 153, .75);
+  box-shadow: 0 10px 22px -12px rgba(255, 122, 69, .75);
 }
 html[data-theme="dark"] .agent-mic:hover {
-  background: linear-gradient(135deg, #34d399, #a7f3d0);
+  background: linear-gradient(135deg, #34d399, #ffd2a8);
   color: #07140c;
 }
 html[data-theme="dark"] .agent-mic.is-listening {
@@ -360,13 +360,13 @@ html[data-theme="dark"] .agent-ring,
 html[data-theme="dark"] .agent-ring.r1,
 html[data-theme="dark"] .agent-ring.r2,
 html[data-theme="dark"] .agent-ring.r3 {
-  border-color: rgba(52, 211, 153, .42);
+  border-color: rgba(255, 122, 69, .42);
 }
 html[data-theme="dark"] .agent-core {
-  background: radial-gradient(circle at 34% 28%, #6ee7b7, #10b981 62%, #065f46);
-  box-shadow: 0 10px 20px -12px rgba(52, 211, 153, .8);
+  background: radial-gradient(circle at 34% 28%, #ffd2a8, #ff7a45 62%, #4a1a05);
+  box-shadow: 0 10px 20px -12px rgba(255, 122, 69, .8);
 }
-html[data-theme="dark"] .agent-status { color: #a7f3d0; }
+html[data-theme="dark"] .agent-status { color: #ffd2a8; }
 html[data-theme="dark"] .agent-note { color: var(--muted); }
 
 html[data-theme="dark"] .search-hit {
@@ -387,10 +387,10 @@ html[data-theme="dark"] .company-switch-btn.is-on {
   box-shadow: 0 0 0 2px #121214 inset;
 }
 html[data-theme="dark"] .kpi-spark i {
-  background: linear-gradient(180deg, #a7f3d0, #10b981);
+  background: linear-gradient(180deg, #ffd2a8, #ff7a45);
 }
 html[data-theme="dark"] .kpi-spark-clients i {
-  background: linear-gradient(180deg, #a7f3d0, #34d399);
+  background: linear-gradient(180deg, #ffd2a8, #34d399);
 }
 html[data-theme="dark"] .kpi-spark-vat i {
   background: linear-gradient(180deg, #ffe7b0, #ff9a1a);
@@ -401,8 +401,8 @@ html[data-theme="dark"] .tag-late {
   border-color: rgba(255, 61, 120, .35);
 }
 html[data-theme="dark"] .mail-google-box {
-  background: rgba(52, 211, 153, .08);
-  border-color: rgba(52, 211, 153, .28);
+  background: rgba(255, 122, 69, .08);
+  border-color: rgba(255, 122, 69, .28);
 }
 html[data-theme="dark"] .ticket-upload-hero,
 html[data-theme="dark"] .ticket-mini-stats > div,
@@ -412,12 +412,12 @@ html[data-theme="dark"] .ticket-dropzone {
 }
 html[data-theme="dark"] .ticket-upload-icon,
 html[data-theme="dark"] .ticket-dropzone input[type="file"]::file-selector-button {
-  background: linear-gradient(135deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #ff7a45, #34d399);
   color: #07140c;
 }
 html[data-theme="dark"] .ticket-category {
-  background: rgba(52, 211, 153, .14);
-  color: #a7f3d0;
+  background: rgba(255, 122, 69, .14);
+  color: #ffd2a8;
 }
 html[data-theme="dark"] .ticket-image-preview { background: #fff; border-color: var(--line); }
 html[data-theme="dark"] .inv-mobile-card { background: #121214; }
@@ -428,7 +428,7 @@ html[data-theme="dark"] .product-suggestions {
 }
 html[data-theme="dark"] .product-suggestion:hover,
 html[data-theme="dark"] .product-suggestion[aria-selected="true"] {
-  background: rgba(52, 211, 153, .12);
+  background: rgba(255, 122, 69, .12);
 }
 
 

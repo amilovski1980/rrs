@@ -6,37 +6,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% if seo_title %}{{ seo_title }}{% else %}{% block title %}Compta des startups{% endblock %} - Road Runner{% endif %}</title>
   <meta name="description" content="{% if seo_description %}{{ seo_description }}{% else %}Road Runner pour les jeunes sociétés : factures, grand livre et TVA, à partir du nom, du SIREN ou du SIRET.{% endif %}">
-  <meta name="theme-color" content="#070708">
+  <meta name="theme-color" id="rrs-theme-color" content="#070708">
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem("rrs-theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+          var meta = document.getElementById("rrs-theme-color");
+          if (meta) meta.setAttribute("content", "#f8f5f0");
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="{% static 'img/dark/favicon-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/dark/mark-192.png' %}">
   {% include "partials/ios_splash_links.html" with theme="dark" %}
-  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.16.3">
+  <link rel="stylesheet" href="{% static 'css/dark.css' %}?v=2026.11.28.4">
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
 </head>
 <body>
   {% include "partials/splash_entry.html" with theme="dark" %}
   <div class="accent-bar" aria-hidden="true"></div>
-  {% if site_accent %}<style>:root { --lime: {{ site_accent }}; --emerald: {{ site_accent }}; }</style>{% endif %}
+  {% if site_accent %}<style>
+    :root { --lime: {{ site_accent }}; --emerald: {{ site_accent }}; }
+    html[data-theme="light"] { --lime: {{ site_accent_light }}; --emerald: {{ site_accent_light }}; }
+  </style>{% endif %}
   <header class="nav">
     <div class="container nav-in">
       <a class="brand" href="{% url 'landing' %}" aria-label="Road Runner — accueil">
         {% if has_logo_dark %}
-        <img class="brand-mark" src="{% url 'admin_backoffice:public_site_logo' 'dark' %}" alt="" width="42" height="42">
+        <img class="brand-mark theme-dark-only" src="{% url 'admin_backoffice:public_site_logo' 'dark' %}" alt="" width="42" height="42">
         {% else %}
-        <img class="brand-mark" src="{% static 'img/dark/mark.png' %}" alt="" width="42" height="42">
+        <img class="brand-mark theme-dark-only" src="{% static 'img/dark/mark.png' %}" alt="" width="42" height="42">
+        {% endif %}
+        {% if has_logo_light %}
+        <img class="brand-mark theme-light-only" src="{% url 'admin_backoffice:public_site_logo' 'light' %}" alt="" width="42" height="42">
+        {% else %}
+        <img class="brand-mark theme-light-only" src="{% static 'img/mark-light.png' %}" alt="" width="42" height="42">
         {% endif %}
       </a>
       <nav class="nav-inline" aria-label="Navigation">
         <a class="nav-text" href="{% url 'landing' %}#produit">Produit</a>
         <a class="nav-text" href="{% url 'landing' %}#pricing">Forfaits</a>
         <a class="nav-text" href="{% url 'landing' %}#aminia">Aminia</a>
+        <button class="nav-theme" type="button" data-theme-toggle aria-pressed="false" aria-label="Passer en version claire" title="Version claire">
+          <svg class="ico-sun" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"></circle>
+            <path d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"></path>
+          </svg>
+          <svg class="ico-moon" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.4 14.3A8.5 8.5 0 0 1 9.7 3.6a8.5 8.5 0 1 0 10.7 10.7Z"></path>
+          </svg>
+        </button>
         {% if request.user.is_authenticated %}
-          <a class="btn btn-white" href="{% url 'cockpit' %}">Mon cockpit</a>
+          <a class="btn btn-white" href="{{ public_dark_prefix }}{% url 'cockpit' %}">Mon cockpit</a>
         {% else %}
-          <a class="btn btn-ghost" href="{% url 'magic_link_request' %}">Connexion</a>
+          <a class="btn btn-ghost" href="{{ public_dark_prefix }}{% url 'magic_link_request' %}">Connexion</a>
           <a class="btn btn-white" href="{% url 'landing' %}#recherche">Trouver ma boîte</a>
         {% endif %}
       </nav>
@@ -47,10 +75,19 @@
           <a href="{% url 'landing' %}#pricing">Forfaits</a>
           <a href="{% url 'landing' %}#aminia">Aminia</a>
           <a href="{% url 'landing' %}#recherche">Trouver ma boîte</a>
+          <button class="nav-theme" type="button" data-theme-toggle aria-pressed="false" aria-label="Passer en version claire" title="Version claire">
+            <svg class="ico-sun" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <path d="M12 2.6v2.1M12 19.3v2.1M2.6 12h2.1M19.3 12h2.1M5.4 5.4l1.5 1.5M17.1 17.1l1.5 1.5M18.6 5.4l-1.5 1.5M6.9 17.1l-1.5 1.5"></path>
+            </svg>
+            <svg class="ico-moon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.4 14.3A8.5 8.5 0 0 1 9.7 3.6a8.5 8.5 0 1 0 10.7 10.7Z"></path>
+            </svg>
+          </button>
           {% if request.user.is_authenticated %}
-            <a href="{% url 'cockpit' %}">Mon cockpit</a>
+            <a href="{{ public_dark_prefix }}{% url 'cockpit' %}">Mon cockpit</a>
           {% else %}
-            <a href="{% url 'magic_link_request' %}">Connexion</a>
+            <a href="{{ public_dark_prefix }}{% url 'magic_link_request' %}">Connexion</a>
           {% endif %}
         </div>
       </details>
@@ -66,7 +103,8 @@
       <div class="foot-main">
         <div class="foot-brand">
           <a class="brand" href="{% url 'landing' %}">
-            <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="148" height="32">
+            <img class="brand-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="148" height="32">
+            <img class="brand-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="148" height="32">
           </a>
           <p>Factures, grand livre et TVA pour les sociétés qui démarrent. Fiche officielle, écritures contrôlées, hébergement en France.</p>
         </div>
@@ -82,9 +120,9 @@
         <div>
           <h4>Compte</h4>
           <ul>
-            <li><a href="{% url 'magic_link_request' %}">Connexion</a></li>
-            <li><a href="{% url 'password_reset' %}">Mot de passe oublié</a></li>
-            <li><a href="{% url 'demo_login' %}">Voir la démo</a></li>
+            <li><a href="{{ public_dark_prefix }}{% url 'magic_link_request' %}">Connexion</a></li>
+            <li><a href="{{ public_dark_prefix }}{% url 'password_reset' %}">Mot de passe oublié</a></li>
+            <li><a href="{{ public_dark_prefix }}{% url 'demo_login' %}">Voir la démo</a></li>
             <li><a href="mailto:admin@road-runner-solutions.com">Contact</a></li>
           </ul>
         </div>
@@ -100,9 +138,10 @@
       </div>
       <div class="foot-bottom">
         <div>© {% now "Y" %} Road Runner One SAS</div>
-        <div>Données en UE · Diffusion Vercel · RGPD · Données cloisonnées</div>
+        <div>Données en UE · Hébergement en France · RGPD · Données cloisonnées</div>
       </div>
     </div>
   </footer>
+  <script src="{% static 'js/public-theme.js' %}?v=2026.11.28.1" defer></script>
 </body>
 </html>

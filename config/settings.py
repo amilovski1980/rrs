@@ -95,6 +95,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "billing.context.forfait",
                 "companies.context.company_switcher",
+                "core.public_theme.public_theme_context",
             ],
         },
     },

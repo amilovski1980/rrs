@@ -45,9 +45,9 @@ class SignupFlowTests(TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="q"')
-        self.assertContains(response, 'action="/recherche/"')
+        self.assertContains(response, 'action="/dark/recherche/"')
         self.assertContains(response, "Essayer la démo")
-        self.assertContains(response, "/compte/demo/")
+        self.assertContains(response, "/dark/compte/demo/")
         self.assertContains(response, "J'ai déjà un compte")
         self.assertNotContains(response, "data-siren-search")
 

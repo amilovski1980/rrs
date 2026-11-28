@@ -13,12 +13,12 @@ class DarkApplicationTests(TestCase):
             "staff-dark@exemple.fr", password=PASSWORD, is_staff=True,
         )
 
-    def test_light_home_and_cockpit_keep_the_original_chrome(self):
+    def test_light_cockpit_keeps_the_original_chrome(self):
         home = self.client.get("/")
-        self.assertContains(home, "enfin sans friction")
-        self.assertContains(home, "app.css")
+        self.assertContains(home, "dark.css")
+        self.assertContains(home, 'data-theme="dark"')
+        self.assertNotContains(home, "app.css")
         self.assertNotContains(home, "dark-app.css")
-        self.assertNotContains(home, 'data-theme="dark"')
 
         self.client.force_login(self.client_user)
         cockpit = self.client.get("/cockpit/")

@@ -1,16 +1,32 @@
-{% comment %} Splash d'ouverture — vrai logo, theme clair par defaut, theme="dark" pour sombre.
-Joue au premier lancement apres fermeture (et re-joue apres une heure sans visite). {% endcomment %}
+{% comment %} Splash d'ouverture — même page, deux thèmes. theme="dark" pour la vitrine
+officielle : il suit ensuite la bascule clair / sombre. Joue au premier lancement
+après fermeture (et re-joue après une heure sans visite). {% endcomment %}
 <style>
   #rrs-splash {
+    --splash-bg: {% if theme == 'dark' %}#070708{% else %}#ffffff{% endif %};
+    --splash-ink: {% if theme == 'dark' %}#f4f4f4{% else %}#0f172a{% endif %};
+    --splash-muted: {% if theme == 'dark' %}#8e8e8e{% else %}#64748b{% endif %};
+    --splash-ring: {% if theme == 'dark' %}rgba(207, 207, 207, .38){% else %}rgba(90, 160, 255, .45){% endif %};
+    --splash-bar: {% if theme == 'dark' %}rgba(255, 255, 255, .10){% else %}rgba(15, 23, 42, .10){% endif %};
     position: fixed; inset: 0; z-index: 300;
     display: grid; place-items: center;
-    {% if theme == 'dark' %}
-    background: radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .18) 0%, transparent 58%), #070708;
-    {% else %}
-    background: radial-gradient(120% 90% at 78% 6%, rgba(37, 99, 235, .12) 0%, transparent 58%), #ffffff;
-    {% endif %}
+    background:
+      radial-gradient(120% 90% at 78% 6%, rgba(255, 154, 26, .16) 0%, transparent 58%),
+      var(--splash-bg);
     animation: rrsSplashOut .55s cubic-bezier(.6, 0, .3, 1) 1.9s forwards;
   }
+  {% if theme == 'dark' %}
+  html[data-theme="light"] #rrs-splash {
+    --splash-bg: #f8f5f0;
+    --splash-ink: #17120e;
+    --splash-muted: #5f544b;
+    --splash-ring: rgba(23, 18, 14, .22);
+    --splash-bar: rgba(23, 18, 14, .10);
+  }
+  #rrs-splash .rrs-logo.splash-light { display: none; }
+  html[data-theme="light"] #rrs-splash .rrs-logo.splash-dark { display: none; }
+  html[data-theme="light"] #rrs-splash .rrs-logo.splash-light { display: block; }
+  {% endif %}
   #rrs-splash .rrs-logo-wrap {
     position: relative; display: grid; place-items: center;
     width: 118px; height: 118px;
@@ -18,7 +34,7 @@ Joue au premier lancement apres fermeture (et re-joue apres une heure sans visit
   }
   #rrs-splash .rrs-logo-wrap::before {
     content: ""; position: absolute; inset: -8px; border-radius: 32px;
-    border: 1px solid {% if theme == 'dark' %}rgba(207, 207, 207, .38){% else %}rgba(90, 160, 255, .45){% endif %};
+    border: 1px solid var(--splash-ring);
     animation: rrsRing 2.2s ease-out infinite;
   }
   #rrs-splash .rrs-logo {
@@ -29,25 +45,21 @@ Joue au premier lancement apres fermeture (et re-joue apres une heure sans visit
   #rrs-splash .rrs-word { text-align: center; font-family: "Segoe UI", Inter, system-ui, sans-serif; animation: rrsIn .7s ease both; }
   #rrs-splash .rrs-word b {
     display: block; font-size: 20px; letter-spacing: -.03em;
-    {% if theme == 'dark' %}color: #f4f4f4;{% else %}color: #0f172a;{% endif %}
+    color: var(--splash-ink);
   }
   #rrs-splash .rrs-word small {
     display: block; font-size: 10px; font-weight: 800; letter-spacing: .34em;
     text-transform: uppercase; padding-left: .34em;
-    {% if theme == 'dark' %}color: #8e8e8e;{% else %}color: #64748b;{% endif %}
+    color: var(--splash-muted);
   }
   #rrs-splash .rrs-bar {
     width: min(62vw, 230px); height: 5px; border-radius: 999px; overflow: hidden;
-    {% if theme == 'dark' %}background: rgba(255, 255, 255, .10);{% else %}background: rgba(15, 23, 42, .10);{% endif %}
+    background: var(--splash-bar);
   }
   #rrs-splash .rrs-bar i {
     display: block; width: 0; height: 100%; border-radius: inherit;
     background-size: 200% 100%;
-    {% if theme == 'dark' %}
-    background-image: linear-gradient(90deg, #3ddc6a, #c6ffb1, #f4f4f4);
-    {% else %}
-    background-image: linear-gradient(90deg, #2563eb, #5aa0ff, #8fce9a);
-    {% endif %}
+    background-image: linear-gradient(90deg, #ffb020, #ff4d6a, #7a3cff);
     animation: rrsFill 1.9s cubic-bezier(.4, 0, .2, 1) forwards, rrsGlow 1.3s linear infinite;
   }
   @keyframes rrsSplashOut { 55% { opacity: 1; } 100% { opacity: 0; transform: scale(1.05); visibility: hidden; } }
@@ -64,7 +76,8 @@ Joue au premier lancement apres fermeture (et re-joue apres une heure sans visit
   <div class="rrs-inner">
     <div class="rrs-logo-wrap">
       {% if theme == 'dark' %}
-      <img class="rrs-logo" src="/static/img/dark/mark.png" alt="Road Runner Solutions">
+      <img class="rrs-logo splash-dark" src="/static/img/dark/mark.png" alt="Road Runner Solutions">
+      <img class="rrs-logo splash-light" src="/static/img/mark-light.png" alt="Road Runner Solutions">
       {% else %}
       <img class="rrs-logo" src="/static/img/logo-192.png" alt="Road Runner Solutions">
       {% endif %}

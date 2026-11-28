@@ -161,6 +161,21 @@ class CompanyProfileForm(forms.Form):
     email = forms.EmailField(label="Email de facturation", required=False)
 
 
+def _readable_on_light(hex_color: str) -> str:
+    """Variante assez foncée d'une couleur d'accent pour rester lisible sur fond clair."""
+    value = (hex_color or "").strip().lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    if len(value) != 6:
+        return hex_color
+    try:
+        red, green, blue = (int(value[index:index + 2], 16) for index in (0, 2, 4))
+    except ValueError:
+        return hex_color
+    factor = 0.55
+    return "#{:02x}{:02x}{:02x}".format(int(red * factor), int(green * factor), int(blue * factor))
+
+
 def _site_appearance_context() -> dict:
     """Apparence public gérée au back-office : logo, accent, titre d'accueil."""
     try:
@@ -170,10 +185,12 @@ def _site_appearance_context() -> dict:
     except Exception:
         config = None
     accent = (getattr(config, "site_accent", "") or "").strip()
+    accent = accent if accent.startswith("#") and len(accent) in (4, 7) else ""
     return {
         "seo_title": (getattr(config, "seo_title", "") or "").strip(),
         "seo_description": (getattr(config, "seo_description", "") or "").strip(),
-        "site_accent": accent if accent.startswith("#") and len(accent) in (4, 7) else "",
+        "site_accent": accent,
+        "site_accent_light": _readable_on_light(accent) if accent else "",
         "home_title": (getattr(config, "home_title", "") or "").strip(),
         "home_subtitle": (getattr(config, "home_subtitle", "") or "").strip(),
         "has_logo_dark": bool(getattr(config, "logo_dark", None)),

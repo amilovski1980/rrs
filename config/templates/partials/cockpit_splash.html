@@ -11,6 +11,7 @@
       width="838"
       height="562"
     >
+    {% if request.dark_ui %}
     <div class="cockpit-splash-logo cockpit-splash-logo--dark">
       <img
         class="cockpit-splash-mark"
@@ -27,6 +28,7 @@
         height="59"
       >
     </div>
+    {% endif %}
     <div
       class="cockpit-splash-track"
       role="progressbar"

@@ -1,20 +1,23 @@
-{% extends "base.html" %}
-{% block crumbs %}Informations légales{% endblock %}
+{% extends "dark/base_public.html" %}
 {% block content %}
-<div class="page-head legal-head">
-  <div>
-    <p class="legal-kicker">ROAD RUNNER SOLUTIONS · Informations légales</p>
-    <h1>{% block legal_heading %}Informations légales{% endblock %}</h1>
-    <p class="sub">{% block legal_sub %}Documents juridiques de la plateforme éditée par Road Runner One.{% endblock %}</p>
+<div class="page">
+  <div class="container">
+    <div class="page-head legal-head">
+      <div>
+        <p class="legal-kicker">ROAD RUNNER SOLUTIONS — Informations légales</p>
+        <h1>{% block legal_heading %}Informations légales{% endblock %}</h1>
+        <p class="sub">{% block legal_sub %}Documents juridiques de la plateforme éditée par Road Runner One.{% endblock %}</p>
+      </div>
+    </div>
+
+    {% include "companies/_legal_nav.html" %}
+
+    <article class="card legal-doc">
+      <p class="legal-updated">{% block legal_updated %}Dernière mise à jour : 14 novembre 2026{% endblock %}</p>
+      {% block legal_content %}{% endblock %}
+    </article>
+
+    {% include "companies/_legal_nav.html" %}
   </div>
 </div>
-
-{% include "companies/_legal_nav.html" %}
-
-<article class="card legal-doc">
-  <p class="legal-updated">{% block legal_updated %}Dernière mise à jour : 14 novembre 2026{% endblock %}</p>
-  {% block legal_content %}{% endblock %}
-</article>
-
-{% include "companies/_legal_nav.html" %}
 {% endblock %}

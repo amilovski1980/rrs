@@ -5,7 +5,8 @@
 <header class="hero">
   <div class="container hero-grid">
     <div>
-      <img class="hero-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="560" height="121">
+      <img class="hero-word theme-dark-only" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="560" height="121">
+      <img class="hero-word theme-light-only" src="{% static 'img/wordmark-light.png' %}" alt="Road Runner" width="560" height="121">
       <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Facturation électronique 2026</p>
       <h1>{% if home_title %}{{ home_title }}{% else %}La compta de votre startup, <span class="accent">tenue nette.</span>{% endif %}</h1>
       <p class="lead">
@@ -14,15 +15,15 @@
       </p>
       <div class="hero-search" id="recherche">
         <p>Trouver ma boîte</p>
-        <form class="siren-box" action="{% url 'company_search' %}" method="get" role="search">
+        <form class="siren-box" action="{{ public_dark_prefix }}{% url 'company_search' %}" method="get" role="search">
           <label class="sr-only" for="company-query">Nom, SIREN ou SIRET</label>
           <input id="company-query" name="q" maxlength="80" placeholder="Nom, SIREN ou SIRET" aria-label="Nom de société, SIREN ou SIRET" autocomplete="organization">
           <button class="btn btn-gradient" type="submit">Rechercher</button>
         </form>
         <p class="help">Annuaire public des entreprises. Rien n'est enregistré tant que vous n'avez pas confirmé la fiche.</p>
         <p class="hero-links">
-          <a class="btn btn-white btn-sm" href="{% url 'demo_login' %}">Essayer la démo</a>
-          <a class="btn btn-ghost btn-sm" href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
+          <a class="btn btn-white btn-sm" href="{{ public_dark_prefix }}{% url 'demo_login' %}">Essayer la démo</a>
+          <a class="btn btn-ghost btn-sm" href="{{ public_dark_prefix }}{% url 'magic_link_request' %}">J'ai déjà un compte</a>
         </p>
       </div>
       <p class="micro">{{ pricing_trial_line }}</p>
@@ -55,7 +56,7 @@
       <b>Trouver la société</b>
       <span>Nom, SIREN ou SIRET. La fiche officielle, puis votre espace.</span>
     </a>
-    <a class="quick-card" href="{% url 'magic_link_request' %}">
+    <a class="quick-card" href="{{ public_dark_prefix }}{% url 'magic_link_request' %}">
       <b>Revenir au cockpit</b>
       <span>Email et mot de passe du compte déjà ouvert.</span>
     </a>

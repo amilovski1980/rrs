@@ -138,7 +138,7 @@ html[data-theme="dark"] .settings-callout {
   background: rgba(198, 255, 177, .08); color: var(--ink-2);
   border-left-color: var(--blue-2);
 }
-html[data-theme="dark"] .settings-kicker { color: #c6ffb1; }
+html[data-theme="dark"] .settings-kicker { color: #ffd2a8; }
 
 @media (max-width: 900px) {
   .settings-layout { grid-template-columns: 1fr; }
@@ -175,4 +175,9 @@ html[data-theme="dark"] .prompt-preview {
   color: #d4d4d8;
   background: rgba(255, 255, 255, .05);
   border-color: rgba(255, 255, 255, .12);
+}
+
+/* Wordmark de la barre latérale : desktop uniquement (le header mobile reste sans). */
+@media (max-width: 900px) {
+  .sidebar .brand-word { display: none; }
 }

@@ -223,6 +223,30 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, "utility-in")
         self.assertContains(response, 'class="nav"')
 
+    def test_home_stays_in_dark_funnel_and_exposes_theme_toggle(self):
+        response = self.client.get("/")
+        body = response.content.decode()
+        self.assertContains(response, "data-theme-toggle")
+        self.assertContains(response, "css/dark.css")
+        self.assertIn('href="/dark/compte/"', body)
+        self.assertNotIn('href="/compte/"', body)
+        self.assertIn("img/mark-light.png", body)
+        self.assertIn("img/wordmark-light.png", body)
+
+    def test_light_theme_is_token_inversion(self):
+        from django.contrib.staticfiles import finders
+
+        css = open(finders.find("css/dark.css"), encoding="utf-8").read()
+        self.assertIn('html[data-theme="light"]', css)
+        self.assertIn("--bg: #f8f5f0;", css)
+        self.assertIn("--ink: #17120e;", css)
+
+    def test_legal_pages_use_public_dark_theme(self):
+        response = self.client.get("/mentions-legales/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "css/dark.css")
+        self.assertContains(response, "legal-doc")
+
 
 
 

@@ -57,7 +57,7 @@ html[data-theme="dark"] .cockpit-splash {
 }
 
 html[data-theme="dark"] .cockpit-splash-accent {
-  background: linear-gradient(90deg, #10b981, #a7f3d0 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff);
+  background: linear-gradient(90deg, #ff7a45, #ffd2a8 18%, #ff9a1a 40%, #ff4d6a 70%, #7a3cff);
 }
 
 .cockpit-splash-stage {

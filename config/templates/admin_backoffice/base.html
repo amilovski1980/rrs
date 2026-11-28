@@ -15,9 +15,9 @@
   <link rel="icon" type="image/png" href="{% static 'img/logo-48.png' %}">
   <link rel="apple-touch-icon" href="{% static 'img/logo-192.png' %}">
   {% endif %}
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.19.10">
-  <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.19.1">
-  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.16.5">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2026.11.28.2">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=2026.11.28.2">
+  {% if request.dark_ui %}<link rel="stylesheet" href="{% static 'css/dark-app.css' %}?v=2026.11.28.2">{% endif %}
   <link rel="stylesheet" href="{% static 'css/liquid-glass.css' %}?v=2026.11.19.3">
   {% block extra_head %}{% endblock %}
 </head>
@@ -55,6 +55,7 @@
     <a class="brand" href="{% url 'admin_backoffice:dashboard' %}">
       {% if request.dark_ui %}
       <img class="product-logo product-logo--md" src="{% static 'img/dark/mark.png' %}" alt="" width="40" height="40">
+      <img class="brand-word" src="{% static 'img/dark/wordmark.png' %}" alt="Road Runner" width="120" height="26">
       {% else %}
       <img class="product-logo product-logo--md" src="{% static 'img/logo-96.png' %}" alt="Road Runner Solutions" width="38" height="38">
       <span class="brand-text">

@@ -418,28 +418,24 @@ class HomepagePricingTests(TestCase):
         self.assertIn("Le montant débité correspond au prix affiché.", section)
         self.assertNotIn("TTC", section)
         self.assertNotIn("20 %", section)
-        self.assertIn('class="plan hot" data-plan="reel"', section)
-        self.assertIn("Le plus choisi", section)
-        self.assertIn("Sans carte bancaire · essai 14 jours", response.content.decode())
+        self.assertIn('class="plan is-hot" data-plan="reel"', section)
+        self.assertIn("Le bon palier", section)
+        self.assertIn("Sans carte bancaire · 14 jours pour tester", response.content.decode())
 
     def test_calls_to_action_reuse_company_search(self):
         response = self.client.get("/")
         self.assertContains(response, 'id="recherche"')
         self.assertContains(response, 'name="q"')
-        self.assertContains(response, 'action="/recherche/"')
+        self.assertContains(response, 'action="/dark/recherche/"')
         self.assertContains(response, "SIRET")
         section = _pricing_section(response)
         self.assertEqual(section.count('href="#recherche"'), 3)
-        self.assertContains(
-            response,
-            '<a class="btn btn-lg btn-primary" href="#recherche">Commencer l\'essai</a>',
-            html=True,
-        )
+        self.assertIn('<a class="btn btn-green" href="#recherche">Je me lance</a>', section)
         self.assertNotIn("/inscription/", section)
         self.assertNotIn("/forfait/", section)
         self.assertNotIn("plan_checkout", section)
-        self.assertIn("btn-lg btn-primary", section)
-        self.assertIn("btn-lg btn-ghost", section)
+        self.assertIn("btn-green", section)
+        self.assertIn("btn-ghost", section)
 
     def test_published_plans_replace_the_fallback(self):
         Plan.objects.create(
@@ -507,8 +503,8 @@ class HomepagePricingTests(TestCase):
         self.assertNotIn("49 €", section)
         self.assertNotIn("Tickets de caisse", section)
         self.assertNotIn("Voix Aminia", section)
-        self.assertNotIn("Le plus choisi", section)
-        self.assertIn("Sans carte bancaire · essai 7 jours", response.content.decode())
+        self.assertNotIn("Le bon palier", section)
+        self.assertIn("Sans carte bancaire · 7 jours pour tester", response.content.decode())
 
     def test_entitlement_edit_changes_the_reel_card(self):
         from billing.catalog import matrix_for_tier
@@ -538,7 +534,7 @@ class HomepagePricingTests(TestCase):
         self.assertIn("Devis", section)
         self.assertNotIn("catalogue", section)
         self.assertNotIn("projets", section)
-        self.assertIn('class="plan hot" data-plan="reel"', section)
+        self.assertIn('class="plan is-hot" data-plan="reel"', section)
         self.assertIn('href="#recherche"', section)
 
     def test_unpublished_plans_are_not_replaced_by_the_catalog(self):
@@ -555,7 +551,7 @@ class HomepagePricingTests(TestCase):
         self.assertNotIn("49 €", section)
         self.assertNotIn('href="#recherche"', section)
         self.assertContains(response, 'id="recherche"')
-        self.assertContains(response, 'action="/recherche/"')
+        self.assertContains(response, 'action="/dark/recherche/"')
 
     def test_database_error_falls_back_to_the_catalog(self):
         with mock.patch(

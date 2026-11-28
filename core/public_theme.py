@@ -46,6 +46,18 @@ def themed_redirect(request, viewname: str, *args, **kwargs):
     return redirect(themed_reverse(request, viewname, *args, **kwargs))
 
 
+def public_theme_context(request) -> dict:
+    """Préfixe des liens de la vitrine publique.
+
+    Le thème sombre est officiel : à la racine, les liens du parcours
+    (connexion, inscription, démo) pointent vers /dark pour rester dans le
+    même habillage. Sous /dark, Django ajoute déjà le préfixe aux {% url %}.
+    """
+    dark = bool(getattr(request, "dark_ui", False))
+    return {"public_dark_prefix": "" if dark else "/dark", "public_dark_path": dark}
+
+
+
 def with_dark_voice(context: dict) -> dict:
     """Même faits (prix, plafonds, matrice), autre phrase d'accroche."""
     from billing.catalog import CATALOG

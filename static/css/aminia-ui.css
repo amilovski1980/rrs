@@ -51,12 +51,12 @@
 }
 
 .agent-log li.ok {
-  color: var(--green, #15803d);
+  color: #b3400f;
   font-weight: 600;
 }
 
 [data-theme="dark"] .agent-log li.ok {
-  color: #4ade80;
+  color: #ffd2a8;
 }
 
 .agent-log li.error {
@@ -162,4 +162,277 @@ body.voice-shell-active.aminia-locked[data-theme="dark"] .agent-dialog,
   }
   .agent-dialog.voice-stage .voice-chat-box .agent-chat-form input { height: 38px; }
   .agent-dialog.voice-stage .voice-chat-actions { gap: 8px; }
+}
+
+/* ---------- Orbe Aminia : sphère de verre animée ----------
+   Même esprit que la carte cyberpunk : verre transparent, halo orange → rouge →
+   violet, égaliseur central et état de l'agent sous la sphère. */
+.agent-panel .agent-dialog.voice-stage {
+  background:
+    radial-gradient(520px 220px at 92% 4%, rgba(255, 154, 26, 0.12), transparent 62%),
+    radial-gradient(520px 240px at 6% 100%, rgba(122, 60, 255, 0.14), transparent 66%),
+    rgba(10, 10, 12, 0.72) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.agent-dialog.voice-stage .voice-orb {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.14), transparent 44%),
+    radial-gradient(
+      circle at 32% 30%,
+      rgba(255, 154, 26, 0.20) 0%,
+      rgba(255, 61, 120, 0.18) 38%,
+      rgba(122, 60, 255, 0.22) 68%,
+      rgba(10, 10, 12, 0.12) 100%
+    );
+  -webkit-backdrop-filter: blur(16px) saturate(165%);
+  backdrop-filter: blur(16px) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 36px rgba(255, 122, 69, 0.30),
+    0 0 84px rgba(122, 60, 255, 0.20),
+    inset 0 0 34px rgba(255, 255, 255, 0.08);
+  animation: aminiaOrbFloat 5s ease-in-out infinite;
+  isolation: isolate;
+}
+
+.agent-dialog.voice-stage .voice-orb::before {
+  content: "";
+  position: absolute;
+  inset: 7%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.28), transparent 54%);
+  pointer-events: none;
+}
+
+.agent-dialog.voice-stage .voice-orb::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 32px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.agent-dialog.voice-stage .voice-core {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: aminiaCoreBreathe 4.6s ease-in-out infinite;
+}
+
+.agent-dialog.voice-stage .voice-core::after {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.agent-dialog.voice-stage .voice-wave {
+  position: relative;
+  z-index: 2;
+  height: 42px;
+  gap: 4px;
+  filter: drop-shadow(0 0 8px rgba(255, 122, 69, 0.45));
+}
+
+.agent-dialog.voice-stage .voice-wave i {
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ffd2a8 0%, #ff9a1a 32%, #ff3d78 66%, #7a3cff 100%);
+  box-shadow: 0 0 7px rgba(255, 122, 69, 0.55);
+}
+.agent-dialog.voice-stage .voice-wave i:nth-child(1) { height: 12px; animation-delay: 0s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(2) { height: 24px; animation-delay: .12s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(3) { height: 34px; animation-delay: .24s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(4) { height: 20px; animation-delay: .36s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(5) { height: 30px; animation-delay: .48s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(6) { height: 16px; animation-delay: .6s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(7) { height: 26px; animation-delay: .72s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(8) { height: 22px; animation-delay: .84s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(9) { height: 32px; animation-delay: .96s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(10) { height: 18px; animation-delay: 1.08s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(11) { height: 28px; animation-delay: 1.2s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(12) { height: 14px; animation-delay: 1.32s; }
+.agent-dialog.voice-stage .voice-wave i:nth-child(13) { height: 24px; animation-delay: 1.44s; }
+
+.agent-dialog.voice-stage .voice-ring {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.agent-dialog.voice-stage .voice-ring.r1 {
+  inset: -8px;
+  border-color: rgba(255, 154, 26, 0.45);
+  box-shadow: 0 0 20px rgba(255, 154, 26, 0.18);
+}
+
+.agent-dialog.voice-stage .voice-ring.r2 {
+  inset: 3px;
+  border-style: solid;
+  opacity: 0.55;
+  border-color: rgba(122, 60, 255, 0.42);
+}
+
+.agent-dialog.voice-stage .voice-ring.r3 {
+  inset: 12px;
+  opacity: 0.4;
+  border-color: rgba(255, 61, 120, 0.42);
+}
+
+/* L'état de l'agent vit sous la sphère, comme un sous-titre. */
+.agent-dialog.voice-stage .voice-status {
+  display: block !important;
+  max-width: 30ch;
+  min-height: 1.2em;
+  margin: 8px auto 0;
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.35;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.agent-dialog.voice-stage .voice-status::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #ff7a45;
+  box-shadow: 0 0 8px #ff7a45;
+  vertical-align: 1px;
+  animation: aminiaStatusBlink 1.6s ease-in-out infinite;
+}
+
+.agent-dialog.voice-stage.is-listening .voice-orb {
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.16), transparent 44%),
+    radial-gradient(
+      circle at 34% 32%,
+      rgba(255, 154, 26, 0.22) 0%,
+      rgba(255, 61, 120, 0.28) 42%,
+      rgba(122, 60, 255, 0.26) 72%,
+      rgba(10, 10, 12, 0.14) 100%
+    );
+  box-shadow:
+    0 0 44px rgba(255, 61, 120, 0.42),
+    0 0 92px rgba(122, 60, 255, 0.24),
+    inset 0 0 34px rgba(255, 255, 255, 0.10);
+}
+
+.agent-dialog.voice-stage.is-listening .voice-core,
+.agent-dialog.voice-stage.is-done .voice-core {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.agent-dialog.voice-stage.is-speaking .voice-orb {
+  animation: aminiaOrbSpeak 0.9s ease-in-out infinite alternate;
+}
+
+.agent-dialog.voice-stage.is-thinking .voice-orb,
+.agent-dialog.voice-stage.is-searching .voice-orb,
+.agent-dialog.voice-stage.is-working .voice-orb {
+  border-color: rgba(255, 154, 26, 0.45);
+  box-shadow:
+    0 0 46px rgba(255, 154, 26, 0.38),
+    0 0 92px rgba(122, 60, 255, 0.22),
+    inset 0 0 36px rgba(255, 255, 255, 0.10);
+}
+
+.agent-dialog.voice-stage.is-thinking .voice-wave i { animation-duration: 1.1s; }
+.agent-dialog.voice-stage.is-working .voice-wave i { animation-duration: 0.7s; }
+.agent-dialog.voice-stage.is-searching .voice-wave i { animation-duration: 0.9s; }
+.agent-dialog.voice-stage.is-searching .voice-ring.r1 { border-color: rgba(255, 61, 120, 0.55); }
+
+.agent-dialog.voice-stage.is-done .voice-orb {
+  border-color: rgba(255, 210, 168, 0.5);
+  box-shadow:
+    0 0 38px rgba(255, 210, 168, 0.25),
+    0 0 80px rgba(122, 60, 255, 0.18),
+    inset 0 0 32px rgba(255, 255, 255, 0.10);
+}
+
+.agent-dialog.voice-stage .agent-mic {
+  background: linear-gradient(135deg, #ff9a1a 0%, #ff4d6a 52%, #7a3cff 100%);
+  color: #ffffff;
+  border: 0;
+  box-shadow: 0 10px 22px -12px rgba(255, 77, 106, 0.85);
+}
+
+.agent-dialog.voice-stage .agent-mic:hover {
+  background: linear-gradient(135deg, #ffb020 0%, #ff5c76 52%, #8a54ff 100%);
+  filter: brightness(1.05);
+}
+
+.agent-dialog.voice-stage .agent-mic.is-listening {
+  background: linear-gradient(135deg, #ff3d78 0%, #7a3cff 100%);
+  color: #ffffff;
+}
+
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form .btn-primary {
+  border-color: transparent;
+  background: linear-gradient(100deg, #ff9a1a 0%, #ff4d6a 55%, #7a3cff 100%);
+  color: #ffffff;
+}
+
+.agent-dialog.voice-stage .voice-chat-box .agent-chat-form input:focus {
+  outline-color: #ff9a1a;
+}
+
+.agent-dialog.voice-stage .agent-log li.ok { color: #ffd2a8; }
+
+@keyframes aminiaOrbFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes aminiaCoreBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
+
+@keyframes aminiaOrbSpeak {
+  from { transform: scale(1); }
+  to { transform: scale(1.075); }
+}
+
+@keyframes aminiaStatusBlink {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .agent-dialog.voice-stage .voice-orb { width: 92px; height: 92px; }
+  .agent-dialog.voice-stage .voice-core { width: 100%; height: 100%; }
+  .agent-dialog.voice-stage .voice-wave { height: 30px; gap: 3px; }
+  .agent-dialog.voice-stage .voice-wave i { width: 2.5px; }
+  .agent-dialog.voice-stage .voice-status { max-width: 28ch; margin-top: 6px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-dialog.voice-stage .voice-orb,
+  .agent-dialog.voice-stage .voice-core,
+  .agent-dialog.voice-stage .voice-status::before,
+  .agent-dialog.voice-stage .voice-ring {
+    animation: none;
+  }
 }

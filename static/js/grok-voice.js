@@ -204,9 +204,32 @@
     }
 
     var hangupTimer = null;
+    var STATUS_STATES = ["is-thinking", "is-working", "is-searching", "is-speaking", "is-done"];
 
     function setStatus(text) {
       if (statusEl) statusEl.textContent = text;
+      if (!dialog) return;
+      var value = (text || "").toLowerCase();
+      var state = "";
+      if (value.indexOf("annuaire") >= 0 || value.indexOf("recherche") >= 0) {
+        state = "is-searching";
+      } else if (
+        value.indexOf("saisit") >= 0 ||
+        value.indexOf("écrit") >= 0 ||
+        value.indexOf("brouillon") >= 0 ||
+        value.indexOf("prépare") >= 0
+      ) {
+        state = "is-working";
+      } else if (value.indexOf("réfléchi") >= 0 || value.indexOf("analyse") >= 0) {
+        state = "is-thinking";
+      } else if (value.indexOf("parle") >= 0 || value.indexOf("répond") >= 0) {
+        state = "is-speaking";
+      } else if (value.indexOf("enregistré") >= 0 || value.indexOf("bientôt") >= 0) {
+        state = "is-done";
+      }
+      STATUS_STATES.forEach(function (name) {
+        dialog.classList.toggle(name, name === state);
+      });
     }
 
     /* Pendant une opération (brouillon, recherche…), l'overlay se réduit en

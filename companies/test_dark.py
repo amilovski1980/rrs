@@ -1,4 +1,4 @@
-"""La vitrine /dark est une autre voix. L'accueil / reste celui des bâtisseurs."""
+"""La vitrine officielle est sombre. L'ancienne page claire redirige vers l'accueil."""
 import re
 from decimal import Decimal
 from unittest.mock import patch
@@ -61,27 +61,17 @@ class DarkRoutingTests(TestCase):
         self.assertNotIn("img/logo", body)
         self.assertEqual(Plan.objects.count(), 0)
 
-    def test_classic_home_keeps_its_design_and_copy(self):
+    def test_home_is_the_official_dark_design(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        self.assertIn("app.css", body)
-        self.assertIn("Inter", body)
-        self.assertIn("La comptabilité de vos sociétés", body)
-        self.assertIn("enfin sans friction", body)
-        self.assertIn("Conçu pour les bâtisseurs", body)
-        self.assertIn("Un prix simple, par bâtisseur", body)
-        self.assertIn('action="/recherche/"', body)
-        self.assertContains(
-            response,
-            '<a class="btn btn-lg btn-primary" href="#recherche">Commencer l\'essai</a>',
-            html=True,
-        )
-        self.assertIn("img/logo", body)
-        self.assertNotIn("dark.css", body)
-        self.assertNotIn("img/dark/", body)
-        self.assertNotIn("La compta de votre startup", body)
-        self.assertNotIn("tenue nette", body)
+        self.assertIn("dark.css", body)
+        self.assertIn("La compta de votre startup", body)
+        self.assertIn("tenue nette", body)
+        self.assertIn("data-theme-toggle", body)
+        self.assertIn("img/dark/", body)
+        self.assertNotIn("app.css", body)
+        self.assertNotIn("img/logo", body)
 
     def test_published_blurb_is_kept_on_dark(self):
         Plan.objects.create(

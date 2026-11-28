@@ -1157,7 +1157,7 @@ body.agent-open .agent-fab { visibility: hidden; pointer-events: none; }
   margin-left: 4px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 3px rgba(61, 220, 106, .18);
+  box-shadow: 0 0 0 3px rgba(255, 122, 69, .18);
   animation: pulse 1.6s infinite;
 }
 .agent-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
@@ -1500,7 +1500,7 @@ html[data-theme="dark"] .progressbar > i {
     font-family: var(--font-head); font-weight: 800; font-size: 16px;
   }
   .bank-item-ico.is-out { background: rgba(255, 61, 120, 0.12); color: #c81b52; }
-  .bank-item-ico.is-in { background: rgba(52, 211, 153, 0.16); color: #0f9d6a; }
+  .bank-item-ico.is-in { background: rgba(255, 122, 69, 0.16); color: #0f9d6a; }
   .bank-item-main { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
   .bank-item-main b {
     font-size: 13.5px; color: var(--ink);
@@ -1523,7 +1523,7 @@ html[data-theme="dark"] .bank-item {
   box-shadow: none;
 }
 html[data-theme="dark"] .bank-item-ico.is-out { background: rgba(255, 61, 120, 0.16); color: #ff8aa0; }
-html[data-theme="dark"] .bank-item-ico.is-in { background: rgba(52, 211, 153, 0.14); color: #34d399; }
+html[data-theme="dark"] .bank-item-ico.is-in { background: rgba(255, 122, 69, 0.14); color: #34d399; }
 html[data-theme="dark"] .bank-item-amount.is-neg { color: var(--ink); }
 html[data-theme="dark"] .bank-item-amount.is-pos { color: #34d399; }
 
@@ -1759,8 +1759,8 @@ html[data-theme="dark"] .agent-chat-bubble--assistant .agent-chat-speak { backgr
 
 html[data-theme="dark"] .socie-row .card { background: #121214; }
 html[data-theme="dark"] .socie-stats div { background: rgba(255, 255, 255, .04); }
-html[data-theme="dark"] .socie-share { background: rgba(61, 220, 106, .16); color: #3ddc6a; }
-html[data-theme="dark"] .global-bar { fill: #c6ffb1; }
+html[data-theme="dark"] .socie-share { background: rgba(255, 122, 69, .16); color: #ff7a45; }
+html[data-theme="dark"] .global-bar { fill: #ffd2a8; }
 html[data-theme="dark"] .global-bar-prev { fill: rgba(255, 255, 255, .18); }
 
 @media (max-width: 1100px) { .global-kpis { grid-template-columns: repeat(3, 1fr); } }
@@ -3254,7 +3254,7 @@ label.ticket-camera-btn.btn-primary:hover {
 /* ---------- Dashboard & Data Visualization ---------- */
 :root {
   --data-indigo: #6366f1;
-  --data-emerald: #10b981;
+  --data-emerald: #e23cff;
   --data-amber: #f59e0b;
   --data-rose: #f43f5e;
   --data-sky: #0ea5e9;
@@ -4546,7 +4546,7 @@ body.voice-shell-active .live-invoice { z-index: 125 !important; }
   margin-right: 4px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 3px rgba(61, 220, 106, .16);
+  box-shadow: 0 0 0 3px rgba(255, 122, 69, .16);
   animation: pulse 1.6s infinite;
 }
 .import-activity {
@@ -4825,11 +4825,11 @@ html[data-theme="dark"] .m-footer {
 }
 html[data-theme="dark"] .m-footer-btn { color: #a4a4ab; }
 html[data-theme="dark"] .m-footer-ico { color: #d4d4d8; }
-html[data-theme="dark"] .m-footer-btn.active { color: #3ddc6a; }
+html[data-theme="dark"] .m-footer-btn.active { color: #ff7a45; }
 html[data-theme="dark"] .m-footer-btn.active .m-footer-ico {
   color: #070708;
-  background: linear-gradient(135deg, #3ddc6a 0%, #c6ffb1 100%);
-  box-shadow: 0 8px 20px -6px rgba(61, 220, 106, .45);
+  background: linear-gradient(135deg, #ff7a45 0%, #ffd2a8 100%);
+  box-shadow: 0 8px 20px -6px rgba(255, 122, 69, .45);
 }
 
 
@@ -4901,7 +4901,7 @@ html[data-theme='dark'] .pwa-install-pill {
 .pwa-ios-hint-copy b { font-weight: 800; }
 .pwa-ios-hint-copy .icon {
   width: 15px; height: 15px; display: inline-block; vertical-align: -3px;
-  color: #3ddc6a;
+  color: #ff7a45;
 }
 .pwa-ios-hint-close {
   flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
@@ -5609,4 +5609,9 @@ html[data-theme='dark'] .socie-urgent {
   }
   .agent-dialog.voice-stage .voice-orb { width: 128px; height: 128px; }
   .agent-dialog.voice-stage .voice-core { width: 84px; height: 84px; }
+}
+
+/* Wordmark de la barre latérale : desktop uniquement (le header mobile reste sans). */
+@media (max-width: 900px) {
+  .sidebar .brand-word { display: none; }
 }
