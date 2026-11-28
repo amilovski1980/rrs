@@ -21,11 +21,8 @@
         </form>
         <p class="help">Annuaire public des entreprises. Rien n'est enregistré tant que vous n'avez pas confirmé la fiche.</p>
         <p class="hero-links">
-          <a href="{% url 'demo_login' %}">Voir la démo</a>
-          <span aria-hidden="true">·</span>
-          <a href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
-          <span aria-hidden="true">·</span>
-          <a href="{% url 'landing_light' %}" rel="nofollow" aria-label="Passer en mode clair">☀ Mode clair</a>
+          <a class="btn btn-white btn-sm" href="{% url 'demo_login' %}">Essayer la démo</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'magic_link_request' %}">J'ai déjà un compte</a>
         </p>
       </div>
       <p class="micro">{{ pricing_trial_line }}</p>
